@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mobilya Mağazası - Dinamik</title>
+<script src="https://cdn.tailwindcss.com/3.4.16"></script>
+<link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.6.0/remixicon.min.css">
+
+<script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore-compat.js"></script>
+
+<style>
+    body { font-family: 'Poppins', sans-serif; scroll-behavior: smooth; }
+    .product-card:hover .quick-view { opacity: 1; }
+    .badge-free-shipping { background-color: rgba(229, 115, 115, 0.1); color: #E57373; }
+    .color-option { width: 16px; height: 16px; border-radius: 50%; cursor: pointer; border: 1px solid #e0e0e0; }
+    .color-option.selected { border: 2px solid #E57373; }
+    .hide-scrollbar::-webkit-scrollbar { display: none; }
+    .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+</style>
+</head>
+<body id="top" class="bg-white text-gray-800">
+
+<nav class="fixed top-0 w-full bg-white shadow-sm z-50 px-4 py-3">
+    <div class="flex items-center justify-between">
+        <div class="font-['Pacifico'] text-red-400 text-xl">Furni</div>
+        <div class="relative w-1/2">
+            <input type="text" placeholder="Mobilya ara..." class="w-full py-2 pl-10 pr-4 text-sm border border-gray-200 rounded-full focus:outline-none focus:border-red-400">
+            <div class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 flex items-center justify-center text-gray-400">
+                <i class="ri-search-line"></i>
+            </div>
+        </div>
+        <div class="flex items-center space-x-4">
+            <div class="w-8 h-8 flex items-center justify-center cursor-pointer relative"><i class="ri-heart-line text-xl"></i></div>
+            <div class="w-8 h-8 flex items-center justify-center cursor-pointer relative">
+                <i class="ri-shopping-cart-line text-xl"></i>
+                <span id="cart-badge" class="absolute -top-1 -right-1 bg-red-400 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">0</span>
+            </div>
+            <div class="w-8 h-8 flex items-center justify-center cursor-pointer"><i class="ri-user-line text-xl"></i></div>
+        </div>
+    </div>
+</nav>
+
+<main class="pt-16 pb-20">
+    <div class="relative w-full h-48 overflow-hidden">
+        <img src="https://readdy.ai/api/search-image?query=modern%20minimalist%20living%20room%20with%20stylish%20furniture%2C%20soft%20lighting%2C%20neutral%20colors%2C%20Scandinavian%20design%2C%20cozy%20atmosphere%2C%20high-end%20interior%20photography%2C%20professional%20lighting&width=800&height=400" alt="Modern Mobilya" class="w-full h-full object-cover">
+        <div class="absolute inset-0 bg-black bg-opacity-30 flex flex-col items-start justify-center px-6">
+            <span class="badge-free-shipping text-xs font-medium px-2 py-1 rounded-full mb-2">Ücretsiz Kargo</span>
+            <h1 class="text-white text-2xl font-semibold mb-1">Yaz Koleksiyonu</h1>
+            <p class="text-white text-sm mb-3">Tüm ürünlerde %30'a varan indirim</p>
+            <a href="#" class="inline-block bg-red-400 text-white px-4 py-2 rounded-md text-sm font-medium cursor-pointer">Alışverişe Başla</a>
+        </div>
+    </div>
+
+    <div class="px-4 py-6">
+        <h2 class="text-lg font-semibold mb-4">Kategoriler</h2>
+        <div id="categories-container" class="flex overflow-x-auto space-x-4 pb-2 hide-scrollbar">
+            <div class="text-center p-4">Yükleniyor...</div>
+        </div>
+    </div>
+
+    <div class="px-4 py-4">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-lg font-semibold">Öne Çıkan Ürünler</h2>
+            <a href="#" class="text-red-400 text-sm cursor-pointer">Tümünü Gör</a>
+        </div>
+        <div id="featured-products-container" class="grid grid-cols-2 gap-4">
+            </div>
+    </div>
+
+    <div class="px-4 py-4">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-lg font-semibold">Çok Satanlar</h2>
+            <a href="#" class="text-red-400 text-sm cursor-pointer">Tümünü Gör</a>
+        </div>
+        <div id="best-sellers-container" class="grid grid-cols-2 gap-4">
+            </div>
+    </div>
+
+    <div class="px-4 py-6 bg-gray-50 mt-6">
+        <div class="grid grid-cols-2 gap-4">
+            <div class="bg-white p-4 rounded-lg shadow-sm flex flex-col items-center text-center">
+                <i class="ri-truck-line text-2xl text-red-400 mb-2"></i>
+                <h3 class="text-sm font-medium mb-1">Ücretsiz Kargo</h3>
+                <p class="text-xs text-gray-500">1.000 ₺ üzeri</p>
+            </div>
+            <div class="bg-white p-4 rounded-lg shadow-sm flex flex-col items-center text-center">
+                <i class="ri-shield-check-line text-2xl text-red-400 mb-2"></i>
+                <h3 class="text-sm font-medium mb-1">2 Yıl Garanti</h3>
+                <p class="text-xs text-gray-500">Tüm ürünlerde</p>
+            </div>
+        </div>
+    </div>
+    <div class="px-4 py-6">
+        <div class="bg-gray-100 p-4 rounded-lg">
+            <h3 class="text-base font-semibold mb-2">Bültenimize Abone Olun</h3>
+            <div class="flex">
+                <input type="email" placeholder="E-posta adresiniz" class="flex-1 py-2 px-3 text-sm border border-gray-200 rounded-l-md focus:outline-none">
+                <button class="bg-red-400 text-white px-4 py-2 rounded-r-md text-sm font-medium">Abone Ol</button>
+            </div>
+        </div>
+    </div>
+</main>
+
+<div class="fixed bottom-0 w-full bg-white border-t border-gray-200 px-2 py-2 grid grid-cols-5 z-50">
+    <a href="#top" class="flex flex-col items-center justify-center text-red-400"><i class="ri-home-5-fill text-xl"></i><span class="text-xs mt-1">Ana Sayfa</span></a>
+    <a href="#" class="flex flex-col items-center justify-center text-gray-500"><i class="ri-apps-line text-xl"></i><span class="text-xs mt-1">Kategoriler</span></a>
+    <a href="#" class="flex flex-col items-center justify-center"><div class="w-12 h-12 bg-red-400 rounded-full flex items-center justify-center text-white -mt-5"><i class="ri-shopping-cart-2-line text-xl"></i></div><span class="text-xs mt-1">Sepet</span></a>
+    <a href="#" class="flex flex-col items-center justify-center text-gray-500"><i class="ri-heart-line text-xl"></i><span class="text-xs mt-1">Favoriler</span></a>
+    <a href="#" class="flex flex-col items-center justify-center text-gray-500"><i class="ri-user-line text-xl"></i><span class="text-xs mt-1">Hesabım</span></a>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // ======================================================
+    // 1. FIREBASE YAPILANDIRMASI
+    // ======================================================
+    // Firebase projenizden aldığınız yapılandırma bilgilerini buraya yapıştırın.
+    const firebaseConfig = {
+      apiKey: "SENIN_API_KEY",
+      authDomain: "SENIN_PROJE_ID.firebaseapp.com",
+      projectId: "SENIN_PROJE_ID",
+      storageBucket: "SENIN_PROJE_ID.appspot.com",
+      messagingSenderId: "SENIN_SENDER_ID",
+      appId: "SENIN_APP_ID"
+    };
+
+    // Firebase'i başlat
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // ======================================================
+    // 2. DOM ELEMENTLERİ
+    // ======================================================
+    const categoriesContainer = document.getElementById('categories-container');
+    const featuredProductsContainer = document.getElementById('featured-products-container');
+    const bestSellersContainer = document.getElementById('best-sellers-container');
+    const cartBadge = document.getElementById('cart-badge');
+
+    // ======================================================
+    // 3. HTML ŞABLONLARI (Template Functions)
+    // ======================================================
+
+    // Kategori HTML'ini oluşturan fonksiyon
+    const createCategoryHTML = (category) => {
+        return `
+            <a href="#" class="flex flex-col items-center min-w-[64px]">
+                <div class="w-16 h-16 rounded-full overflow-hidden mb-2 shadow-sm">
+                    <img src="${category.imageUrl}" alt="${category.name}" class="w-full h-full object-cover">
+                </div>
+                <span class="text-xs text-center">${category.name}</span>
+            </a>
+        `;
+    };
+
+    // Ürün kartı HTML'ini oluşturan fonksiyon
+    const createProductCardHTML = (product) => {
+        const colorsHTML = product.colors.map((color, index) =>
+            `<div class="color-option ${index === 0 ? 'selected' : ''}" style="background-color:${color};" data-color-name="${product.colorNames[index]}"></div>`
+        ).join('');
+
+        return `
+            <div class="product-card bg-white rounded-lg shadow-sm overflow-hidden flex flex-col">
+                <div class="relative">
+                    <img src="${product.imageUrl}" alt="${product.name}" class="w-full h-40 object-cover">
+                    ${product.hasFreeShipping ? '<div class="absolute top-2 left-2 badge-free-shipping text-xs font-medium px-2 py-1 rounded-full"><i class="ri-truck-line mr-1 text-xs"></i>Ücretsiz Kargo</div>' : ''}
+                    <div class="quick-view absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 transition-opacity duration-300">
+                        <button class="bg-white text-gray-800 px-3 py-1 rounded-md text-xs font-medium cursor-pointer">Hızlı Bakış</button>
+                    </div>
+                </div>
+                <div class="p-3 flex flex-col flex-grow">
+                    <div class="flex space-x-1 mb-2">${colorsHTML}</div>
+                    <h3 class="text-sm font-medium mb-1 flex-grow">${product.name}</h3>
+                    <div class="flex items-center justify-between mt-2">
+                        <div>
+                            <span class="text-red-400 font-semibold">${product.price.toLocaleString('tr-TR')} ₺</span>
+                            <span class="text-gray-400 text-xs line-through ml-1">${product.oldPrice.toLocaleString('tr-TR')} ₺</span>
+                        </div>
+                        <button class="add-to-cart-btn w-8 h-8 flex items-center justify-center bg-red-400 text-white rounded-full cursor-pointer flex-shrink-0">
+                            <i class="ri-add-line"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    };
+
+    // ======================================================
+    // 4. VERİ ÇEKME VE RENDER ETME
+    // ======================================================
+
+    // Kategorileri Firestore'dan çek ve render et
+    const renderCategories = async () => {
+        try {
+            const snapshot = await db.collection('categories').get();
+            if (snapshot.empty) {
+                categoriesContainer.innerHTML = '<p>Kategori bulunamadı.</p>';
+                return;
+            }
+            let categoriesHTML = '';
+            snapshot.forEach(doc => {
+                categoriesHTML += createCategoryHTML(doc.data());
+            });
+            categoriesContainer.innerHTML = categoriesHTML;
+        } catch (error) {
+            console.error("Kategoriler çekilirken hata oluştu: ", error);
+            categoriesContainer.innerHTML = '<p>Kategoriler yüklenemedi.</p>';
+        }
+    };
+
+    // Ürünleri Firestore'dan çek ve render et
+    const renderProducts = async () => {
+        try {
+            const snapshot = await db.collection('products').get();
+            if (snapshot.empty) {
+                featuredProductsContainer.innerHTML = '<p>Ürün bulunamadı.</p>';
+                return;
+            }
+            let featuredHTML = '';
+            let bestSellersHTML = '';
+            snapshot.forEach(doc => {
+                const product = doc.data();
+                const cardHTML = createProductCardHTML(product);
+                if (product.isFeatured) {
+                    featuredHTML += cardHTML;
+                }
+                if (product.isBestSeller) {
+                    bestSellersHTML += cardHTML;
+                }
+            });
+            featuredProductsContainer.innerHTML = featuredHTML || '<p>Öne çıkan ürün yok.</p>';
+            bestSellersContainer.innerHTML = bestSellersHTML || '<p>Çok satan ürün yok.</p>';
+        } catch (error) {
+            console.error("Ürünler çekilirken hata oluştu: ", error);
+            featuredProductsContainer.innerHTML = '<p>Ürünler yüklenemedi.</p>';
+        }
+    };
+
+
+    // ======================================================
+    // 5. OLAY DİNLEYİCİLERİ (Event Listeners)
+    // ======================================================
+    // Olayları ana kapsayıcılara atayarak performansı artırıyoruz (Event Delegation)
+    document.body.addEventListener('click', (e) => {
+        // Renk seçimi
+        if (e.target.matches('.color-option')) {
+            const siblings = e.target.parentElement.querySelectorAll('.color-option');
+            siblings.forEach(sibling => sibling.classList.remove('selected'));
+            e.target.classList.add('selected');
+        }
+
+        // Sepete ekle butonu
+        if (e.target.matches('.add-to-cart-btn') || e.target.parentElement.matches('.add-to-cart-btn')) {
+            const currentCount = parseInt(cartBadge.textContent);
+            cartBadge.textContent = currentCount + 1;
+
+            // Bildirim göster
+            const toast = document.createElement('div');
+            toast.className = 'fixed bottom-20 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-4 py-2 rounded-lg text-sm z-50';
+            toast.textContent = `Ürün sepete eklendi!`;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 2000);
+        }
+    });
+
+
+    // ======================================================
+    // 6. İLK YÜKLEME
+    // ======================================================
+    renderCategories();
+    renderProducts();
+});
+</script>
+
+</body>
+</html>
