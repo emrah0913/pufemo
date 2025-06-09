@@ -1,279 +1,615 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mobilya Mağazası - Dinamik</title>
-<script src="https://cdn.tailwindcss.com/3.4.16"></script>
-<link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.6.0/remixicon.min.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pufemo</title>
 
-<script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore-compat.js"></script>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
 
-<style>
-    body { font-family: 'Poppins', sans-serif; scroll-behavior: smooth; }
-    .product-card:hover .quick-view { opacity: 1; }
-    .badge-free-shipping { background-color: rgba(229, 115, 115, 0.1); color: #E57373; }
-    .color-option { width: 16px; height: 16px; border-radius: 50%; cursor: pointer; border: 1px solid #e0e0e0; }
-    .color-option.selected { border: 2px solid #E57373; }
-    .hide-scrollbar::-webkit-scrollbar { display: none; }
-    .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-</style>
+    <!-- Fontlar ve İkonlar -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet" />
+
+    <style>
+        body { font-family: 'Poppins', sans-serif; }
+        /* Açılır menüler için temel stil */
+        .group:hover .group-hover\:block { display: block; }
+    </style>
 </head>
-<body id="top" class="bg-white text-gray-800">
+<body class="bg-gray-50">
 
-<nav class="fixed top-0 w-full bg-white shadow-sm z-50 px-4 py-3">
-    <div class="flex items-center justify-between">
-        <div class="font-['Pacifico'] text-red-400 text-xl">Furni</div>
-        <div class="relative w-1/2">
-            <input type="text" placeholder="Mobilya ara..." class="w-full py-2 pl-10 pr-4 text-sm border border-gray-200 rounded-full focus:outline-none focus:border-red-400">
-            <div class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 flex items-center justify-center text-gray-400">
-                <i class="ri-search-line"></i>
-            </div>
-        </div>
-        <div class="flex items-center space-x-4">
-            <div class="w-8 h-8 flex items-center justify-center cursor-pointer relative"><i class="ri-heart-line text-xl"></i></div>
-            <div class="w-8 h-8 flex items-center justify-center cursor-pointer relative">
-                <i class="ri-shopping-cart-line text-xl"></i>
-                <span id="cart-badge" class="absolute -top-1 -right-1 bg-red-400 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">0</span>
-            </div>
-            <div class="w-8 h-8 flex items-center justify-center cursor-pointer"><i class="ri-user-line text-xl"></i></div>
-        </div>
-    </div>
-</nav>
-
-<main class="pt-16 pb-20">
-    <div class="relative w-full h-48 overflow-hidden">
-        <img src="https://readdy.ai/api/search-image?query=modern%20minimalist%20living%20room%20with%20stylish%20furniture%2C%20soft%20lighting%2C%20neutral%20colors%2C%20Scandinavian%20design%2C%20cozy%20atmosphere%2C%20high-end%20interior%20photography%2C%20professional%20lighting&width=800&height=400" alt="Modern Mobilya" class="w-full h-full object-cover">
-        <div class="absolute inset-0 bg-black bg-opacity-30 flex flex-col items-start justify-center px-6">
-            <span class="badge-free-shipping text-xs font-medium px-2 py-1 rounded-full mb-2">Ücretsiz Kargo</span>
-            <h1 class="text-white text-2xl font-semibold mb-1">Yaz Koleksiyonu</h1>
-            <p class="text-white text-sm mb-3">Tüm ürünlerde %30'a varan indirim</p>
-            <a href="#" class="inline-block bg-red-400 text-white px-4 py-2 rounded-md text-sm font-medium cursor-pointer">Alışverişe Başla</a>
-        </div>
-    </div>
-
-    <div class="px-4 py-6">
-        <h2 class="text-lg font-semibold mb-4">Kategoriler</h2>
-        <div id="categories-container" class="flex overflow-x-auto space-x-4 pb-2 hide-scrollbar">
-            <div class="text-center p-4">Yükleniyor...</div>
-        </div>
-    </div>
-
-    <div class="px-4 py-4">
-        <div class="flex justify-between items-center mb-4">
-            <h2 class="text-lg font-semibold">Öne Çıkan Ürünler</h2>
-            <a href="#" class="text-red-400 text-sm cursor-pointer">Tümünü Gör</a>
-        </div>
-        <div id="featured-products-container" class="grid grid-cols-2 gap-4">
-            </div>
-    </div>
-
-    <div class="px-4 py-4">
-        <div class="flex justify-between items-center mb-4">
-            <h2 class="text-lg font-semibold">Çok Satanlar</h2>
-            <a href="#" class="text-red-400 text-sm cursor-pointer">Tümünü Gör</a>
-        </div>
-        <div id="best-sellers-container" class="grid grid-cols-2 gap-4">
-            </div>
-    </div>
-
-    <div class="px-4 py-6 bg-gray-50 mt-6">
-        <div class="grid grid-cols-2 gap-4">
-            <div class="bg-white p-4 rounded-lg shadow-sm flex flex-col items-center text-center">
-                <i class="ri-truck-line text-2xl text-red-400 mb-2"></i>
-                <h3 class="text-sm font-medium mb-1">Ücretsiz Kargo</h3>
-                <p class="text-xs text-gray-500">1.000 ₺ üzeri</p>
-            </div>
-            <div class="bg-white p-4 rounded-lg shadow-sm flex flex-col items-center text-center">
-                <i class="ri-shield-check-line text-2xl text-red-400 mb-2"></i>
-                <h3 class="text-sm font-medium mb-1">2 Yıl Garanti</h3>
-                <p class="text-xs text-gray-500">Tüm ürünlerde</p>
-            </div>
-        </div>
-    </div>
-    <div class="px-4 py-6">
-        <div class="bg-gray-100 p-4 rounded-lg">
-            <h3 class="text-base font-semibold mb-2">Bültenimize Abone Olun</h3>
-            <div class="flex">
-                <input type="email" placeholder="E-posta adresiniz" class="flex-1 py-2 px-3 text-sm border border-gray-200 rounded-l-md focus:outline-none">
-                <button class="bg-red-400 text-white px-4 py-2 rounded-r-md text-sm font-medium">Abone Ol</button>
-            </div>
-        </div>
-    </div>
-</main>
-
-<div class="fixed bottom-0 w-full bg-white border-t border-gray-200 px-2 py-2 grid grid-cols-5 z-50">
-    <a href="#top" class="flex flex-col items-center justify-center text-red-400"><i class="ri-home-5-fill text-xl"></i><span class="text-xs mt-1">Ana Sayfa</span></a>
-    <a href="#" class="flex flex-col items-center justify-center text-gray-500"><i class="ri-apps-line text-xl"></i><span class="text-xs mt-1">Kategoriler</span></a>
-    <a href="#" class="flex flex-col items-center justify-center"><div class="w-12 h-12 bg-red-400 rounded-full flex items-center justify-center text-white -mt-5"><i class="ri-shopping-cart-2-line text-xl"></i></div><span class="text-xs mt-1">Sepet</span></a>
-    <a href="#" class="flex flex-col items-center justify-center text-gray-500"><i class="ri-heart-line text-xl"></i><span class="text-xs mt-1">Favoriler</span></a>
-    <a href="#" class="flex flex-col items-center justify-center text-gray-500"><i class="ri-user-line text-xl"></i><span class="text-xs mt-1">Hesabım</span></a>
-</div>
-
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-    // ======================================================
-    // 1. FIREBASE YAPILANDIRMASI
-    // ======================================================
-    // Firebase projenizden aldığınız yapılandırma bilgilerini buraya yapıştırın.
-    const firebaseConfig = {
-      apiKey: "SENIN_API_KEY",
-      authDomain: "SENIN_PROJE_ID.firebaseapp.com",
-      projectId: "SENIN_PROJE_ID",
-      storageBucket: "SENIN_PROJE_ID.appspot.com",
-      messagingSenderId: "SENIN_SENDER_ID",
-      appId: "SENIN_APP_ID"
-    };
-
-    // Firebase'i başlat
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
-
-    // ======================================================
-    // 2. DOM ELEMENTLERİ
-    // ======================================================
-    const categoriesContainer = document.getElementById('categories-container');
-    const featuredProductsContainer = document.getElementById('featured-products-container');
-    const bestSellersContainer = document.getElementById('best-sellers-container');
-    const cartBadge = document.getElementById('cart-badge');
-
-    // ======================================================
-    // 3. HTML ŞABLONLARI (Template Functions)
-    // ======================================================
-
-    // Kategori HTML'ini oluşturan fonksiyon
-    const createCategoryHTML = (category) => {
-        return `
-            <a href="#" class="flex flex-col items-center min-w-[64px]">
-                <div class="w-16 h-16 rounded-full overflow-hidden mb-2 shadow-sm">
-                    <img src="${category.imageUrl}" alt="${category.name}" class="w-full h-full object-cover">
+    <!-- =========== HEADER / NAVİGASYON =========== -->
+    <header class="bg-white shadow-sm sticky top-0 z-40">
+        <nav class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <!-- Logo -->
+            <a href="#home" id="header-logo" class="text-2xl font-bold text-gray-800">Pufemo</a>
+            
+            <!-- Arama Çubuğu (Desktop) -->
+            <div class="hidden md:block w-1/3">
+                 <div class="relative">
+                    <input type="text" placeholder="Ürün ara..." class="w-full py-2 pl-4 pr-10 text-sm border border-gray-200 rounded-full focus:outline-none focus:border-gray-400">
+                    <i class="ri-search-line absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
                 </div>
-                <span class="text-xs text-center">${category.name}</span>
-            </a>
-        `;
-    };
+            </div>
 
-    // Ürün kartı HTML'ini oluşturan fonksiyon
-    const createProductCardHTML = (product) => {
-        const colorsHTML = product.colors.map((color, index) =>
-            `<div class="color-option ${index === 0 ? 'selected' : ''}" style="background-color:${color};" data-color-name="${product.colorNames[index]}"></div>`
-        ).join('');
-
-        return `
-            <div class="product-card bg-white rounded-lg shadow-sm overflow-hidden flex flex-col">
-                <div class="relative">
-                    <img src="${product.imageUrl}" alt="${product.name}" class="w-full h-40 object-cover">
-                    ${product.hasFreeShipping ? '<div class="absolute top-2 left-2 badge-free-shipping text-xs font-medium px-2 py-1 rounded-full"><i class="ri-truck-line mr-1 text-xs"></i>Ücretsiz Kargo</div>' : ''}
-                    <div class="quick-view absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 transition-opacity duration-300">
-                        <button class="bg-white text-gray-800 px-3 py-1 rounded-md text-xs font-medium cursor-pointer">Hızlı Bakış</button>
+            <!-- Sağ İkonlar ve Menüler -->
+            <div class="flex items-center space-x-4">
+                <!-- Dil/Para Birimi Değiştirici -->
+                <div class="relative group">
+                    <button class="flex items-center space-x-1 text-gray-600">
+                        <span id="currency-display">TRY</span>
+                        <i class="ri-arrow-down-s-line"></i>
+                    </button>
+                    <div id="currency-menu" class="absolute right-0 mt-2 w-40 bg-white rounded-md shadow-lg p-2 hidden group-hover:block">
+                        <!-- Ülkeler buraya JS ile eklenecek -->
                     </div>
                 </div>
-                <div class="p-3 flex flex-col flex-grow">
-                    <div class="flex space-x-1 mb-2">${colorsHTML}</div>
-                    <h3 class="text-sm font-medium mb-1 flex-grow">${product.name}</h3>
-                    <div class="flex items-center justify-between mt-2">
-                        <div>
-                            <span class="text-red-400 font-semibold">${product.price.toLocaleString('tr-TR')} ₺</span>
-                            <span class="text-gray-400 text-xs line-through ml-1">${product.oldPrice.toLocaleString('tr-TR')} ₺</span>
+
+                <!-- Google ile Giriş Butonu -->
+                <div id="auth-container">
+                    <button id="login-btn" class="bg-gray-800 text-white px-3 py-1 rounded-md text-sm">Giriş Yap</button>
+                    <div id="user-info" class="hidden items-center space-x-2">
+                        <img id="user-avatar" class="w-8 h-8 rounded-full" src="" alt="Avatar">
+                        <button id="logout-btn" class="text-sm text-gray-600">Çıkış</button>
+                    </div>
+                </div>
+
+                <!-- Sepet -->
+                <a href="#cart" class="relative">
+                    <i class="ri-shopping-bag-line text-2xl text-gray-700"></i>
+                    <span id="cart-badge" class="absolute -top-1 -right-2 bg-red-500 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">0</span>
+                </a>
+            </div>
+        </nav>
+    </header>
+
+    <!-- =========== ANA İÇERİK BÖLÜMÜ =========== -->
+    <!-- Sayfalar JavaScript ile bu bölüme yüklenecek -->
+    <main id="app-container" class="container mx-auto p-4">
+        <!-- Yükleniyor... ekranı -->
+        <div id="loader" class="text-center py-20">
+            <p class="text-gray-500">Yükleniyor...</p>
+        </div>
+    </main>
+
+    <!-- =========== FOOTER =========== -->
+    <footer class="bg-gray-800 text-white mt-10">
+        <div class="container mx-auto p-8 text-center">
+            <p>&copy; 2025 Pufemo. Tüm hakları saklıdır.</p>
+            <div class="mt-4 space-x-4">
+                <a href="#orders" class="hover:underline">Siparişlerim</a>
+                <a href="#admin" class="hover:underline">Admin Panel</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Firebase SDK'ları -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+
+
+    <!-- =================================================================================== -->
+    <!--                            ANA UYGULAMA JAVASCRIPT'İ                                -->
+    <!-- =================================================================================== -->
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+
+        // ============================
+        // 1. FIREBASE & TEMEL AYARLAR
+        // ============================
+        const firebaseConfig = {
+            // BURAYA KENDİ FIREBASE PROJE BİLGİLERİNİZİ GİRİN
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT_ID.appspot.com",
+            messagingSenderId: "YOUR_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+        const provider = new firebase.auth.GoogleAuthProvider();
+
+        // Ülke ve para birimi ayarları
+        const countrySettings = {
+            'TR': { name: 'Türkiye', lang: 'tr', currency: 'TRY', rate: 35.5 },
+            'GB': { name: 'United Kingdom', lang: 'en', currency: 'GBP', rate: 0.85 },
+            'DE': { name: 'Deutschland', lang: 'de', currency: 'EUR', rate: 1.0 },
+            'CY': { name: 'Kıbrıs', lang: 'tr', currency: 'TRY', rate: 35.5 },
+            'GR': { name: 'Greece', lang: 'el', currency: 'EUR', rate: 1.0 },
+            'RU': { name: 'Russia', lang: 'ru', currency: 'RUB', rate: 99.0 },
+        };
+        const defaultCountry = 'TR';
+        
+        // Uygulama genelindeki durum (state)
+        let AppState = {
+            user: null,
+            cart: JSON.parse(localStorage.getItem('pufemoCart')) || [],
+            currencyInfo: null,
+            products: [],
+            categories: [],
+            siteSettings: {}
+        };
+
+        // DOM Elementleri
+        const appContainer = document.getElementById('app-container');
+        const cartBadge = document.getElementById('cart-badge');
+        const loginBtn = document.getElementById('login-btn');
+        const logoutBtn = document.getElementById('logout-btn');
+        const authContainer = document.getElementById('auth-container');
+        const userInfoDiv = document.getElementById('user-info');
+        const userAvatar = document.getElementById('user-avatar');
+
+
+        // ===================================
+        // 2. SAYFA YÖNLENDİRME (ROUTING)
+        // ===================================
+        const routes = {
+            '': renderHomePage,
+            'home': renderHomePage,
+            'product': renderProductPage,
+            'cart': renderCartPage,
+            'checkout': renderCheckoutPage,
+            'orders': renderOrdersPage,
+            'admin': renderAdminPage,
+            'order-success': renderOrderSuccessPage
+        };
+
+        function router() {
+            const hash = window.location.hash.slice(1) || 'home';
+            const [path, id] = hash.split('?id=');
+            const routeFunction = routes[path] || renderNotFound;
+            appContainer.innerHTML = ''; // Önceki içeriği temizle
+            showLoader();
+            routeFunction(id);
+        }
+
+        // ========================================
+        // 3. VERİ ÇEKME (FIREBASE'DEN)
+        // ========================================
+        async function fetchInitialData() {
+            try {
+                // Site Ayarları
+                const settingsDoc = await db.collection('siteSettings').doc('main').get();
+                if (settingsDoc.exists) AppState.siteSettings = settingsDoc.data();
+
+                // Kategoriler
+                const catSnapshot = await db.collection('categories').orderBy('order').get();
+                AppState.categories = catSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+                // Ürünler
+                const prodSnapshot = await db.collection('products').get();
+                AppState.products = prodSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+                return true;
+            } catch (error) {
+                console.error("Veri çekme hatası:", error);
+                appContainer.innerHTML = `<p class="text-red-500 text-center">Veri tabanına bağlanılamadı. Lütfen ayarlarınızı kontrol edin.</p>`;
+                return false;
+            }
+        }
+
+        // ========================================
+        // 4. PARA BİRİMİ VE DİL YÖNETİMİ
+        // ========================================
+        async function initializeCurrencyAndLang() {
+            // Manuel seçim menüsünü oluştur
+            const currencyMenu = document.getElementById('currency-menu');
+            Object.keys(countrySettings).forEach(code => {
+                const setting = countrySettings[code];
+                const link = document.createElement('a');
+                link.href = '#';
+                link.className = 'block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100';
+                link.textContent = `${setting.name} (${setting.currency})`;
+                link.onclick = (e) => {
+                    e.preventDefault();
+                    setUserPreference(code);
+                };
+                currencyMenu.appendChild(link);
+            });
+
+            // Kullanıcı tercihini kontrol et
+            let userPreference = localStorage.getItem('pufemoPreference');
+            if (userPreference) {
+                updateCurrency(JSON.parse(userPreference));
+                return;
+            }
+
+            // IP'den tespit et
+            try {
+                const response = await fetch('https://ipapi.co/json/');
+                const data = await response.json();
+                const countryCode = data.country_code || defaultCountry;
+                const settings = countrySettings[countryCode] || countrySettings[defaultCountry];
+                setUserPreference(countryCode, false); // Sayfayı yenileme
+            } catch (error) {
+                console.warn("IP tespiti başarısız. Varsayılan kullanılıyor.");
+                setUserPreference(defaultCountry, false);
+            }
+        }
+        
+        function setUserPreference(countryCode, reload = true) {
+            const settings = countrySettings[countryCode] || countrySettings[defaultCountry];
+            localStorage.setItem('pufemoPreference', JSON.stringify(settings));
+            if (reload) {
+                window.location.reload();
+            } else {
+                updateCurrency(settings);
+            }
+        }
+
+        function updateCurrency(settings) {
+            AppState.currencyInfo = settings;
+            document.getElementById('currency-display').textContent = settings.currency;
+        }
+
+        function formatPrice(basePrice) {
+            if (!AppState.currencyInfo) return '...';
+            const { currency, rate } = AppState.currencyInfo;
+            const finalPrice = basePrice * rate;
+            return new Intl.NumberFormat(AppState.currencyInfo.lang, {
+                style: 'currency',
+                currency: currency,
+            }).format(finalPrice);
+        }
+
+        // ========================================
+        // 5. KULLANICI GİRİŞ (AUTHENTICATION)
+        // ========================================
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                AppState.user = { uid: user.uid, name: user.displayName, email: user.email, photoURL: user.photoURL };
+                loginBtn.classList.add('hidden');
+                userInfoDiv.classList.remove('hidden');
+                userInfoDiv.classList.add('flex');
+                userAvatar.src = user.photoURL;
+            } else {
+                AppState.user = null;
+                loginBtn.classList.remove('hidden');
+                userInfoDiv.classList.add('hidden');
+            }
+        });
+        
+        loginBtn.addEventListener('click', () => auth.signInWithPopup(provider));
+        logoutBtn.addEventListener('click', () => auth.signOut());
+
+        // ========================================
+        // 6. SEPET (CART) FONKSİYONLARI
+        // ========================================
+        function addToCart(productId, quantity = 1) {
+            const existingItem = AppState.cart.find(item => item.id === productId);
+            if(existingItem) {
+                existingItem.quantity += quantity;
+            } else {
+                const product = AppState.products.find(p => p.id === productId);
+                if (product) {
+                    AppState.cart.push({ id: productId, name: product.name, price: product.basePriceEUR, image: product.images[0], quantity: quantity });
+                }
+            }
+            saveCart();
+            showToast(`${quantity} adet ürün sepete eklendi!`);
+        }
+        
+        function removeFromCart(productId) {
+            AppState.cart = AppState.cart.filter(item => item.id !== productId);
+            saveCart();
+            renderCartPage(); // Sepet sayfasını yeniden çiz
+        }
+
+        function updateCartQuantity(productId, quantity) {
+             const item = AppState.cart.find(item => item.id === productId);
+             if (item) {
+                if (quantity > 0) {
+                    item.quantity = quantity;
+                } else {
+                    removeFromCart(productId);
+                    return; // Fonksiyonun devam etmesini engelle
+                }
+             }
+             saveCart();
+             renderCartPage();
+        }
+
+        function saveCart() {
+            localStorage.setItem('pufemoCart', JSON.stringify(AppState.cart));
+            updateCartBadge();
+        }
+        
+        function updateCartBadge() {
+            const totalItems = AppState.cart.reduce((sum, item) => sum + item.quantity, 0);
+            cartBadge.textContent = totalItems;
+            cartBadge.classList.toggle('hidden', totalItems === 0);
+        }
+
+        // ========================================
+        // 7. SAYFA RENDER FONKSİYONLARI
+        // ========================================
+
+        // --- ANA SAYFA ---
+        function renderHomePage() {
+            const { bannerImage, bannerTitle } = AppState.siteSettings;
+            let pageHTML = `
+                <!-- Banner -->
+                <section class="relative h-64 md:h-96 bg-gray-300 rounded-lg overflow-hidden">
+                    <img src="${bannerImage || 'https://placehold.co/1200x400/e2e8f0/a0aec0?text=Pufemo'}" class="w-full h-full object-cover" alt="[Banner görseli]">
+                    <div class="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
+                        <h1 class="text-3xl md:text-5xl font-bold text-white text-center px-4">${bannerTitle || 'Pufemo – Hayalindeki Koltuğu Seç'}</h1>
+                    </div>
+                </section>
+
+                <!-- Kategoriler -->
+                <section class="py-10">
+                    <h2 class="text-2xl font-semibold text-center mb-6">Kategoriler</h2>
+                    <div id="categories-container" class="flex justify-center flex-wrap gap-4">
+                        ${AppState.categories.map(cat => `
+                            <button class="bg-white px-6 py-2 rounded-full shadow-sm hover:bg-gray-800 hover:text-white transition">${cat.name}</button>
+                        `).join('')}
+                    </div>
+                </section>
+
+                <!-- Vurgulu Ürünler -->
+                <section class="py-10">
+                     <h2 class="text-2xl font-semibold text-center mb-6">Öne Çıkanlar</h2>
+                     <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                        ${AppState.products.filter(p => p.isFeatured).map(product => renderProductCard(product)).join('')}
+                     </div>
+                </section>
+            `;
+            appContainer.innerHTML = pageHTML;
+        }
+
+        // --- ÜRÜN KARTI (Tekrar Kullanılabilir Komponent) ---
+        function renderProductCard(product) {
+            return `
+                <div class="bg-white rounded-lg shadow-sm overflow-hidden group">
+                    <a href="#product?id=${product.id}" class="block">
+                        <img src="${product.images[0] || 'https://placehold.co/400x400'}" alt="${product.name}" class="w-full h-48 object-cover group-hover:opacity-80 transition">
+                    </a>
+                    <div class="p-4">
+                        <h3 class="font-semibold text-gray-800 truncate">${product.name}</h3>
+                        <p class="text-lg font-bold text-gray-900 mt-1">${formatPrice(product.basePriceEUR)}</p>
+                        <button onclick="App.addToCart('${product.id}')" class="w-full mt-3 bg-gray-800 text-white py-2 rounded-md hover:bg-gray-700 transition">Sepete Ekle</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // --- ÜRÜN DETAY SAYFASI ---
+        function renderProductPage(id) {
+            const product = AppState.products.find(p => p.id === id);
+            if (!product) {
+                appContainer.innerHTML = `<p class="text-center">Ürün bulunamadı.</p>`;
+                return;
+            }
+            let pageHTML = `
+                <div class="grid md:grid-cols-2 gap-10">
+                    <!-- Resimler -->
+                    <div>
+                        <img id="main-product-image" src="${product.images[0]}" class="w-full rounded-lg shadow-lg">
+                        <div class="flex space-x-2 mt-4">
+                            ${product.images.map(img => `
+                                <img src="${img}" class="w-20 h-20 object-cover rounded-md cursor-pointer border hover:border-gray-800" onclick="document.getElementById('main-product-image').src='${img}'">
+                            `).join('')}
                         </div>
-                        <button class="add-to-cart-btn w-8 h-8 flex items-center justify-center bg-red-400 text-white rounded-full cursor-pointer flex-shrink-0">
-                            <i class="ri-add-line"></i>
-                        </button>
+                    </div>
+                    <!-- Bilgiler -->
+                    <div>
+                        <h1 class="text-3xl font-bold">${product.name}</h1>
+                        <p class="text-3xl font-light text-gray-900 my-4">${formatPrice(product.basePriceEUR)}</p>
+                        
+                        <!-- Varyantlar -->
+                        <div class="space-y-4">
+                           <div>
+                                <h3 class="font-semibold mb-2">Kumaş</h3>
+                                <div class="flex flex-wrap gap-2">
+                                   ${product.variants.fabric.map(f => `<button class="border px-4 py-1 rounded">${f}</button>`).join('')}
+                                </div>
+                           </div>
+                           <div>
+                                <h3 class="font-semibold mb-2">Renk</h3>
+                                <div class="flex flex-wrap gap-2">
+                                   ${product.variants.color.map(c => `<button class="border px-4 py-1 rounded">${c}</button>`).join('')}
+                                </div>
+                           </div>
+                        </div>
+
+                        <p class="text-gray-600 mt-6">${product.description}</p>
+                        
+                        <button onclick="App.addToCart('${product.id}')" class="w-full mt-6 bg-gray-800 text-white py-3 rounded-lg text-lg hover:bg-gray-700 transition">Sepete Ekle</button>
                     </div>
                 </div>
-            </div>
-        `;
-    };
+            `;
+            appContainer.innerHTML = pageHTML;
+        }
 
-    // ======================================================
-    // 4. VERİ ÇEKME VE RENDER ETME
-    // ======================================================
-
-    // Kategorileri Firestore'dan çek ve render et
-    const renderCategories = async () => {
-        try {
-            const snapshot = await db.collection('categories').get();
-            if (snapshot.empty) {
-                categoriesContainer.innerHTML = '<p>Kategori bulunamadı.</p>';
+        // --- SEPET SAYFASI ---
+        function renderCartPage() {
+            if (AppState.cart.length === 0) {
+                appContainer.innerHTML = `
+                    <div class="text-center py-20">
+                        <i class="ri-shopping-bag-line text-6xl text-gray-300"></i>
+                        <h1 class="text-2xl font-semibold mt-4">Sepetiniz Boş</h1>
+                        <p class="text-gray-500 mt-2">Hemen alışverişe başlayarak sepetinizi doldurun.</p>
+                        <a href="#home" class="mt-6 inline-block bg-gray-800 text-white px-6 py-2 rounded-md">Alışverişe Başla</a>
+                    </div>
+                `;
                 return;
             }
-            let categoriesHTML = '';
-            snapshot.forEach(doc => {
-                categoriesHTML += createCategoryHTML(doc.data());
-            });
-            categoriesContainer.innerHTML = categoriesHTML;
-        } catch (error) {
-            console.error("Kategoriler çekilirken hata oluştu: ", error);
-            categoriesContainer.innerHTML = '<p>Kategoriler yüklenemedi.</p>';
-        }
-    };
+            
+            const cartTotal = AppState.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
-    // Ürünleri Firestore'dan çek ve render et
-    const renderProducts = async () => {
-        try {
-            const snapshot = await db.collection('products').get();
-            if (snapshot.empty) {
-                featuredProductsContainer.innerHTML = '<p>Ürün bulunamadı.</p>';
+            let pageHTML = `
+                <h1 class="text-3xl font-bold mb-6">Sepetim</h1>
+                <div class="grid lg:grid-cols-3 gap-8">
+                    <div class="lg:col-span-2 space-y-4">
+                        ${AppState.cart.map(item => `
+                            <div class="bg-white p-4 rounded-lg shadow-sm flex items-center justify-between">
+                                <div class="flex items-center gap-4">
+                                    <img src="${item.image}" class="w-20 h-20 object-cover rounded-md">
+                                    <div>
+                                        <h3 class="font-semibold">${item.name}</h3>
+                                        <p class="text-sm text-gray-600">${formatPrice(item.price)}</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-4">
+                                     <input type="number" value="${item.quantity}" min="1" onchange="App.updateCartQuantity('${item.id}', this.valueAsNumber)" class="w-16 border rounded text-center">
+                                     <button onclick="App.removeFromCart('${item.id}')" class="text-red-500 hover:text-red-700"><i class="ri-delete-bin-line text-xl"></i></button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-sm h-fit">
+                        <h2 class="text-xl font-semibold mb-4">Sipariş Özeti</h2>
+                        <div class="flex justify-between mb-2">
+                            <span>Ara Toplam</span>
+                            <span>${formatPrice(cartTotal)}</span>
+                        </div>
+                        <div class="flex justify-between font-bold text-lg border-t pt-2 mt-2">
+                            <span>Toplam</span>
+                            <span>${formatPrice(cartTotal)}</span>
+                        </div>
+                        <a href="#checkout" class="w-full block text-center mt-6 bg-gray-800 text-white py-3 rounded-lg text-lg hover:bg-gray-700 transition">Ödemeye Geç</a>
+                    </div>
+                </div>
+            `;
+            appContainer.innerHTML = pageHTML;
+        }
+        
+        // --- ÖDEME SAYFASI ---
+        function renderCheckoutPage() {
+             if (!AppState.user) {
+                appContainer.innerHTML = `<div class="text-center py-10"><p>Lütfen ödeme yapmak için giriş yapın.</p></div>`;
+                auth.signInWithPopup(provider); // Otomatik giriş ekranı
                 return;
             }
-            let featuredHTML = '';
-            let bestSellersHTML = '';
-            snapshot.forEach(doc => {
-                const product = doc.data();
-                const cardHTML = createProductCardHTML(product);
-                if (product.isFeatured) {
-                    featuredHTML += cardHTML;
-                }
-                if (product.isBestSeller) {
-                    bestSellersHTML += cardHTML;
-                }
-            });
-            featuredProductsContainer.innerHTML = featuredHTML || '<p>Öne çıkan ürün yok.</p>';
-            bestSellersContainer.innerHTML = bestSellersHTML || '<p>Çok satan ürün yok.</p>';
-        } catch (error) {
-            console.error("Ürünler çekilirken hata oluştu: ", error);
-            featuredProductsContainer.innerHTML = '<p>Ürünler yüklenemedi.</p>';
+            const pageHTML = `
+                <h1 class="text-3xl font-bold mb-6">Ödeme Bilgileri</h1>
+                 <div class="bg-white p-8 rounded-lg shadow-sm max-w-2xl mx-auto">
+                    <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                        <h3 class="font-semibold text-blue-800">Banka Havalesi/EFT</h3>
+                        <p class="text-sm text-blue-700 mt-1">Lütfen aşağıdaki IBAN numarasına toplam tutarı gönderin ve açıklama kısmına isminizi yazın.</p>
+                        <p class="mt-2 font-mono bg-blue-100 p-2 rounded">${AppState.siteSettings.iban || 'IBAN bilgisi bulunamadı.'}</p>
+                    </div>
+                    <form id="checkout-form">
+                        <div class="grid md:grid-cols-2 gap-4">
+                            <input type="text" name="name" placeholder="Ad Soyad" required class="p-2 border rounded w-full" value="${AppState.user.name}">
+                            <input type="tel" name="phone" placeholder="Telefon" required class="p-2 border rounded w-full">
+                        </div>
+                        <textarea name="address" placeholder="Adres" required class="p-2 border rounded w-full mt-4 h-24"></textarea>
+                        <input type="text" name="note" placeholder="Ödeme Notu (İsteğe Bağlı)" class="p-2 border rounded w-full mt-4">
+
+                        <button type="submit" class="w-full mt-6 bg-green-600 text-white py-3 rounded-lg text-lg hover:bg-green-500 transition">Ödeme Yaptım, Siparişi Tamamla</button>
+                    </form>
+                 </div>
+            `;
+            appContainer.innerHTML = pageHTML;
+            document.getElementById('checkout-form').addEventListener('submit', handlePlaceOrder);
         }
-    };
-
-
-    // ======================================================
-    // 5. OLAY DİNLEYİCİLERİ (Event Listeners)
-    // ======================================================
-    // Olayları ana kapsayıcılara atayarak performansı artırıyoruz (Event Delegation)
-    document.body.addEventListener('click', (e) => {
-        // Renk seçimi
-        if (e.target.matches('.color-option')) {
-            const siblings = e.target.parentElement.querySelectorAll('.color-option');
-            siblings.forEach(sibling => sibling.classList.remove('selected'));
-            e.target.classList.add('selected');
+        
+        // --- SİPARİŞİ TAMAMLAMA ---
+        async function handlePlaceOrder(e) {
+            e.preventDefault();
+            const form = e.target;
+            const formData = new FormData(form);
+            const orderData = {
+                userId: AppState.user.uid,
+                customerInfo: {
+                    name: formData.get('name'),
+                    phone: formData.get('phone'),
+                    address: formData.get('address'),
+                },
+                paymentNote: formData.get('note'),
+                items: AppState.cart,
+                totalAmount: AppState.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0),
+                currency: AppState.currencyInfo.currency,
+                currencyRate: AppState.currencyInfo.rate,
+                orderDate: firebase.firestore.FieldValue.serverTimestamp(),
+                status: "Sipariş Alındı"
+            };
+            
+            try {
+                await db.collection('orders').add(orderData);
+                AppState.cart = []; // Sepeti temizle
+                saveCart();
+                window.location.hash = '#order-success';
+            } catch (error) {
+                console.error("Sipariş oluşturma hatası:", error);
+                showToast("Sipariş oluşturulurken bir hata oluştu.", "error");
+            }
+        }
+        
+        // --- SİPARİŞ BAŞARILI ---
+        function renderOrderSuccessPage() {
+            appContainer.innerHTML = `
+                <div class="text-center py-20">
+                    <i class="ri-checkbox-circle-line text-6xl text-green-500"></i>
+                    <h1 class="text-2xl font-semibold mt-4">Siparişiniz Alındı!</h1>
+                    <p class="text-gray-500 mt-2">Siparişinizi en kısa sürede hazırlayacağız.</p>
+                    <div class="mt-6 space-x-4">
+                        <a href="#home" class="text-gray-600 hover:underline">Ana Sayfaya Dön</a>
+                        <a href="#orders" class="inline-block bg-gray-800 text-white px-6 py-2 rounded-md">Siparişlerimi Görüntüle</a>
+                    </div>
+                </div>
+            `;
         }
 
-        // Sepete ekle butonu
-        if (e.target.matches('.add-to-cart-btn') || e.target.parentElement.matches('.add-to-cart-btn')) {
-            const currentCount = parseInt(cartBadge.textContent);
-            cartBadge.textContent = currentCount + 1;
+        // --- SİPARİŞLERİM SAYFASI (Eklenecek) ---
+        function renderOrdersPage() {
+            appContainer.innerHTML = `<h1 class="text-3xl font-bold mb-6">Siparişlerim</h1><p>Bu bölüm yakında aktif olacaktır.</p>`;
+        }
+        
+        // --- ADMİN PANELİ (Eklenecek) ---
+        function renderAdminPage() {
+            appContainer.innerHTML = `<h1 class="text-3xl font-bold mb-6">Admin Paneli</h1><p>Bu bölüm yakında aktif olacaktır.</p>`;
+        }
+        
+        function renderNotFound() {
+             appContainer.innerHTML = `<p class="text-center text-red-500">Sayfa bulunamadı.</p>`;
+        }
 
-            // Bildirim göster
+
+        // ========================================
+        // 8. YARDIMCI FONKSİYONLAR
+        // ========================================
+        function showLoader() {
+             appContainer.innerHTML = `<div id="loader" class="text-center py-20"><p class="text-gray-500">Yükleniyor...</p></div>`;
+        }
+        
+        function showToast(message, type = 'success') {
             const toast = document.createElement('div');
-            toast.className = 'fixed bottom-20 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-4 py-2 rounded-lg text-sm z-50';
-            toast.textContent = `Ürün sepete eklendi!`;
+            const bgColor = type === 'error' ? 'bg-red-500' : 'bg-green-500';
+            toast.className = `fixed bottom-5 right-5 ${bgColor} text-white px-4 py-2 rounded-lg shadow-lg`;
+            toast.textContent = message;
             document.body.appendChild(toast);
-            setTimeout(() => toast.remove(), 2000);
+            setTimeout(() => toast.remove(), 3000);
         }
+
+        // ========================================
+        // 9. UYGULAMAYI BAŞLATMA
+        // ========================================
+        async function init() {
+            window.addEventListener('hashchange', router);
+            
+            // Global fonksiyonları window nesnesine ekle (inline onclick için)
+            window.App = { addToCart, removeFromCart, updateCartQuantity };
+            
+            await initializeCurrencyAndLang();
+            const dataLoaded = await fetchInitialData();
+            if(dataLoaded) {
+               router(); // Sayfayı ilk kez yükle
+            }
+            updateCartBadge();
+        }
+
+        init();
     });
-
-
-    // ======================================================
-    // 6. İLK YÜKLEME
-    // ======================================================
-    renderCategories();
-    renderProducts();
-});
-</script>
+    </script>
 
 </body>
 </html>
