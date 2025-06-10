@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sepetim ve Siparişlerim - Getir Kıbrıs</title>
+<script src="https://cdn.tailwindcss.com/3.4.16"></script>
+<script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                colors: { /* ... Renkler admin paneliyle aynı ... */ },
+                borderRadius: { 'button': '8px' }
+            }
+        }
+    }
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.2.0/remixicon.min.css" rel="stylesheet">
+<style>
+    body { font-family: 'Inter', sans-serif; background-color: #f7fafc; }
+    /* ... Diğer stiller ... */
+</style>
+</head>
+<body class="bg-gray-50">
+    <div class="w-full max-w-screen-lg mx-auto relative min-h-screen pb-16">
+
+        <header class="sticky top-0 w-full bg-primary shadow-sm z-40 px-4 py-3 flex items-center justify-between">
+            <a href="index.html" class="text-white flex items-center text-lg hover:opacity-80 transition-opacity"><i class="ri-arrow-left-s-line ri-xl mr-1"></i>Geri</a>
+            <h1 class="text-xl font-semibold text-white">Sepetim & Siparişlerim</h1>
+            <div class="w-12"></div>
+        </header>
+
+        <main class="pt-6 px-4">
+            
+            <div id="cart-checkout-section" class="bg-white p-6 rounded-lg shadow-md mb-8 hidden">
+                <h2 class="text-2xl font-bold text-primary mb-4">Sepetim</h2>
+                <div id="cart-items-container" class="space-y-4 border-b pb-4 mb-4">
+                    </div>
+                
+                <div id="checkout-details">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-4">Teslimat Bilgileri</h3>
+                    <form id="checkout-form" class="space-y-4">
+                        <div id="user-info-display" class="space-y-2 p-3 bg-gray-50 rounded-lg">
+                           </div>
+                        <button type="button" id="change-info-btn" class="text-sm text-primary hover:underline">Bilgileri Değiştir</button>
+                        
+                        <div>
+                             <span class="block text-sm font-medium text-gray-700 mb-2">Teslimat Tipi<span class="text-red-500">*</span></span>
+                             </div>
+                        <div id="city-selection" class="hidden">
+                             </div>
+                    </form>
+                    
+                    <div id="price-summary" class="mt-6 pt-4 border-t">
+                        </div>
+                    
+                    <button id="confirm-order-btn" class="w-full mt-6 bg-green-500 text-white py-3 rounded-button font-bold text-lg hover:bg-green-600 transition-colors">Siparişi Onayla</button>
+                </div>
+                 <div id="empty-cart-message" class="text-center py-6 hidden">
+                    <i class="ri-shopping-cart-2-line text-6xl text-gray-300"></i>
+                    <p class="mt-4 text-gray-500">Sepetiniz şu anda boş.</p>
+                    <a href="index.html" class="mt-4 inline-block text-primary hover:underline">Alışverişe devam et</a>
+                </div>
+            </div>
+
+            <h2 class="text-2xl font-bold text-primary mb-4 mt-12">Geçmiş Siparişlerim</h2>
+            <div id="orders-container" class="space-y-6">
+                </div>
+        </main>
+    </div>
+
+    <div id="review-modal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden p-4">
+        <div class="bg-white rounded-lg p-6 w-full max-w-md relative">
+            <button id="close-review-modal" class="absolute top-3 right-3 text-gray-400 hover:text-gray-600"><i class="ri-close-line ri-lg"></i></button>
+            <h3 class="text-xl font-semibold text-gray-800 mb-4">Siparişi Değerlendir</h3>
+            <form id="review-form">
+                <input type="hidden" id="review-order-id">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Puanınız</label>
+                    <div id="star-rating" class="flex items-center text-3xl text-gray-300">
+                        <i data-value="1" class="ri-star-fill cursor-pointer"></i>
+                        <i data-value="2" class="ri-star-fill cursor-pointer"></i>
+                        <i data-value="3" class="ri-star-fill cursor-pointer"></i>
+                        <i data-value="4" class="ri-star-fill cursor-pointer"></i>
+                        <i data-value="5" class="ri-star-fill cursor-pointer"></i>
+                    </div>
+                </div>
+                <div class="mb-6">
+                    <label for="review-text" class="block text-sm font-medium text-gray-700">Yorumunuz</label>
+                    <textarea id="review-text" rows="4" required class="mt-1 w-full p-2 border border-gray-300 rounded-button"></textarea>
+                </div>
+                <button type="submit" class="w-full bg-primary text-white py-2.5 rounded-button font-medium hover:bg-primary/90">Yorumu Gönder</button>
+            </form>
+        </div>
+    </div>
+
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script>
+        const firebaseConfig = { /* ... Öncekiyle aynı ... */ };
+        if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // ... (Tüm yeni sepet, sipariş tamamlama ve yorum yapma JS mantığı buraya eklenecek) ...
+        });
+    </script>
+</body>
+</html>
