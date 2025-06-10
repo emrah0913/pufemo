@@ -194,19 +194,23 @@
     const auth = firebase.auth();
     
     document.addEventListener('DOMContentLoaded', () => {
+        // DOM Elementleri
         const calculateBtn = document.getElementById('calculate-btn');
         const calculatorSection = document.getElementById('calculator-section');
         const calculatorForm = document.getElementById('calculator-form');
         const cartCounter = document.getElementById('cart-counter');
         let pricingSettings = {};
 
+        // Fonksiyonlar
         window.showToast = (message) => {
             const toast = document.getElementById('toast');
             const toastMessage = document.getElementById('toast-message');
             if (!toast || !toastMessage) return;
             toastMessage.textContent = message;
             toast.classList.add('opacity-100');
-            setTimeout(() => toast.classList.remove('opacity-100'), 3000);
+            setTimeout(() => {
+                toast.classList.remove('opacity-100');
+            }, 3000);
         };
 
         const showModal = (modalId) => document.getElementById(modalId)?.classList.remove('hidden');
@@ -229,10 +233,12 @@
                 if (doc.exists) {
                     pricingSettings = doc.data();
                 } else {
-                    console.error("Fiyat ayarları bulunamadı!");
+                    console.error("Fiyat ayarları bulunamadı! Lütfen yönetici panelinden kaydedin.");
+                    pricingSettings = { categoryRates: {}, cityFees: {} }; // Hata durumunda boş obje ata
                 }
             } catch (error) {
                 console.error("Fiyat ayarları çekilirken hata:", error);
+                pricingSettings = { categoryRates: {}, cityFees: {} }; // Hata durumunda boş obje ata
             }
         };
 
@@ -327,57 +333,63 @@
                 }
             });
         };
+        
+        // DÜZELTİLMİŞ KOD: Butonun click event'i artık veritabanı beklemiyor.
+        calculateBtn.addEventListener('click', () => {
+            calculatorSection.classList.toggle('hidden');
+            if (!calculatorSection.classList.contains('hidden')) {
+                calculatorSection.scrollIntoView({ behavior: 'smooth' });
+            }
+        });
 
-        const setupCalculator = () => {
-            calculateBtn.addEventListener('click', () => {
-                calculatorSection.classList.toggle('hidden');
-                if (!calculatorSection.classList.contains('hidden')) {
-                    calculatorSection.scrollIntoView({ behavior: 'smooth' });
-                }
-            });
+        calculatorForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            if (!auth.currentUser) {
+                showModal('auth-required-modal');
+                return;
+            }
+            // Fiyat ayarları çekilmediyse işlemi durdur
+            if (!pricingSettings.categoryRates) {
+                 window.showToast('Fiyat ayarları yüklenemedi. Lütfen sayfayı yenileyin.');
+                 return;
+            }
 
-            calculatorForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                if (!auth.currentUser) {
-                    showModal('auth-required-modal');
-                    return;
-                }
-                const productLink = document.getElementById('product-link').value.trim();
-                const productPrice = parseFloat(document.getElementById('product-price').value);
-                const productCategory = document.getElementById('product-category').value;
-                const orderMethod = document.getElementById('order-method').value;
+            const productLink = document.getElementById('product-link').value.trim();
+            const productPrice = parseFloat(document.getElementById('product-price').value);
+            const productCategory = document.getElementById('product-category').value;
+            const orderMethod = document.getElementById('order-method').value;
 
-                if (!productLink || isNaN(productPrice) || !productCategory || !orderMethod) {
-                    window.showToast('Lütfen tüm alanları doldurun.');
-                    return;
-                }
-                
-                const cart = JSON.parse(sessionStorage.getItem('shoppingCart')) || [];
-                const existingItemIndex = cart.findIndex(item => item.productLink === productLink);
+            if (!productLink || isNaN(productPrice) || !productCategory || !orderMethod) {
+                window.showToast('Lütfen tüm alanları doldurun.');
+                return;
+            }
+            
+            const cart = JSON.parse(sessionStorage.getItem('shoppingCart')) || [];
+            const existingItemIndex = cart.findIndex(item => item.productLink === productLink);
 
-                const categoryFeeRate = pricingSettings.categoryRates ? (pricingSettings.categoryRates[productCategory] || 0) : 0;
-                
-                if (existingItemIndex > -1) {
-                    cart[existingItemIndex].quantity += 1;
-                } else {
-                    cart.push({
-                        productLink,
-                        productPrice,
-                        productCategory,
-                        orderMethod,
-                        calculatedCategoryFee: productPrice * categoryFeeRate,
-                        quantity: 1
-                    });
-                }
-                sessionStorage.setItem('shoppingCart', JSON.stringify(cart));
-                window.showToast('Ürün sepetinize eklendi!');
-                updateCartCounter();
-                calculatorForm.reset();
-                calculatorSection.classList.add('hidden');
-            });
-        };
+            const categoryFeeRate = pricingSettings.categoryRates[productCategory] || 0;
+            
+            if (existingItemIndex > -1) {
+                cart[existingItemIndex].quantity += 1;
+            } else {
+                cart.push({
+                    productLink,
+                    productPrice,
+                    productCategory,
+                    orderMethod,
+                    calculatedCategoryFee: productPrice * categoryFeeRate,
+                    quantity: 1
+                });
+            }
+            sessionStorage.setItem('shoppingCart', JSON.stringify(cart));
+            window.showToast('Ürün sepetinize eklendi!');
+            updateCartCounter();
+            calculatorForm.reset();
+            calculatorSection.classList.add('hidden');
+        });
 
-        fetchPricingSettings().then(setupCalculator);
+        // Sayfa ilk yüklendiğinde çalışacak fonksiyonlar
+        fetchPricingSettings();
         setupAuth();
         updateCartCounter();
         fetchAndDisplayReviews();
