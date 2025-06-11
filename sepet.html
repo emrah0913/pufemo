@@ -84,6 +84,19 @@
             opacity: 1;
             transform: translateY(0);
         }
+
+        /* Order Statuses for Past Orders */
+        .status-badge {
+            display: inline-flex;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .status-delivered { background-color: #d1fae5; color: #065f46; } /* green */
+        .status-cancelled { background-color: #fee2e2; color: #b91c1c; } /* red */
+        .status-unknown { background-color: #e5e7eb; color: #4b5563; }
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen flex flex-col">
@@ -151,6 +164,32 @@
                 Siparişi Tamamla
             </button>
         </div>
+
+        ---
+
+        <section id="past-orders-section" class="mt-8 bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">Geçmiş Siparişleriniz</h2>
+            <div id="past-orders-list" class="overflow-x-auto">
+                <table class="min-w-full leading-normal">
+                    <thead>
+                        <tr>
+                            <th class="px-4 py-2 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider rounded-tl-lg">Sipariş Kodu</th>
+                            <th class="px-4 py-2 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Tarih</th>
+                            <th class="px-4 py-2 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Toplam</th>
+                            <th class="px-4 py-2 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider rounded-tr-lg">Durum</th>
+                        </tr>
+                    </thead>
+                    <tbody id="past-orders-table-body">
+                        <!-- Geçmiş siparişler buraya yüklenecek -->
+                        <tr><td colspan="4" class="text-center py-4 text-gray-500">Geçmiş siparişleriniz yükleniyor...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div id="no-past-orders-message" class="hidden text-center py-4 text-gray-500">
+                <p>Henüz tamamlanmış veya iptal edilmiş bir siparişiniz bulunmuyor.</p>
+            </div>
+        </section>
+
     </main>
 
     <!-- Modals -->
@@ -213,7 +252,7 @@
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
     import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
-    import { getFirestore, doc, getDoc, setDoc, collection, addDoc, onSnapshot, updateDoc, deleteDoc, query, getDocs, writeBatch } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, setDoc, collection, addDoc, onSnapshot, updateDoc, deleteDoc, query, getDocs, writeBatch, where, orderBy } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
     // KULLANICININ SAĞLADIĞI FİREBASE YAPILANDIRMASI
     const firebaseConfig = {
@@ -244,14 +283,14 @@
     const shippingFeeSpan = document.getElementById('shipping-fee');
     const grandTotalSpan = document.getElementById('grand-total');
     const userNameP = document.getElementById('user-name');
-    const userPhoneP = document.getElementById('user-phone'); // Düzeltildi
+    const userPhoneP = document.getElementById('user-phone'); 
     const userAddressP = document.getElementById('user-address');
     const createOrderBtn = document.getElementById('create-order-btn');
     const editProfileBtn = document.getElementById('edit-profile-btn');
 
     const loginBtn = document.getElementById('login-btn');
     const profileContainer = document.getElementById('profile-container');
-    const profileImg = document.getElementById('profile-img'); // Düzeltildi
+    const profileImg = document.getElementById('profile-img');
     const loginModal = document.getElementById('login-modal');
     const closeLoginModal = document.getElementById('close-login-modal');
     const googleLoginBtn = document.getElementById('google-login-btn');
@@ -263,6 +302,10 @@
 
     const toast = document.getElementById('toast');
     const toastMessage = document.getElementById('toast-message');
+
+    // --- PAST ORDERS DOM ELEMENTS ---
+    const pastOrdersTableBody = document.getElementById('past-orders-table-body');
+    const noPastOrdersMessage = document.getElementById('no-past-orders-message');
 
     // --- TOAST NOTIFICATION ---
     function showToast(message, duration = 3000) {
@@ -290,6 +333,7 @@
             await fetchUserProfile(user.uid);
             await loadPricingSettings();
             listenToCart(user.uid);
+            loadPastOrders(user.uid); // Geçmiş siparişleri yükle
 
         } else {
             currentUser = null;
@@ -303,6 +347,10 @@
             // Clear cart items visually
             cartItemsContainer.innerHTML = `<div id="loading-cart-message" class="p-6 text-center text-gray-500 hidden">Sepetiniz yükleniyor...</div>`;
             emptyCartMessage.classList.remove('hidden');
+
+            // Clear past orders visually
+            pastOrdersTableBody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-gray-500">Geçmiş siparişleriniz yükleniyor...</td></tr>`;
+            noPastOrdersMessage.classList.remove('hidden');
         }
     });
 
@@ -649,16 +697,73 @@
             });
             await batch.commit();
 
-            showToast("Siparişiniz başarıyla oluşturuldu! Ödeme bekleniyor.");
+            showToast("Siparişiniz başarıyla oluşturuldu! Ödeme sayfasına yönlendiriliyorsunuz.");
             setTimeout(() => {
-                window.location.href = 'https://pufemo.netlify.app/index.html'; // Sipariş sonrası ana sayfaya yönlendir
-            }, 2000);
+                window.location.href = 'https://pufemo.netlify.app/payment.html'; // Yeni ödeme sayfasına yönlendir
+            }, 2000); // 2 saniye sonra yönlendir
 
         } catch (error) {
             console.error("Sipariş oluşturulurken hata:", error);
             showToast("Sipariş oluşturulurken bir hata oluştu.");
         }
     });
+
+    // --- LOAD PAST ORDERS ---
+    async function loadPastOrders(userId) {
+        pastOrdersTableBody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-gray-500">Geçmiş siparişleriniz yükleniyor...</td></tr>`;
+        noPastOrdersMessage.classList.add('hidden');
+
+        try {
+            // Sadece tamamlanmış veya iptal edilmiş siparişleri getir
+            const q = query(
+                collection(db, 'orders'),
+                where('userId', '==', userId),
+                where('status', 'in', ['delivered', 'cancelled']), // 'delivered' ve 'cancelled' durumlarını filtrele
+                orderBy('orderDate', 'desc')
+            );
+            const querySnapshot = await getDocs(q);
+
+            if (querySnapshot.empty) {
+                pastOrdersTableBody.innerHTML = ''; // Tablo yükleme mesajını temizle
+                noPastOrdersMessage.classList.remove('hidden');
+                return;
+            }
+
+            pastOrdersTableBody.innerHTML = ''; // Önceki içeriği temizle
+            querySnapshot.forEach(doc => {
+                const order = doc.data();
+                const orderIdShort = doc.id.substring(0, 8).toUpperCase();
+                const orderDate = order.orderDate ? order.orderDate.toDate().toLocaleDateString('tr-TR') : 'N/A';
+                const totalAmount = order.grandTotal ? order.grandTotal.toFixed(2) : '0.00';
+                
+                let statusText = 'Bilinmiyor';
+                let statusStyle = 'status-unknown';
+                if (order.status === 'delivered') {
+                    statusText = 'Teslim Edildi';
+                    statusStyle = 'status-delivered';
+                } else if (order.status === 'cancelled') {
+                    statusText = 'İptal Edildi';
+                    statusStyle = 'status-cancelled';
+                }
+
+                const row = `
+                    <tr class="border-t">
+                        <td class="px-4 py-3 text-sm text-gray-800">${orderIdShort}</td>
+                        <td class="px-4 py-3 text-sm text-gray-700">${orderDate}</td>
+                        <td class="px-4 py-3 text-sm font-medium text-gray-800">${totalAmount} ₺</td>
+                        <td class="px-4 py-3 text-sm"><span class="status-badge ${statusStyle}">${statusText}</span></td>
+                    </tr>
+                `;
+                pastOrdersTableBody.innerHTML += row;
+            });
+
+        } catch (error) {
+            console.error("Geçmiş siparişler yüklenirken hata:", error);
+            showToast("Geçmiş siparişleriniz yüklenirken bir hata oluştu.");
+            pastOrdersTableBody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-red-500">Siparişler yüklenemedi.</td></tr>`;
+            noPastOrdersMessage.classList.add('hidden'); // Hata durumunda mesajı gizle
+        }
+    }
 
     // Sayfa yüklendiğinde yapılacaklar
     document.addEventListener('DOMContentLoaded', () => {
