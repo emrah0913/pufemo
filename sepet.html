@@ -254,7 +254,7 @@
 
     // Firebase yapılandırma bilgileriniz
     const firebaseConfig = {
-       apiKey: "AIzaSyB64tAKvCHeYnJ8-HNRLpzB7sQRng4FHyA",
+        apiKey: "AIzaSyB64tAKvCHeYnJ8-HNRLpzB7sQRng4FHyA",
   authDomain: "pufemo-2dc3a.firebaseapp.com",
   projectId: "pufemo-2dc3a",
   storageBucket: "pufemo-2dc3a.firebasestorage.app",
@@ -493,12 +493,15 @@
                 let producerOrderIds = []; 
 
                 cartItems.forEach(item => {
+                    // NaN kontrolü ve varsayılan değer ataması eklendi
+                    const itemProductPrice = parseFloat(item.productPrice) || 0; 
                     const serviceRate = item.serviceFeeRate !== undefined ? item.serviceFeeRate : (categoryRates[item.category] || categoryRates['default'] || 0);
+
                     let itemServiceFee = 0;
                     if (item.type === 'custom_order') {
-                        itemServiceFee = item.productPrice * serviceRate;
+                        itemServiceFee = itemProductPrice * serviceRate;
                     }
-                    const itemFinalPrice = item.orderMethod === 'service' ? item.productPrice + itemServiceFee : item.productPrice;
+                    const itemFinalPrice = item.orderMethod === 'service' ? itemProductPrice + itemServiceFee : itemProductPrice;
                     subtotal += (itemFinalPrice * item.quantity);
 
                     // Eğer ürün bir üreticiye aitse, producerId'sini ekle
@@ -510,41 +513,48 @@
                 const currentDeliveryFee = pricingSettings.cityFees?.[selectedCity] || pricingSettings.cityFees?.['Diğer'] || 0;
                 let grandTotal = subtotal + (deliveryType === 'home' ? currentDeliveryFee : 0);
 
+                // Sipariş verilerini oluştur ve undefined değerleri kontrol et
+                const orderData = {
+                    userId: currentUser.uid,
+                    userEmail: currentUser.email,
+                    userFullName: userProfile?.fullName || 'Bilinmiyor',
+                    userPhone: userProfile?.phone || 'Bilinmiyor',
+                    deliveryAddress: finalDeliveryAddress,
+                    deliveryType: deliveryType,
+                    selectedCity: selectedCity,
+                    items: cartItems.map(item => ({ 
+                        id: item.id, 
+                        productLink: item.productLink || '', // undefined olmaması için boş string varsayılan
+                        productPrice: parseFloat(item.productPrice) || 0, // undefined/NaN olmaması için 0 varsayılan
+                        category: item.category || 'Diğer', // undefined olmaması için 'Diğer' varsayılan
+                        orderMethod: item.orderMethod || 'service', // undefined olmaması için 'service' varsayılan
+                        quantity: parseInt(item.quantity) || 1, // undefined/NaN olmaması için 1 varsayılan
+                        serviceFeeRate: item.serviceFeeRate !== undefined ? item.serviceFeeRate : (categoryRates[item.category] || categoryRates['default'] || 0),
+                        type: item.type || 'custom_order', // undefined olmaması için 'custom_order' varsayılan
+                        imageUrl: item.imageUrl || null,
+                        producerId: item.producerId || null 
+                    })),
+                    subtotal: subtotal,
+                    serviceFeeTotal: cartItems.reduce((acc, item) => {
+                        const itemProductPrice = parseFloat(item.productPrice) || 0;
+                        const serviceRate = item.serviceFeeRate !== undefined ? item.serviceFeeRate : (categoryRates[item.category] || categoryRates['default'] || 0);
+                        return acc + (item.type === 'custom_order' ? (itemProductPrice * serviceRate * (parseInt(item.quantity) || 1)) : 0);
+                    }, 0),
+                    deliveryFee: (deliveryType === 'home' ? currentDeliveryFee : 0),
+                    grandTotal: grandTotal,
+                    paymentMethod: selectedPaymentMethod,
+                    orderDate: serverTimestamp(),
+                    status: 'pending_payment', 
+                    producerIds: producerOrderIds.length > 0 ? producerOrderIds : null, 
+                    hasProducerItems: producerOrderIds.length > 0 
+                };
+
+                // Hata ayıklama için sipariş verilerini konsola yazdır
+                console.log("Sipariş verileri:", orderData);
+
                 try {
                     // Siparişi Firestore'a kaydet
-                    const orderRef = await addDoc(collection(db, 'orders'), {
-                        userId: currentUser.uid,
-                        userEmail: currentUser.email,
-                        userFullName: userProfile?.fullName || 'Bilinmiyor',
-                        userPhone: userProfile?.phone || 'Bilinmiyor',
-                        deliveryAddress: finalDeliveryAddress,
-                        deliveryType: deliveryType,
-                        selectedCity: selectedCity,
-                        items: cartItems.map(item => ({ 
-                            id: item.id, 
-                            productLink: item.productLink,
-                            productPrice: item.productPrice,
-                            category: item.category,
-                            orderMethod: item.orderMethod,
-                            quantity: item.quantity,
-                            serviceFeeRate: item.serviceFeeRate,
-                            type: item.type,
-                            imageUrl: item.imageUrl || null,
-                            producerId: item.producerId || null 
-                        })),
-                        subtotal: subtotal,
-                        serviceFeeTotal: cartItems.reduce((acc, item) => {
-                            const serviceRate = item.serviceFeeRate !== undefined ? item.serviceFeeRate : (categoryRates[item.category] || categoryRates['default'] || 0);
-                            return acc + (item.type === 'custom_order' ? (item.productPrice * serviceRate * item.quantity) : 0);
-                        }, 0),
-                        deliveryFee: (deliveryType === 'home' ? currentDeliveryFee : 0),
-                        grandTotal: grandTotal,
-                        paymentMethod: selectedPaymentMethod,
-                        orderDate: serverTimestamp(),
-                        status: 'pending_payment', 
-                        producerIds: producerOrderIds.length > 0 ? producerOrderIds : null, 
-                        hasProducerItems: producerOrderIds.length > 0 
-                    });
+                    const orderRef = await addDoc(collection(db, 'orders'), orderData);
 
                     // Sipariş başarıyla oluşturulduktan sonra sepeti temizle
                     const batch = writeBatch(db);
@@ -605,13 +615,25 @@
                     console.warn("Kullanıcı profil bilgileri eksik. Lütfen tamamlayın.");
                 }
             } else {
+                // Yeni kullanıcı profili oluşturulurken eksik alanları boş string olarak başlat
                 await setDoc(userDocRef, {
                     email: currentUser.email,
                     photoURL: currentUser.photoURL,
                     role: 'customer',
-                    createdAt: serverTimestamp()
+                    fullName: '', // Boş string olarak başlat
+                    phone: '',    // Boş string olarak başlat
+                    address: '',  // Boş string olarak başlat
+                    createdAt: serverTimestamp() 
                 });
-                userProfile = { email: currentUser.email, photoURL: currentUser.photoURL, role: 'customer' };
+                // userProfile nesnesini de bu başlatılan değerlerle güncelle
+                userProfile = { 
+                    email: currentUser.email, 
+                    photoURL: currentUser.photoURL, 
+                    role: 'customer',
+                    fullName: '',
+                    phone: '',
+                    address: ''
+                };
                 console.warn("Yeni kullanıcı profili oluşturuldu. Lütfen detayları tamamlayın.");
             }
         }
@@ -672,10 +694,10 @@
 
                 let itemServiceFee = 0;
                 if (item.type === 'custom_order') {
-                    itemServiceFee = item.productPrice * serviceRate;
+                    itemServiceFee = (parseFloat(item.productPrice) || 0) * serviceRate;
                 }
-                const itemFinalPrice = item.orderMethod === 'service' ? item.productPrice + itemServiceFee : item.productPrice; 
-                const lineTotal = itemFinalPrice * item.quantity;
+                const itemFinalPrice = item.orderMethod === 'service' ? (parseFloat(item.productPrice) || 0) + itemServiceFee : (parseFloat(item.productPrice) || 0); 
+                const lineTotal = itemFinalPrice * (parseInt(item.quantity) || 1);
 
                 const itemElement = document.createElement('div');
                 itemElement.className = 'flex items-start sm:items-center gap-4 border-b pb-4 flex-col sm:flex-row last:border-b-0 last:pb-0'; 
@@ -684,7 +706,7 @@
                     <div class="flex-1 min-w-0">
                         <p class="font-semibold text-gray-800 text-base line-clamp-1">${item.productLink}</p>
                         <p class="text-xs text-gray-500">${item.category ? `Kategori: ${item.category}` : ''}</p>
-                        <p class="text-xs text-gray-500">Birim Fiyatı: ${item.productPrice.toFixed(2)} ₺</p>
+                        <p class="text-xs text-gray-500">Birim Fiyatı: ${itemProductPrice.toFixed(2)} ₺</p>
                         ${item.type === 'custom_order' && itemServiceFee > 0 ? `<p class="text-xs text-gray-500">Hizmet Bedeli: ${itemServiceFee.toFixed(2)} ₺</p>` : ''}
                         <p class="text-xs text-gray-500">Hizmet Dahil Birim Fiyatı: ${itemFinalPrice.toFixed(2)} ₺</p>
                     </div>
@@ -704,7 +726,7 @@
         async function updateQuantity(itemId, isIncrease) {
             const item = cartItems.find(i => i.id === itemId);
             if (!item) return;
-            let newQuantity = isIncrease ? item.quantity + 1 : item.quantity - 1;
+            let newQuantity = isIncrease ? (parseInt(item.quantity) || 0) + 1 : (parseInt(item.quantity) || 0) - 1;
             if (newQuantity < 1) newQuantity = 1; 
 
             const itemRef = doc(db, 'users', currentUser.uid, 'cart', itemId);
@@ -717,6 +739,7 @@
         }
 
         async function deleteItem(itemId) {
+            // Confirm yerine custom modal kullanılması gerektiğini unutmayın
             if (confirm('Bu ürünü sepetten kaldırmak istediğinize emin misiniz?')) { 
                 const itemRef = doc(db, 'users', currentUser.uid, 'cart', itemId);
                 try {
@@ -761,8 +784,9 @@
                 
                 const categoryRates = pricingSettings.categoryRates || {};
                 const itemsHtml = (order.items ?? []).map(item => {
-                    const itemServiceFee = item.productPrice * (categoryRates[item.category] || 0);
-                    const itemFinalPrice = item.orderMethod === 'service' ? item.productPrice + itemServiceFee : item.productPrice;
+                    const itemProductPrice = parseFloat(item.productPrice) || 0;
+                    const itemServiceFee = itemProductPrice * (categoryRates[item.category] || 0);
+                    const itemFinalPrice = item.orderMethod === 'service' ? itemProductPrice + itemServiceFee : itemProductPrice;
                     return `
                         <div class="flex justify-between items-center text-sm border-t border-gray-100 pt-2 first:border-t-0 first:pt-0">
                             <div class="flex-1 min-w-0">
@@ -772,12 +796,12 @@
                             </div>
                             <div class="w-24 text-right">
                                 <p class="text-xs text-gray-500">Fiyat</p>
-                                <p class="font-medium">${(itemFinalPrice * item.quantity).toFixed(2)} ₺</p>
+                                <p class="font-medium">${(itemFinalPrice * (parseInt(item.quantity) || 1)).toFixed(2)} ₺</p>
                             </div>
                         </div>`;
                 }).join('');
                 
-                const grandTotalDisplay = typeof order.grandTotal !== 'undefined'
+                const grandTotalDisplay = typeof order.grandTotal !== 'undefined' && !isNaN(order.grandTotal)
                     ? `${order.grandTotal.toFixed(2)} ₺`
                     : 'Hesaplanamadı';
 
@@ -864,13 +888,14 @@
             const categoryRates = pricingSettings.categoryRates || {};
             let subtotal = 0;
             cartItems.forEach(item => {
+                const itemProductPrice = parseFloat(item.productPrice) || 0; // NaN kontrolü
                 const serviceRate = item.serviceFeeRate !== undefined ? item.serviceFeeRate : (categoryRates[item.category] || categoryRates['default'] || 0);
                 let itemServiceFee = 0;
                 if (item.type === 'custom_order') {
-                    itemServiceFee = item.productPrice * serviceRate;
+                    itemServiceFee = itemProductPrice * serviceRate;
                 }
-                const itemFinalPrice = item.orderMethod === 'service' ? item.productPrice + itemServiceFee : item.productPrice;
-                subtotal += (itemFinalPrice * item.quantity);
+                const itemFinalPrice = item.orderMethod === 'service' ? itemProductPrice + itemServiceFee : itemProductPrice;
+                subtotal += (itemFinalPrice * (parseInt(item.quantity) || 1)); // NaN kontrolü
             });
             
             let deliveryFee = 0;
@@ -886,9 +911,9 @@
             }
 
             const grandTotal = subtotal + deliveryFee;
-            subtotalSpan.textContent = `${subtotal.toFixed(2)} ₺`;
-            deliveryFeeSpan.textContent = `${deliveryFee.toFixed(2)} ₺`;
-            grandTotalSpan.textContent = `${grandTotal.toFixed(2)} ₺`;
+            subtotalSpan.textContent = `${(isNaN(subtotal) ? 0 : subtotal).toFixed(2)} ₺`;
+            deliveryFeeSpan.textContent = `${(isNaN(deliveryFee) ? 0 : deliveryFee).toFixed(2)} ₺`;
+            grandTotalSpan.textContent = `${(isNaN(grandTotal) ? 0 : grandTotal).toFixed(2)} ₺`;
         }
 
         // İçerik Görünürlüğü Kontrolü
