@@ -242,19 +242,8 @@
     </div>
 </div>
 
-<div id="auth-required-modal" class="fixed inset-0 bg-black/60 flex items-center justify-center z-[100] hidden">
-    <div class="bg-white rounded-lg p-8 w-full max-w-sm m-4 text-center fade-in">
-        <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <i class="ri-lock-line ri-2x text-red-500"></i>
-        </div>
-        <h3 class="text-xl font-bold text-gray-800">Giriş Gerekli</h3>
-        <p class="text-sm text-gray-600 mt-2 mb-6">Sepet içeriğinizi ve geçmiş siparişlerinizi görmek için lütfen giriş yapın.</p>
-        <div class="space-y-2">
-            <button id="auth-modal-login-btn" class="w-full bg-primary text-white py-2 rounded-button font-medium hover:bg-primary/90 transition-colors">Giriş Yap</button>
-        </div>
-    </div>
-</div>
-
+<!-- auth-required-modal artık bu sayfada kullanılmayacak, bu yüzden kaldırıldı -->
+<!-- login-modal artık bu sayfada kullanılmayacak, bu yüzden kaldırıldı -->
 
 <div id="toast" class="fixed bottom-24 right-6 bg-gray-800 text-white px-5 py-3 rounded-lg shadow-xl opacity-0 transition-all duration-300 z-[110] transform translate-y-4">
     <span id="toast-message"></span>
@@ -307,18 +296,15 @@
         const successOrderIdSpan = document.getElementById('success-order-id');
         const successTransferInfoDiv = document.getElementById('success-transfer-info');
 
-        const authRequiredModal = document.getElementById('auth-required-modal');
-        const authModalLoginBtn = document.getElementById('auth-modal-login-btn');
-        const loginModal = document.getElementById('login-modal');
-        const closeLoginModal = document.getElementById('close-login-modal');
-        const googleLoginBtn = document.getElementById('google-login-btn');
+        // authRequiredModal, loginModal ve googleLoginBtn bu sayfadan kaldırıldığı için artık burada tanımlanmıyorlar
+        // Bunlar ana sayfadaki veya ürün ekleme akışındaki giriş bileşenlerinin sorumluluğundadır.
         
         const cartItemsList = document.getElementById('cart-items-list'); 
         const citySelectionSection = document.getElementById('city-selection-section');
         const deliveryAddressSection = document.getElementById('delivery-address-section');
         const deliveryAddressInput = document.getElementById('delivery-address');
         const ordersList = document.getElementById('orders-list'); 
-        const noOrdersMessage = document.getElementById('no-orders-message'); 
+        const noOrdersMessage = document.getElementById('no-content-message'); // Corrected ID usage for no-content-message
         const activeCartWrapper = document.getElementById('active-cart-wrapper'); 
         const emptyCartMessage = document.getElementById('empty-cart-message'); 
         const pastOrdersWrapper = document.getElementById('past-orders-wrapper');
@@ -358,6 +344,7 @@
             if (mainContent) mainContent.classList.add('hidden'); // Ana içeriği gizle
 
             if (user) {
+                // Kullanıcı giriş yapmışsa
                 currentUser = user;
                 if (profileImg) profileImg.src = user.photoURL || 'https://placehold.co/40x40/cccccc/000000?text=P';
                 if (profileContainer) profileContainer.classList.remove('hidden');
@@ -372,47 +359,28 @@
                     if (loader) loader.innerHTML = `<p class="text-red-500">Veriler yüklenirken bir hata oluştu. Lütfen sayfayı yenileyin.</p>`;
                 }
             } else {
+                // Kullanıcı giriş yapmamışsa
                 currentUser = null;
                 userProfile = null;
                 if (profileContainer) profileContainer.classList.add('hidden');
-                if (loader) loader.classList.add('hidden');
-                if (authRequiredModal) authRequiredModal.classList.remove('hidden'); // Giriş gerekli modalını göster
                 
-                // Kullanıcı giriş yapmamışsa sepet ve sipariş içeriğini tamamen gizle
+                // Loader'ı gizle ve ana içeriği göster (boş sepet/sipariş yok mesajı ile)
+                if (loader) loader.classList.add('hidden');
+                if (mainContent) mainContent.classList.remove('hidden'); 
+                
+                // Aktif sepet ve geçmiş sipariş wrapper'larını gizle
                 if (activeCartWrapper) activeCartWrapper.classList.add('hidden');
                 if (pastOrdersWrapper) pastOrdersWrapper.classList.add('hidden');
-                if (noContentMessage) noContentMessage.classList.add('hidden'); 
+                
+                // 'Hiçbir içerik yok' mesajını göster
+                if (noOrdersMessage) noOrdersMessage.classList.remove('hidden'); // noOrdersMessage aslında no-content-message
+                // emptyCartMessage da boş sepeti belirtir, burada gizli kalabilir eğer hiç giriş yapılmadıysa
+                if (emptyCartMessage) emptyCartMessage.classList.add('hidden'); 
             }
         });
 
-        // Kimlik Doğrulama Gerekli Modalı Eylemleri
-        if (authModalLoginBtn && loginModal && authRequiredModal) {
-            authModalLoginBtn.addEventListener('click', () => {
-                authRequiredModal.classList.add('hidden'); // Kimlik doğrulama modalını kapat
-                loginModal.classList.remove('hidden'); // Genel giriş modalını aç
-            });
-        }
-
-
-        // Genel Giriş Modalı Eylemleri
-        if (closeLoginModal && loginModal) {
-            closeLoginModal.addEventListener('click', () => loginModal.classList.add('hidden'));
-        }
-
-        if (googleLoginBtn && loginModal) {
-            googleLoginBtn.addEventListener('click', async () => {
-                const provider = new GoogleAuthProvider();
-                try {
-                    await signInWithPopup(auth, provider);
-                    loginModal.classList.add('hidden');
-                    // onAuthStateChanged, başarılı girişten sonra UI güncellemesini otomatik olarak yönetecek
-                } catch (error) {
-                    console.error("Google giriş hatası:", error);
-                    showToast("Google ile giriş yaparken bir hata oluştu.");
-                }
-            });
-        }
-
+        // Kimlik Doğrulama Gerekli Modalı ve Genel Giriş Modalı mantığı artık burada değil
+        // Bu modal ve mantık, sepet sayfasına gelmeden önceki akışta (örn: ana sayfada) yer almalıdır.
 
         // Sepet öğeleri listesi olay dinleyicisi (miktar ve silme düğmeleri için)
         if (cartItemsList) {
@@ -430,11 +398,11 @@
 
 
         // "Ödeme Adımına Geç" butonu tıklama olayı
-        if (proceedToPaymentBtn && paymentSelectionWrapper) { // paymentSelectionWrapper da eklendi
+        if (proceedToPaymentBtn && paymentSelectionWrapper) { 
             proceedToPaymentBtn.addEventListener('click', () => {
                 const deliveryTypeRadio = document.querySelector('input[name="delivery-type"]:checked');
                 if (!deliveryTypeRadio) {
-                    showToast('Lütfen bir teslimat türü seçiniz.'); // Should not happen with default checked, but for robustness
+                    showToast('Lütfen bir teslimat türü seçiniz.'); 
                     return;
                 }
                 const deliveryType = deliveryTypeRadio.value;
@@ -444,7 +412,7 @@
                         showToast('Lütfen teslimat için bir şehir seçiniz.');
                         return;
                     }
-                    if (!deliveryAddressInput || !deliveryAddressInput.value.trim()) { // Check deliveryAddressInput for null/empty
+                    if (!deliveryAddressInput || !deliveryAddressInput.value.trim()) { 
                         showToast('Lütfen teslimat adresini giriniz.');
                         return;
                     }
@@ -506,11 +474,11 @@
                     }
                     finalDeliveryAddress = deliveryAddressInput.value.trim();
                 } else {
-                    selectedCity = 'Lefkoşa'; // Depo teslimatı için varsayılan şehir
-                    finalDeliveryAddress = 'Getir Kıbrıs Depo, Şehit Mustafa Ruso Caddesi, No:86, Lefkoşa, KKTC'; // Depo adresi
+                    selectedCity = 'Lefkoşa'; 
+                    finalDeliveryAddress = 'Getir Kıbrıs Depo, Şehit Mustafa Ruso Caddesi, No:86, Lefkoşa, KKTC'; 
                 }
 
-                // Kredi kartı ödemesi için bilgi doğrulama
+                // Kredi kartı ödemesi için bilgi doğrulama (sadece simülasyon amaçlı)
                 if (selectedPaymentMethod === 'card') {
                     const cardNumber = document.getElementById('card-number')?.value.trim();
                     const cardExpiry = document.getElementById('card-expiry')?.value.trim();
@@ -525,7 +493,7 @@
                 // Toplamları tekrar hesapla
                 const categoryRates = pricingSettings.categoryRates || {};
                 let subtotal = 0;
-                let producerOrderIds = []; // Üretici ID'lerini toplayan dizi
+                let producerOrderIds = []; 
 
                 cartItems.forEach(item => {
                     const serviceRate = item.serviceFeeRate !== undefined ? item.serviceFeeRate : (categoryRates[item.category] || categoryRates['default'] || 0);
@@ -555,8 +523,8 @@
                         deliveryAddress: finalDeliveryAddress,
                         deliveryType: deliveryType,
                         selectedCity: selectedCity,
-                        items: cartItems.map(item => ({ // Sepet öğelerini direkt kaydet
-                            id: item.id, // Firestore belge ID'si
+                        items: cartItems.map(item => ({ 
+                            id: item.id, 
                             productLink: item.productLink,
                             productPrice: item.productPrice,
                             category: item.category,
@@ -565,7 +533,7 @@
                             serviceFeeRate: item.serviceFeeRate,
                             type: item.type,
                             imageUrl: item.imageUrl || null,
-                            producerId: item.producerId || null // Üretici ID'si
+                            producerId: item.producerId || null 
                         })),
                         subtotal: subtotal,
                         serviceFeeTotal: cartItems.reduce((acc, item) => {
@@ -576,9 +544,9 @@
                         grandTotal: grandTotal,
                         paymentMethod: selectedPaymentMethod,
                         orderDate: serverTimestamp(),
-                        status: 'pending_payment', // İlk durum 'pending_payment'
-                        producerIds: producerOrderIds.length > 0 ? producerOrderIds : null, // Siparişle ilişkili üretici ID'leri
-                        hasProducerItems: producerOrderIds.length > 0 // Üretici öğeleri olup olmadığını kolayca sorgulamak için
+                        status: 'pending_payment', 
+                        producerIds: producerOrderIds.length > 0 ? producerOrderIds : null, 
+                        hasProducerItems: producerOrderIds.length > 0 
                     });
 
                     // Sipariş başarıyla oluşturulduktan sonra sepeti temizle
@@ -667,8 +635,6 @@
 
         function listenToOrders(userId) {
             const ordersRef = collection(db, 'orders');
-            // 'orderDate' üzerinde orderBy kullanıyorsanız, Firebase'de bir dizin oluşturmanız gerekebilir.
-            // Hata mesajında verilen URL'den dizini oluşturabilirsiniz.
             const q = query(ordersRef, where("userId", "==", userId), orderBy("orderDate", "desc"));
             onSnapshot(q, (snapshot) => {
                 pastOrders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -774,12 +740,12 @@
 
             if (orders.length === 0) {
                 pastOrdersWrapper.classList.remove('hidden'); 
-                noOrdersMessage.classList.remove('hidden');
+                noOrdersMessage.classList.remove('hidden'); // noOrdersMessage aslında no-content-message
                 ordersList.innerHTML = '';
                 return;
             }
             pastOrdersWrapper.classList.remove('hidden');
-            noOrdersMessage.classList.add('hidden');
+            noOrdersMessage.classList.add('hidden'); // noOrdersMessage aslında no-content-message
             ordersList.innerHTML = '';
 
             orders.forEach(order => {
@@ -850,7 +816,6 @@
                 const cityRadio = document.querySelector(`input[name="city"][value="${userCity}"]`);
                 if (cityRadio) {
                     cityRadio.checked = true;
-                    // Ensure deliveryTypeHome and relevant sections are checked before accessing classList
                     const deliveryTypeHome = document.querySelector('input[name="delivery-type"][value="home"]');
                     if (deliveryTypeHome && deliveryTypeHome.checked && citySelectionSection && deliveryAddressSection) {
                         citySelectionSection.classList.remove('hidden');
@@ -863,7 +828,7 @@
         document.body.addEventListener('change', (e) => {
             if (e.target.name === 'delivery-type' || e.target.name === 'city') {
                 const deliveryTypeRadio = document.querySelector('input[name="delivery-type"]:checked');
-                if (!deliveryTypeRadio) { // Robustness check
+                if (!deliveryTypeRadio) { 
                     console.error("Teslimat türü seçilmedi.");
                     return;
                 }
@@ -914,7 +879,7 @@
             
             let deliveryFee = 0;
             const deliveryTypeRadio = document.querySelector('input[name="delivery-type"]:checked');
-            const deliveryType = deliveryTypeRadio ? deliveryTypeRadio.value : 'warehouse'; // Default to warehouse if not found
+            const deliveryType = deliveryTypeRadio ? deliveryTypeRadio.value : 'warehouse'; 
 
             if (deliveryType === 'home') {
                 const selectedCityRadio = document.querySelector('input[name="city"]:checked');
@@ -932,20 +897,26 @@
 
         // İçerik Görünürlüğü Kontrolü
         function checkContentVisibility() {
-            if (!currentUser) return; // Kullanıcı giriş yapmamışsa bu fonksiyondan çık
+            if (!currentUser) {
+                // Eğer kullanıcı giriş yapmamışsa, sadece 'içerik yok' mesajını göster.
+                if (noOrdersMessage) noOrdersMessage.classList.remove('hidden');
+                if (mainContent) mainContent.classList.remove('hidden');
+                if (activeCartWrapper) activeCartWrapper.classList.add('hidden');
+                if (pastOrdersWrapper) pastOrdersWrapper.classList.add('hidden');
+                if (loader) loader.classList.add('hidden');
+                return;
+            }
 
-            // Ensure all relevant DOM elements exist before accessing them
-            if (!noContentMessage || !mainContent || !activeCartWrapper || !pastOrdersWrapper || !loader) {
+            // Kullanıcı giriş yapmışsa, sepet ve sipariş durumuna göre içeriği göster/gizle
+            if (!noOrdersMessage || !mainContent || !activeCartWrapper || !pastOrdersWrapper || !loader) {
                 console.error("Kritik içerik görünürlüğü DOM öğeleri eksik.");
                 return;
             }
             
-            // Eğer sepet doluysa VEYA geçmiş sipariş varsa
             if (cartItems.length > 0 || pastOrders.length > 0) {
-                noContentMessage.classList.add('hidden'); // "İçerik yok" mesajını gizle
-                mainContent.classList.remove('hidden'); // Ana içeriği göster
+                noOrdersMessage.classList.add('hidden'); 
+                mainContent.classList.remove('hidden'); 
 
-                // Aktif sepeti ve geçmiş siparişleri duruma göre göster/gizle
                 if (cartItems.length > 0) {
                     activeCartWrapper.classList.remove('hidden');
                 } else {
@@ -957,13 +928,12 @@
                     pastOrdersWrapper.classList.add('hidden');
                 }
             } else {
-                // Hem sepet boş hem de geçmiş sipariş yoksa
                 activeCartWrapper.classList.add('hidden');
                 pastOrdersWrapper.classList.add('hidden');
-                noContentMessage.classList.remove('hidden'); // "İçerik yok" mesajını göster
-                mainContent.classList.remove('hidden'); // Ana içeriği göster (sadece "içerik yok" mesajıyla)
+                noOrdersMessage.classList.remove('hidden'); 
+                mainContent.classList.remove('hidden'); 
             }
-            loader.classList.add('hidden'); // Yükleyiciyi gizle
+            loader.classList.add('hidden'); 
         }
 
     }); // DOMContentLoaded sonu
