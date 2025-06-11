@@ -279,615 +279,588 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    const loader = document.getElementById('loader');
-    const mainContent = document.getElementById('main-content');
-    const profileImg = document.getElementById('profile-img');
-    const profileContainer = document.getElementById('profile-container');
-    
-    const proceedToPaymentBtn = document.getElementById('proceed-to-payment-btn');
-    const paymentSelectionWrapper = document.getElementById('payment-selection-wrapper');
-    const confirmOrderBtn = document.getElementById('confirm-order-btn');
-    const successModal = document.getElementById('order-success-modal');
-    const successOrderIdSpan = document.getElementById('success-order-id');
-    const successTransferInfoDiv = document.getElementById('success-transfer-info');
-
-    // Modals
-    const authRequiredModal = document.getElementById('auth-required-modal');
-    const authModalLoginBtn = document.getElementById('auth-modal-login-btn');
-    const loginModal = document.getElementById('login-modal');
-    const closeLoginModal = document.getElementById('close-login-modal');
-    const googleLoginBtn = document.getElementById('google-login-btn');
-    // Note: profileModal and profileForm are not directly used in this `sepet.html` code but were in previous versions.
-    // I'll keep them out of this scope for brevity, assuming profile updates happen on index.html or a dedicated profile page.
-    
+    // Global variables (not DOM elements themselves, but data containers)
     let cartItems = [];
     let pastOrders = [];
     let currentUser = null;
     let userProfile = null;
-    
     let pricingSettings = {};
     const DEFAULT_SETTINGS = {
         categoryRates: { 'furniture': 0.70, 'electronics': 0.70, 'clothing': 0.45, 'cosmetics': 0.70, 'stationery': 0.40, 'default': 0.50 },
         cityFees: { 'Lefkoşa': 200, 'Girne': 350, 'Gazimağusa': 300, 'Güzelyurt': 400, 'İskele': 450, 'Diğer': 500 }
     };
-    
-    async function loadPricingSettings() {
-        try {
-            const docRef = doc(db, "settings", "pricing");
-            const docSnap = await getDoc(docRef);
-            if (docSnap.exists() && docSnap.data().categoryRates) {
-                pricingSettings = docSnap.data();
-            } else {
-                pricingSettings = DEFAULT_SETTINGS;
-            }
-        } catch (error) {
-            console.error("Fiyat ayarları yüklenirken hata oluştu:", error);
-            pricingSettings = DEFAULT_SETTINGS;
-        }
-        populateCities();
-    }
 
-    onAuthStateChanged(auth, async (user) => {
-        loader.classList.remove('hidden'); // Yükleyiciyi göster
-        mainContent.classList.add('hidden'); // İçeriği gizle
-
-        if (user) {
-            currentUser = user;
-            profileImg.src = user.photoURL || 'https://placehold.co/40x40/cccccc/000000?text=P';
-            profileContainer.classList.remove('hidden');
-
-            try {
-                await loadPricingSettings();
-                await fetchUserProfile(user.uid);
-                listenToCart(user.uid);
-                listenToOrders(user.uid);
-            } catch (error) {
-                console.error("Initialization error:", error);
-                loader.innerHTML = `<p class="text-red-500">Veriler yüklenirken bir hata oluştu. Lütfen sayfayı yenileyin.</p>`;
-            }
-        } else {
-            currentUser = null;
-            userProfile = null;
-            profileContainer.classList.add('hidden');
-            // Kullanıcı giriş yapmamışsa, "Giriş Gerekli" modalını göster
-            loader.classList.add('hidden'); // Yükleyiciyi gizle
-            authRequiredModal.classList.remove('hidden'); // Giriş modalını göster
-            // Sayfa içeriğini tamamen gizle
-            document.getElementById('active-cart-wrapper').classList.add('hidden');
-            document.getElementById('past-orders-wrapper').classList.add('hidden');
-            document.getElementById('no-content-message').classList.add('hidden'); // Bu mesaj da gizli kalsın, modal yönlendirecek
-        }
-    });
-
-    // Toast Notification Function
-    function showToast(message, duration = 3000) {
-        const toast = document.getElementById('toast');
-        const toastMessage = document.getElementById('toast-message');
-        toastMessage.textContent = message;
-        toast.classList.remove('opacity-0', 'translate-y-4', 'hidden');
-        toast.classList.add('opacity-100', 'translate-y-0', 'show');
-
-        setTimeout(() => {
-            toast.classList.remove('opacity-100', 'translate-y-0', 'show');
-            toast.classList.add('opacity-0', 'translate-y-4');
-            setTimeout(() => {
-                toast.classList.add('hidden');
-            }, 300);
-        }, duration);
-    }
-
-    // AUTH REQUIRED MODAL ACTIONS
-    authModalLoginBtn.addEventListener('click', () => {
-        authRequiredModal.classList.add('hidden'); // Close auth required modal
-        loginModal.classList.remove('hidden'); // Open general login modal
-    });
-
-    // GENERAL LOGIN MODAL ACTIONS (from header profile icon)
-    // Removed loginBtn from DOM elements and its event listener here
-    // as the main entry for login from sepet.html is now via authRequiredModal
-    // profileImg.addEventListener('click', async () => { ... }); -> this might be on index.html
-    // If you need a direct login button on sepet.html, add it to the header and handle its click.
-
-    closeLoginModal.addEventListener('click', () => loginModal.classList.add('hidden'));
-
-    googleLoginBtn.addEventListener('click', async () => {
-        const provider = new GoogleAuthProvider();
-        try {
-            await signInWithPopup(auth, provider);
-            loginModal.classList.add('hidden');
-            // onAuthStateChanged will handle UI update after successful login
-        } catch (error) {
-            console.error("Google giriş hatası:", error);
-            showToast("Google ile giriş yaparken bir hata oluştu.");
-        }
-    });
-
-    function checkContentVisibility() {
-        // Bu fonksiyon sadece kullanıcı GİRİŞ YAPTIYSA içeriğin gösterilmesi için kullanılır.
-        // Giriş yapmamış kullanıcılar için gösterim onAuthStateChanged içinde ele alınır.
-        if (!currentUser) return;
-
-        const noContentMessage = document.getElementById('no-content-message');
-        const activeCartWrapper = document.getElementById('active-cart-wrapper');
-        const pastOrdersWrapper = document.getElementById('past-orders-wrapper');
-
-        // Sepet doluysa veya geçmiş sipariş varsa ana içeriği göster
-        if (cartItems.length > 0 || pastOrders.length > 0) {
-            noContentMessage.classList.add('hidden');
-            mainContent.classList.remove('hidden'); // Main content'i göster
-
-            if (cartItems.length > 0) {
-                activeCartWrapper.classList.remove('hidden');
-            } else {
-                activeCartWrapper.classList.add('hidden');
-            }
-            if (pastOrders.length > 0) {
-                pastOrdersWrapper.classList.remove('hidden');
-            } else {
-                pastOrdersWrapper.classList.add('hidden');
-            }
-        } else {
-            // Hem sepet boş hem de geçmiş sipariş yoksa 'no-content-message' göster
-            activeCartWrapper.classList.add('hidden');
-            pastOrdersWrapper.classList.add('hidden');
-            noContentMessage.classList.remove('hidden');
-            mainContent.classList.remove('hidden'); // Main content'i göster (sadece no-content-message ile)
-        }
-        loader.classList.add('hidden'); // Yükleyiciyi gizle
-    }
-
-    async function fetchUserProfile(userId) {
-        const userDocRef = doc(db, 'users', userId);
-        const userDocSnap = await getDoc(userDocRef);
-        if (userDocSnap.exists()) {
-            userProfile = userDocSnap.data();
-            // Profil bilgileri eksikse profil tamamlama modalını açabilirsiniz
-            // Bu sayfada, profileModal HTML'de olmadığı için uyarı bırakıyoruz.
-            if (!userProfile.fullName || !userProfile.phone || !userProfile.address) {
-                console.warn("Kullanıcı profil bilgileri eksik. Lütfen tamamlayın.");
-                // Örneğin: window.location.href = 'https://pufemo.netlify.app/profile.html';
-            }
-        } else {
-            // Yeni kullanıcıysa veya belge yoksa temel bir profil oluştur
-            await setDoc(userDocRef, {
-                email: currentUser.email,
-                photoURL: currentUser.photoURL,
-                role: 'customer', // Varsayılan rol
-                createdAt: serverTimestamp()
-            });
-            userProfile = { email: currentUser.email, photoURL: currentUser.photoURL, role: 'customer' };
-            console.warn("Yeni kullanıcı profili oluşturuldu. Lütfen detayları tamamlayın.");
-            // Örneğin: window.location.href = 'https://pufemo.netlify.app/profile.html';
-        }
-    }
-
-    function listenToCart(userId) {
-        const cartRef = collection(db, 'users', userId, 'cart');
-        onSnapshot(cartRef, (snapshot) => {
-            cartItems = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            renderCart();
-            updateSummary();
-            checkContentVisibility();
-        }, (error) => {
-            console.error("Sepet dinlenirken hata oluştu: ", error);
-            showToast("Sepetiniz yüklenirken bir hata oluştu.");
-            checkContentVisibility(); 
-        });
-    }
-
-    function listenToOrders(userId) {
-        const ordersRef = collection(db, 'orders');
-        // 'orderDate' üzerinde orderBy kullanıyorsanız, Firebase'de bir dizin oluşturmanız gerekebilir.
-        // Hata mesajında verilen URL'den dizini oluşturabilirsiniz.
-        const q = query(ordersRef, where("userId", "==", userId), orderBy("orderDate", "desc"));
-        onSnapshot(q, (snapshot) => {
-            pastOrders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            renderOrders(pastOrders);
-            checkContentVisibility();
-        }, (error) => {
-            console.error("Siparişler dinlenirken hata oluştu: ", error);
-            showToast("Geçmiş siparişleriniz yüklenirken bir hata oluştu.");
-            checkContentVisibility();
-        });
-    }
-
-    function renderCart() {
-        const cartItemsList = document.getElementById('cart-items-list');
-        const emptyCartMessage = document.getElementById('empty-cart-message');
-        const activeCartWrapper = document.getElementById('active-cart-wrapper');
-
-        if (cartItems.length === 0) {
-            emptyCartMessage.classList.remove('hidden');
-            activeCartWrapper.classList.add('hidden'); 
-            paymentSelectionWrapper.classList.add('hidden');
-            proceedToPaymentBtn.classList.remove('hidden'); 
-            proceedToPaymentBtn.disabled = true; 
-            return;
-        }
-
-        activeCartWrapper.classList.remove('hidden'); 
-        emptyCartMessage.classList.add('hidden');
-        cartItemsList.innerHTML = '';
-        proceedToPaymentBtn.disabled = false; 
-
-        cartItems.forEach(item => {
-            const categoryRates = pricingSettings.categoryRates || {};
-            const serviceRate = item.serviceFeeRate !== undefined ? item.serviceFeeRate : (categoryRates[item.category] || categoryRates['default'] || 0);
-
-            let itemServiceFee = 0;
-            if (item.type === 'custom_order') {
-                itemServiceFee = item.productPrice * serviceRate;
-            }
-            const itemFinalPrice = item.orderMethod === 'service' ? item.productPrice + itemServiceFee : item.productPrice; 
-            const lineTotal = itemFinalPrice * item.quantity;
-
-            const itemElement = document.createElement('div');
-            itemElement.className = 'flex items-start sm:items-center gap-4 border-b pb-4 flex-col sm:flex-row last:border-b-0 last:pb-0'; 
-
-            itemElement.innerHTML = `
-                <div class="flex-1 min-w-0">
-                    <p class="font-semibold text-gray-800 text-base line-clamp-1">${item.productLink}</p>
-                    <p class="text-xs text-gray-500">${item.category ? `Kategori: ${item.category}` : ''}</p>
-                    <p class="text-xs text-gray-500">Birim Fiyatı: ${item.productPrice.toFixed(2)} ₺</p>
-                    ${item.type === 'custom_order' && itemServiceFee > 0 ? `<p class="text-xs text-gray-500">Hizmet Bedeli: ${itemServiceFee.toFixed(2)} ₺</p>` : ''}
-                    <p class="text-xs text-gray-500">Hizmet Dahil Birim Fiyatı: ${itemFinalPrice.toFixed(2)} ₺</p>
-                </div>
-                <div class="flex items-center gap-2 border rounded-md p-1 self-start sm:self-center">
-                    <button data-id="${item.id}" class="quantity-btn decrease-btn w-6 h-6 flex items-center justify-center text-lg font-bold hover:bg-gray-100 rounded">-</button>
-                    <span class="w-6 text-center">${item.quantity}</span>
-                    <button data-id="${item.id}" class="quantity-btn increase-btn w-6 h-6 flex items-center justify-center text-lg font-bold hover:bg-gray-100 rounded">+</button>
-                </div>
-                <p class="font-semibold w-24 text-right flex-shrink-0">${lineTotal.toFixed(2)} ₺</p>
-                <button data-id="${item.id}" class="delete-btn text-red-500 hover:text-red-700 flex-shrink-0">
-                    <i class="ri-delete-bin-line ri-lg"></i>
-                </button>`;
-            cartItemsList.appendChild(itemElement);
-        });
-    }
-    
-    document.getElementById('cart-items-list').addEventListener('click', e => {
-        const target = e.target.closest('button');
-        if (!target) return;
-        const itemId = target.dataset.id;
-        if (target.classList.contains('quantity-btn')) {
-            updateQuantity(itemId, target.classList.contains('increase-btn'));
-        } else if (target.classList.contains('delete-btn')) {
-            deleteItem(itemId);
-        }
-    });
-
-    async function updateQuantity(itemId, isIncrease) {
-        const item = cartItems.find(i => i.id === itemId);
-        if (!item) return;
-        let newQuantity = isIncrease ? item.quantity + 1 : item.quantity - 1;
-        if (newQuantity < 1) newQuantity = 1; 
-
-        const itemRef = doc(db, 'users', currentUser.uid, 'cart', itemId);
-        try {
-            await updateDoc(itemRef, { quantity: newQuantity });
-        } catch (error) {
-            console.error("Adet güncellenirken hata:", error);
-            showToast("Ürün adedi güncellenemedi.");
-        }
-    }
-
-    async function deleteItem(itemId) {
-        if (confirm('Bu ürünü sepetten kaldırmak istediğinize emin misiniz?')) { 
-            const itemRef = doc(db, 'users', currentUser.uid, 'cart', itemId);
-            try {
-                await deleteDoc(itemRef);
-                showToast("Ürün sepetten kaldırıldı.");
-            } catch (error) {
-                console.error("Ürün silinirken hata:", error);
-                showToast("Ürün sepetten silinemedi.");
-            }
-        }
-    }
-    
-    function renderOrders(orders) {
-        const ordersList = document.getElementById('orders-list');
-        const noOrdersMessage = document.getElementById('no-orders-message');
-        const pastOrdersWrapper = document.getElementById('past-orders-wrapper');
+    // --- DOMContentLoaded Wrapper ---
+    document.addEventListener('DOMContentLoaded', () => {
+        // All DOM element selections should happen here
+        const loader = document.getElementById('loader');
+        const mainContent = document.getElementById('main-content');
+        const profileImg = document.getElementById('profile-img');
+        const profileContainer = document.getElementById('profile-container');
         
-        if (orders.length === 0) {
-            pastOrdersWrapper.classList.remove('hidden'); 
-            noOrdersMessage.classList.remove('hidden');
-            ordersList.innerHTML = '';
-            return;
+        const proceedToPaymentBtn = document.getElementById('proceed-to-payment-btn');
+        const paymentSelectionWrapper = document.getElementById('payment-selection-wrapper');
+        const confirmOrderBtn = document.getElementById('confirm-order-btn');
+        const successModal = document.getElementById('order-success-modal');
+        const successOrderIdSpan = document.getElementById('success-order-id');
+        const successTransferInfoDiv = document.getElementById('success-transfer-info');
+
+        const authRequiredModal = document.getElementById('auth-required-modal');
+        const authModalLoginBtn = document.getElementById('auth-modal-login-btn');
+        const loginModal = document.getElementById('login-modal');
+        const closeLoginModal = document.getElementById('close-login-modal');
+        const googleLoginBtn = document.getElementById('google-login-btn');
+        
+        const cartItemsList = document.getElementById('cart-items-list'); 
+        const citySelectionSection = document.getElementById('city-selection-section');
+        const deliveryAddressSection = document.getElementById('delivery-address-section');
+        const deliveryAddressInput = document.getElementById('delivery-address');
+        const ordersList = document.getElementById('orders-list'); 
+        const noOrdersMessage = document.getElementById('no-orders-message'); 
+        const activeCartWrapper = document.getElementById('active-cart-wrapper'); 
+        const emptyCartMessage = document.getElementById('empty-cart-message'); 
+        const pastOrdersWrapper = document.getElementById('past-orders-wrapper');
+
+
+        // Toast Notification Function
+        function showToast(message, duration = 3000) {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toast-message');
+            toastMessage.textContent = message;
+            toast.classList.remove('opacity-0', 'translate-y-4', 'hidden');
+            toast.classList.add('opacity-100', 'translate-y-0', 'show');
+
+            setTimeout(() => {
+                toast.classList.remove('opacity-100', 'translate-y-0', 'show');
+                toast.classList.add('opacity-0', 'translate-y-4');
+                setTimeout(() => {
+                    toast.classList.add('hidden');
+                }, 300);
+            }, duration);
         }
-        pastOrdersWrapper.classList.remove('hidden');
-        noOrdersMessage.classList.add('hidden');
-        ordersList.innerHTML = '';
 
-        orders.forEach(order => {
-            const orderCard = document.createElement('div');
-            orderCard.className = 'bg-white rounded-lg shadow-md p-4 space-y-3';
-            
-            const statusStyles = {
-                pending_payment: { text: 'Ödeme Bekleniyor', bg: 'bg-yellow-500', text_color: 'text-white' },
-                processing: { text: 'İşleniyor', bg: 'bg-blue-500', text_color: 'text-white' }, 
-                shipped: { text: 'Kargoya Verildi', bg: 'bg-teal-500', text_color: 'text-white' },
-                delivered: { text: 'Teslim Edildi', bg: 'bg-green-500', text_color: 'text-white' },
-                cancelled: { text: 'İptal Edildi', bg: 'bg-red-500', text_color: 'text-white' }
-            };
-            const currentStatus = statusStyles[order.status] || { text: order.status, bg: 'bg-gray-400', text_color: 'text-white' };
-            const orderDate = order.orderDate ? new Date(order.orderDate.seconds * 1000).toLocaleDateString('tr-TR') : 'Bilinmiyor';
-            
-            const categoryRates = pricingSettings.categoryRates || {};
-            const itemsHtml = (order.items ?? []).map(item => {
-                const itemServiceFee = item.productPrice * (categoryRates[item.category] || 0);
-                const itemFinalPrice = item.orderMethod === 'service' ? item.productPrice + itemServiceFee : item.productPrice;
-                return `
-                    <div class="flex justify-between items-center text-sm border-t border-gray-100 pt-2 first:border-t-0 first:pt-0">
-                        <div class="flex-1 min-w-0">
-                            <p class="text-xs text-gray-500">Ürün</p>
-                            <a href="${item.productLink}" target="_blank" class="text-blue-600 hover:underline truncate block">${item.productLink}</a>
-                            <p class="text-xs text-gray-500">${item.quantity} adet</p>
-                        </div>
-                        <div class="w-24 text-right">
-                            <p class="text-xs text-gray-500">Fiyat</p>
-                            <p class="font-medium">${(itemFinalPrice * item.quantity).toFixed(2)} ₺</p>
-                        </div>
-                    </div>`;
-            }).join('');
-            
-            const grandTotalDisplay = typeof order.grandTotal !== 'undefined'
-                ? `${order.grandTotal.toFixed(2)} ₺`
-                : 'Hesaplanamadı';
+        // AUTHENTICATION & USER PROFILE
+        onAuthStateChanged(auth, async (user) => {
+            loader.classList.remove('hidden');
+            mainContent.classList.add('hidden');
 
-            orderCard.innerHTML = `
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 border-b pb-3">
-                    <div><p class="text-xs text-gray-500">Sipariş Kodu</p><p class="font-mono text-primary font-semibold text-sm">${order.id.toUpperCase().substring(0, 8)}</p></div>
-                    <div><p class="text-xs text-gray-500">Tarih</p><p class="font-semibold text-sm">${orderDate}</p></div>
-                    <div><p class="text-xs text-gray-500">Teslimat</p><p class="font-semibold text-sm">${order.deliveryType === 'home' ? 'Eve Teslim' : 'Depodan Teslim'}</p></div>
-                    <div><p class="text-xs text-gray-500">Durum</p><span class="px-3 py-1 text-xs font-semibold rounded-full ${currentStatus.bg} ${currentStatus.text_color}">${currentStatus.text}</span></div>
-                </div>
-                <div class="space-y-1">${itemsHtml}</div>
-                <div class="flex justify-end border-t pt-3 mt-2"><div class="text-right"><p class="text-sm text-gray-500">Genel Toplam</p><p class="font-bold text-lg">${grandTotalDisplay}</p></div></div>`;
-            ordersList.appendChild(orderCard);
-        });
-    }
+            if (user) {
+                currentUser = user;
+                profileImg.src = user.photoURL || 'https://placehold.co/40x40/cccccc/000000?text=P';
+                profileContainer.classList.remove('hidden');
 
-    const citySelectionSection = document.getElementById('city-selection-section');
-    const deliveryAddressSection = document.getElementById('delivery-address-section');
-    const deliveryAddressInput = document.getElementById('delivery-address');
-    
-    function populateCities() {
-        const cityListContainer = document.getElementById('city-list');
-        const cityFees = pricingSettings.cityFees || {};
-        cityListContainer.innerHTML = '';
-        for (const city in cityFees) {
-            const fee = cityFees[city];
-            const cityElement = document.createElement('label');
-            cityElement.className = 'flex items-center p-3 border rounded-md cursor-pointer has-[:checked]:bg-blue-50 has-[:checked]:border-blue-400 transition-all';
-            cityElement.innerHTML = `<input type="radio" name="city" value="${city}" class="mr-2 h-4 w-4"><span class="flex-grow text-sm">${city}</span><span class="text-sm font-semibold">${fee} ₺</span>`;
-            cityListContainer.appendChild(cityElement);
-        }
-        if (userProfile && userProfile.address) {
-            const userCity = userProfile.address.split(',').pop()?.trim();
-            const cityRadio = document.querySelector(`input[name="city"][value="${userCity}"]`);
-            if (cityRadio) {
-                cityRadio.checked = true;
-                const deliveryTypeHome = document.querySelector('input[name="delivery-type"][value="home"]');
-                if (deliveryTypeHome && deliveryTypeHome.checked) {
-                    citySelectionSection.classList.remove('hidden');
-                    deliveryAddressSection.classList.remove('hidden');
+                try {
+                    await loadPricingSettings();
+                    await fetchUserProfile(user.uid);
+                    listenToCart(user.uid);
+                    listenToOrders(user.uid);
+                } catch (error) {
+                    console.error("Initialization error:", error);
+                    loader.innerHTML = `<p class="text-red-500">Veriler yüklenirken bir hata oluştu. Lütfen sayfayı yenileyin.</p>`;
                 }
+            } else {
+                currentUser = null;
+                userProfile = null;
+                profileContainer.classList.add('hidden');
+                loader.classList.add('hidden');
+                authRequiredModal.classList.remove('hidden');
+                document.getElementById('active-cart-wrapper').classList.add('hidden');
+                document.getElementById('past-orders-wrapper').classList.add('hidden');
+                document.getElementById('no-content-message').classList.add('hidden');
             }
-        }
-    }
-    
-    document.body.addEventListener('change', (e) => {
-        if (e.target.name === 'delivery-type' || e.target.name === 'city') {
+        });
+
+        // AUTH REQUIRED MODAL ACTIONS
+        authModalLoginBtn.addEventListener('click', () => {
+            authRequiredModal.classList.add('hidden');
+            loginModal.classList.remove('hidden');
+        });
+
+        closeLoginModal.addEventListener('click', () => loginModal.classList.add('hidden'));
+
+        googleLoginBtn.addEventListener('click', async () => {
+            const provider = new GoogleAuthProvider();
+            try {
+                await signInWithPopup(auth, provider);
+                loginModal.classList.add('hidden');
+            } catch (error) {
+                console.error("Google giriş hatası:", error);
+                showToast("Google ile giriş yaparken bir hata oluştu.");
+            }
+        });
+
+        cartItemsList.addEventListener('click', e => {
+            const target = e.target.closest('button');
+            if (!target) return;
+            const itemId = target.dataset.id;
+            if (target.classList.contains('quantity-btn')) {
+                updateQuantity(itemId, target.classList.contains('increase-btn'));
+            } else if (target.classList.contains('delete-btn')) {
+                deleteItem(itemId);
+            }
+        });
+
+        proceedToPaymentBtn.addEventListener('click', () => {
             const deliveryType = document.querySelector('input[name="delivery-type"]:checked').value;
             if (deliveryType === 'home') {
-                citySelectionSection.classList.remove('hidden');
-                deliveryAddressSection.classList.remove('hidden');
-                if (!deliveryAddressInput.value.trim() && userProfile?.address) {
-                    deliveryAddressInput.value = userProfile.address;
+                if (!document.querySelector('input[name="city"]:checked')) {
+                    showToast('Lütfen teslimat için bir şehir seçiniz.');
+                    return;
+                }
+                if (!deliveryAddressInput.value.trim()) {
+                    showToast('Lütfen teslimat adresini giriniz.');
+                    return;
+                }
+            }
+            
+            proceedToPaymentBtn.classList.add('hidden');
+            paymentSelectionWrapper.classList.remove('hidden');
+            paymentSelectionWrapper.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        });
+
+        document.querySelectorAll('input[name="payment-method"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                const isCard = e.target.value === 'card';
+                document.getElementById('card-details').classList.toggle('hidden', !isCard);
+                document.getElementById('transfer-details').classList.toggle('hidden', isCard);
+            });
+        });
+
+        confirmOrderBtn.addEventListener('click', async () => {
+            if (cartItems.length === 0) {
+                showToast("Sepetiniz boş. Sipariş oluşturulamaz.");
+                return;
+            }
+
+            const selectedPaymentMethod = document.querySelector('input[name="payment-method"]:checked').value;
+            const deliveryType = document.querySelector('input[name="delivery-type"]:checked').value;
+            let selectedCity = '';
+            let finalDeliveryAddress = '';
+
+            if (deliveryType === 'home') {
+                const cityRadio = document.querySelector('input[name="city"]:checked');
+                if (!cityRadio) {
+                    showToast("Lütfen teslimat şehrinizi seçiniz.");
+                    return;
+                }
+                selectedCity = cityRadio.value;
+                finalDeliveryAddress = deliveryAddressInput.value.trim();
+                if (!finalDeliveryAddress) {
+                    showToast("Lütfen tam teslimat adresini giriniz.");
+                    return;
                 }
             } else {
-                citySelectionSection.classList.add('hidden');
-                deliveryAddressSection.classList.add('hidden');
+                selectedCity = 'Lefkoşa'; 
+                finalDeliveryAddress = 'Getir Kıbrıs Depo, Şehit Mustafa Ruso Caddesi, No:86, Lefkoşa, KKTC'; 
             }
-            updateSummary();
-        }
-    });
 
-    function updateSummary() {
-        if (cartItems.length === 0) {
-            proceedToPaymentBtn.disabled = true;
-            document.getElementById('subtotal').textContent = `0.00 ₺`;
-            document.getElementById('delivery-fee').textContent = `0.00 ₺`;
-            document.getElementById('grand-total').textContent = `0.00 ₺`;
-            document.getElementById('delivery-fee-row').classList.add('hidden');
-            return;
-        }
-        proceedToPaymentBtn.disabled = false;
-
-        const categoryRates = pricingSettings.categoryRates || {};
-        let subtotal = 0;
-        cartItems.forEach(item => {
-            const serviceRate = item.serviceFeeRate !== undefined ? item.serviceFeeRate : (categoryRates[item.category] || categoryRates['default'] || 0);
-            let itemServiceFee = 0;
-            if (item.type === 'custom_order') {
-                itemServiceFee = item.productPrice * serviceRate;
+            if (selectedPaymentMethod === 'card') {
+                const cardNumber = document.getElementById('card-number').value.trim();
+                const cardExpiry = document.getElementById('card-expiry').value.trim();
+                const cardCvc = document.getElementById('card-cvc').value.trim();
+                if (!cardNumber || !cardExpiry || !cardCvc) {
+                    showToast("Lütfen kredi kartı bilgilerini eksiksiz doldurun.");
+                    return;
+                }
+                showToast("Kredi kartı ile ödeme simülasyonu yapılıyor...");
             }
-            const itemFinalPrice = item.orderMethod === 'service' ? item.productPrice + itemServiceFee : item.productPrice;
-            subtotal += (itemFinalPrice * item.quantity);
-        });
-        
-        let deliveryFee = 0;
-        const deliveryType = document.querySelector('input[name="delivery-type"]:checked')?.value;
-        const deliveryFeeRow = document.getElementById('delivery-fee-row');
-        const cityFees = pricingSettings.cityFees || {};
 
-        if (deliveryType === 'home') {
-            const selectedCityRadio = document.querySelector('input[name="city"]:checked');
-            if(selectedCityRadio) deliveryFee = cityFees[selectedCityRadio.value] || 0;
-            deliveryFeeRow.classList.remove('hidden');
-        } else {
-            deliveryFeeRow.classList.add('hidden');
-        }
+            const categoryRates = pricingSettings.categoryRates || {};
+            let subtotal = 0;
+            let producerOrderIds = []; 
 
-        const grandTotal = subtotal + deliveryFee;
-        document.getElementById('subtotal').textContent = `${subtotal.toFixed(2)} ₺`;
-        document.getElementById('delivery-fee').textContent = `${deliveryFee.toFixed(2)} ₺`;
-        document.getElementById('grand-total').textContent = `${grandTotal.toFixed(2)} ₺`;
-    }
-    
-    proceedToPaymentBtn.addEventListener('click', () => {
-        const deliveryType = document.querySelector('input[name="delivery-type"]:checked').value;
-        if (deliveryType === 'home') {
-            if (!document.querySelector('input[name="city"]:checked')) {
-                showToast('Lütfen teslimat için bir şehir seçiniz.');
-                return;
-            }
-            if (!deliveryAddressInput.value.trim()) {
-                showToast('Lütfen teslimat adresini giriniz.');
-                return;
-            }
-        }
-        
-        proceedToPaymentBtn.classList.add('hidden');
-        paymentSelectionWrapper.classList.remove('hidden');
-        paymentSelectionWrapper.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    });
-
-    document.querySelectorAll('input[name="payment-method"]').forEach(radio => {
-        radio.addEventListener('change', (e) => {
-            const isCard = e.target.value === 'card';
-            document.getElementById('card-details').classList.toggle('hidden', !isCard);
-            document.getElementById('transfer-details').classList.toggle('hidden', isCard);
-        });
-    });
-
-    confirmOrderBtn.addEventListener('click', async () => {
-        if (cartItems.length === 0) {
-            showToast("Sepetiniz boş. Sipariş oluşturulamaz.");
-            return;
-        }
-
-        const selectedPaymentMethod = document.querySelector('input[name="payment-method"]:checked').value;
-        const deliveryType = document.querySelector('input[name="delivery-type"]:checked').value;
-        let selectedCity = '';
-        let finalDeliveryAddress = '';
-
-        if (deliveryType === 'home') {
-            const cityRadio = document.querySelector('input[name="city"]:checked');
-            if (!cityRadio) {
-                showToast("Lütfen teslimat şehrinizi seçiniz.");
-                return;
-            }
-            selectedCity = cityRadio.value;
-            finalDeliveryAddress = deliveryAddressInput.value.trim();
-            if (!finalDeliveryAddress) {
-                showToast("Lütfen tam teslimat adresinizi giriniz.");
-                return;
-            }
-        } else {
-            selectedCity = 'Lefkoşa'; 
-            finalDeliveryAddress = 'Getir Kıbrıs Depo, Şehit Mustafa Ruso Caddesi, No:86, Lefkoşa, KKTC'; 
-        }
-
-        if (selectedPaymentMethod === 'card') {
-            const cardNumber = document.getElementById('card-number').value.trim();
-            const cardExpiry = document.getElementById('card-expiry').value.trim();
-            const cardCvc = document.getElementById('card-cvc').value.trim();
-            if (!cardNumber || !cardExpiry || !cardCvc) {
-                showToast("Lütfen kredi kartı bilgilerini eksiksiz doldurun.");
-                return;
-            }
-            showToast("Kredi kartı ile ödeme simülasyonu yapılıyor...");
-        }
-
-        const categoryRates = pricingSettings.categoryRates || {};
-        let subtotal = 0;
-        let producerOrderIds = []; // Üretici ID'lerini toplayan array
-
-        cartItems.forEach(item => {
-            const serviceRate = item.serviceFeeRate !== undefined ? item.serviceFeeRate : (categoryRates[item.category] || categoryRates['default'] || 0);
-            let itemServiceFee = 0;
-            if (item.type === 'custom_order') {
-                itemServiceFee = item.productPrice * serviceRate;
-            }
-            const itemFinalPrice = item.orderMethod === 'service' ? item.productPrice + itemServiceFee : item.productPrice;
-            subtotal += (itemFinalPrice * item.quantity);
-
-            // Eğer ürün bir üreticiye aitse, producerId'sini ekle
-            if (item.producerId && !producerOrderIds.includes(item.producerId)) {
-                producerOrderIds.push(item.producerId);
-            }
-        });
-
-        const currentDeliveryFee = pricingSettings.cityFees?.[selectedCity] || pricingSettings.cityFees?.['Diğer'] || 0;
-        let grandTotal = subtotal + (deliveryType === 'home' ? currentDeliveryFee : 0);
-
-        try {
-            const orderRef = await addDoc(collection(db, 'orders'), {
-                userId: currentUser.uid,
-                userEmail: currentUser.email,
-                userFullName: userProfile?.fullName || 'Bilinmiyor',
-                userPhone: userProfile?.phone || 'Bilinmiyor',
-                deliveryAddress: finalDeliveryAddress,
-                deliveryType: deliveryType,
-                selectedCity: selectedCity,
-                items: cartItems.map(item => ({ 
-                    id: item.id, 
-                    productLink: item.productLink,
-                    productPrice: item.productPrice,
-                    category: item.category,
-                    orderMethod: item.orderMethod,
-                    quantity: item.quantity,
-                    serviceFeeRate: item.serviceFeeRate,
-                    type: item.type,
-                    imageUrl: item.imageUrl || null,
-                    producerId: item.producerId || null
-                })),
-                subtotal: subtotal,
-                serviceFeeTotal: cartItems.reduce((acc, item) => {
-                    const serviceRate = item.serviceFeeRate !== undefined ? item.serviceFeeRate : (categoryRates[item.category] || categoryRates['default'] || 0);
-                    return acc + (item.type === 'custom_order' ? (item.productPrice * serviceRate * item.quantity) : 0);
-                }, 0),
-                deliveryFee: (deliveryType === 'home' ? currentDeliveryFee : 0),
-                grandTotal: grandTotal,
-                paymentMethod: selectedPaymentMethod,
-                orderDate: serverTimestamp(),
-                status: 'pending_payment',
-                // Üreticinin siparişleri filtrelemesi için bu alanı ekle
-                // Eğer bir sipariş birden fazla üreticinin ürününü içeriyorsa, bu bir dizi olabilir.
-                // Basitlik için, şimdilik sadece varsa ilk üretici ID'sini kaydedelim veya tüm ID'leri bir dizi olarak.
-                // Çok üreticili siparişler için `producerOrderIds` arrayini kullanabiliriz:
-                producerIds: producerOrderIds.length > 0 ? producerOrderIds : null, 
-                hasProducerItems: producerOrderIds.length > 0 // Kolay sorgulama için
-            });
-
-            const batch = writeBatch(db);
             cartItems.forEach(item => {
-                const itemDocRef = doc(db, 'users', currentUser.uid, 'cart', item.id);
-                batch.delete(itemDocRef);
+                const serviceRate = item.serviceFeeRate !== undefined ? item.serviceFeeRate : (categoryRates[item.category] || categoryRates['default'] || 0);
+                let itemServiceFee = 0;
+                if (item.type === 'custom_order') {
+                    itemServiceFee = item.productPrice * serviceRate;
+                }
+                const itemFinalPrice = item.orderMethod === 'service' ? item.productPrice + itemServiceFee : item.productPrice;
+                subtotal += (itemFinalPrice * item.quantity);
+
+                if (item.producerId && !producerOrderIds.includes(item.producerId)) {
+                    producerOrderIds.push(item.producerId);
+                }
             });
-            await batch.commit();
 
-            successOrderIdSpan.textContent = orderRef.id.substring(0, 8).toUpperCase();
-            if (selectedPaymentMethod === 'transfer') {
-                successTransferInfoDiv.classList.remove('hidden');
-            } else {
-                successTransferInfoDiv.classList.add('hidden');
-            }
-            successModal.classList.remove('hidden');
+            const currentDeliveryFee = pricingSettings.cityFees?.[selectedCity] || pricingSettings.cityFees?.['Diğer'] || 0;
+            let grandTotal = subtotal + (deliveryType === 'home' ? currentDeliveryFee : 0);
 
-            history.pushState(null, null, location.href);
-            window.addEventListener('popstate', function (event) {
+            try {
+                const orderRef = await addDoc(collection(db, 'orders'), {
+                    userId: currentUser.uid,
+                    userEmail: currentUser.email,
+                    userFullName: userProfile?.fullName || 'Bilinmiyor',
+                    userPhone: userProfile?.phone || 'Bilinmiyor',
+                    deliveryAddress: finalDeliveryAddress,
+                    deliveryType: deliveryType,
+                    selectedCity: selectedCity,
+                    items: cartItems.map(item => ({ 
+                        id: item.id, 
+                        productLink: item.productLink,
+                        productPrice: item.productPrice,
+                        category: item.category,
+                        orderMethod: item.orderMethod,
+                        quantity: item.quantity,
+                        serviceFeeRate: item.serviceFeeRate,
+                        type: item.type,
+                        imageUrl: item.imageUrl || null,
+                        producerId: item.producerId || null
+                    })),
+                    subtotal: subtotal,
+                    serviceFeeTotal: cartItems.reduce((acc, item) => {
+                        const serviceRate = item.serviceFeeRate !== undefined ? item.serviceFeeRate : (categoryRates[item.category] || categoryRates['default'] || 0);
+                        return acc + (item.type === 'custom_order' ? (item.productPrice * serviceRate * item.quantity) : 0);
+                    }, 0),
+                    deliveryFee: (deliveryType === 'home' ? currentDeliveryFee : 0),
+                    grandTotal: grandTotal,
+                    paymentMethod: selectedPaymentMethod,
+                    orderDate: serverTimestamp(),
+                    status: 'pending_payment',
+                    producerIds: producerOrderIds.length > 0 ? producerOrderIds : null, 
+                    hasProducerItems: producerOrderIds.length > 0 
+                });
+
+                const batch = writeBatch(db);
+                cartItems.forEach(item => {
+                    const itemDocRef = doc(db, 'users', currentUser.uid, 'cart', item.id);
+                    batch.delete(itemDocRef);
+                });
+                await batch.commit();
+
+                successOrderIdSpan.textContent = orderRef.id.substring(0, 8).toUpperCase();
+                if (selectedPaymentMethod === 'transfer') {
+                    successTransferInfoDiv.classList.remove('hidden');
+                } else {
+                    successTransferInfoDiv.classList.add('hidden');
+                }
+                successModal.classList.remove('hidden');
+
                 history.pushState(null, null, location.href);
-            });
+                window.addEventListener('popstate', function (event) {
+                    history.pushState(null, null, location.href);
+                });
 
-        } catch (error) {
-            console.error("Sipariş oluşturulurken hata:", error);
-            showToast("Sipariş oluşturulurken bir hata oluştu: " + error.message);
+            } catch (error) {
+                console.error("Sipariş oluşturulurken hata:", error);
+                showToast("Sipariş oluşturulurken bir hata oluştu: " + error.message);
+            }
+        });
+
+        // --- Helper Functions (Moved inside DOMContentLoaded) ---
+        async function loadPricingSettings() {
+            try {
+                const docRef = doc(db, "settings", "pricing");
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists() && docSnap.data().categoryRates) {
+                    pricingSettings = docSnap.data();
+                } else {
+                    pricingSettings = DEFAULT_SETTINGS;
+                }
+            } catch (error) {
+                console.error("Fiyat ayarları yüklenirken hata oluştu:", error);
+                pricingSettings = DEFAULT_SETTINGS;
+            }
+            populateCities();
         }
-    });
 
+        async function fetchUserProfile(userId) {
+            const userDocRef = doc(db, 'users', userId);
+            const userDocSnap = await getDoc(userDocRef);
+            if (userDocSnap.exists()) {
+                userProfile = userDocSnap.data();
+                if (!userProfile.fullName || !userProfile.phone || !userProfile.address) {
+                    console.warn("Kullanıcı profil bilgileri eksik. Lütfen tamamlayın.");
+                }
+            } else {
+                await setDoc(userDocRef, {
+                    email: currentUser.email,
+                    photoURL: currentUser.photoURL,
+                    role: 'customer',
+                    createdAt: serverTimestamp()
+                });
+                userProfile = { email: currentUser.email, photoURL: currentUser.photoURL, role: 'customer' };
+                console.warn("Yeni kullanıcı profili oluşturuldu. Lütfen detayları tamamlayın.");
+            }
+        }
+
+        function listenToCart(userId) {
+            const cartRef = collection(db, 'users', userId, 'cart');
+            onSnapshot(cartRef, (snapshot) => {
+                cartItems = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderCart();
+                updateSummary();
+                checkContentVisibility();
+            }, (error) => {
+                console.error("Sepet dinlenirken hata oluştu: ", error);
+                showToast("Sepetiniz yüklenirken bir hata oluştu.");
+                checkContentVisibility(); 
+            });
+        }
+
+        function listenToOrders(userId) {
+            const ordersRef = collection(db, 'orders');
+            const q = query(ordersRef, where("userId", "==", userId), orderBy("orderDate", "desc"));
+            onSnapshot(q, (snapshot) => {
+                pastOrders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderOrders(pastOrders);
+                checkContentVisibility();
+            }, (error) => {
+                console.error("Siparişler dinlenirken hata oluştu: ", error);
+                showToast("Geçmiş siparişleriniz yüklenirken bir hata oluştu.");
+                checkContentVisibility();
+            });
+        }
+
+        function renderCart() {
+            if (cartItems.length === 0) {
+                emptyCartMessage.classList.remove('hidden');
+                activeCartWrapper.classList.add('hidden'); 
+                paymentSelectionWrapper.classList.add('hidden');
+                proceedToPaymentBtn.classList.remove('hidden'); 
+                proceedToPaymentBtn.disabled = true; 
+                return;
+            }
+
+            activeCartWrapper.classList.remove('hidden'); 
+            emptyCartMessage.classList.add('hidden');
+            cartItemsList.innerHTML = '';
+            proceedToPaymentBtn.disabled = false; 
+
+            cartItems.forEach(item => {
+                const categoryRates = pricingSettings.categoryRates || {};
+                const serviceRate = item.serviceFeeRate !== undefined ? item.serviceFeeRate : (categoryRates[item.category] || categoryRates['default'] || 0);
+
+                let itemServiceFee = 0;
+                if (item.type === 'custom_order') {
+                    itemServiceFee = item.productPrice * serviceRate;
+                }
+                const itemFinalPrice = item.orderMethod === 'service' ? item.productPrice + itemServiceFee : item.productPrice; 
+                const lineTotal = itemFinalPrice * item.quantity;
+
+                const itemElement = document.createElement('div');
+                itemElement.className = 'flex items-start sm:items-center gap-4 border-b pb-4 flex-col sm:flex-row last:border-b-0 last:pb-0'; 
+
+                itemElement.innerHTML = `
+                    <div class="flex-1 min-w-0">
+                        <p class="font-semibold text-gray-800 text-base line-clamp-1">${item.productLink}</p>
+                        <p class="text-xs text-gray-500">${item.category ? `Kategori: ${item.category}` : ''}</p>
+                        <p class="text-xs text-gray-500">Birim Fiyatı: ${item.productPrice.toFixed(2)} ₺</p>
+                        ${item.type === 'custom_order' && itemServiceFee > 0 ? `<p class="text-xs text-gray-500">Hizmet Bedeli: ${itemServiceFee.toFixed(2)} ₺</p>` : ''}
+                        <p class="text-xs text-gray-500">Hizmet Dahil Birim Fiyatı: ${itemFinalPrice.toFixed(2)} ₺</p>
+                    </div>
+                    <div class="flex items-center gap-2 border rounded-md p-1 self-start sm:self-center">
+                        <button data-id="${item.id}" class="quantity-btn decrease-btn w-6 h-6 flex items-center justify-center text-lg font-bold hover:bg-gray-100 rounded">-</button>
+                        <span class="w-6 text-center">${item.quantity}</span>
+                        <button data-id="${item.id}" class="quantity-btn increase-btn w-6 h-6 flex items-center justify-center text-lg font-bold hover:bg-gray-100 rounded">+</button>
+                    </div>
+                    <p class="font-semibold w-24 text-right flex-shrink-0">${lineTotal.toFixed(2)} ₺</p>
+                    <button data-id="${item.id}" class="delete-btn text-red-500 hover:text-red-700 flex-shrink-0">
+                        <i class="ri-delete-bin-line ri-lg"></i>
+                    </button>`;
+                cartItemsList.appendChild(itemElement);
+            });
+        }
+        
+        async function updateQuantity(itemId, isIncrease) {
+            const item = cartItems.find(i => i.id === itemId);
+            if (!item) return;
+            let newQuantity = isIncrease ? item.quantity + 1 : item.quantity - 1;
+            if (newQuantity < 1) newQuantity = 1; 
+
+            const itemRef = doc(db, 'users', currentUser.uid, 'cart', itemId);
+            try {
+                await updateDoc(itemRef, { quantity: newQuantity });
+            } catch (error) {
+                console.error("Adet güncellenirken hata:", error);
+                showToast("Ürün adedi güncellenemedi.");
+            }
+        }
+
+        async function deleteItem(itemId) {
+            if (confirm('Bu ürünü sepetten kaldırmak istediğinize emin misiniz?')) { 
+                const itemRef = doc(db, 'users', currentUser.uid, 'cart', itemId);
+                try {
+                    await deleteDoc(itemRef);
+                    showToast("Ürün sepetten kaldırıldı.");
+                } catch (error) {
+                    console.error("Ürün silinirken hata:", error);
+                    showToast("Ürün sepetten silinemedi.");
+                }
+            }
+        }
+        
+        function renderOrders(orders) {
+            if (orders.length === 0) {
+                pastOrdersWrapper.classList.remove('hidden'); 
+                noOrdersMessage.classList.remove('hidden');
+                ordersList.innerHTML = '';
+                return;
+            }
+            pastOrdersWrapper.classList.remove('hidden');
+            noOrdersMessage.classList.add('hidden');
+            ordersList.innerHTML = '';
+
+            orders.forEach(order => {
+                const orderCard = document.createElement('div');
+                orderCard.className = 'bg-white rounded-lg shadow-md p-4 space-y-3';
+                
+                const statusStyles = {
+                    pending_payment: { text: 'Ödeme Bekleniyor', bg: 'bg-yellow-500', text_color: 'text-white' },
+                    processing: { text: 'İşleniyor', bg: 'bg-blue-500', text_color: 'text-white' }, 
+                    shipped: { text: 'Kargoya Verildi', bg: 'bg-teal-500', text_color: 'text-white' },
+                    delivered: { text: 'Teslim Edildi', bg: 'bg-green-500', text_color: 'text-white' },
+                    cancelled: { text: 'İptal Edildi', bg: 'bg-red-500', text_color: 'text-white' }
+                };
+                const currentStatus = statusStyles[order.status] || { text: order.status, bg: 'bg-gray-400', text_color: 'text-white' };
+                const orderDate = order.orderDate ? new Date(order.orderDate.seconds * 1000).toLocaleDateString('tr-TR') : 'Bilinmiyor';
+                
+                const categoryRates = pricingSettings.categoryRates || {};
+                const itemsHtml = (order.items ?? []).map(item => {
+                    const itemServiceFee = item.productPrice * (categoryRates[item.category] || 0);
+                    const itemFinalPrice = item.orderMethod === 'service' ? item.productPrice + itemServiceFee : item.productPrice;
+                    return `
+                        <div class="flex justify-between items-center text-sm border-t border-gray-100 pt-2 first:border-t-0 first:pt-0">
+                            <div class="flex-1 min-w-0">
+                                <p class="text-xs text-gray-500">Ürün</p>
+                                <a href="${item.productLink}" target="_blank" class="text-blue-600 hover:underline truncate block">${item.productLink}</a>
+                                <p class="text-xs text-gray-500">${item.quantity} adet</p>
+                            </div>
+                            <div class="w-24 text-right">
+                                <p class="text-xs text-gray-500">Fiyat</p>
+                                <p class="font-medium">${(itemFinalPrice * item.quantity).toFixed(2)} ₺</p>
+                            </div>
+                        </div>`;
+                }).join('');
+                
+                const grandTotalDisplay = typeof order.grandTotal !== 'undefined'
+                    ? `${order.grandTotal.toFixed(2)} ₺`
+                    : 'Hesaplanamadı';
+
+                orderCard.innerHTML = `
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 border-b pb-3">
+                        <div><p class="text-xs text-gray-500">Sipariş Kodu</p><p class="font-mono text-primary font-semibold text-sm">${order.id.toUpperCase().substring(0, 8)}</p></div>
+                        <div><p class="text-xs text-gray-500">Tarih</p><p class="font-semibold text-sm">${orderDate}</p></div>
+                        <div><p class="text-xs text-gray-500">Teslimat</p><p class="font-semibold text-sm">${order.deliveryType === 'home' ? 'Eve Teslim' : 'Depodan Teslim'}</p></div>
+                        <div><p class="text-xs text-gray-500">Durum</p><span class="px-3 py-1 text-xs font-semibold rounded-full ${currentStatus.bg} ${currentStatus.text_color}">${currentStatus.text}</span></div>
+                    </div>
+                    <div class="space-y-1">${itemsHtml}</div>
+                    <div class="flex justify-end border-t pt-3 mt-2"><div class="text-right"><p class="text-sm text-gray-500">Genel Toplam</p><p class="font-bold text-lg">${grandTotalDisplay}</p></div></div>`;
+                ordersList.appendChild(orderCard);
+            });
+        }
+
+        function populateCities() {
+            const cityListContainer = document.getElementById('city-list');
+            const cityFees = pricingSettings.cityFees || {};
+            cityListContainer.innerHTML = '';
+            for (const city in cityFees) {
+                const fee = cityFees[city];
+                const cityElement = document.createElement('label');
+                cityElement.className = 'flex items-center p-3 border rounded-md cursor-pointer has-[:checked]:bg-blue-50 has-[:checked]:border-blue-400 transition-all';
+                cityElement.innerHTML = `<input type="radio" name="city" value="${city}" class="mr-2 h-4 w-4"><span class="flex-grow text-sm">${city}</span><span class="text-sm font-semibold">${fee} ₺</span>`;
+                cityListContainer.appendChild(cityElement);
+            }
+            if (userProfile && userProfile.address) {
+                const userCity = userProfile.address.split(',').pop()?.trim();
+                const cityRadio = document.querySelector(`input[name="city"][value="${userCity}"]`);
+                if (cityRadio) {
+                    cityRadio.checked = true;
+                    const deliveryTypeHome = document.querySelector('input[name="delivery-type"][value="home"]');
+                    if (deliveryTypeHome && deliveryTypeHome.checked) {
+                        citySelectionSection.classList.remove('hidden');
+                        deliveryAddressSection.classList.remove('hidden');
+                    }
+                }
+            }
+        }
+        
+        document.body.addEventListener('change', (e) => {
+            if (e.target.name === 'delivery-type' || e.target.name === 'city') {
+                const deliveryType = document.querySelector('input[name="delivery-type"]:checked').value;
+                if (deliveryType === 'home') {
+                    citySelectionSection.classList.remove('hidden');
+                    deliveryAddressSection.classList.remove('hidden');
+                    if (!deliveryAddressInput.value.trim() && userProfile?.address) {
+                        deliveryAddressInput.value = userProfile.address;
+                    }
+                } else {
+                    citySelectionSection.classList.add('hidden');
+                    deliveryAddressSection.classList.add('hidden');
+                }
+                updateSummary();
+            }
+        });
+
+        function updateSummary() {
+            if (cartItems.length === 0) {
+                proceedToPaymentBtn.disabled = true;
+                document.getElementById('subtotal').textContent = `0.00 ₺`;
+                document.getElementById('delivery-fee').textContent = `0.00 ₺`;
+                document.getElementById('grand-total').textContent = `0.00 ₺`;
+                document.getElementById('delivery-fee-row').classList.add('hidden');
+                return;
+            }
+            proceedToPaymentBtn.disabled = false;
+
+            const categoryRates = pricingSettings.categoryRates || {};
+            let subtotal = 0;
+            cartItems.forEach(item => {
+                const serviceRate = item.serviceFeeRate !== undefined ? item.serviceFeeRate : (categoryRates[item.category] || categoryRates['default'] || 0);
+                let itemServiceFee = 0;
+                if (item.type === 'custom_order') {
+                    itemServiceFee = item.productPrice * serviceRate;
+                }
+                const itemFinalPrice = item.orderMethod === 'service' ? item.productPrice + itemServiceFee : item.productPrice;
+                subtotal += (itemFinalPrice * item.quantity);
+            });
+            
+            let deliveryFee = 0;
+            const deliveryType = document.querySelector('input[name="delivery-type"]:checked')?.value;
+            const deliveryFeeRow = document.getElementById('delivery-fee-row');
+            const cityFees = pricingSettings.cityFees || {};
+
+            if (deliveryType === 'home') {
+                const selectedCityRadio = document.querySelector('input[name="city"]:checked');
+                if(selectedCityRadio) deliveryFee = cityFees[selectedCityRadio.value] || 0;
+                deliveryFeeRow.classList.remove('hidden');
+            } else {
+                deliveryFeeRow.classList.add('hidden');
+            }
+
+            const grandTotal = subtotal + deliveryFee;
+            document.getElementById('subtotal').textContent = `${subtotal.toFixed(2)} ₺`;
+            document.getElementById('delivery-fee').textContent = `${deliveryFee.toFixed(2)} ₺`;
+            document.getElementById('grand-total').textContent = `${grandTotal.toFixed(2)} ₺`;
+        }
+
+        function checkContentVisibility() {
+            if (!currentUser) return;
+
+            const noContentMessage = document.getElementById('no-content-message');
+            
+            if (cartItems.length > 0 || pastOrders.length > 0) {
+                noContentMessage.classList.add('hidden');
+                mainContent.classList.remove('hidden'); 
+
+                if (cartItems.length > 0) {
+                    activeCartWrapper.classList.remove('hidden');
+                } else {
+                    activeCartWrapper.classList.add('hidden');
+                }
+                if (pastOrders.length > 0) {
+                    pastOrdersWrapper.classList.remove('hidden');
+                } else {
+                    pastOrdersWrapper.classList.add('hidden');
+                }
+            } else {
+                activeCartWrapper.classList.add('hidden');
+                pastOrdersWrapper.classList.add('hidden');
+                noContentMessage.classList.remove('hidden');
+                mainContent.classList.remove('hidden'); 
+            }
+            loader.classList.add('hidden'); 
+        }
+
+    }); // End of DOMContentLoaded
 </script>
-</body>
-</html>
