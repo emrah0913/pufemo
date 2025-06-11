@@ -548,7 +548,7 @@
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
     import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
-    import { getFirestore, doc, getDoc, setDoc, collection, addDoc, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, setDoc, collection, addDoc, onSnapshot, query, where, getDocs } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
     // KULLANICININ SAĞLADIĞI YENİ FİREBASE YAPILANDIRMASI
     const firebaseConfig = {
@@ -648,7 +648,7 @@
 
             // Load product categories from Firestore
             const categoriesCollection = collection(db, "categories");
-            const categorySnapshot = await getDocs(categoriesCollection);
+            const categorySnapshot = await getDocs(categoriesCollection); // Corrected: getDocs is now imported
             productCategories = categorySnapshot.docs.map(doc => doc.data().name);
             console.log("Ürün kategorileri yüklendi:", productCategories);
 
@@ -1052,6 +1052,8 @@
                 const productPrice = parseFloat(e.currentTarget.dataset.productPrice);
                 const productCategory = e.currentTarget.dataset.productCategory;
                 const imageUrl = e.currentTarget.dataset.productImage;
+                // Find the full product object to get producerId
+                const product = products.find(p => p.id === productId);
 
                 try {
                     await addDoc(collection(db, 'users', currentUser.uid, 'cart'), {
