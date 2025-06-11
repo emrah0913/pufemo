@@ -330,7 +330,7 @@
                     }, 300);
                 }, duration);
             } else {
-                console.warn("Toast elements not found, cannot display toast:", message);
+                console.warn("Toast öğeleri bulunamadı, bildirim gösterilemiyor:", message);
             }
         }
 
@@ -345,6 +345,7 @@
                 currentUser = user;
                 if (profileImg) profileImg.src = user.photoURL || 'https://placehold.co/40x40/cccccc/000000?text=P';
                 if (profileContainer) profileContainer.classList.remove('hidden');
+                console.log("Kullanıcı giriş yaptı:", user.uid); // Hata ayıklama: Giriş yapan kullanıcı ID'si
 
                 try {
                     await loadPricingSettings();
@@ -370,14 +371,12 @@
                 if (pastOrdersWrapper) pastOrdersWrapper.classList.add('hidden');
                 
                 // 'Hiçbir içerik yok' mesajını göster
-                if (noOrdersMessage) noOrdersMessage.classList.remove('hidden'); // noOrdersMessage aslında no-content-message
+                if (noOrdersMessage) noOrdersMessage.classList.remove('hidden'); 
                 // emptyCartMessage da boş sepeti belirtir, burada gizli kalabilir eğer hiç giriş yapılmadıysa
                 if (emptyCartMessage) emptyCartMessage.classList.add('hidden'); 
+                console.log("Kullanıcı giriş yapmadı."); // Hata ayıklama: Kullanıcı giriş yapmadı
             }
         });
-
-        // Kimlik Doğrulama Gerekli Modalı ve Genel Giriş Modalı mantığı artık burada değil
-        // Bu modal ve mantık, sepet sayfasına gelmeden önceki akışta (örn: ana sayfada) yer almalıdır.
 
         // Sepet öğeleri listesi olay dinleyicisi (miktar ve silme düğmeleri için)
         if (cartItemsList) {
@@ -620,6 +619,7 @@
             const cartRef = collection(db, 'users', userId, 'cart');
             onSnapshot(cartRef, (snapshot) => {
                 cartItems = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                console.log("Firestore'dan alınan sepet öğeleri:", cartItems); // Hata ayıklama: Firebase'den gelen sepet içeriği
                 renderCart();
                 updateSummary();
                 checkContentVisibility();
@@ -650,6 +650,7 @@
                 console.error("Kritik sepet DOM öğeleri eksik.");
                 return;
             }
+            console.log("renderCart çağrıldı, sepet öğe sayısı:", cartItems.length); // Hata ayıklama: renderCart'ın başlangıcı ve sepet öğe sayısı
 
             if (cartItems.length === 0) {
                 emptyCartMessage.classList.remove('hidden');
@@ -894,6 +895,8 @@
 
         // İçerik Görünürlüğü Kontrolü
         function checkContentVisibility() {
+            console.log("checkContentVisibility çağrıldı. Sepet öğe sayısı:", cartItems.length, "Geçmiş sipariş sayısı:", pastOrders.length); // Hata ayıklama: Görünürlük kontrolü
+
             if (!currentUser) {
                 // Eğer kullanıcı giriş yapmamışsa, sadece 'içerik yok' mesajını göster.
                 if (noOrdersMessage) noOrdersMessage.classList.remove('hidden');
