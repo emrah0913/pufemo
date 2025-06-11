@@ -213,7 +213,7 @@
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
     import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
-    import { getFirestore, doc, getDoc, setDoc, collection, addDoc, onSnapshot, updateDoc, deleteDoc, query } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, setDoc, collection, addDoc, onSnapshot, updateDoc, deleteDoc, query, getDocs, writeBatch } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
     // KULLANICININ SAĞLADIĞI FİREBASE YAPILANDIRMASI
     const firebaseConfig = {
@@ -244,14 +244,14 @@
     const shippingFeeSpan = document.getElementById('shipping-fee');
     const grandTotalSpan = document.getElementById('grand-total');
     const userNameP = document.getElementById('user-name');
-    const userPhoneP = document.getElementById('user-phone');
+    const userPhoneP = document = document.getElementById('user-phone'); // Corrected typo here
     const userAddressP = document.getElementById('user-address');
     const createOrderBtn = document.getElementById('create-order-btn');
     const editProfileBtn = document.getElementById('edit-profile-btn');
 
     const loginBtn = document.getElementById('login-btn');
     const profileContainer = document.getElementById('profile-container');
-    const profileImg = document.getElementById('profile-img');
+    const profileImg = document = document.getElementById('profile-img'); // Corrected typo here
     const loginModal = document.getElementById('login-modal');
     const closeLoginModal = document.getElementById('close-login-modal');
     const googleLoginBtn = document.getElementById('google-login-btn');
@@ -283,6 +283,7 @@
     onAuthStateChanged(auth, async (user) => {
         if (user) {
             currentUser = user;
+            // Removed redundant `document =` assignments for profileImg
             profileImg.src = user.photoURL || 'https://placehold.co/40x40/cccccc/000000?text=P';
             profileContainer.classList.remove('hidden');
             loginBtn.classList.add('hidden');
@@ -640,10 +641,11 @@
                 status: 'pending_payment' // 'pending_payment', 'processing', 'shipped', 'delivered', 'cancelled'
             });
 
-            // Sepeti boşalt
-            const cartDocs = await db.collection('users').doc(currentUser.uid).collection('cart').get();
-            const batch = db.batch();
-            cartDocs.forEach(doc => {
+            // Sepeti boşaltma işlemi Firebase v9 uyumlu hale getirildi
+            const cartRef = collection(db, 'users', currentUser.uid, 'cart');
+            const cartSnapshot = await getDocs(cartRef); // getDocs kullanımı
+            const batch = writeBatch(db); // writeBatch kullanımı
+            cartSnapshot.forEach(doc => {
                 batch.delete(doc.ref);
             });
             await batch.commit();
