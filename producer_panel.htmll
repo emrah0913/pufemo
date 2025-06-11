@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Getir Kıbrıs - Üretici Paneli</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.2.0/remixicon.min.css" rel="stylesheet">
+
+<script>
+    // Tailwind CSS Konfigürasyonu
+    tailwind.config = {
+        theme: {
+            extend: {
+                colors: {
+                    primary: '#5d3ebc',
+                    secondary: '#ffd300'
+                }
+            }
+        }
+    }
+</script>
+
+<style>
+    body {
+        font-family: 'Inter', sans-serif;
+        background-color: #f9f9f9;
+        display: flex;
+    }
+    .active-nav-link {
+        background-color: #5d3ebc1a;
+        color: #5d3ebc;
+        font-weight: 600;
+    }
+    .sidebar {
+        width: 240px;
+        height: 100vh;
+    }
+    .main-content {
+        width: calc(100% - 240px);
+        height: 100vh;
+        overflow-y: auto;
+    }
+    .status-badge {
+        display: inline-flex;
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+    
+    /* Order Statuses */
+    .status-pending-payment { background-color: #fef3c7; color: #b45309; }
+    .status-pending { background-color: #fef3c7; color: #b45309; }
+    .status-processing { background-color: #bfdbfe; color: #1d4ed8; }
+    .status-tr_warehouse { background-color: #cffafe; color: #0e7490; }
+    .status-shipped { background-color: #e9d5ff; color: #8b5cf6; }
+    .status-cyprus_warehouse { background-color: #e0e7ff; color: #3730a3; }
+    .status-delivered { background-color: #d1fae5; color: #065f46; }
+    .status-cancelled { background-color: #fee2e2; color: #b91c1c; }
+    .status-unknown { background-color: #e5e7eb; color: #4b5563; }
+    
+    /* Product Statuses for Producers */
+    .product-status-approved { background-color: #d1fae5; color: #065f46; } /* green */
+    .product-status-pending-approval { background-color: #fef3c7; color: #b45309; } /* amber */
+    .product-status-rejected { background-color: #fee2e2; color: #b91c1c; } /* red */
+
+
+    @media (max-width: 768px) {
+        body {
+            flex-direction: column;
+        }
+        .sidebar {
+            width: 100%;
+            height: auto;
+            position: static;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .main-content {
+            width: 100%;
+            height: auto;
+        }
+    }
+
+    /* Toast Notification Styling */
+    #toast {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        background-color: #333;
+        color: #fff;
+        padding: 12px 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        opacity: 0;
+        transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+        transform: translateY(20px);
+        z-index: 1000;
+    }
+    #toast.show {
+        opacity: 1;
+        transform: translateY(0);
+    }
+</style>
+</head>
+<body class="bg-gray-100">
+    <aside class="sidebar bg-white shadow-lg p-4 flex-shrink-0">
+        <div class="text-center mb-6">
+            <h1 class="text-xl font-bold text-primary">Üretici Paneli</h1>
+        </div>
+        <nav class="space-y-2">
+            <a href="#" id="nav-dashboard" class="flex items-center gap-3 p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors active-nav-link">
+                <i class="ri-dashboard-line"></i><span>Genel Bakış</span>
+            </a>
+            <a href="#" id="nav-my-products" class="flex items-center gap-3 p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors">
+                <i class="ri-box-3-line"></i><span>Ürünlerim</span>
+            </a>
+            <a href="#" id="nav-my-orders" class="flex items-center gap-3 p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors">
+                <i class="ri-file-list-3-line"></i><span>Siparişlerim</span>
+            </a>
+            <a href="#" id="nav-my-sales" class="flex items-center gap-3 p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors">
+                <i class="ri-line-chart-line"></i><span>Satışlarım</span>
+            </a>
+            <a href="#" id="producer-logout-btn" class="flex items-center gap-3 p-2 rounded-lg text-red-600 hover:bg-red-50 transition-colors">
+                <i class="ri-logout-box-r-line"></i><span>Çıkış Yap</span>
+            </a>
+        </nav>
+    </aside>
+
+    <main class="main-content p-6">
+        <div id="content-dashboard" class="producer-content-section">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">Genel Bakış</h2>
+            <div id="producer-stats-cards-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                <div class="bg-white p-4 rounded-lg shadow-md"><p class="text-gray-600">Onaylı Ürünlerim</p><p id="approved-products-count" class="text-2xl font-bold">0</p></div>
+                <div class="bg-white p-4 rounded-lg shadow-md"><p class="text-gray-600">Onay Bekleyen Ürünlerim</p><p id="pending-products-count" class="text-2xl font-bold">0</p></div>
+                <div class="bg-white p-4 rounded-lg shadow-md"><p class="text-gray-600">Toplam Satış Hacmi (₺)</p><p id="total-sales-volume" class="text-2xl font-bold">0.00 ₺</p></div>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h3 class="text-xl font-semibold text-gray-800 mb-4">Son Siparişler (Ürünlerimi İçeren)</h3>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full"><tbody id="latest-producer-orders-table-body"></tbody></table>
+                </div>
+            </div>
+        </div>
+
+        <div id="content-my-products" class="producer-content-section hidden">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">Ürünlerim</h2>
+            <button id="add-new-product-btn" class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 mb-4 flex items-center gap-2">
+                <i class="ri-add-line"></i> Yeni Ürün Ekle
+            </button>
+            <div class="bg-white rounded-lg shadow-md overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full"><tbody id="my-products-table-body"></tbody></table>
+                </div>
+                <div id="no-my-products-message" class="text-center py-4 hidden">
+                    <p class="text-gray-500">Henüz eklediğiniz ürün bulunmuyor. Yeni bir ürün eklemek için yukarıdaki düğmeyi kullanın.</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="content-my-orders" class="producer-content-section hidden">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">Siparişlerim (Ürünlerimi İçeren)</h2>
+            <div class="bg-white rounded-lg shadow-md overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full"><tbody id="my-orders-table-body"></tbody></table>
+                </div>
+                <div id="no-my-orders-message" class="text-center py-4 hidden">
+                    <p class="text-gray-500">Ürünlerinizi içeren herhangi bir sipariş bulunmuyor.</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="content-my-sales" class="producer-content-section hidden">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">Satışlarım</h2>
+            <div id="sales-overview-cards" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                <div class="bg-white p-4 rounded-lg shadow-md"><p class="text-gray-600">Toplam Satış Tutarı</p><p id="total-sales-amount" class="text-2xl font-bold">0.00 ₺</p></div>
+                <div class="bg-white p-4 rounded-lg shadow-md"><p class="text-gray-600">Tamamlanan Sipariş Sayısı</p><p id="completed-orders-count" class="text-2xl font-bold">0</p></div>
+                <div class="bg-white p-4 rounded-lg shadow-md"><p class="text-gray-600">Bekleyen Satış Hacmi</p><p id="pending-sales-amount" class="text-2xl font-bold">0.00 ₺</p></div>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h3 class="text-xl font-semibold text-gray-800 mb-4">Satış Detayları (Sipariş Bazında)</h3>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full"><tbody id="sales-detail-table-body"></tbody></table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add/Edit Product Modal for Producers -->
+        <div id="product-form-modal" class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 hidden p-4">
+            <div class="bg-white rounded-lg p-6 w-full max-w-2xl relative shadow-lg max-h-[90vh] overflow-y-auto">
+                <button id="close-product-form-modal" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600"><i class="ri-close-line ri-lg"></i></button>
+                <h3 class="text-xl font-semibold text-primary mb-4" id="product-form-title">Yeni Ürün Ekle</h3>
+                <form id="producer-product-form" class="space-y-4">
+                    <div>
+                        <label for="product-name" class="block text-sm font-medium text-gray-700">Ürün Adı<span class="text-red-500">*</span></label>
+                        <input type="text" id="product-name" required class="mt-1 p-2 w-full border rounded-lg">
+                    </div>
+                    <div>
+                        <label for="product-description" class="block text-sm font-medium text-gray-700">Açıklama</label>
+                        <textarea id="product-description" rows="3" class="mt-1 p-2 w-full border rounded-lg"></textarea>
+                    </div>
+                    <div>
+                        <label for="product-price" class="block text-sm font-medium text-gray-700">Fiyat (₺)<span class="text-red-500">*</span></label>
+                        <input type="number" id="product-price" step="0.01" required class="mt-1 p-2 w-full border rounded-lg">
+                    </div>
+                    <div>
+                        <label for="product-image-url" class="block text-sm font-medium text-gray-700">Resim URL</label>
+                        <input type="url" id="product-image-url" class="mt-1 p-2 w-full border rounded-lg" placeholder="https://example.com/image.jpg">
+                    </div>
+                    <div>
+                        <label for="product-category" class="block text-sm font-medium text-gray-700">Kategori<span class="text-red-500">*</span></label>
+                        <select id="product-category" required class="mt-1 p-2 w-full border rounded-lg"></select>
+                    </div>
+                    <div class="flex gap-2 mt-4">
+                        <button type="submit" id="save-producer-product-btn" class="flex-1 bg-primary text-white py-2 rounded-lg hover:bg-primary/90">Kaydet</button>
+                        <button type="button" id="delete-producer-product-btn" class="flex-1 bg-red-500 text-white py-2 rounded-lg hover:bg-red-600 hidden">Sil</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Toast Notification Element -->
+    <div id="toast" class="fixed bottom-24 right-6 bg-gray-800 text-white px-5 py-3 rounded-lg shadow-xl opacity-0 transition-all duration-300 z-[110] transform translate-y-4 hidden">
+        <span id="toast-message"></span>
+    </div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+    import { getFirestore, collection, doc, getDoc, getDocs, query, where, addDoc, updateDoc, deleteDoc, orderBy, limit } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+    // KULLANICININ SAĞLADIĞI FİREBASE YAPILANDIRMASI
+    const firebaseConfig = {
+        apiKey: "AIzaSyB64tAKvCHeYnJ8-HNRLpzB7sQRng4FHyA",
+        authDomain: "pufemo-2dc3a.firebaseapp.com",
+        projectId: "pufemo-2dc3a",
+        storageBucket: "pufemo-2dc3a.firebasestorage.app",
+        messagingSenderId: "321284306570",
+        appId: "1:321284306570:web:ca891826c3e4edde8edf73"
+    };
+    
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const navLinks = document.querySelectorAll('aside nav a');
+    const contentSections = document.querySelectorAll('.producer-content-section');
+    const producerLogoutBtn = document.getElementById('producer-logout-btn');
+    const toast = document.getElementById('toast');
+    const toastMessage = document.getElementById('toast-message');
+
+    let currentUser = null;
+    let currentUserProfile = null; // Store current user's profile for producerName
+
+    // --- TOAST NOTIFICATION ---
+    function showToast(message, duration = 3000) {
+        toastMessage.textContent = message;
+        toast.classList.remove('opacity-0', 'translate-y-4', 'hidden');
+        toast.classList.add('opacity-100', 'translate-y-0', 'show');
+
+        setTimeout(() => {
+            toast.classList.remove('opacity-100', 'translate-y-0', 'show');
+            toast.classList.add('opacity-0', 'translate-y-4');
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 300);
+        }, duration);
+    }
+
+    // --- AUTHENTICATION & PRODUCER ROLE CHECK ---
+    onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            currentUser = user;
+            try {
+                const userDoc = await getDoc(doc(db, "users", user.uid));
+                if (userDoc.exists() && userDoc.data().role === 'producer') {
+                    currentUserProfile = userDoc.data();
+                    showSection('content-dashboard');
+                } else {
+                    showToast('Üretici paneline erişim izniniz yok.');
+                    window.location.href = 'index.html';
+                }
+            } catch (error) {
+                console.error("Producer check error:", error);
+                showToast("Giriş kontrolü sırasında bir hata oluştu.");
+                window.location.href = 'index.html';
+            }
+        } else {
+            showToast('Üretici paneline erişmek için giriş yapmalısınız.');
+            window.location.href = 'index.html';
+        }
+    });
+    
+    producerLogoutBtn.addEventListener('click', () => {
+        signOut(auth).then(() => {
+            showToast("Başarıyla çıkış yapıldı.");
+            window.location.href = 'index.html';
+        }).catch(error => {
+            console.error("Logout error:", error);
+            showToast("Çıkış yapılırken bir hata oluştu.");
+        });
+    });
+
+    // --- NAVIGATION ---
+    navLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (link.id.includes('logout')) return;
+            showSection(`content-${link.id.replace('nav-', '')}`);
+        });
+    });
+
+    function showSection(sectionId) {
+        contentSections.forEach(s => s.classList.add('hidden'));
+        document.getElementById(sectionId)?.classList.remove('hidden');
+        navLinks.forEach(l => l.classList.remove('active-nav-link'));
+        document.getElementById(`nav-${sectionId.replace('content-', '')}`)?.classList.add('active-nav-link');
+
+        // Load data for the selected section
+        if (sectionId === 'content-dashboard') loadProducerDashboardData();
+        if (sectionId === 'content-my-products') loadMyProducts();
+        if (sectionId === 'content-my-orders') loadMyOrders();
+        if (sectionId === 'content-my-sales') loadMySales();
+    }
+
+    // --- STATUS MAPS ---
+    const ORDER_STATUS_MAP = {
+        pending_payment:  { text: 'Ödeme Bekleniyor', style: 'status-pending-payment' },
+        pending:          { text: 'Beklemede', style: 'status-pending' },
+        processing:       { text: 'Onaylandı', style: 'status-processing' },
+        tr_warehouse:     { text: 'TR Depoda', style: 'status-tr_warehouse' },
+        shipped:          { text: 'Yüklendi', style: 'status-shipped' },
+        cyprus_warehouse: { text: 'Kıbrıs Depoda', style: 'status-cyprus_warehouse' },
+        delivered:        { text: 'Teslim Edildi', style: 'status-delivered' },
+        cancelled:        { text: 'İptal Edildi', style: 'status-cancelled' }
+    };
+
+    const PRODUCT_STATUS_MAP = {
+        'approved': { text: 'Onaylı', style: 'product-status-approved' },
+        'pending-approval': { text: 'Onay Bekliyor', style: 'product-status-pending-approval' },
+        'rejected': { text: 'Reddedildi', style: 'product-status-rejected' }
+    };
+    
+    // --- PRODUCER DASHBOARD ---
+    async function loadProducerDashboardData() {
+        const approvedProductsCount = document.getElementById('approved-products-count');
+        const pendingProductsCount = document.getElementById('pending-products-count');
+        const totalSalesVolume = document.getElementById('total-sales-volume');
+        const latestOrdersTableBody = document.getElementById('latest-producer-orders-table-body');
+
+        approvedProductsCount.textContent = 'Yükleniyor...';
+        pendingProductsCount.textContent = 'Yükleniyor...';
+        totalSalesVolume.textContent = 'Yükleniyor...';
+        latestOrdersTableBody.innerHTML = '';
+
+        try {
+            // My Products Stats
+            const myProductsQuery = query(collection(db, "products"), where("producerId", "==", currentUser.uid));
+            const myProductsSnapshot = await getDocs(myProductsQuery);
+            let approvedCount = 0;
+            let pendingCount = 0;
+            myProductsSnapshot.forEach(doc => {
+                const product = doc.data();
+                if (product.isApproved === true) {
+                    approvedCount++;
+                } else if (product.isApproved === false || typeof product.isApproved === 'undefined') {
+                    pendingCount++;
+                }
+            });
+            approvedProductsCount.textContent = approvedCount;
+            pendingProductsCount.textContent = pendingCount;
+
+            // Latest Orders & Sales Volume (for producer's products)
+            // Fetch all orders and filter client-side for producer's items
+            const allOrdersSnapshot = await getDocs(collection(db, "orders"));
+            let producerOrders = [];
+            let currentMonthSales = 0;
+            const now = new Date();
+            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+            allOrdersSnapshot.forEach(orderDoc => {
+                const order = orderDoc.data();
+                if (order.items && order.items.length > 0) {
+                    const producerItemsInOrder = order.items.filter(item => 
+                        item.type === 'producer_product' && item.producerId === currentUser.uid
+                    );
+                    if (producerItemsInOrder.length > 0) {
+                        // Create a new order object with only relevant items for the producer
+                        const producerSpecificOrder = { 
+                            id: orderDoc.id, 
+                            orderDate: order.orderDate,
+                            status: order.status,
+                            userFullName: order.userFullName,
+                            producerItems: producerItemsInOrder,
+                            totalForProducer: producerItemsInOrder.reduce((sum, item) => sum + (item.productPrice * item.quantity), 0)
+                        };
+                        producerOrders.push(producerSpecificOrder);
+
+                        // Calculate monthly sales
+                        const orderDate = order.orderDate?.toDate();
+                        if (orderDate && orderDate >= startOfMonth && order.status === 'delivered') {
+                             currentMonthSales += producerSpecificOrder.totalForProducer;
+                        }
+                    }
+                }
+            });
+
+            totalSalesVolume.textContent = `${currentMonthSales.toFixed(2)} ₺`;
+
+            // Sort orders by date descending and take top 5
+            producerOrders.sort((a, b) => (b.orderDate?.toDate().getTime() || 0) - (a.orderDate?.toDate().getTime() || 0));
+            const latestProducerOrders = producerOrders.slice(0, 5);
+
+            latestOrdersTableBody.innerHTML = `
+                <thead class="bg-gray-50"><tr>
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Sipariş Kodu</th>
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Müşteri</th>
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Toplam Tutarı (₺)</th>
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Durum</th>
+                </tr></thead>
+            `;
+            if (latestProducerOrders.length === 0) {
+                latestOrdersTableBody.innerHTML += '<tr><td colspan="4" class="text-center py-4 text-gray-500">Ürünlerinizi içeren bekleyen sipariş yok.</td></tr>';
+            } else {
+                latestProducerOrders.forEach(order => {
+                    const statusInfo = ORDER_STATUS_MAP[order.status] || {text: 'Bilinmiyor', style: 'status-unknown'};
+                    latestOrdersTableBody.innerHTML += `
+                        <tr class="border-t">
+                            <td class="px-4 py-2 text-sm">${order.id.substring(0, 8).toUpperCase()}</td>
+                            <td class="px-4 py-2 text-sm">${order.userFullName || 'İsimsiz'}</td>
+                            <td class="px-4 py-2 text-sm font-semibold">${order.totalForProducer.toFixed(2)} ₺</td>
+                            <td class="px-4 py-2 text-sm"><span class="status-badge ${statusInfo.style}">${statusInfo.text}</span></td>
+                        </tr>
+                    `;
+                });
+            }
+
+        } catch (error) {
+            console.error("Producer Dashboard error:", error);
+            showToast("Genel bakış verileri yüklenirken hata oluştu.");
+            approvedProductsCount.textContent = 'Hata!';
+            pendingProductsCount.textContent = 'Hata!';
+            totalSalesVolume.textContent = 'Hata!';
+            latestOrdersTableBody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-red-500">Veriler yüklenemedi.</td></tr>';
+        }
+    }
+
+    // --- MY PRODUCTS ---
+    let myProducts = [];
+    const addnewProductBtn = document.getElementById('add-new-product-btn');
+    const myProductsTableBody = document.getElementById('my-products-table-body');
+    const noMyProductsMessage = document.getElementById('no-my-products-message');
+    const productFormModal = document.getElementById('product-form-modal');
+    const closeProductFormModal = document.getElementById('close-product-form-modal');
+    const productFormTitle = document.getElementById('product-form-title');
+    const producerProductForm = document.getElementById('producer-product-form');
+    const productNameInput = document.getElementById('product-name');
+    const productDescriptionInput = document.getElementById('product-description');
+    const productPriceInput = document.getElementById('product-price');
+    const productImageUrlInput = document.getElementById('product-image-url');
+    const productCategorySelect = document.getElementById('product-category');
+    const saveProducerProductBtn = document.getElementById('save-producer-product-btn');
+    const deleteProducerProductBtn = document.getElementById('delete-producer-product-btn');
+
+    let currentEditingProductId = null; // To keep track of which product is being edited
+
+    addnewProductBtn.addEventListener('click', () => {
+        resetProductForm();
+        productFormTitle.textContent = 'Yeni Ürün Ekle';
+        deleteProducerProductBtn.classList.add('hidden');
+        productFormModal.classList.remove('hidden');
+        populateProductCategoriesDropdown(productCategorySelect);
+    });
+
+    closeProductFormModal.addEventListener('click', () => productFormModal.classList.add('hidden'));
+
+    function resetProductForm() {
+        producerProductForm.reset();
+        currentEditingProductId = null;
+        productNameInput.value = '';
+        productDescriptionInput.value = '';
+        productPriceInput.value = '';
+        productImageUrlInput.value = '';
+        productCategorySelect.value = ''; // Reset select
+    }
+
+    async function loadMyProducts() {
+        myProductsTableBody.innerHTML = `
+            <thead class="bg-gray-50"><tr>
+                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Görsel</th>
+                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Ürün Adı</th>
+                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Kategori</th>
+                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Fiyat</th>
+                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Durum</th>
+                <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">İşlem</th>
+            </tr></thead>
+        `;
+        noMyProductsMessage.classList.add('hidden');
+        try {
+            const q = query(collection(db, "products"), where("producerId", "==", currentUser.uid));
+            const snapshot = await getDocs(q);
+            myProducts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            renderMyProductsTable();
+        } catch (error) {
+            console.error("Error loading my products:", error);
+            showToast("Ürünleriniz yüklenirken hata oluştu.");
+            myProductsTableBody.innerHTML += '<tr><td colspan="6" class="text-center py-4 text-red-500">Ürünleriniz yüklenemedi.</td></tr>';
+        }
+    }
+
+    function renderMyProductsTable() {
+        myProductsTableBody.innerHTML = `
+            <thead class="bg-gray-50"><tr>
+                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Görsel</th>
+                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Ürün Adı</th>
+                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Kategori</th>
+                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Fiyat</th>
+                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Durum</th>
+                <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">İşlem</th>
+            </tr></thead>
+        `;
+        if (myProducts.length === 0) {
+            noMyProductsMessage.classList.remove('hidden');
+        } else {
+            noMyProductsMessage.classList.add('hidden');
+            myProducts.forEach(product => {
+                const statusKey = typeof product.isApproved === 'boolean' ? (product.isApproved ? 'approved' : 'pending-approval') : (product.isApproved === 'rejected' ? 'rejected' : 'pending-approval');
+                const statusInfo = PRODUCT_STATUS_MAP[statusKey];
+
+                myProductsTableBody.innerHTML += `
+                    <tr class="border-t">
+                        <td class="px-4 py-2 text-sm"><img src="${product.imageUrl || 'https://placehold.co/40x40/e2e8f0/64748b?text=P'}" alt="Product Image" class="w-10 h-10 object-cover rounded-md"></td>
+                        <td class="px-4 py-2 text-sm">${product.name}</td>
+                        <td class="px-4 py-2 text-sm capitalize">${product.category || 'N/A'}</td>
+                        <td class="px-4 py-2 text-sm font-semibold">${product.price?.toFixed(2) || 'N/A'} ₺</td>
+                        <td class="px-4 py-2 text-sm"><span class="status-badge ${statusInfo.style}">${statusInfo.text}</span></td>
+                        <td class="px-4 py-2 text-right"><button data-id="${product.id}" class="edit-product-btn text-primary hover:underline">Düzenle</button></td>
+                    </tr>
+                `;
+            });
+        }
+    }
+
+    myProductsTableBody.addEventListener('click', e => {
+        if (e.target.classList.contains('edit-product-btn')) {
+            const productId = e.target.dataset.id;
+            const product = myProducts.find(p => p.id === productId);
+            if (product) showEditProductModal(product);
+        }
+    });
+
+    async function showEditProductModal(product) {
+        productFormTitle.textContent = 'Ürün Düzenle';
+        currentEditingProductId = product.id;
+        productNameInput.value = product.name || '';
+        productDescriptionInput.value = product.description || '';
+        productPriceInput.value = product.price || 0;
+        productImageUrlInput.value = product.imageUrl || '';
+        
+        await populateProductCategoriesDropdown(productCategorySelect);
+        productCategorySelect.value = product.category || '';
+
+        deleteProducerProductBtn.classList.remove('hidden'); // Show delete button for existing products
+        productFormModal.classList.remove('hidden');
+    }
+
+    producerProductForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const name = productNameInput.value.trim();
+        const description = productDescriptionInput.value.trim();
+        const price = parseFloat(productPriceInput.value);
+        const imageUrl = productImageUrlInput.value.trim();
+        const category = productCategorySelect.value;
+
+        if (!name || isNaN(price) || price <= 0 || !category) {
+            showToast('Lütfen tüm gerekli alanları doldurun ve geçerli bir fiyat girin.');
+            return;
+        }
+
+        try {
+            if (currentEditingProductId) {
+                // Update existing product
+                await updateDoc(doc(db, 'products', currentEditingProductId), {
+                    name,
+                    description,
+                    price,
+                    imageUrl,
+                    category,
+                    lastUpdated: new Date()
+                });
+                showToast('Ürün başarıyla güncellendi.');
+            } else {
+                // Add new product
+                await addDoc(collection(db, 'products'), {
+                    name,
+                    description,
+                    price,
+                    imageUrl,
+                    category,
+                    producerId: currentUser.uid,
+                    producerName: currentUserProfile?.fullName || currentUser.email,
+                    isApproved: false, // Newly added products need approval
+                    createdAt: new Date()
+                });
+                showToast('Yeni ürün başarıyla eklendi ve onay bekliyor.');
+            }
+            productFormModal.classList.add('hidden');
+            loadMyProducts(); // Reload products after add/update
+        } catch (error) {
+            console.error("Ürün kaydederken hata:", error);
+            showToast('Ürün kaydedilirken bir hata oluştu.');
+        }
+    });
+
+    deleteProducerProductBtn.addEventListener('click', async () => {
+        if (!currentEditingProductId) return;
+
+        // Custom confirmation modal implementation would go here
+        if (confirm('Bu ürünü silmek istediğinizden emin misiniz?')) {
+            try {
+                await deleteDoc(doc(db, 'products', currentEditingProductId));
+                showToast('Ürün başarıyla silindi.');
+                productFormModal.classList.add('hidden');
+                loadMyProducts(); // Reload products after deletion
+            } catch (error) {
+                console.error("Ürün silinirken hata:", error);
+                showToast('Ürün silinirken bir hata oluştu.');
+            }
+        }
+    });
+
+    // Function to populate category dropdown for product forms
+    async function populateProductCategoriesDropdown(selectElement) {
+        selectElement.innerHTML = '<option value="">Kategori Seçiniz</option>'; // Default empty option
+        try {
+            const snapshot = await getDocs(collection(db, "categories"));
+            snapshot.docs.forEach(doc => {
+                const categoryName = doc.data().name;
+                const option = document.createElement('option');
+                option.value = categoryName;
+                option.textContent = categoryName.charAt(0).toUpperCase() + categoryName.slice(1);
+                selectElement.appendChild(option);
+            });
+        } catch (error) {
+            console.error("Kategori dropdown yüklenirken hata:", error);
+            showToast("Kategoriler yüklenirken bir sorun oluştu.");
+        }
+    }
+
+
+    // --- MY ORDERS (for producer's products) ---
+    async function loadMyOrders() {
+        const myOrdersTableBody = document.getElementById('my-orders-table-body');
+        const noMyOrdersMessage = document.getElementById('no-my-orders-message');
+        myOrdersTableBody.innerHTML = '';
+        noMyOrdersMessage.classList.add('hidden');
+
+        myOrdersTableBody.innerHTML = `
+            <thead class="bg-gray-50"><tr>
+                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Sipariş Kodu</th>
+                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Tarih</th>
+                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Müşteri</th>
+                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Ürün Adı</th>
+                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Miktar</th>
+                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Birim Fiyat</th>
+                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Satış Tutarı</th>
+                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Sipariş Durumu</th>
+            </tr></thead>
+            <tbody></tbody>
+        `;
+
+        const tableBody = myOrdersTableBody.querySelector('tbody');
+
+        try {
+            // Fetch all orders and filter client-side for producer's items
+            const allOrdersSnapshot = await getDocs(query(collection(db, "orders"), orderBy("orderDate", "desc")));
+            let ordersContainingMyProducts = [];
+
+            allOrdersSnapshot.forEach(orderDoc => {
+                const order = orderDoc.data();
+                const producerItemsInOrder = order.items.filter(item => 
+                    item.type === 'producer_product' && item.producerId === currentUser.uid
+                );
+
+                if (producerItemsInOrder.length > 0) {
+                    producerItemsInOrder.forEach(item => {
+                        ordersContainingMyProducts.push({
+                            orderId: orderDoc.id,
+                            orderDate: order.orderDate,
+                            customerName: order.userFullName || 'İsimsiz',
+                            productName: item.productLink, // Using productLink as name as per index.html cart logic
+                            quantity: item.quantity,
+                            price: item.productPrice,
+                            saleAmount: (item.productPrice * item.quantity),
+                            orderStatus: order.status
+                        });
+                    });
+                }
+            });
+
+            if (ordersContainingMyProducts.length === 0) {
+                noMyOrdersMessage.classList.remove('hidden');
+                return;
+            }
+
+            ordersContainingMyProducts.forEach(detail => {
+                const statusInfo = ORDER_STATUS_MAP[detail.orderStatus] || {text: 'Bilinmiyor', style: 'status-unknown'};
+                tableBody.innerHTML += `
+                    <tr class="border-t">
+                        <td class="px-4 py-2 text-sm">${detail.orderId.substring(0, 8).toUpperCase()}</td>
+                        <td class="px-4 py-2 text-sm">${detail.orderDate?.toDate().toLocaleDateString('tr-TR') || 'N/A'}</td>
+                        <td class="px-4 py-2 text-sm">${detail.customerName}</td>
+                        <td class="px-4 py-2 text-sm">${detail.productName}</td>
+                        <td class="px-4 py-2 text-sm">${detail.quantity}</td>
+                        <td class="px-4 py-2 text-sm">${detail.price.toFixed(2)} ₺</td>
+                        <td class="px-4 py-2 text-sm font-semibold">${detail.saleAmount.toFixed(2)} ₺</td>
+                        <td class="px-4 py-2 text-sm"><span class="status-badge ${statusInfo.style}">${statusInfo.text}</span></td>
+                    </tr>
+                `;
+            });
+
+        } catch (error) {
+            console.error("My Orders (Producer) error:", error);
+            showToast("Siparişleriniz yüklenirken hata oluştu.");
+            tableBody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-red-500">Siparişler yüklenemedi.</td></tr>';
+        }
+    }
+
+    // --- MY SALES ---
+    async function loadMySales() {
+        const totalSalesAmount = document.getElementById('total-sales-amount');
+        const completedOrdersCount = document.getElementById('completed-orders-count');
+        const pendingSalesAmount = document.getElementById('pending-sales-amount');
+        const salesDetailTableBody = document.getElementById('sales-detail-table-body');
+
+        totalSalesAmount.textContent = 'Yükleniyor...';
+        completedOrdersCount.textContent = 'Yükleniyor...';
+        pendingSalesAmount.textContent = 'Yükleniyor...';
+        salesDetailTableBody.innerHTML = '';
+
+        salesDetailTableBody.innerHTML = `
+            <thead class="bg-gray-50"><tr>
+                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Sipariş Kodu</th>
+                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Tarih</th>
+                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Ürün Adı</th>
+                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Miktar</th>
+                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Satış Tutarı</th>
+                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Sipariş Durumu</th>
+            </tr></thead>
+            <tbody></tbody>
+        `;
+        const tableBody = salesDetailTableBody.querySelector('tbody');
+
+        try {
+            const allOrdersSnapshot = await getDocs(query(collection(db, "orders"), orderBy("orderDate", "desc")));
+            let totalSales = 0;
+            let completedSalesOrders = 0;
+            let pendingSales = 0;
+            let salesDetails = [];
+
+            allOrdersSnapshot.forEach(orderDoc => {
+                const order = orderDoc.data();
+                const producerItemsInOrder = order.items.filter(item => 
+                    item.type === 'producer_product' && item.producerId === currentUser.uid
+                );
+
+                if (producerItemsInOrder.length > 0) {
+                    producerItemsInOrder.forEach(item => {
+                        const itemSaleAmount = item.productPrice * item.quantity;
+                        salesDetails.push({
+                            orderId: orderDoc.id,
+                            orderDate: order.orderDate,
+                            productName: item.productLink,
+                            quantity: item.quantity,
+                            saleAmount: itemSaleAmount,
+                            orderStatus: order.status
+                        });
+
+                        if (order.status === 'delivered') {
+                            totalSales += itemSaleAmount;
+                            completedSalesOrders++;
+                        } else {
+                            pendingSales += itemSaleAmount;
+                        }
+                    });
+                }
+            });
+
+            totalSalesAmount.textContent = `${totalSales.toFixed(2)} ₺`;
+            completedOrdersCount.textContent = completedSalesOrders;
+            pendingSalesAmount.textContent = `${pendingSales.toFixed(2)} ₺`;
+
+            if (salesDetails.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-gray-500">Henüz satış bulunmuyor.</td></tr>';
+                return;
+            }
+
+            salesDetails.forEach(detail => {
+                const statusInfo = ORDER_STATUS_MAP[detail.orderStatus] || {text: 'Bilinmiyor', style: 'status-unknown'};
+                tableBody.innerHTML += `
+                    <tr class="border-t">
+                        <td class="px-4 py-2 text-sm">${detail.orderId.substring(0, 8).toUpperCase()}</td>
+                        <td class="px-4 py-2 text-sm">${detail.orderDate?.toDate().toLocaleDateString('tr-TR') || 'N/A'}</td>
+                        <td class="px-4 py-2 text-sm">${detail.productName}</td>
+                        <td class="px-4 py-2 text-sm">${detail.quantity}</td>
+                        <td class="px-4 py-2 text-sm font-semibold">${detail.saleAmount.toFixed(2)} ₺</td>
+                        <td class="px-4 py-2 text-sm"><span class="status-badge ${statusInfo.style}">${statusInfo.text}</span></td>
+                    </tr>
+                `;
+            });
+
+        } catch (error) {
+            console.error("My Sales (Producer) error:", error);
+            showToast("Satış verileriniz yüklenirken hata oluştu.");
+            totalSalesAmount.textContent = 'Hata!';
+            completedOrdersCount.textContent = 'Hata!';
+            pendingSalesAmount.textContent = 'Hata!';
+            salesDetailTableBody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-red-500">Veriler yüklenemedi.</td></tr>';
+        }
+    }
+
+
+    // Initial load when the page loads (after authentication check)
+    document.addEventListener('DOMContentLoaded', () => {
+        // Categories need to be loaded for product forms regardless of initial section
+        populateProductCategoriesDropdown(productCategorySelect);
+    });
+
+</script>
+</body>
+</html>
