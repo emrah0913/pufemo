@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Getir Kıbrıs - Üretici Paneli</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* İsteğe bağlı özel stiller buraya eklenebilir */
+        body {
+            font-family: Arial, sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col">
+
+    <header class="bg-white shadow-md py-4">
+        <div class="container mx-auto px-4 flex justify-between items-center">
+            <h1 class="text-2xl font-bold text-gray-800">Üretici Paneli</h1>
+            <nav>
+                <button id="logoutBtn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded">Çıkış Yap</button>
+            </nav>
+        </div>
+    </header>
+
+    <main class="flex-grow container mx-auto px-4 py-8">
+        <div class="bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4 mb-6" role="alert">
+            <p class="font-bold">Hoş geldiniz, Üretici!</p>
+            <p>UID'niz: <span id="userUidDisplay" class="font-mono text-sm">Yükleniyor...</span></p>
+        </div>
+
+        <section class="bg-white p-6 rounded-lg shadow-md mb-8">
+            <h2 class="text-xl font-semibold mb-4">Yeni Ürün Ekle</h2>
+            <form id="productForm">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="productName" class="block text-gray-700 text-sm font-bold mb-2">Ürün Adı:</label>
+                        <input type="text" id="productName" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" required>
+                    </div>
+                    <div>
+                        <label for="productDescription" class="block text-gray-700 text-sm font-bold mb-2">Açıklama:</label>
+                        <textarea id="productDescription" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" rows="3" required></textarea>
+                    </div>
+                    <div>
+                        <label for="productPrice" class="block text-gray-700 text-sm font-bold mb-2">Fiyat (TL):</label>
+                        <input type="number" id="productPrice" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" step="0.01" min="0" required>
+                    </div>
+                    <div>
+                        <label for="productCategory" class="block text-gray-700 text-sm font-bold mb-2">Kategori:</label>
+                        <select id="productCategory" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" required>
+                            <option value="">Kategori Seçin</option>
+                            <option value="Mobilya">Mobilya</option>
+                            <option value="Giyim">Giyim</option>
+                            <option value="Kozmetik">Kozmetik</option>
+                            <option value="Elektronik">Elektronik</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="productStock" class="block text-gray-700 text-sm font-bold mb-2">Stok Adedi:</label>
+                        <input type="number" id="productStock" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" min="0" required>
+                    </div>
+                    <div>
+                        <label for="productImage" class="block text-gray-700 text-sm font-bold mb-2">Ürün Fotoğrafı:</label>
+                        <input type="file" id="productImage" accept="image/*" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" required>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-gray-700 text-sm font-bold mb-2">Varyasyonlar (Örn: Renk: Kırmızı, Mavi)</label>
+                        <div id="variationsContainer" class="space-y-2">
+                            </div>
+                        <button type="button" id="addVariationBtn" class="mt-2 bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded text-sm">Varyasyon Ekle</button>
+                    </div>
+                    <div class="md:col-span-2 flex items-center">
+                        <input type="checkbox" id="productVisibility" class="mr-2 leading-tight">
+                        <label for="productVisibility" class="text-sm text-gray-700">Ürün Görünür (Müşteriler Görebilsin)</label>
+                    </div>
+                </div>
+                <div class="flex items-center justify-end mt-6">
+                    <button type="submit" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">Ürünü Kaydet</button>
+                </div>
+            </form>
+        </section>
+
+        <section class="bg-white p-6 rounded-lg shadow-md">
+            <h2 class="text-xl font-semibold mb-4">Mevcut Ürünleriniz</h2>
+            <div id="productList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <p id="loadingProducts" class="text-gray-600">Ürünler yükleniyor...</p>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-white shadow-md py-4 mt-8">
+        <div class="container mx-auto px-4 text-center text-gray-600">
+            &copy; 2025 Getir Kıbrıs. Tüm hakları saklıdır.
+        </div>
+    </footer>
+
+    <script type="module">
+        // Firebase yapılandırmanız
+        import { initializeApp } from "firebase/app";
+        import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
+        import { getFirestore, collection, addDoc, query, where, onSnapshot, doc, updateDoc, deleteDoc } from "firebase/firestore";
+        import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyB64tAKvCHeYnJ8-HNRLpzB7sQRng4FHyA",
+            authDomain: "pufemo-2dc3a.firebaseapp.com",
+            projectId: "pufemo-2dc3a",
+            storageBucket: "pufemo-2dc3a.firebasestorage.app",
+            messagingSenderId: "321284306570",
+            appId: "1:321284306570:web:ca891826c3e4edde8edf73"
+        };
+
+        // Firebase başlatma
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const storage = getStorage(app);
+
+        let currentUserUid = null; // Giriş yapmış kullanıcının UID'sini tutacak
+
+        // --- Kimlik Doğrulama Kontrolü ve Yönlendirme ---
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                // Kullanıcı giriş yapmış
+                currentUserUid = user.uid;
+                document.getElementById('userUidDisplay').textContent = user.uid;
+                loadProducts(user.uid); // Kullanıcının ürünlerini yükle
+            } else {
+                // Kullanıcı giriş yapmamış, ana sayfaya yönlendir
+                alert("Üretici paneline erişmek için giriş yapmalısınız.");
+                window.location.href = 'index.html'; // Giriş sayfasına yönlendir
+            }
+        });
+
+        // Çıkış Yap butonu işlevi
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            try {
+                await signOut(auth);
+                alert("Başarıyla çıkış yapıldı.");
+                window.location.href = 'index.html'; // Giriş sayfasına yönlendir
+            } catch (error) {
+                console.error("Çıkış yaparken hata oluştu:", error);
+                alert("Çıkış yaparken bir hata oluştu.");
+            }
+        });
+
+        // --- Varyasyon Ekleme İşlevi ---
+        const variationsContainer = document.getElementById('variationsContainer');
+        document.getElementById('addVariationBtn').addEventListener('click', () => {
+            const variationDiv = document.createElement('div');
+            variationDiv.className = 'flex items-center space-x-2';
+            variationDiv.innerHTML = `
+                <input type="text" placeholder="Varyasyon Tipi (Örn: Renk)" class="variation-type shadow appearance-none border rounded py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline w-1/3">
+                <input type="text" placeholder="Değerler (Virgülle ayırın: Kırmızı,Mavi)" class="variation-values shadow appearance-none border rounded py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline flex-grow">
+                <button type="button" class="remove-variation-btn bg-red-400 hover:bg-red-500 text-white p-2 rounded text-sm">X</button>
+            `;
+            variationsContainer.appendChild(variationDiv);
+
+            variationDiv.querySelector('.remove-variation-btn').addEventListener('click', (e) => {
+                e.target.closest('div').remove();
+            });
+        });
+
+        // --- Ürün Ekleme Formu Gönderimi ---
+        document.getElementById('productForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            if (!currentUserUid) {
+                alert("Kullanıcı bilgisi bulunamadı. Lütfen tekrar giriş yapın.");
+                return;
+            }
+
+            const productName = document.getElementById('productName').value;
+            const productDescription = document.getElementById('productDescription').value;
+            const productPrice = parseFloat(document.getElementById('productPrice').value);
+            const productCategory = document.getElementById('productCategory').value;
+            const productStock = parseInt(document.getElementById('productStock').value);
+            const productImageFile = document.getElementById('productImage').files[0];
+            const productVisibility = document.getElementById('productVisibility').checked;
+
+            const variations = [];
+            document.querySelectorAll('.variation-type').forEach((typeInput, index) => {
+                const valuesInput = document.querySelectorAll('.variation-values')[index];
+                if (typeInput.value && valuesInput.value) {
+                    variations.push({
+                        tip: typeInput.value.trim(),
+                        degerler: valuesInput.value.split(',').map(val => val.trim()).filter(val => val !== '')
+                    });
+                }
+            });
+
+            if (!productImageFile) {
+                alert("Lütfen bir ürün fotoğrafı yükleyin.");
+                return;
+            }
+
+            try {
+                // Fotoğrafı Firebase Storage'a yükle
+                const storageRef = ref(storage, `urun_fotograflari/${currentUserUid}/${productImageFile.name}_${Date.now()}`);
+                const snapshot = await uploadBytes(storageRef, productImageFile);
+                const imageUrl = await getDownloadURL(snapshot.ref);
+
+                // Ürün verilerini Firestore'a kaydet
+                await addDoc(collection(db, "uretici_urunleri"), {
+                    ureticiUid: currentUserUid,
+                    fotografUrl: imageUrl,
+                    ad: productName,
+                    aciklama: productDescription,
+                    fiyat: productPrice,
+                    kategori: productCategory,
+                    varyasyonlar: variations,
+                    stok: productStock,
+                    gorunurluk: productVisibility,
+                    onayli: false, // Başlangıçta admin onayı bekleniyor
+                    timestamp: new Date()
+                });
+
+                alert("Ürün başarıyla eklendi! Admin onayı bekleniyor.");
+                document.getElementById('productForm').reset(); // Formu sıfırla
+                variationsContainer.innerHTML = ''; // Varyasyonları temizle
+            } catch (error) {
+                console.error("Ürün eklenirken hata oluştu:", error);
+                alert("Ürün eklenirken bir hata oluştu: " + error.message);
+            }
+        });
+
+        // --- Ürünleri Listeleme ve Dinleme (Realtime) ---
+        function loadProducts(uid) {
+            const q = query(collection(db, "uretici_urunleri"), where("ureticiUid", "==", uid));
+            const productListDiv = document.getElementById('productList');
+            const loadingProducts = document.getElementById('loadingProducts');
+
+            // loadingProducts elementini göster
+            loadingProducts.style.display = 'block';
+
+            onSnapshot(q, (snapshot) => {
+                productListDiv.innerHTML = ''; // Listeyi temizle
+                loadingProducts.style.display = 'none'; // Yükleniyor mesajını gizle
+
+                if (snapshot.empty) {
+                    productListDiv.innerHTML = '<p class="text-gray-600 md:col-span-full">Henüz hiç ürün eklemediniz.</p>';
+                    return;
+                }
+
+                snapshot.forEach((doc) => {
+                    const product = doc.data();
+                    const productId = doc.id; // Belge ID'sini al
+
+                    const productCard = `
+                        <div class="bg-gray-50 p-4 rounded-lg shadow-sm flex flex-col">
+                            <img src="${product.fotografUrl}" alt="${product.ad}" class="w-full h-48 object-cover rounded-md mb-4">
+                            <h3 class="text-lg font-semibold mb-1">${product.ad}</h3>
+                            <p class="text-gray-600 text-sm mb-2">${product.aciklama.substring(0, 70)}${product.aciklama.length > 70 ? '...' : ''}</p>
+                            <p class="text-green-600 font-bold mb-2 text-xl">${product.fiyat.toFixed(2)} TL</p>
+                            <p class="text-gray-500 text-sm">Kategori: ${product.kategori}</p>
+                            <p class="text-gray-500 text-sm">Stok: ${product.stok}</p>
+                            <p class="text-gray-500 text-sm">Görünürlük: <span class="${product.gorunurluk ? 'text-green-500' : 'text-red-500'}">${product.gorunurluk ? 'Evet' : 'Hayır'}</span></p>
+                            <p class="text-gray-500 text-sm">Onay Durumu: <span class="${product.onayli ? 'text-green-500' : 'text-yellow-500'}">${product.onayli ? 'Onaylı' : 'Beklemede'}</span></p>
+                            ${product.varyasyonlar && product.varyasyonlar.length > 0 ? `
+                                <div class="text-sm text-gray-500 mt-2">
+                                    <p class="font-semibold">Varyasyonlar:</p>
+                                    ${product.varyasyonlar.map(v => `<p>${v.tip}: ${v.degerler.join(', ')}</p>`).join('')}
+                                </div>
+                            ` : ''}
+                            <div class="mt-4 flex space-x-2">
+                                <button data-id="${productId}" class="edit-btn bg-blue-500 hover:bg-blue-600 text-white text-sm py-2 px-3 rounded flex-grow">Düzenle</button>
+                                <button data-id="${productId}" data-image-url="${product.fotografUrl}" class="delete-btn bg-red-500 hover:bg-red-600 text-white text-sm py-2 px-3 rounded flex-grow">Sil</button>
+                            </div>
+                        </div>
+                    `;
+                    productListDiv.innerHTML += productCard;
+                });
+
+                // Düzenle ve Sil butonlarına olay dinleyicileri ekle
+                document.querySelectorAll('.edit-btn').forEach(button => {
+                    button.addEventListener('click', (e) => editProduct(e.target.dataset.id));
+                });
+                document.querySelectorAll('.delete-btn').forEach(button => {
+                    button.addEventListener('click', (e) => deleteProduct(e.target.dataset.id, e.target.dataset.imageUrl));
+                });
+            }, (error) => {
+                console.error("Ürünler yüklenirken hata oluştu:", error);
+                productListDiv.innerHTML = '<p class="text-red-500 md:col-span-full">Ürünler yüklenirken bir hata oluştu.</p>';
+            });
+        }
+
+        // --- Ürün Düzenleme İşlevi (Basit Placeholder) ---
+        async function editProduct(productId) {
+            // Firestore'dan ürün verilerini çek ve formu doldur
+            // Bu kısım daha karmaşık olacaktır, şimdilik bir uyarı verelim
+            alert(`Ürün ID: ${productId} düzenlenecek. Bu kısım daha sonra geliştirilecektir.`);
+            // TODO: Ürün verilerini çek ve ürün ekleme formunu doldurarak düzenleme moduna geç.
+            // Formu doldurduktan sonra, "Ürünü Kaydet" butonu "Ürünü Güncelle"ye dönüşmeli.
+        }
+
+        // --- Ürün Silme İşlevi ---
+        async function deleteProduct(productId, imageUrl) {
+            if (!confirm("Bu ürünü silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.")) {
+                return;
+            }
+
+            try {
+                // Önce Firestore belgesini sil
+                await deleteDoc(doc(db, "uretici_urunleri", productId));
+
+                // Ardından Firebase Storage'daki fotoğrafı sil
+                if (imageUrl) {
+                    const imageRef = ref(storage, imageUrl);
+                    await deleteObject(imageRef);
+                }
+
+                alert("Ürün başarıyla silindi.");
+            } catch (error) {
+                console.error("Ürün silinirken hata oluştu:", error);
+                alert("Ürün silinirken bir hata oluştu: " + error.message);
+            }
+        }
+    </script>
+</body>
+</html>
