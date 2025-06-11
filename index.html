@@ -109,7 +109,7 @@
                 <i class="ri-menu-line"></i>
             </button>
             <div class="hidden lg:flex space-x-4">
-                <a href="index.html" class="text-sm font-medium text-primary hover:text-primary-dark">Ana Sayfa</a>
+                <a href="https://pufemo.netlify.app/index.html" class="text-sm font-medium text-primary hover:text-primary-dark">Ana Sayfa</a>
                 <!-- Kategori Menüsü burada dinamik olarak yüklenecek -->
                 <div class="relative group">
                     <button class="text-sm font-medium text-gray-700 hover:text-primary focus:outline-none">
@@ -124,7 +124,7 @@
         </div>
         <div class="flex flex-col items-center">
             <img src="https://placehold.co/100x40/5d3ebc/ffffff?text=GetirKıbrıs&font=inter" alt="Getir Kıbrıs" class="h-12"> 
-            <a href="https://getirkibris.com/index.html" data-readdy="true"
+            <a href="https://pufemo.netlify.app/index.html" data-readdy="true"
                 class="text-sm font-medium text-primary mt-1">Ana Sayfa</a>
         </div>
         <div class="flex-1 flex justify-end">
@@ -149,10 +149,10 @@
                 </button>
             </div>
             <nav class="space-y-3">
-                <a href="index.html" class="flex items-center gap-2 p-2 rounded-md hover:bg-gray-100 text-gray-700 font-medium">
+                <a href="https://pufemo.netlify.app/index.html" class="flex items-center gap-2 p-2 rounded-md hover:bg-gray-100 text-gray-700 font-medium">
                     <i class="ri-home-4-line"></i> Ana Sayfa
                 </a>
-                <a href="sepet.html" class="flex items-center gap-2 p-2 rounded-md hover:bg-gray-100 text-gray-700 font-medium">
+                <a href="https://pufemo.netlify.app/sepet.html" class="flex items-center gap-2 p-2 rounded-md hover:bg-gray-100 text-gray-700 font-medium">
                     <i class="ri-shopping-cart-line"></i> Sepetim
                 </a>
                 <div class="border-t border-gray-200 pt-3 mt-3">
@@ -163,8 +163,12 @@
                     </div>
                 </div>
                 <!-- Yönetici Paneli linki sadece adminler için görünür olacak -->
-                <a href="admin.html" id="admin-panel-link" class="flex items-center gap-2 p-2 rounded-md hover:bg-gray-100 text-gray-700 font-medium hidden">
+                <a href="https://pufemo.netlify.app/admin.html" id="admin-panel-link" class="flex items-center gap-2 p-2 rounded-md hover:bg-gray-100 text-gray-700 font-medium hidden">
                     <i class="ri-dashboard-line"></i> Yönetici Paneli
+                </a>
+                <!-- Üretici Paneli linki sadece üreticiler için görünür olacak -->
+                <a href="https://pufemo.netlify.app/producer_panel.html" id="producer-panel-link" class="flex items-center gap-2 p-2 rounded-md hover:bg-gray-100 text-gray-700 font-medium hidden">
+                    <i class="ri-briefcase-line"></i> Üretici Paneli
                 </a>
             </nav>
         </div>
@@ -190,7 +194,7 @@
                 <span class="text-sm font-medium">Hesapla</span>
             </button>
 
-            <a href="https://getirkibris.com/sepet.html" id="cart-page-btn"
+            <a href="https://pufemo.netlify.app/sepet.html" id="cart-page-btn"
                 class="relative bg-white shadow-md p-4 rounded-button flex flex-col items-center justify-center h-32 cursor-pointer border border-gray-100 hover:border-primary/20 transition-all">
                 <div
                     class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-2">
@@ -294,7 +298,7 @@
                 </a>
                 <a href="https://www.gittigidiyor.com" target="_blank"
                     class="bg-white rounded-lg shadow-sm p-3 h-20 flex items-center justify-center cursor-pointer border border-gray-100">
-                    <img src="https://readdy.ai/api/search-image?query=gittigidiyor%20logo%2C%20simple%2C%20clean%20isolated%20on%20white%20background%2C%20centered%20composition&width=100&height=100&seq=7&orientation=squarish"
+                    <img src="https://readdy.ai/api/search-image?query=gittigidiyor%20logo%2C%20simple%2C%20clean%2C%20isolated%20on%20white%20background%2C%20centered%20composition&width=100&height=100&seq=7&orientation=squarish"
                         alt="GittiGidiyor" class="w-16 h-16 object-contain">
                 </a>
             </div>
@@ -593,6 +597,7 @@
     const categoryMenuDesktop = document.getElementById('category-menu-desktop');
     const categoryMenuMobile = document.getElementById('category-menu-mobile');
     const adminPanelLink = document.getElementById('admin-panel-link'); // Admin linki
+    const producerPanelLink = document.getElementById('producer-panel-link'); // Producer linki
 
 
     // --- TOAST NOTIFICATION ---
@@ -739,11 +744,17 @@
                 const userDocSnap = await getDoc(userDocRef);
                 if (userDocSnap.exists()) {
                     userProfile = userDocSnap.data();
-                    // Show admin panel link if user is admin or producer
-                    if (userProfile.role === 'admin' || userProfile.role === 'producer') {
+                    // Show admin panel link if user is admin
+                    if (userProfile.role === 'admin') {
                         adminPanelLink.classList.remove('hidden');
-                    } else {
+                        producerPanelLink.classList.add('hidden'); // Hide producer link if admin
+                    } else if (userProfile.role === 'producer') {
+                        producerPanelLink.classList.remove('hidden');
+                        adminPanelLink.classList.add('hidden'); // Hide admin link if producer
+                    }
+                     else {
                         adminPanelLink.classList.add('hidden');
+                        producerPanelLink.classList.add('hidden');
                     }
 
                     if (!userProfile.fullName || !userProfile.phone || !userProfile.address) {
@@ -767,6 +778,7 @@
             loginBtn.classList.remove('hidden');
             cartBadge.classList.add('hidden'); // Hide cart badge if logged out
             adminPanelLink.classList.add('hidden'); // Hide admin link if logged out
+            producerPanelLink.classList.add('hidden'); // Hide producer link if logged out
         }
     });
 
@@ -793,22 +805,19 @@
                 userProfile = userDocSnap.data();
             }
 
-            if (confirm('Profilinizi güncellemek veya çıkış yapmak ister misiniz?')) {
-                // Show profile modal or handle options
+            // Using a simple confirm for now, can be replaced by a custom modal
+            if (confirm('Profilinizi güncellemek veya çıkış yapmak ister misiniz? \nTamam: Profili Düzenle \nİptal: Çıkış Yap')) {
                 profileModal.classList.remove('hidden');
                 document.getElementById('full-name-input').value = userProfile?.fullName || '';
                 document.getElementById('phone-input').value = userProfile?.phone || '';
                 document.getElementById('address-input').value = userProfile?.address || '';
             } else {
-                // Option to logout
-                if (confirm('Çıkış yapmak istediğinize emin misiniz?')) {
-                    signOut(auth).then(() => {
-                        showToast("Başarıyla çıkış yapıldı.");
-                    }).catch((error) => {
-                        console.error("Çıkış hatası:", error);
-                        showToast("Çıkış yapılırken bir hata oluştu.");
-                    });
-                }
+                signOut(auth).then(() => {
+                    showToast("Başarıyla çıkış yapıldı.");
+                }).catch((error) => {
+                    console.error("Çıkış hatası:", error);
+                    showToast("Çıkış yapılırken bir hata oluştu.");
+                });
             }
         }
     });
@@ -1022,7 +1031,7 @@
                     <p class="text-sm text-gray-600 mb-2 line-clamp-2">${product.description || 'Açıklama mevcut değil.'}</p>
                     <div class="flex items-center justify-between mt-auto pt-3 border-t border-gray-100">
                         <span class="text-primary font-bold text-xl">${product.price.toFixed(2)} ₺</span>
-                        <button data-product-id="${product.id}" class="add-to-cart-producer-btn bg-primary text-white px-4 py-2 rounded-button text-sm font-medium hover:bg-primary/90 transition-colors flex items-center gap-1">
+                        <button data-product-id="${product.id}" data-product-name="${product.name}" data-product-price="${product.price}" data-product-category="${product.category}" data-product-image="${product.imageUrl}" class="add-to-cart-producer-btn bg-primary text-white px-4 py-2 rounded-button text-sm font-medium hover:bg-primary/90 transition-colors flex items-center gap-1">
                             <i class="ri-shopping-cart-line"></i> Sepete Ekle
                         </button>
                     </div>
@@ -1039,25 +1048,27 @@
                     return;
                 }
                 const productId = e.currentTarget.dataset.productId;
-                const product = products.find(p => p.id === productId);
+                const productName = e.currentTarget.dataset.productName;
+                const productPrice = parseFloat(e.currentTarget.dataset.productPrice);
+                const productCategory = e.currentTarget.dataset.productCategory;
+                const imageUrl = e.currentTarget.dataset.productImage;
 
-                if (product) {
-                    try {
-                        await addDoc(collection(db, 'users', currentUser.uid, 'cart'), {
-                            productLink: product.name, // Use product name as link for simplicity, or unique ID
-                            productPrice: product.price,
-                            category: product.category,
-                            imageUrl: product.imageUrl,
-                            orderMethod: 'producer_product', // Indicates it's a product from a producer
-                            quantity: 1,
-                            addedAt: new Date(),
-                            type: 'producer_product' // 'custom_order' or 'producer_product'
-                        });
-                        showToast(`${product.name} sepete eklendi!`);
-                    } catch (error) {
-                        console.error("Üretici ürünü sepete eklenirken hata:", error);
-                        showToast("Ürün sepete eklenemedi.");
-                    }
+                try {
+                    await addDoc(collection(db, 'users', currentUser.uid, 'cart'), {
+                        productLink: productName, // Use product name as link for simplicity, or unique ID
+                        productPrice: productPrice,
+                        category: productCategory,
+                        imageUrl: imageUrl,
+                        orderMethod: 'producer_product', // Indicates it's a product from a producer
+                        quantity: 1,
+                        addedAt: new Date(),
+                        type: 'producer_product', // 'custom_order' or 'producer_product'
+                        producerId: product.producerId // Include producer ID
+                    });
+                    showToast(`${productName} sepete eklendi!`);
+                } catch (error) {
+                    console.error("Üretici ürünü sepete eklenirken hata:", error);
+                    showToast("Ürün sepete eklenemedi.");
                 }
             });
         });
