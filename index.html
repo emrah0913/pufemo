@@ -409,13 +409,6 @@
                     </div>
                 </div>
             </div>
-        </div>
-        <section class="px-4 py-6 text-center">
-            <h1 class="text-2xl sm:text-4xl font-bold text-primary mb-4">Türkiye’den Kıbrıs’a Ürün Getirme Hizmeti</h1>
-            <p class="text-lg text-gray-700">
-                Getir Kıbrıs, Türkiye'deki online alışveriş sitelerinden verdiğiniz siparişleri sizin için Kuzey Kıbrıs’a ulaştırır.
-                Trendyol, Hepsiburada, N11, Amazon gibi sitelerden aldığınız ürünleri uygun fiyatlarla teslim alırsınız.
-            </p>
         </section>
     </main>
 
@@ -492,7 +485,7 @@
     // Firebase SDK'larını içe aktarma (Versiyon 9.23.0 kullanılıyor)
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
     import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
-    import { getFirestore, doc, getDoc, setDoc, collection, query, where, getDocs, onSnapshot } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, setDoc, collection, query, where, getDocs, onSnapshot, addDoc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js"; // addDoc eklendi
 
     // KULLANICININ YENİ VERDİĞİ FIREBASE YAPILANDIRMASI KULLANILDI
     const userFirebaseConfig = {
@@ -515,13 +508,14 @@
     const db = getFirestore(app);
 
     let cartUnsubscribe = null; // Sepet dinleyicisi için
-    let userId = null; // Mevcut kullanıcı ID'si
+    let currentUser = null; // Mevcut kullanıcı objesi
+    let userProfile = null; // Kullanıcı profil bilgileri
 
     // --- GLOBAL SETTINGS (Kategori ve Şehir Ücretleri) ---
     let pricingSettings = {};
     const DEFAULT_SETTINGS = {
-        categoryRates: { 'Mobilya': 0.70, 'Elektronik': 0.70, 'Giyim': 0.45, 'Kozmetik': 0.70, 'Kırtasiye': 0.40 },
-        cityFees: { 'Lefkoşa': 200, 'Girne': 350, 'Gazimağusa': 300, 'Güzelyurt': 400, 'İskele': 450 }
+        categoryRates: { 'Mobilya': 0.15, 'Elektronik': 0.08, 'Giyim': 0.10, 'Kozmetik': 0.12, 'Kırtasiye': 0.05 },
+        cityFees: { 'Lefkoşa': 50, 'Girne': 70, 'Gazimağusa': 60, 'Güzelyurt': 80, 'İskele': 90 }
     };
 
     // --- DOM Elements ---
@@ -560,12 +554,12 @@
             // Güvenlik kurallarına uygun olarak settings yolunu tanımla
             const settingsDocRef = doc(db, `artifacts/${appId}/public/data/settings`, "pricing");
             const docSnap = await getDoc(settingsDocRef);
-            if (docSnap.exists() && docSnap.data().categoryRates) {
+            if (docSnap.exists() && docSnap.data().categoryRates && docSnap.data().cityFees) {
                 pricingSettings = docSnap.data();
                 console.log("Fiyat ayarları başarıyla yüklendi.");
             } else {
                 pricingSettings = DEFAULT_SETTINGS;
-                console.log("Fiyat ayarları bulunamadı, varsayılanlar kullanılıyor.");
+                console.log("Fiyat ayarları bulunamadı veya eksik, varsayılanlar kullanılıyor.");
             }
         } catch (error) {
             console.error("Fiyat ayarları yüklenirken hata oluştu:", error);
@@ -657,25 +651,28 @@
         } catch (error) {
             console.error("Firebase authentication failed:", error);
             // Kimlik doğrulama başarısız olsa bile, anonim bir ID kullanmaya devam et
-            userId = crypto.randomUUID();
-            console.log("Using a random UUID for userId:", userId);
+            currentUser = { uid: crypto.randomUUID(), isAnonymous: true }; // Anonim kullanıcıyı set et
+            console.log("Using a random UUID for currentUser:", currentUser.uid);
         }
     }
 
     // Kimlik doğrulama durumu değiştiğinde çalışacak listener
-    onAuthStateChanged(auth, (user) => {
+    onAuthStateChanged(auth, async (user) => {
         if (user) {
-            userId = user.uid;
+            currentUser = user; // `currentUser` objesini burada set ediyoruz
+            profileImg.src = user.photoURL || 'https://placehold.co/40x40/cccccc/ffffff?text=U'; // Varsayılan profil fotoğrafı
             profileContainer.classList.remove('hidden');
             loginBtn.classList.add('hidden');
-            profileImg.src = user.photoURL || 'https://placehold.co/40x40/cccccc/ffffff?text=U'; // Varsayılan profil fotoğrafı
-            console.log("Kullanıcı giriş yaptı:", userId);
-            fetchUserProfile(userId); // Kullanıcı profilini getir
+            console.log("Kullanıcı giriş yaptı:", currentUser.uid);
+            await fetchUserProfile(currentUser.uid); // Kullanıcı profilini getir
+            listenToCartBadge(currentUser.uid); // Sepet rozetini dinlemeye başla
         } else {
-            userId = crypto.randomUUID(); // Anonim ID
+            // Kullanıcı oturumu kapattığında veya oturum yoksa
+            currentUser = { uid: crypto.randomUUID(), isAnonymous: true }; // Anonim ID kullan
             profileContainer.classList.add('hidden');
             loginBtn.classList.remove('hidden');
             console.log("Kullanıcı oturumu kapattı veya oturum yok. Anonim ID kullanılıyor.");
+            listenToCartBadge(currentUser.uid); // Anonim kullanıcı için de sepet rozetini dinle
         }
         // Kullanıcı kimlik doğrulandıktan/durumu belirlendikten sonra ürünleri yükle
         displayHomepageProducts(); // Başlangıçta tüm ürünleri (filtresiz) göster
@@ -703,6 +700,8 @@
             where("isApprovedByAdmin", "==", true),
             where("isVisible", "==", true),
             where("isOnHomepage", "==", true)
+            // Not: Firestore'da index gerektirmeyen sıralama mümkün değil.
+            // Geliştirme sırasında hata alırsanız, Firestore konsolundan gerekli index'ler oluşturulmalıdır.
         );
 
         // Kategori filtresi ekle
@@ -744,7 +743,12 @@
                                     <span>${product.price ? product.price.toFixed(2) : 'N/A'}</span> ₺
                                 </div>
                                 <button class="add-to-cart-button bg-primary text-white py-2 px-4 rounded-full hover:bg-primary/90 transition-colors duration-300 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-50"
-                                        data-product-id="${product.productId}" data-product-name="${product.name}" data-product-price="${product.price}">
+                                        data-product-id="${doc.id}"
+                                        data-product-name="${product.name}"
+                                        data-product-price="${product.price}"
+                                        data-product-image="${imageUrl}"
+                                        data-product-category="${product.category}"
+                                        data-order-method="producer_product">
                                     Sepete Ekle
                                 </button>
                             </div>
@@ -756,15 +760,54 @@
 
             // Sepete Ekle butonlarına tıklama olay dinleyicisi ekle
             document.querySelectorAll('.add-to-cart-button').forEach(button => {
-                button.addEventListener('click', (event) => {
-                    // Bu noktada sepet işlevselliği tam olarak entegre edilmediği için
-                    // sadece bir mesaj gösteriyoruz.
+                button.addEventListener('click', async (event) => {
                     const productId = event.target.dataset.productId;
                     const productName = event.target.dataset.productName;
                     const productPrice = parseFloat(event.target.dataset.productPrice);
-                    console.log(`Ürün ID: ${productId}, Ad: ${productName}, Fiyat: ${productPrice} sepete eklendi.`);
-                    alertUserMessage(`${productName} sepete eklendi!`, "success");
-                    // Gelecekte buraya gerçek sepet ekleme mantığı gelecek.
+                    const productImage = event.target.dataset.productImage;
+                    const productCategory = event.target.dataset.productCategory;
+                    const orderMethod = event.target.dataset.orderMethod; // 'producer_product' olacak
+
+                    if (!currentUser) {
+                        alertUserMessage("Giriş yapmanız gerekiyor.", "error");
+                        return;
+                    }
+
+                    try {
+                        // Sepet koleksiyonuna ürün ekle
+                        const cartRef = collection(db, `artifacts/${appId}/users/${currentUser.uid}/cart`);
+                        
+                        // Ürün sepette zaten var mı kontrol et
+                        const q = query(cartRef, where("productId", "==", productId), where("orderMethod", "==", orderMethod));
+                        const querySnapshot = await getDocs(q);
+
+                        if (!querySnapshot.empty) {
+                            // Ürün sepette varsa miktarını artır
+                            querySnapshot.forEach(async (doc) => {
+                                const itemRef = doc.ref;
+                                const currentQuantity = doc.data().quantity;
+                                await setDoc(itemRef, { quantity: currentQuantity + 1 }, { merge: true });
+                            });
+                            alertUserMessage(`${productName} adedi sepette arttırıldı!`, "success");
+                        } else {
+                            // Ürün sepette yoksa yeni olarak ekle
+                            await addDoc(cartRef, {
+                                productId: productId,
+                                name: productName,
+                                price: productPrice, // Üretici ürününün fiyatı
+                                imageUrl: [productImage],
+                                category: productCategory,
+                                quantity: 1,
+                                orderMethod: orderMethod,
+                                addedAt: new Date(),
+                                // Diğer alanlar gerekirse eklenebilir (örn: productLink, description)
+                            });
+                            alertUserMessage(`${productName} sepete eklendi!`, "success");
+                        }
+                    } catch (error) {
+                        console.error("Ürün sepete eklenirken hata oluştu:", error);
+                        alertUserMessage("Ürün sepete eklenirken bir sorun oluştu.", "error");
+                    }
                 });
             });
 
@@ -775,6 +818,33 @@
         }
     }
 
+    /**
+     * Sepet rozetini (badge) günceller.
+     * @param {string} userId - Kullanıcı ID'si.
+     */
+    function listenToCartBadge(userId) {
+        // Sepet koleksiyonuna abone ol
+        const cartRef = collection(db, `artifacts/${appId}/users/${userId}/cart`);
+        if (cartUnsubscribe) {
+            cartUnsubscribe(); // Önceki dinleyiciyi temizle
+        }
+        cartUnsubscribe = onSnapshot(cartRef, (snapshot) => {
+            let totalItems = 0;
+            snapshot.forEach(doc => {
+                totalItems += doc.data().quantity;
+            });
+            if (totalItems > 0) {
+                cartBadge.textContent = totalItems;
+                cartBadge.classList.remove('hidden');
+            } else {
+                cartBadge.classList.add('hidden');
+            }
+        }, (error) => {
+            console.error("Sepet rozeti dinlenirken hata oluştu:", error);
+            // Hata durumunda da rozeti gizleyebiliriz
+            cartBadge.classList.add('hidden');
+        });
+    }
 
     // --- Hesaplama Modülü İşlevselliği ---
     calculateBtn.addEventListener('click', () => {
@@ -784,9 +854,59 @@
         }
     });
 
-    mainActionBtn.addEventListener('click', (e) => {
+    mainActionBtn.addEventListener('click', async (e) => { // async yapıldı
         e.preventDefault();
+        const productLink = document.getElementById('product-link').value.trim();
+        const productPrice = parseFloat(document.getElementById('product-price').value);
+        const selectedCategory = document.getElementById('product-category').value;
+        const orderMethod = document.getElementById('order-method').value;
+
+        if (isNaN(productPrice) || productPrice <= 0 || !selectedCategory || !productLink) {
+            alertUserMessage("Lütfen tüm hesaplama alanlarını doldurun.", "warning");
+            return;
+        }
+
+        if (!currentUser) {
+            alertUserMessage("Hesaplama ve sepete ekleme için giriş yapmanız gerekiyor.", "error");
+            return;
+        }
+
+        // Maliyeti hesapla
         calculatePrice();
+
+        // Sepete ekleme işlemi
+        try {
+            const cartRef = collection(db, `artifacts/${appId}/users/${currentUser.uid}/cart`);
+            
+            // Ürün sepette zaten var mı kontrol et
+            const q = query(cartRef, where("productLink", "==", productLink), where("orderMethod", "==", orderMethod));
+            const querySnapshot = await getDocs(q);
+
+            if (!querySnapshot.empty) {
+                // Ürün sepette varsa miktarını artır
+                querySnapshot.forEach(async (doc) => {
+                    const itemRef = doc.ref;
+                    const currentQuantity = doc.data().quantity;
+                    await setDoc(itemRef, { quantity: currentQuantity + 1 }, { merge: true });
+                });
+                alertUserMessage("Aynı ürün adedi sepette arttırıldı!", "success");
+            } else {
+                // Ürün sepette yoksa yeni olarak ekle
+                await addDoc(cartRef, {
+                    productLink: productLink,
+                    productPrice: productPrice,
+                    category: selectedCategory,
+                    orderMethod: orderMethod, // 'service' veya 'self'
+                    quantity: 1, // İlk kez ekleniyor
+                    addedAt: new Date()
+                });
+                alertUserMessage("Ürün sepete eklendi!", "success");
+            }
+
+        } catch (error) {
+            console.error("Hesaplama ürününü sepete eklerken hata oluştu:", error);
+            alertUserMessage("Hesaplama ürününü sepete eklerken bir sorun oluştu.", "error");
+        }
     });
 
     productPriceInput.addEventListener('input', calculatePrice);
@@ -817,18 +937,17 @@
 
     // --- Kullanıcı Profil İşlevselliği ---
     async function fetchUserProfile(uid) {
-        // Güvenlik kurallarına uygun olarak private veri yolunu tanımla
-        // Veri yolunuz: /artifacts/{appId}/users/{userId}/profiles
+        // Private veri yolu: artifacts/{appId}/users/{userId}/profiles/userProfile
         const userDocRef = doc(db, `artifacts/${appId}/users/${uid}/profiles`, "userProfile");
         try {
             const docSnap = await getDoc(userDocRef);
             if (docSnap.exists()) {
-                const userData = docSnap.data();
-                if (!userData.fullName || !userData.phoneNumber || !userData.address) {
+                userProfile = docSnap.data(); // Kullanıcı profilini kaydet
+                if (!userProfile.fullName || !userProfile.phoneNumber || !userProfile.address) {
                     profileModal.classList.remove('hidden');
-                    document.getElementById('full-name-input').value = userData.fullName || '';
-                    document.getElementById('phone-input').value = userData.phoneNumber || '';
-                    document.getElementById('address-input').value = userData.address || '';
+                    document.getElementById('full-name-input').value = userProfile.fullName || '';
+                    document.getElementById('phone-input').value = userProfile.phoneNumber || '';
+                    document.getElementById('address-input').value = userProfile.address || '';
                 }
             } else {
                 profileModal.classList.remove('hidden'); // Yeni kullanıcıysa profili tamamlat
@@ -840,7 +959,7 @@
 
     profileForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        if (!userId) {
+        if (!currentUser) { // currentUser kullanıldı
             alertUserMessage("Giriş yapmalısınız!", "error");
             return;
         }
@@ -855,17 +974,18 @@
         }
 
         try {
-            const userDocRef = doc(db, `artifacts/${appId}/users/${userId}/profiles`, "userProfile");
+            const userDocRef = doc(db, `artifacts/${appId}/users/${currentUser.uid}/profiles`, "userProfile");
             await setDoc(userDocRef, {
                 fullName,
                 phoneNumber,
                 address,
-                email: auth.currentUser.email,
-                photoURL: auth.currentUser.photoURL,
-                uid: userId
+                email: currentUser.email,
+                photoURL: currentUser.photoURL,
+                uid: currentUser.uid
             }, { merge: true }); // Var olan verileri koru
             profileModal.classList.add('hidden');
             alertUserMessage("Profiliniz güncellendi!", "success");
+            userProfile = { fullName, phoneNumber, address }; // Profil güncellendiğinde yerel değişkeni de güncelle
         } catch (error) {
             console.error("Profil güncellenirken hata oluştu:", error);
             alertUserMessage("Profil güncellenirken hata oluştu.", "error");
@@ -896,7 +1016,9 @@
 
     // Profil resmine tıklayınca oturumu kapat (basit bir örnek)
     profileImg.addEventListener('click', async () => {
-        if (confirm("Oturumu kapatmak istediğinizden emin misiniz?")) { // confirm yerine özel modal eklenecek
+        // alert() yerine customConfirm kullanıldı
+        const confirmLogout = await customConfirm("Oturumu kapatmak istediğinizden emin misiniz?", "Oturumu Kapat");
+        if (confirmLogout) {
             try {
                 await signOut(auth);
                 alertUserMessage("Oturum kapatıldı.", "info");
@@ -951,6 +1073,58 @@
                 toast.className = `fixed bottom-24 right-6 text-white px-5 py-3 rounded-lg shadow-xl opacity-0 transition-all duration-300 z-[110] transform translate-y-4 bg-gray-800`;
             });
         }, 3000);
+    }
+
+    // --- Custom Confirm Modalı (alert() yerine) ---
+    const customConfirmModal = document.createElement('div');
+    customConfirmModal.id = 'custom-confirm-modal';
+    customConfirmModal.className = 'fixed inset-0 bg-black/60 flex items-center justify-center z-[101] hidden p-4';
+    customConfirmModal.innerHTML = `
+        <div class="bg-white p-8 rounded-lg shadow-xl text-center max-w-sm w-full fade-in">
+            <h3 class="text-xl font-bold text-gray-800 mb-4" id="confirm-modal-title">Emin Misiniz?</h3>
+            <p class="text-gray-600 mb-6" id="confirm-modal-message">Bu işlemi gerçekleştirmek istediğinize emin misiniz?</p>
+            <div class="flex justify-center gap-4">
+                <button id="confirm-modal-cancel" class="bg-gray-300 text-gray-800 px-6 py-2 rounded-button font-semibold hover:bg-gray-400 transition-colors">İptal</button>
+                <button id="confirm-modal-ok" class="bg-red-500 text-white px-6 py-2 rounded-button font-semibold hover:bg-red-600 transition-colors">Evet</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(customConfirmModal);
+
+    /**
+     * alert() yerine kullanılan özel onay modalı.
+     * @param {string} message - Onay mesajı.
+     * @param {string} title - Modal başlığı.
+     * @returns {Promise<boolean>} - Kullanıcının onayı.
+     */
+    function customConfirm(message, title = "Onay Gerekiyor") {
+        return new Promise((resolve) => {
+            const modalTitle = customConfirmModal.querySelector('#confirm-modal-title');
+            const modalMessage = customConfirmModal.querySelector('#confirm-modal-message');
+            const modalCancelBtn = customConfirmModal.querySelector('#confirm-modal-cancel');
+            const modalOkBtn = customConfirmModal.querySelector('#confirm-modal-ok');
+
+            modalTitle.textContent = title;
+            modalMessage.textContent = message;
+            customConfirmModal.classList.remove('hidden');
+
+            const onOk = () => {
+                customConfirmModal.classList.add('hidden');
+                modalOkBtn.removeEventListener('click', onOk);
+                modalCancelBtn.removeEventListener('click', onCancel);
+                resolve(true);
+            };
+
+            const onCancel = () => {
+                customConfirmModal.classList.add('hidden');
+                modalOkBtn.removeEventListener('click', onOk);
+                modalCancelBtn.removeEventListener('click', onCancel);
+                resolve(false);
+            };
+
+            modalOkBtn.addEventListener('click', onOk);
+            modalCancelBtn.addEventListener('click', onCancel);
+        });
     }
 
     // --- Adres Kopyalama ---
