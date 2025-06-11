@@ -204,10 +204,12 @@
         <!-- ÜRETİCİ ÜRÜNLERİ BAŞLANGICI -->
         <h2 class="text-3xl font-bold text-gray-800 mb-6 mt-8 text-center px-4">Öne Çıkan Üretici Ürünleri</h2>
 
+        <!-- Yükleniyor Mesajı artık ürün container'ının dışında -->
+        <p class="col-span-full text-center text-gray-500 mb-4" id="loading-message">Ürünler yükleniyor...</p>
+        
         <!-- Ürün Kartlarının Yükleneceği Alan -->
         <section id="homepage-products-container" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 px-4">
             <!-- Ürün kartları buraya JavaScript ile dinamik olarak eklenecek -->
-            <p class="col-span-full text-center text-gray-500" id="loading-message">Ürünler yükleniyor...</p>
         </section>
         <!-- ÜRETİCİ ÜRÜNLERİ SONU -->
 
@@ -650,9 +652,12 @@
             console.log("Firebase authentication successful.");
         } catch (error) {
             console.error("Firebase authentication failed:", error);
-            // Kimlik doğrulama başarısız olsa bile, anonim bir ID kullanmaya devam et
+            // Anonim kimlik doğrulama veya özel token hatası durumunda bile bir userId ata
+            // Bu, Firestore'a veri yazılırken userId'nin null olmamasını sağlar.
+            // Ancak, auth/admin-restricted-operation gibi hatalarda, Firestore güvenlik kuralları
+            // gerçek kimliği doğrulanmış bir UID gerektirdiğinde yazma işlemleri yine başarısız olabilir.
             currentUser = { uid: crypto.randomUUID(), isAnonymous: true }; // Anonim kullanıcıyı set et
-            console.log("Using a random UUID for currentUser:", currentUser.uid);
+            console.log("Using a random UUID for currentUser (authentication failed):", currentUser.uid);
         }
     }
 
@@ -687,7 +692,7 @@
      */
     async function displayHomepageProducts(category = null) {
         const productsContainer = document.getElementById('homepage-products-container');
-        const loadingMessage = document.getElementById('loading-message');
+        const loadingMessage = document.getElementById('loading-message'); // Element referansını tekrar al
         productsContainer.innerHTML = ''; // Önceki içeriği temizle
         loadingMessage.classList.remove('hidden'); // Yükleniyor mesajını göster
 
@@ -768,8 +773,8 @@
                     const productCategory = event.target.dataset.productCategory;
                     const orderMethod = event.target.dataset.orderMethod; // 'producer_product' olacak
 
-                    if (!currentUser) {
-                        alertUserMessage("Giriş yapmanız gerekiyor.", "error");
+                    if (!currentUser || currentUser.isAnonymous) { // Anonim ise uyarı ver
+                        alertUserMessage("Sepete ürün eklemek için lütfen giriş yapın.", "warning");
                         return;
                     }
 
@@ -806,7 +811,7 @@
                         }
                     } catch (error) {
                         console.error("Ürün sepete eklenirken hata oluştu:", error);
-                        alertUserMessage("Ürün sepete eklenirken bir sorun oluştu.", "error");
+                        alertUserMessage("Ürün sepete eklenirken bir sorun oluştu. Lütfen tekrar deneyin.", "error");
                     }
                 });
             });
@@ -866,8 +871,8 @@
             return;
         }
 
-        if (!currentUser) {
-            alertUserMessage("Hesaplama ve sepete ekleme için giriş yapmanız gerekiyor.", "error");
+        if (!currentUser || currentUser.isAnonymous) { // Anonim ise uyarı ver
+            alertUserMessage("Hesaplama ürününü sepete eklemek için lütfen giriş yapın.", "warning");
             return;
         }
 
@@ -943,14 +948,15 @@
             const docSnap = await getDoc(userDocRef);
             if (docSnap.exists()) {
                 userProfile = docSnap.data(); // Kullanıcı profilini kaydet
+                // Sadece eksikse veya boşsa modalı göster
                 if (!userProfile.fullName || !userProfile.phoneNumber || !userProfile.address) {
                     profileModal.classList.remove('hidden');
                     document.getElementById('full-name-input').value = userProfile.fullName || '';
                     document.getElementById('phone-input').value = userProfile.phoneNumber || '';
                     document.getElementById('address-input').value = userProfile.address || '';
                 }
-            } else {
-                profileModal.classList.remove('hidden'); // Yeni kullanıcıysa profili tamamlat
+            } else if (!currentUser.isAnonymous) { // Yeni kullanıcıysa ve anonim değilse profili tamamlat
+                profileModal.classList.remove('hidden');
             }
         } catch (error) {
             console.error("Kullanıcı profili getirilirken hata oluştu:", error);
@@ -959,7 +965,7 @@
 
     profileForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        if (!currentUser) { // currentUser kullanıldı
+        if (!currentUser || currentUser.isAnonymous) { // currentUser kullanıldı
             alertUserMessage("Giriş yapmalısınız!", "error");
             return;
         }
@@ -1076,20 +1082,24 @@
     }
 
     // --- Custom Confirm Modalı (alert() yerine) ---
-    const customConfirmModal = document.createElement('div');
-    customConfirmModal.id = 'custom-confirm-modal';
-    customConfirmModal.className = 'fixed inset-0 bg-black/60 flex items-center justify-center z-[101] hidden p-4';
-    customConfirmModal.innerHTML = `
-        <div class="bg-white p-8 rounded-lg shadow-xl text-center max-w-sm w-full fade-in">
-            <h3 class="text-xl font-bold text-gray-800 mb-4" id="confirm-modal-title">Emin Misiniz?</h3>
-            <p class="text-gray-600 mb-6" id="confirm-modal-message">Bu işlemi gerçekleştirmek istediğinize emin misiniz?</p>
-            <div class="flex justify-center gap-4">
-                <button id="confirm-modal-cancel" class="bg-gray-300 text-gray-800 px-6 py-2 rounded-button font-semibold hover:bg-gray-400 transition-colors">İptal</button>
-                <button id="confirm-modal-ok" class="bg-red-500 text-white px-6 py-2 rounded-button font-semibold hover:bg-red-600 transition-colors">Evet</button>
+    // Custom confirm modal elementini sayfaya ekle (eğer daha önce eklenmediyse)
+    if (!document.getElementById('custom-confirm-modal')) {
+        const customConfirmModalElement = document.createElement('div');
+        customConfirmModalElement.id = 'custom-confirm-modal';
+        customConfirmModalElement.className = 'fixed inset-0 bg-black/60 flex items-center justify-center z-[101] hidden p-4';
+        customConfirmModalElement.innerHTML = `
+            <div class="bg-white p-8 rounded-lg shadow-xl text-center max-w-sm w-full fade-in">
+                <h3 class="text-xl font-bold text-gray-800 mb-4" id="confirm-modal-title">Emin Misiniz?</h3>
+                <p class="text-gray-600 mb-6" id="confirm-modal-message">Bu işlemi gerçekleştirmek istediğinize emin misiniz?</p>
+                <div class="flex justify-center gap-4">
+                    <button id="confirm-modal-cancel" class="bg-gray-300 text-gray-800 px-6 py-2 rounded-button font-semibold hover:bg-gray-400 transition-colors">İptal</button>
+                    <button id="confirm-modal-ok" class="bg-red-500 text-white px-6 py-2 rounded-button font-semibold hover:bg-red-600 transition-colors">Evet</button>
+                </div>
             </div>
-        </div>
-    `;
-    document.body.appendChild(customConfirmModal);
+        `;
+        document.body.appendChild(customConfirmModalElement);
+    }
+
 
     /**
      * alert() yerine kullanılan özel onay modalı.
@@ -1099,24 +1109,25 @@
      */
     function customConfirm(message, title = "Onay Gerekiyor") {
         return new Promise((resolve) => {
-            const modalTitle = customConfirmModal.querySelector('#confirm-modal-title');
-            const modalMessage = customConfirmModal.querySelector('#confirm-modal-message');
-            const modalCancelBtn = customConfirmModal.querySelector('#confirm-modal-cancel');
-            const modalOkBtn = customConfirmModal.querySelector('#confirm-modal-ok');
+            const modalElement = document.getElementById('custom-confirm-modal');
+            const modalTitle = modalElement.querySelector('#confirm-modal-title');
+            const modalMessage = modalElement.querySelector('#confirm-modal-message');
+            const modalCancelBtn = modalElement.querySelector('#confirm-modal-cancel');
+            const modalOkBtn = modalElement.querySelector('#confirm-modal-ok');
 
             modalTitle.textContent = title;
             modalMessage.textContent = message;
-            customConfirmModal.classList.remove('hidden');
+            modalElement.classList.remove('hidden');
 
             const onOk = () => {
-                customConfirmModal.classList.add('hidden');
+                modalElement.classList.add('hidden');
                 modalOkBtn.removeEventListener('click', onOk);
                 modalCancelBtn.removeEventListener('click', onCancel);
                 resolve(true);
             };
 
             const onCancel = () => {
-                customConfirmModal.classList.add('hidden');
+                modalElement.classList.add('hidden');
                 modalOkBtn.removeEventListener('click', onOk);
                 modalCancelBtn.removeEventListener('click', onCancel);
                 resolve(false);
