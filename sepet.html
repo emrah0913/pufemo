@@ -266,6 +266,9 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
+    console.log("Firebase uygulaması başlatıldı."); // Hata ayıklama: Firebase uygulamasının başlatıldığını logla
+    console.log("Auth objesi başlatıldı:", auth); // Hata ayıklama: Auth objesinin başlatıldığını logla
+
     // Global değişkenler (DOM öğeleri değil, veri kapsayıcıları)
     let cartItems = [];
     let pastOrders = [];
@@ -292,16 +295,13 @@
         const successModal = document.getElementById('order-success-modal');
         const successOrderIdSpan = document.getElementById('success-order-id');
         const successTransferInfoDiv = document.getElementById('success-transfer-info');
-
-        // authRequiredModal, loginModal ve googleLoginBtn bu sayfadan kaldırıldığı için artık burada tanımlanmıyorlar
-        // Bunlar ana sayfadaki veya ürün ekleme akışındaki giriş bileşenlerinin sorumluluğundadır.
         
         const cartItemsList = document.getElementById('cart-items-list'); 
         const citySelectionSection = document.getElementById('city-selection-section');
         const deliveryAddressSection = document.getElementById('delivery-address-section');
         const deliveryAddressInput = document.getElementById('delivery-address');
         const ordersList = document.getElementById('orders-list'); 
-        const noOrdersMessage = document.getElementById('no-content-message'); // Corrected ID usage for no-content-message
+        const noOrdersMessage = document.getElementById('no-content-message'); 
         const activeCartWrapper = document.getElementById('active-cart-wrapper'); 
         const emptyCartMessage = document.getElementById('empty-cart-message'); 
         const pastOrdersWrapper = document.getElementById('past-orders-wrapper');
@@ -316,7 +316,6 @@
         function showToast(message, duration = 3000) {
             const toast = document.getElementById('toast');
             const toastMessage = document.getElementById('toast-message');
-            // Ensure toast and toastMessage elements exist before trying to modify them
             if (toast && toastMessage) {
                 toastMessage.textContent = message;
                 toast.classList.remove('opacity-0', 'translate-y-4', 'hidden');
@@ -335,8 +334,10 @@
         }
 
         // Firebase Kimlik Doğrulama Durumu Değişikliği İzleyici
+        // Bu dinleyici, kullanıcının oturum açma/kapatma durumundaki değişiklikleri dinler.
         onAuthStateChanged(auth, async (user) => {
-            // Ensure loader and mainContent exist before accessing them
+            console.log("onAuthStateChanged tetiklendi. Kullanıcı nesnesi:", user ? user.uid : "null (Kullanıcı giriş yapmamış)"); // Hata ayıklama: Kullanıcı nesnesinin durumunu logla
+
             if (loader) loader.classList.remove('hidden'); // Yükleyiciyi göster
             if (mainContent) mainContent.classList.add('hidden'); // Ana içeriği gizle
 
@@ -350,10 +351,10 @@
                 try {
                     await loadPricingSettings();
                     await fetchUserProfile(user.uid);
-                    listenToCart(user.uid);
-                    listenToOrders(user.uid);
+                    listenToCart(user.uid); // Sepet verilerini dinlemeye başla
+                    listenToOrders(user.uid); // Sipariş verilerini dinlemeye başla
                 } catch (error) {
-                    console.error("Başlatma hatası:", error);
+                    console.error("Başlatma hatası (kullanıcı girişi sonrası):", error);
                     if (loader) loader.innerHTML = `<p class="text-red-500">Veriler yüklenirken bir hata oluştu. Lütfen sayfayı yenileyin.</p>`;
                 }
             } else {
@@ -361,6 +362,8 @@
                 currentUser = null;
                 userProfile = null;
                 if (profileContainer) profileContainer.classList.add('hidden');
+                console.log("Kullanıcı giriş yapmadı. Sepet içeriği gösterilmeyecek."); // Hata ayıklama: Kullanıcı giriş yapmadı
+                showToast("Sepeti görüntülemek için giriş yapmanız gerekebilir."); // Kullanıcıya bilgilendirme
                 
                 // Loader'ı gizle ve ana içeriği göster (boş sepet/sipariş yok mesajı ile)
                 if (loader) loader.classList.add('hidden');
@@ -374,7 +377,6 @@
                 if (noOrdersMessage) noOrdersMessage.classList.remove('hidden'); 
                 // emptyCartMessage da boş sepeti belirtir, burada gizli kalabilir eğer hiç giriş yapılmadıysa
                 if (emptyCartMessage) emptyCartMessage.classList.add('hidden'); 
-                console.log("Kullanıcı giriş yapmadı."); // Hata ayıklama: Kullanıcı giriş yapmadı
             }
         });
 
@@ -391,7 +393,6 @@
                 }
             });
         }
-
 
         // "Ödeme Adımına Geç" butonu tıklama olayı
         if (proceedToPaymentBtn && paymentSelectionWrapper) { 
@@ -645,12 +646,11 @@
         }
 
         function renderCart() {
-            // Ensure elements exist before accessing them
             if (!emptyCartMessage || !activeCartWrapper || !paymentSelectionWrapper || !proceedToPaymentBtn || !cartItemsList) {
                 console.error("Kritik sepet DOM öğeleri eksik.");
                 return;
             }
-            console.log("renderCart çağrıldı, sepet öğe sayısı:", cartItems.length); // Hata ayıklama: renderCart'ın başlangıcı ve sepet öğe sayısı
+            console.log("renderCart çağrıldı, sepet öğe sayısı:", cartItems.length); 
 
             if (cartItems.length === 0) {
                 emptyCartMessage.classList.remove('hidden');
@@ -730,7 +730,6 @@
         }
         
         function renderOrders(orders) {
-            // Ensure elements exist
             if (!pastOrdersWrapper || !noOrdersMessage || !ordersList) {
                 console.error("Kritik sipariş DOM öğeleri eksik.");
                 return;
@@ -738,12 +737,12 @@
 
             if (orders.length === 0) {
                 pastOrdersWrapper.classList.remove('hidden'); 
-                noOrdersMessage.classList.remove('hidden'); // noOrdersMessage aslında no-content-message
+                noOrdersMessage.classList.remove('hidden'); 
                 ordersList.innerHTML = '';
                 return;
             }
             pastOrdersWrapper.classList.remove('hidden');
-            noOrdersMessage.classList.add('hidden'); // noOrdersMessage aslında no-content-message
+            noOrdersMessage.classList.add('hidden'); 
             ordersList.innerHTML = '';
 
             orders.forEach(order => {
@@ -852,7 +851,6 @@
                 return;
             }
 
-
             if (cartItems.length === 0) {
                 proceedToPaymentBtn.disabled = true;
                 subtotalSpan.textContent = `0.00 ₺`;
@@ -895,7 +893,7 @@
 
         // İçerik Görünürlüğü Kontrolü
         function checkContentVisibility() {
-            console.log("checkContentVisibility çağrıldı. Sepet öğe sayısı:", cartItems.length, "Geçmiş sipariş sayısı:", pastOrders.length); // Hata ayıklama: Görünürlük kontrolü
+            console.log("checkContentVisibility çağrıldı. Sepet öğe sayısı:", cartItems.length, "Geçmiş sipariş sayısı:", pastOrders.length, "Current User:", currentUser ? currentUser.uid : "None"); 
 
             if (!currentUser) {
                 // Eğer kullanıcı giriş yapmamışsa, sadece 'içerik yok' mesajını göster.
