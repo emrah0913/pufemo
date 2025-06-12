@@ -91,6 +91,37 @@
             color: #5d3ebc;
             font-weight: 600;
         }
+        /* Modal Overlay */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1001;
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+        }
+        .modal-overlay.show {
+            opacity: 1;
+        }
+        .modal-content {
+            background: #fff;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            transform: translateY(-20px);
+            transition: transform 0.3s ease-in-out;
+        }
+        .modal-overlay.show .modal-content {
+            transform: translateY(0);
+        }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -158,11 +189,14 @@
             <div class="flex border-b border-gray-200 mb-6 -mt-2">
                 <button data-tab="orders" class="tab-button px-4 py-2 text-sm font-medium text-gray-600 hover:text-primary focus:outline-none border-b-2 border-transparent transition-colors duration-200">Tüm Siparişler</button>
                 <button data-tab="users" class="tab-button px-4 py-2 text-sm font-medium text-gray-600 hover:text-primary focus:outline-none border-b-2 border-transparent transition-colors duration-200">Kullanıcılar</button>
+                <button data-tab="producers" class="tab-button px-4 py-2 text-sm font-medium text-gray-600 hover:text-primary focus:outline-none border-b-2 border-transparent transition-colors duration-200">Üreticiler</button>
                 <button data-tab="products" class="tab-button px-4 py-2 text-sm font-medium text-gray-600 hover:text-primary focus:outline-none border-b-2 border-transparent transition-colors duration-200">Ürün Yönetimi</button>
                 <button data-tab="settings" class="tab-button px-4 py-2 text-sm font-medium text-gray-600 hover:text-primary focus:outline-none border-b-2 border-transparent transition-colors duration-200">Ayarlar</button>
             </div>
 
-            <!-- Siparişler Sekmesi İçeriği -->
+            <!-- Sekme İçerikleri -->
+            
+            <!-- Siparişler Sekmesi -->
             <div id="orders-tab" class="tab-content">
                 <h2 class="text-2xl font-semibold text-gray-800 mb-4">Tüm Siparişler</h2>
                 <div id="orders-list" class="space-y-4">
@@ -174,7 +208,7 @@
                 </div>
             </div>
 
-            <!-- Kullanıcılar Sekmesi İçeriği -->
+            <!-- Kullanıcılar Sekmesi -->
             <div id="users-tab" class="tab-content hidden">
                 <h2 class="text-2xl font-semibold text-gray-800 mb-4">Kullanıcı Yönetimi</h2>
                 <div id="users-list" class="space-y-4">
@@ -186,28 +220,55 @@
                 </div>
             </div>
 
-            <!-- Ürün Yönetimi Sekmesi İçeriği -->
+            <!-- Üreticiler Sekmesi -->
+            <div id="producers-tab" class="tab-content hidden">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-semibold text-gray-800">Üretici Yönetimi</h2>
+                    <button id="add-producer-btn" class="bg-primary text-white py-2 px-4 rounded-button font-semibold hover:bg-primary/90 transition-colors flex items-center gap-2">
+                        <i class="ri-add-line"></i> Yeni Üretici Ekle
+                    </button>
+                </div>
+                <div id="producers-list" class="space-y-4">
+                    <p class="text-center text-gray-500">Üreticiler yükleniyor...</p>
+                </div>
+                <div id="no-producers-message" class="text-center py-10 bg-white rounded-lg shadow-md hidden">
+                    <i class="ri-factory-line text-6xl text-gray-300"></i>
+                    <p class="mt-4 text-gray-500">Henüz hiç üretici bulunmuyor.</p>
+                </div>
+            </div>
+
+            <!-- Ürün Yönetimi Sekmesi -->
             <div id="products-tab" class="tab-content hidden">
-                <h2 class="text-2xl font-semibold text-gray-800 mb-4">Ürün Yönetimi (Üretici Onayları)</h2>
+                <h2 class="text-2xl font-semibold text-gray-800 mb-4">Ürün Yönetimi (Tüm Ürünler)</h2>
+                <div class="mb-4">
+                    <label for="product-filter-status" class="block text-sm font-medium text-gray-700 mb-1">Duruma Göre Filtrele:</label>
+                    <select id="product-filter-status" class="w-full md:w-auto p-2 border border-gray-300 rounded-md bg-white text-sm">
+                        <option value="all">Tümü</option>
+                        <option value="approved">Onaylı Ürünler</option>
+                        <option value="pending">Onay Bekleyen Ürünler</option>
+                    </select>
+                </div>
                 <div id="products-list" class="space-y-4">
                     <p class="text-center text-gray-500">Ürünler yükleniyor...</p>
                 </div>
                 <div id="no-products-message" class="text-center py-10 bg-white rounded-lg shadow-md hidden">
                     <i class="ri-box-3-line text-6xl text-gray-300"></i>
-                    <p class="mt-4 text-gray-500">Henüz onay bekleyen ürün bulunmuyor.</p>
+                    <p class="mt-4 text-gray-500">Henüz ürün bulunmuyor.</p>
                 </div>
             </div>
 
-            <!-- Ayarlar Sekmesi İçeriği -->
+            <!-- Ayarlar Sekmesi -->
             <div id="settings-tab" class="tab-content hidden">
                 <h2 class="text-2xl font-semibold text-gray-800 mb-4">Fiyatlandırma ve Şehir Ayarları</h2>
                 <div class="bg-white p-6 rounded-lg shadow-md">
-                    <h3 class="font-semibold text-lg mb-4">Kategori Oranları (%)</h3>
+                    <h3 class="font-semibold text-lg mb-4">Kategori Hizmet/Kar Marjı Oranları (%)</h3>
+                    <p class="text-sm text-gray-600 mb-4">Bu oranlar, kategori bazında ürün fiyatlarına eklenecek hizmet veya kâr marjını yüzde olarak belirler.</p>
                     <div id="category-rates-settings" class="space-y-3">
                         <p class="text-gray-500">Ayarlar yükleniyor...</p>
                     </div>
 
                     <h3 class="font-semibold text-lg mt-6 mb-4">Şehir Teslimat Ücretleri (₺)</h3>
+                    <p class="text-sm text-gray-600 mb-4">Şehirlere göre belirlenen sabit teslimat ücretleridir.</p>
                     <div id="city-fees-settings" class="space-y-3">
                         <p class="text-gray-500">Ayarlar yükleniyor...</p>
                     </div>
@@ -227,11 +288,78 @@
     <span id="toast-message"></span>
 </div>
 
+<!-- Yeni Üretici Ekleme Modalı -->
+<div id="add-producer-modal" class="modal-overlay hidden">
+    <div class="modal-content">
+        <h3 class="text-xl font-bold mb-4">Yeni Üretici Ekle</h3>
+        <form id="add-producer-form" class="space-y-4">
+            <div>
+                <label for="producer-email" class="block text-sm font-medium text-gray-700">E-posta</label>
+                <input type="email" id="producer-email" class="mt-1 block w-full p-2 border border-gray-300 rounded-md" required>
+            </div>
+            <div>
+                <label for="producer-password" class="block text-sm font-medium text-gray-700">Şifre</label>
+                <input type="password" id="producer-password" class="mt-1 block w-full p-2 border border-gray-300 rounded-md" required minlength="6">
+            </div>
+            <div>
+                <label for="producer-full-name" class="block text-sm font-medium text-gray-700">Adı Soyadı</label>
+                <input type="text" id="producer-full-name" class="mt-1 block w-full p-2 border border-gray-300 rounded-md">
+            </div>
+            <div>
+                <label for="producer-phone" class="block text-sm font-medium text-gray-700">Telefon</label>
+                <input type="tel" id="producer-phone" class="mt-1 block w-full p-2 border border-gray-300 rounded-md">
+            </div>
+            <div>
+                <label for="producer-address" class="block text-sm font-medium text-gray-700">Adres</label>
+                <textarea id="producer-address" rows="2" class="mt-1 block w-full p-2 border border-gray-300 rounded-md"></textarea>
+            </div>
+            <div class="flex justify-end gap-3">
+                <button type="button" id="cancel-add-producer" class="bg-gray-200 text-gray-800 py-2 px-4 rounded-button hover:bg-gray-300">İptal</button>
+                <button type="submit" class="bg-primary text-white py-2 px-4 rounded-button hover:bg-primary/90">Üretici Ekle</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Ürünü Düzenleme Modalı -->
+<div id="edit-product-modal" class="modal-overlay hidden">
+    <div class="modal-content">
+        <h3 class="text-xl font-bold mb-4">Ürünü Düzenle</h3>
+        <form id="edit-product-form" class="space-y-4">
+            <input type="hidden" id="edit-product-id">
+            <div>
+                <label for="edit-product-name" class="block text-sm font-medium text-gray-700">Ürün Adı</label>
+                <input type="text" id="edit-product-name" class="mt-1 block w-full p-2 border border-gray-300 rounded-md" required>
+            </div>
+            <div>
+                <label for="edit-product-description" class="block text-sm font-medium text-gray-700">Açıklama</label>
+                <textarea id="edit-product-description" rows="3" class="mt-1 block w-full p-2 border border-gray-300 rounded-md"></textarea>
+            </div>
+            <div>
+                <label for="edit-product-price" class="block text-sm font-medium text-gray-700">Fiyat (₺)</label>
+                <input type="number" id="edit-product-price" class="mt-1 block w-full p-2 border border-gray-300 rounded-md" step="0.01" min="0" required>
+            </div>
+            <div>
+                <label for="edit-product-category" class="block text-sm font-medium text-gray-700">Kategori</label>
+                <input type="text" id="edit-product-category" class="mt-1 block w-full p-2 border border-gray-300 rounded-md" required>
+            </div>
+            <div>
+                <label for="edit-product-image-url" class="block text-sm font-medium text-gray-700">Görsel URL</label>
+                <input type="url" id="edit-product-image-url" class="mt-1 block w-full p-2 border border-gray-300 rounded-md">
+            </div>
+            <div class="flex justify-end gap-3">
+                <button type="button" id="cancel-edit-product" class="bg-gray-200 text-gray-800 py-2 px-4 rounded-button hover:bg-gray-300">İptal</button>
+                <button type="submit" class="bg-primary text-white py-2 px-4 rounded-button hover:bg-primary/90">Kaydet</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
-    import { getFirestore, doc, getDoc, collection, onSnapshot, query, orderBy, getDocs, updateDoc, setDoc, where, deleteDoc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+    import { getFirestore, doc, getDoc, collection, onSnapshot, query, orderBy, getDocs, updateDoc, setDoc, where, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
     // Firebase yapılandırma bilgileriniz
     const firebaseConfig = {
@@ -252,12 +380,13 @@
 
     let currentUser = null;
     let pricingSettings = {}; 
+    // Varsayılan ayarlar, eğer Firestore'da bulunamazsa kullanılacak.
     const DEFAULT_SETTINGS = {
         categoryRates: { 'furniture': 0.70, 'electronics': 0.70, 'clothing': 0.45, 'cosmetics': 0.70, 'stationery': 0.40, 'default': 0.50 },
         cityFees: { 'Lefkoşa': 200, 'Girne': 350, 'Gazimağusa': 300, 'Güzelyurt': 400, 'İskele': 450, 'Diğer': 500 }
     };
 
-    // DOM öğeleri
+    // DOM öğeleri referansları
     const loader = document.getElementById('loader');
     const adminContent = document.getElementById('admin-content');
     const unauthorizedMessage = document.getElementById('unauthorized-message');
@@ -277,12 +406,26 @@
     const usersList = document.getElementById('users-list');
     const noUsersMessage = document.getElementById('no-users-message');
 
+    const producersList = document.getElementById('producers-list');
+    const noProducersMessage = document.getElementById('no-producers-message');
+    const addProducerBtn = document.getElementById('add-producer-btn');
+
     const productsList = document.getElementById('products-list');
     const noProductsMessage = document.getElementById('no-products-message');
+    const productFilterStatus = document.getElementById('product-filter-status');
 
     const categoryRatesSettings = document.getElementById('category-rates-settings');
     const cityFeesSettings = document.getElementById('city-fees-settings');
     const saveSettingsBtn = document.getElementById('save-settings-btn');
+
+    // Modal öğeleri
+    const addProducerModal = document.getElementById('add-producer-modal');
+    const addProducerForm = document.getElementById('add-producer-form');
+    const cancelAddProducerBtn = document.getElementById('cancel-add-producer');
+
+    const editProductModal = document.getElementById('edit-product-modal');
+    const editProductForm = document.getElementById('edit-product-form');
+    const cancelEditProductBtn = document.getElementById('cancel-edit-product');
 
 
     // Toast Bildirimi Fonksiyonu
@@ -326,11 +469,13 @@
                     if (adminDashboard) adminDashboard.classList.remove('hidden');
                     if (unauthorizedMessage) unauthorizedMessage.classList.add('hidden');
                     
+                    // Dashboard verilerini ve tüm listeleri başlat
                     await loadDashboardData();
                     showTab('orders'); // Varsayılan olarak siparişler sekmesini göster
                     listenToAllOrders(); 
                     listenToAllUsers(); 
-                    listenToPendingProducts(); 
+                    listenToAllProducers(); // Yeni: Üreticileri dinle
+                    listenToAllProducts(); // Tüm ürünleri dinle (filtrelenebilir)
                     renderSettings(); 
                 } else {
                     console.warn("Yetkisiz erişim: Kullanıcı yönetici değil.");
@@ -361,6 +506,33 @@
         if (saveSettingsBtn) {
             saveSettingsBtn.addEventListener('click', savePricingSettings);
         }
+
+        // Yeni Üretici Ekleme Modalı Olay Dinleyicileri
+        if (addProducerBtn) {
+            addProducerBtn.addEventListener('click', () => {
+                addProducerForm.reset(); // Formu temizle
+                addProducerModal.classList.add('show');
+            });
+        }
+        if (cancelAddProducerBtn) {
+            cancelAddProducerBtn.addEventListener('click', () => addProducerModal.classList.remove('show'));
+        }
+        if (addProducerForm) {
+            addProducerForm.addEventListener('submit', handleAddProducer);
+        }
+
+        // Ürünü Düzenleme Modalı Olay Dinleyicileri
+        if (cancelEditProductBtn) {
+            cancelEditProductBtn.addEventListener('click', () => editProductModal.classList.remove('show'));
+        }
+        if (editProductForm) {
+            editProductForm.addEventListener('submit', handleEditProduct);
+        }
+
+        // Ürün filtreleme select box
+        if (productFilterStatus) {
+            productFilterStatus.addEventListener('change', listenToAllProducts); // Filtre değiştiğinde ürünleri yeniden yükle
+        }
     });
 
     // Sekme gösterme fonksiyonu
@@ -369,14 +541,14 @@
             content.classList.add('hidden');
         });
         tabButtons.forEach(button => {
-            button.classList.remove('active'); // Önceki aktif sınıfı kaldır
+            button.classList.remove('active'); 
             button.classList.remove('border-primary-500', 'text-primary');
             button.classList.add('border-transparent', 'text-gray-600');
         });
 
         document.getElementById(`${tabId}-tab`).classList.remove('hidden');
         const activeTabButton = document.querySelector(`[data-tab="${tabId}"]`);
-        activeTabButton.classList.add('active'); // Yeni aktif sınıfı ekle
+        activeTabButton.classList.add('active'); 
         activeTabButton.classList.add('border-primary-500', 'text-primary');
         activeTabButton.classList.remove('border-transparent', 'text-gray-600');
     }
@@ -391,7 +563,7 @@
             const completedOrdersSnapshot = await getDocs(completedOrdersQuery);
             if (completedOrdersCount) completedOrdersCount.textContent = completedOrdersSnapshot.size;
 
-            const usersSnapshot = await getDocs(collection(db, 'users'));
+            const usersSnapshot = await getDocs(collection(db, 'users')); // Tüm kullanıcıları say
             if (totalUsersCount) totalUsersCount.textContent = usersSnapshot.size;
 
         } catch (error) {
@@ -433,6 +605,7 @@
             const allOrders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             console.log("Tüm siparişler yüklendi (Admin):", allOrders);
             renderAdminOrders(allOrders);
+            loadDashboardData(); // Her sipariş değiştiğinde dashboard verilerini güncelle
         }, (error) => {
             console.error("Tüm siparişler dinlenirken hata oluştu (Admin):", error);
             showToast("Siparişler yüklenirken bir hata oluştu.");
@@ -532,22 +705,19 @@
             ordersList.innerHTML += card;
         });
 
-        // Sipariş durumunu değiştirmek için olay dinleyici
         document.querySelectorAll('.order-status-select').forEach(selectElement => {
             selectElement.addEventListener('change', async (e) => {
                 const orderId = e.target.dataset.orderId;
                 const newStatus = e.target.value;
-                if (confirm(`Siparişin durumunu "${newStatus}" olarak değiştirmek istediğinize emin misiniz?`)) {
+                if (confirm(`Siparişin durumunu "${currentStatusInfo.label}" konumundan "${statusOptions.find(s => s.value === newStatus).label}" konumuna değiştirmek istediğinize emin misiniz?`)) {
                     await updateOrderStatus(orderId, newStatus);
                 } else {
-                    // Eğer kullanıcı işlemi iptal ederse, dropdown'ı eski haline getir
                     e.target.value = orders.find(o => o.id === orderId).status;
                 }
             });
         });
     }
 
-    // Sipariş durumunu güncelleme fonksiyonu
     async function updateOrderStatus(orderId, newStatus) {
         try {
             const orderRef = doc(db, 'orders', orderId);
@@ -572,6 +742,7 @@
             const allUsers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             console.log("Tüm kullanıcılar yüklendi (Admin):", allUsers);
             renderUsers(allUsers);
+            loadDashboardData(); // Kullanıcı değiştiğinde dashboard verilerini güncelle
         }, (error) => {
             console.error("Kullanıcılar dinlenirken hata oluştu (Admin):", error);
             showToast("Kullanıcılar yüklenirken bir hata oluştu.");
@@ -592,25 +763,28 @@
         usersList.innerHTML = '';
 
         users.forEach(user => {
-            const userCard = document.createElement('div');
-            userCard.className = 'bg-white rounded-lg shadow-md p-4 space-y-2 border border-gray-200 flex flex-col sm:flex-row items-start sm:items-center justify-between';
-            userCard.innerHTML = `
-                <div class="flex items-center gap-3 mb-3 sm:mb-0">
-                    <img src="${user.photoURL || 'https://placehold.co/40x40/cccccc/000000?text=U'}" alt="User" class="w-10 h-10 rounded-full object-cover">
-                    <div>
-                        <p class="font-semibold text-gray-800">${user.fullName || 'İsim Yok'}</p>
-                        <p class="text-sm text-gray-600">${user.email || 'E-posta Yok'}</p>
-                        <p class="text-xs text-gray-500">${user.phone || 'Telefon Yok'}</p>
+            // Sadece customer rolündekileri listele, producer'lar ayrı sekmede
+            if (user.role === 'customer') {
+                const userCard = document.createElement('div');
+                userCard.className = 'bg-white rounded-lg shadow-md p-4 space-y-2 border border-gray-200 flex flex-col sm:flex-row items-start sm:items-center justify-between';
+                userCard.innerHTML = `
+                    <div class="flex items-center gap-3 mb-3 sm:mb-0">
+                        <img src="${user.photoURL || 'https://placehold.co/40x40/cccccc/000000?text=U'}" alt="User" class="w-10 h-10 rounded-full object-cover">
+                        <div>
+                            <p class="font-semibold text-gray-800">${user.fullName || 'İsim Yok'}</p>
+                            <p class="text-sm text-gray-600">${user.email || 'E-posta Yok'}</p>
+                            <p class="text-xs text-gray-500">${user.phone || 'Telefon Yok'}</p>
+                        </div>
                     </div>
-                </div>
-                <div class="flex items-center gap-2 flex-wrap">
-                    <span class="text-sm font-medium px-3 py-1 rounded-full ${user.role === 'admin' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}">${user.role || 'customer'}</span>
-                    <button data-user-id="${user.id}" data-current-role="${user.role}" class="toggle-admin-btn bg-purple-500 text-white text-sm px-3 py-1 rounded-button hover:bg-purple-600 transition-colors">
-                        ${user.role === 'admin' ? 'Adminlikten Çıkar' : 'Admin Yap'}
-                    </button>
-                </div>
-            `;
-            usersList.appendChild(userCard);
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span class="text-sm font-medium px-3 py-1 rounded-full ${user.role === 'admin' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}">${user.role || 'customer'}</span>
+                        <button data-user-id="${user.id}" data-current-role="${user.role}" class="toggle-admin-btn bg-purple-500 text-white text-sm px-3 py-1 rounded-button hover:bg-purple-600 transition-colors">
+                            ${user.role === 'admin' ? 'Adminlikten Çıkar' : 'Admin Yap'}
+                        </button>
+                    </div>
+                `;
+                usersList.appendChild(userCard);
+            }
         });
 
         document.querySelectorAll('.toggle-admin-btn').forEach(button => {
@@ -633,27 +807,167 @@
         });
     }
 
+    // --- Üretici Yönetimi Fonksiyonları ---
+    function listenToAllProducers() {
+        if (!producersList || !noProducersMessage) {
+            console.error("Üretici DOM öğeleri eksik.");
+            return;
+        }
+        const usersRef = collection(db, 'users');
+        const q = query(usersRef, where("role", "==", "producer"), orderBy("createdAt", "desc")); 
+
+        onSnapshot(q, (snapshot) => {
+            const allProducers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            console.log("Tüm üreticiler yüklendi (Admin):", allProducers);
+            renderProducers(allProducers);
+        }, (error) => {
+            console.error("Üreticiler dinlenirken hata oluştu (Admin):", error);
+            showToast("Üreticiler yüklenirken bir hata oluştu.");
+            if (producersList) producersList.innerHTML = `<p class="text-red-500">Üreticiler yüklenemedi.</p>`;
+        });
+    }
+
+    function renderProducers(producers) {
+        if (!producersList || !noProducersMessage) return;
+
+        if (producers.length === 0) {
+            noProducersMessage.classList.remove('hidden');
+            producersList.innerHTML = '';
+            return;
+        }
+
+        noProducersMessage.classList.add('hidden');
+        producersList.innerHTML = '';
+
+        producers.forEach(producer => {
+            const producerCard = document.createElement('div');
+            producerCard.className = 'bg-white rounded-lg shadow-md p-4 space-y-2 border border-gray-200 flex flex-col sm:flex-row items-start sm:items-center justify-between';
+            producerCard.innerHTML = `
+                <div class="flex items-center gap-3 mb-3 sm:mb-0">
+                    <img src="${producer.photoURL || 'https://placehold.co/40x40/cccccc/000000?text=P'}" alt="Producer" class="w-10 h-10 rounded-full object-cover">
+                    <div>
+                        <p class="font-semibold text-gray-800">${producer.fullName || 'İsim Yok'}</p>
+                        <p class="text-sm text-gray-600">${producer.email || 'E-posta Yok'}</p>
+                        <p class="text-xs text-gray-500">${producer.phone || 'Telefon Yok'}</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 flex-wrap">
+                    <span class="text-sm font-medium px-3 py-1 rounded-full bg-blue-100 text-blue-800">${producer.role || 'producer'}</span>
+                    <button data-producer-id="${producer.id}" class="edit-producer-btn bg-blue-500 text-white text-sm px-3 py-1 rounded-button hover:bg-blue-600 transition-colors">
+                        Düzenle
+                    </button>
+                    <button data-producer-id="${producer.id}" class="delete-producer-btn bg-red-500 text-white text-sm px-3 py-1 rounded-button hover:bg-red-600 transition-colors">
+                        Sil
+                    </button>
+                </div>
+            `;
+            producersList.appendChild(producerCard);
+        });
+
+        document.querySelectorAll('.edit-producer-btn').forEach(button => {
+            button.addEventListener('click', async (e) => {
+                const producerId = e.target.dataset.producerId;
+                // Düzenleme fonksiyonu burada tetiklenebilir, örneğin bir modal açıp bilgileri doldurarak
+                showToast(`Üretici ID: ${producerId} için düzenleme formu açılacak.`);
+                // TODO: Üretici düzenleme modalını burada doldurup gösterebiliriz
+            });
+        });
+
+        document.querySelectorAll('.delete-producer-btn').forEach(button => {
+            button.addEventListener('click', async (e) => {
+                const producerId = e.target.dataset.producerId;
+                if (confirm('Bu üreticiyi ve Firebase Authentication kaydını silmek istediğinize emin misiniz? Bu işlem geri alınamaz!')) {
+                    try {
+                        // ÖNEMLİ: Firebase Auth kullanıcısını sunucu tarafında silmeniz önerilir
+                        // Client-side silme için yetki kısıtlamaları olabilir.
+                        // Örnek: Admin SDK kullanarak sunucudan silme.
+                        // Burası sadece gösterim amaçlıdır.
+                        // await deleteUser(auth.currentUser); // Bu kendi admin hesabınızı siler! DİKKAT!
+                        
+                        // Sadece Firestore belgesini siliyoruz
+                        const producerRef = doc(db, 'users', producerId);
+                        await deleteDoc(producerRef);
+                        showToast("Üretici başarıyla silindi (Firestore belgesi).");
+                    } catch (error) {
+                        console.error("Üretici silinirken hata:", error);
+                        showToast("Üretici silinemedi: " + error.message);
+                    }
+                }
+            });
+        });
+    }
+
+    async function handleAddProducer(event) {
+        event.preventDefault();
+        const email = document.getElementById('producer-email').value;
+        const password = document.getElementById('producer-password').value;
+        const fullName = document.getElementById('producer-full-name').value;
+        const phone = document.getElementById('producer-phone').value;
+        const address = document.getElementById('producer-address').value;
+
+        if (!email || !password) {
+            showToast("E-posta ve şifre zorunludur.");
+            return;
+        }
+
+        try {
+            // Firebase Auth üzerinden yeni kullanıcı oluştur
+            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+            const newProducerUid = userCredential.user.uid;
+
+            // Firestore'da üretici profili oluştur
+            const producerRef = doc(db, 'users', newProducerUid);
+            await setDoc(producerRef, {
+                email: email,
+                fullName: fullName,
+                phone: phone,
+                address: address,
+                role: 'producer',
+                createdAt: serverTimestamp(),
+                photoURL: 'https://placehold.co/40x40/cccccc/000000?text=P' // Varsayılan görsel
+            });
+
+            showToast("Yeni üretici başarıyla eklendi!");
+            addProducerModal.classList.remove('show');
+        } catch (error) {
+            console.error("Üretici eklenirken hata:", error);
+            showToast("Üretici eklenemedi: " + error.message);
+            // FirebaseAuth hatalarını daha anlaşılır hale getir (örneğin: 'auth/email-already-in-use')
+        }
+    }
+
+
     // --- Ürün Yönetimi Fonksiyonları ---
-    function listenToPendingProducts() {
-        if (!productsList || !noProductsMessage) {
+    // Ürünleri filtreye göre dinle
+    function listenToAllProducts() {
+        if (!productsList || !noProductsMessage || !productFilterStatus) {
             console.error("Ürün DOM öğeleri eksik.");
             return;
         }
         const productsRef = collection(db, 'products');
-        const q = query(productsRef, where("isApproved", "==", false), orderBy("createdAt", "desc")); 
+        let q = query(productsRef, orderBy("createdAt", "desc")); 
+
+        const filterStatus = productFilterStatus.value;
+
+        if (filterStatus === 'approved') {
+            q = query(productsRef, where("isApproved", "==", true), orderBy("createdAt", "desc"));
+        } else if (filterStatus === 'pending') {
+            q = query(productsRef, where("isApproved", "==", false), orderBy("createdAt", "desc"));
+        }
+        // 'all' durumu için ekstra where clause eklemeye gerek yok
 
         onSnapshot(q, (snapshot) => {
-            const pendingProducts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            console.log("Onay bekleyen ürünler yüklendi (Admin):", pendingProducts);
-            renderPendingProducts(pendingProducts);
+            const allProducts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            console.log("Tüm ürünler yüklendi (Admin, filtrelenmiş):", allProducts);
+            renderProducts(allProducts); // Render fonksiyonunu yeniden adlandırdık
         }, (error) => {
-            console.error("Onay bekleyen ürünler dinlenirken hata oluştu (Admin):", error);
+            console.error("Ürünler dinlenirken hata oluştu (Admin):", error);
             showToast("Ürünler yüklenirken bir hata oluştu.");
             if (productsList) productsList.innerHTML = `<p class="text-red-500">Ürünler yüklenemedi.</p>`;
         });
     }
 
-    function renderPendingProducts(products) {
+    function renderProducts(products) { // Fonksiyon adını daha genel hale getirdik
         if (!productsList || !noProductsMessage) return;
 
         if (products.length === 0) {
@@ -675,15 +989,34 @@
                         <p class="font-semibold text-lg text-gray-800">${product.productName || 'İsimsiz Ürün'}</p>
                         <p class="text-sm text-gray-600 line-clamp-2">${product.description || 'Açıklama yok.'}</p>
                         <p class="text-md font-bold text-primary">${(parseFloat(product.price) || 0).toFixed(2)} ₺</p>
+                        <p class="text-xs text-gray-500">Kategori: ${product.category || 'Belirtilmemiş'}</p>
                         <p class="text-xs text-gray-500">Üretici ID: ${product.producerId || 'Bilinmiyor'}</p>
+                        <p class="text-xs font-semibold ${product.isApproved ? 'text-green-600' : 'text-orange-600'}">Durum: ${product.isApproved ? 'Onaylı' : 'Onay Bekliyor'}</p>
                     </div>
                 </div>
                 <div class="flex justify-end gap-2 mt-4">
-                    <button data-product-id="${product.id}" class="approve-product-btn bg-green-500 text-white text-sm px-4 py-2 rounded-button hover:bg-green-600 transition-colors">Onayla</button>
-                    <button data-product-id="${product.id}" class="reject-product-btn bg-red-500 text-white text-sm px-4 py-2 rounded-button hover:bg-red-600 transition-colors">Reddet</button>
+                    <button data-product-id="${product.id}" class="edit-product-btn bg-blue-500 text-white text-sm px-4 py-2 rounded-button hover:bg-blue-600 transition-colors">Düzenle</button>
+                    ${!product.isApproved ? `<button data-product-id="${product.id}" class="approve-product-btn bg-green-500 text-white text-sm px-4 py-2 rounded-button hover:bg-green-600 transition-colors">Onayla</button>` : ''}
+                    <button data-product-id="${product.id}" class="delete-product-btn bg-red-500 text-white text-sm px-4 py-2 rounded-button hover:bg-red-600 transition-colors">Sil</button>
                 </div>
             `;
             productsList.appendChild(productCard);
+        });
+
+        document.querySelectorAll('.edit-product-btn').forEach(button => {
+            button.addEventListener('click', (e) => {
+                const productId = e.target.dataset.productId;
+                const productToEdit = products.find(p => p.id === productId);
+                if (productToEdit) {
+                    document.getElementById('edit-product-id').value = productToEdit.id;
+                    document.getElementById('edit-product-name').value = productToEdit.productName || '';
+                    document.getElementById('edit-product-description').value = productToEdit.description || '';
+                    document.getElementById('edit-product-price').value = productToEdit.price || 0;
+                    document.getElementById('edit-product-category').value = productToEdit.category || '';
+                    document.getElementById('edit-product-image-url').value = productToEdit.imageUrl || '';
+                    editProductModal.classList.add('show');
+                }
+            });
         });
 
         document.querySelectorAll('.approve-product-btn').forEach(button => {
@@ -702,22 +1035,54 @@
             });
         });
 
-        document.querySelectorAll('.reject-product-btn').forEach(button => {
+        document.querySelectorAll('.delete-product-btn').forEach(button => { // Changed from reject-product-btn to delete-product-btn
             button.addEventListener('click', async (e) => {
                 const productId = e.target.dataset.productId;
-                if (confirm('Bu ürünü reddetmek istediğinize emin misiniz? Bu işlem ürünü kalıcı olarak siler.')) {
+                if (confirm('Bu ürünü silmek istediğinize emin misiniz? Bu işlem geri alınamaz!')) {
                     try {
                         const productRef = doc(db, 'products', productId);
-                        await deleteDoc(productRef); // Reddetmek ürünü siler
-                        showToast("Ürün başarıyla reddedildi ve silindi!");
+                        await deleteDoc(productRef); 
+                        showToast("Ürün başarıyla silindi!");
                     } catch (error) {
-                        console.error("Ürün reddedilirken hata:", error);
-                        showToast("Ürün reddedilemedi: " + error.message);
+                        console.error("Ürün silinirken hata:", error);
+                        showToast("Ürün silinemedi: " + error.message);
                     }
                 }
             });
         });
     }
+
+    async function handleEditProduct(event) {
+        event.preventDefault();
+        const productId = document.getElementById('edit-product-id').value;
+        const productName = document.getElementById('edit-product-name').value;
+        const description = document.getElementById('edit-product-description').value;
+        const price = parseFloat(document.getElementById('edit-product-price').value);
+        const category = document.getElementById('edit-product-category').value;
+        const imageUrl = document.getElementById('edit-product-image-url').value;
+
+        if (!productName || isNaN(price) || price < 0 || !category) {
+            showToast("Lütfen ürün adı, fiyatı ve kategoriyi doğru giriniz.");
+            return;
+        }
+
+        try {
+            const productRef = doc(db, 'products', productId);
+            await updateDoc(productRef, {
+                productName: productName,
+                description: description,
+                price: price,
+                category: category,
+                imageUrl: imageUrl
+            });
+            showToast("Ürün başarıyla güncellendi!");
+            editProductModal.classList.remove('show');
+        } catch (error) {
+            console.error("Ürün güncellenirken hata:", error);
+            showToast("Ürün güncellenemedi: " + error.message);
+        }
+    }
+
 
     // --- Ayarlar Yönetimi Fonksiyonları ---
     function renderSettings() {
@@ -757,7 +1122,7 @@
             const value = parseFloat(input.value);
             if (isNaN(value) || value < 0 || value > 100) {
                 validationError = true;
-                input.classList.add('border-red-500'); // Hatalı girişi vurgula
+                input.classList.add('border-red-500'); 
             } else {
                 input.classList.remove('border-red-500');
                 updatedCategoryRates[input.dataset.key] = value / 100;
@@ -769,7 +1134,7 @@
             const value = parseFloat(input.value);
             if (isNaN(value) || value < 0) {
                 validationError = true;
-                input.classList.add('border-red-500'); // Hatalı girişi vurgula
+                input.classList.add('border-red-500'); 
             } else {
                 input.classList.remove('border-red-500');
                 updatedCityFees[input.dataset.key] = value;
@@ -787,6 +1152,7 @@
                 categoryRates: updatedCategoryRates,
                 cityFees: updatedCityFees
             });
+            // Ayarlar güncellendikten sonra pricingSettings global değişkenini de güncelle
             pricingSettings.categoryRates = updatedCategoryRates;
             pricingSettings.cityFees = updatedCityFees;
             showToast("Ayarlar başarıyla kaydedildi!");
