@@ -254,12 +254,12 @@
 
     // Firebase yapılandırma bilgileriniz
     const firebaseConfig = {
-        apiKey: "AIzaSyB64tAKvCHeYnJ8-HNRLpzB7sQRng4FHyA",
-  authDomain: "pufemo-2dc3a.firebaseapp.com",
-  projectId: "pufemo-2dc3a",
-  storageBucket: "pufemo-2dc3a.firebasestorage.app",
-  messagingSenderId: "321284306570",
-  appId: "1:321284306570:web:ca891826c3e4edde8edf73"
+        apiKey: "AIzaSyCHms5Y5x-KOu3Y43FrfRoljmW_4m3H4yY",
+        authDomain: "pufemo-2dc3a.firebaseapp.com", // Güncellendi
+        projectId: "pufemo-2dc3a", // Proje ID'si güncellendi
+        storageBucket: "pufemo-2dc3a.appspot.com", // Storage bucket güncellendi
+        messagingSenderId: "321284306570", // Güncellendi
+        appId: "1:321284306570:web:ca891826c3e4edde8edf73" // Güncellendi
     };
     
     const app = initializeApp(firebaseConfig);
@@ -494,14 +494,14 @@
 
                 cartItems.forEach(item => {
                     // NaN kontrolü ve varsayılan değer ataması eklendi
-                    const itemProductPrice = parseFloat(item.productPrice) || 0; 
+                    const itemProductPriceValue = parseFloat(item.productPrice) || 0; // Bu değeri kullanacağız
                     const serviceRate = item.serviceFeeRate !== undefined ? item.serviceFeeRate : (categoryRates[item.category] || categoryRates['default'] || 0);
 
                     let itemServiceFee = 0;
                     if (item.type === 'custom_order') {
-                        itemServiceFee = itemProductPrice * serviceRate;
+                        itemServiceFee = itemProductPriceValue * serviceRate;
                     }
-                    const itemFinalPrice = item.orderMethod === 'service' ? itemProductPrice + itemServiceFee : itemProductPrice;
+                    const itemFinalPrice = item.orderMethod === 'service' ? itemProductPriceValue + itemServiceFee : itemProductPriceValue;
                     subtotal += (itemFinalPrice * item.quantity);
 
                     // Eğer ürün bir üreticiye aitse, producerId'sini ekle
@@ -536,9 +536,9 @@
                     })),
                     subtotal: subtotal,
                     serviceFeeTotal: cartItems.reduce((acc, item) => {
-                        const itemProductPrice = parseFloat(item.productPrice) || 0;
+                        const itemProductPriceValue = parseFloat(item.productPrice) || 0;
                         const serviceRate = item.serviceFeeRate !== undefined ? item.serviceFeeRate : (categoryRates[item.category] || categoryRates['default'] || 0);
-                        return acc + (item.type === 'custom_order' ? (itemProductPrice * serviceRate * (parseInt(item.quantity) || 1)) : 0);
+                        return acc + (item.type === 'custom_order' ? (itemProductPriceValue * serviceRate * (parseInt(item.quantity) || 1)) : 0);
                     }, 0),
                     deliveryFee: (deliveryType === 'home' ? currentDeliveryFee : 0),
                     grandTotal: grandTotal,
@@ -655,6 +655,7 @@
 
         function listenToOrders(userId) {
             const ordersRef = collection(db, 'orders');
+            // 'orderBy' sorgusu için birleşik dizin gereklidir.
             const q = query(ordersRef, where("userId", "==", userId), orderBy("orderDate", "desc"));
             onSnapshot(q, (snapshot) => {
                 pastOrders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -692,12 +693,15 @@
                 const categoryRates = pricingSettings.categoryRates || {};
                 const serviceRate = item.serviceFeeRate !== undefined ? item.serviceFeeRate : (categoryRates[item.category] || categoryRates['default'] || 0);
 
+                // item.productPrice'ın her zaman sayı olduğundan emin olmak için parseFloat kullanıldı
+                const currentItemProductPrice = parseFloat(item.productPrice) || 0;
+
                 let itemServiceFee = 0;
                 if (item.type === 'custom_order') {
-                    itemServiceFee = (parseFloat(item.productPrice) || 0) * serviceRate;
+                    itemServiceFee = currentItemProductPrice * serviceRate;
                 }
-                const itemFinalPrice = item.orderMethod === 'service' ? (parseFloat(item.productPrice) || 0) + itemServiceFee : (parseFloat(item.productPrice) || 0); 
-                const lineTotal = itemFinalPrice * (parseInt(item.quantity) || 1);
+                const itemFinalPrice = item.orderMethod === 'service' ? currentItemProductPrice + itemServiceFee : currentItemProductPrice; 
+                const lineTotal = itemFinalPrice * (parseInt(item.quantity) || 1); // item.quantity'nin de sayı olduğundan emin ol
 
                 const itemElement = document.createElement('div');
                 itemElement.className = 'flex items-start sm:items-center gap-4 border-b pb-4 flex-col sm:flex-row last:border-b-0 last:pb-0'; 
@@ -706,7 +710,7 @@
                     <div class="flex-1 min-w-0">
                         <p class="font-semibold text-gray-800 text-base line-clamp-1">${item.productLink}</p>
                         <p class="text-xs text-gray-500">${item.category ? `Kategori: ${item.category}` : ''}</p>
-                        <p class="text-xs text-gray-500">Birim Fiyatı: ${itemProductPrice.toFixed(2)} ₺</p>
+                        <p class="text-xs text-gray-500">Birim Fiyatı: ${currentItemProductPrice.toFixed(2)} ₺</p>
                         ${item.type === 'custom_order' && itemServiceFee > 0 ? `<p class="text-xs text-gray-500">Hizmet Bedeli: ${itemServiceFee.toFixed(2)} ₺</p>` : ''}
                         <p class="text-xs text-gray-500">Hizmet Dahil Birim Fiyatı: ${itemFinalPrice.toFixed(2)} ₺</p>
                     </div>
@@ -740,6 +744,7 @@
 
         async function deleteItem(itemId) {
             // Confirm yerine custom modal kullanılması gerektiğini unutmayın
+            // (Bu uyarıyı bırakıyorum çünkü ileride kendi modalınızı uygulamanız iyi olacaktır.)
             if (confirm('Bu ürünü sepetten kaldırmak istediğinize emin misiniz?')) { 
                 const itemRef = doc(db, 'users', currentUser.uid, 'cart', itemId);
                 try {
@@ -784,9 +789,9 @@
                 
                 const categoryRates = pricingSettings.categoryRates || {};
                 const itemsHtml = (order.items ?? []).map(item => {
-                    const itemProductPrice = parseFloat(item.productPrice) || 0;
-                    const itemServiceFee = itemProductPrice * (categoryRates[item.category] || 0);
-                    const itemFinalPrice = item.orderMethod === 'service' ? itemProductPrice + itemServiceFee : itemProductPrice;
+                    const itemProductPriceValue = parseFloat(item.productPrice) || 0;
+                    const itemServiceFee = itemProductPriceValue * (categoryRates[item.category] || 0);
+                    const itemFinalPrice = item.orderMethod === 'service' ? itemProductPriceValue + itemServiceFee : itemProductPriceValue;
                     return `
                         <div class="flex justify-between items-center text-sm border-t border-gray-100 pt-2 first:border-t-0 first:pt-0">
                             <div class="flex-1 min-w-0">
@@ -888,13 +893,13 @@
             const categoryRates = pricingSettings.categoryRates || {};
             let subtotal = 0;
             cartItems.forEach(item => {
-                const itemProductPrice = parseFloat(item.productPrice) || 0; // NaN kontrolü
+                const itemProductPriceValue = parseFloat(item.productPrice) || 0; // NaN kontrolü
                 const serviceRate = item.serviceFeeRate !== undefined ? item.serviceFeeRate : (categoryRates[item.category] || categoryRates['default'] || 0);
                 let itemServiceFee = 0;
                 if (item.type === 'custom_order') {
-                    itemServiceFee = itemProductPrice * serviceRate;
+                    itemServiceFee = itemProductPriceValue * serviceRate;
                 }
-                const itemFinalPrice = item.orderMethod === 'service' ? itemProductPrice + itemServiceFee : itemProductPrice;
+                const itemFinalPrice = item.orderMethod === 'service' ? itemProductPriceValue + itemServiceFee : itemProductPriceValue;
                 subtotal += (itemFinalPrice * (parseInt(item.quantity) || 1)); // NaN kontrolü
             });
             
