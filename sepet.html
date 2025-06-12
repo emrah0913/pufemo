@@ -302,7 +302,7 @@
         const deliveryAddressSection = document.getElementById('delivery-address-section');
         const deliveryAddressInput = document.getElementById('delivery-address');
         const ordersList = document.getElementById('orders-list'); 
-        const noOrdersMessage = document.getElementById('no-content-message'); 
+        const noOrdersMessage = document.getElementById('no-orders-message'); // Changed to target past-orders-wrapper's message
         const activeCartWrapper = document.getElementById('active-cart-wrapper'); 
         const emptyCartMessage = document.getElementById('empty-cart-message'); 
         const pastOrdersWrapper = document.getElementById('past-orders-wrapper');
@@ -311,6 +311,9 @@
         const grandTotalSpan = document.getElementById('grand-total');
         const deliveryFeeRow = document.getElementById('delivery-fee-row');
         const cityListContainer = document.getElementById('city-list');
+
+        // General 'no content' message (for overall page when nothing is present)
+        const noContentMessage = document.getElementById('no-content-message');
 
 
         // Toast Bildirimi Fonksiyonu
@@ -374,10 +377,14 @@
                 if (activeCartWrapper) activeCartWrapper.classList.add('hidden');
                 if (pastOrdersWrapper) pastOrdersWrapper.classList.add('hidden');
                 
-                // 'Hiçbir içerik yok' mesajını göster
-                if (noOrdersMessage) noOrdersMessage.classList.remove('hidden'); 
-                // emptyCartMessage da boş sepeti belirtir, burada gizli kalabilir eğer hiç giriş yapılmadıysa
+                // Genel 'Hiçbir içerik yok' mesajını göster
+                if (noContentMessage) {
+                    noContentMessage.classList.remove('hidden'); 
+                    noContentMessage.querySelector('p').textContent = "Sepetinizi ve geçmiş siparişlerinizi görüntülemek için lütfen giriş yapın.";
+                }
+                // emptyCartMessage ve noOrdersMessage, yalnızca içerik gösteriliyorsa kullanılır.
                 if (emptyCartMessage) emptyCartMessage.classList.add('hidden'); 
+                if (noOrdersMessage) noOrdersMessage.classList.add('hidden'); 
             }
         });
 
@@ -758,25 +765,32 @@
             }
         }
         
+        // Yenilenen renderOrders fonksiyonu
         function renderOrders(orders) {
-            if (!pastOrdersWrapper || !noOrdersMessage || !ordersList) {
+            if (!pastOrdersWrapper || !noOrdersMessage || !ordersList || !noContentMessage) {
                 console.error("Kritik sipariş DOM öğeleri eksik.");
                 return;
             }
 
+            // Eğer hiç sipariş yoksa
             if (orders.length === 0) {
-                pastOrdersWrapper.classList.remove('hidden'); 
-                noOrdersMessage.classList.remove('hidden'); 
-                ordersList.innerHTML = '';
+                noOrdersMessage.classList.remove('hidden'); // "Henüz siparişiniz bulunmuyor" mesajını göster
+                ordersList.innerHTML = ''; // Sipariş listesini temizle
+                pastOrdersWrapper.classList.remove('hidden'); // Geçmiş siparişler wrapper'ını göster (mesaj için)
+                // checkContentVisibility zaten genel boş durumu kontrol eder.
                 return;
             }
-            pastOrdersWrapper.classList.remove('hidden');
-            noOrdersMessage.classList.add('hidden'); 
-            ordersList.innerHTML = '';
+
+            noOrdersMessage.classList.add('hidden'); // Mesajı gizle
+            pastOrdersWrapper.classList.remove('hidden'); // Wrapper'ı göster
+            ordersList.innerHTML = ''; // Listeyi temizle
 
             orders.forEach(order => {
-                const orderCard = document.createElement('div');
-                orderCard.className = 'bg-white rounded-lg shadow-md p-4 space-y-3';
+                const orderDate = order.orderDate?.seconds
+                    ? new Date(order.orderDate.seconds * 1000).toLocaleDateString("tr-TR", {
+                          year: "numeric", month: "long", day: "numeric"
+                        })
+                    : "Tarih Yok";
                 
                 const statusStyles = {
                     pending_payment: { text: 'Ödeme Bekleniyor', bg: 'bg-yellow-500', text_color: 'text-white' },
@@ -786,41 +800,50 @@
                     cancelled: { text: 'İptal Edildi', bg: 'bg-red-500', text_color: 'text-white' }
                 };
                 const currentStatus = statusStyles[order.status] || { text: order.status, bg: 'bg-gray-400', text_color: 'text-white' };
-                const orderDate = order.orderDate ? new Date(order.orderDate.seconds * 1000).toLocaleDateString('tr-TR') : 'Bilinmiyor';
-                
+
                 const categoryRates = pricingSettings.categoryRates || {};
                 const itemsHtml = (order.items ?? []).map(item => {
                     const itemProductPriceValue = parseFloat(item.productPrice) || 0;
                     const itemServiceFee = itemProductPriceValue * (categoryRates[item.category] || 0);
                     const itemFinalPrice = item.orderMethod === 'service' ? itemProductPriceValue + itemServiceFee : itemProductPriceValue;
+                    const itemLineTotal = (itemFinalPrice * (parseInt(item.quantity) || 1)).toFixed(2);
+
                     return `
-                        <div class="flex justify-between items-center text-sm border-t border-gray-100 pt-2 first:border-t-0 first:pt-0">
-                            <div class="flex-1 min-w-0">
-                                <p class="text-xs text-gray-500">Ürün</p>
-                                <a href="${item.productLink}" target="_blank" class="text-blue-600 hover:underline truncate block">${item.productLink}</a>
-                                <p class="text-xs text-gray-500">${item.quantity} adet</p>
+                        <li class="text-sm text-gray-700 mb-1 flex justify-between items-start">
+                            <div class="flex-1 min-w-0 pr-2">
+                                <a href="${item.productLink}" target="_blank" class="text-blue-600 underline line-clamp-1 block">${item.productLink}</a>
+                                <p class="text-xs text-gray-500 mt-0.5">Kategori: ${item.category || 'Belirtilmemiş'} | Adet: ${item.quantity || 1}</p>
                             </div>
-                            <div class="w-24 text-right">
-                                <p class="text-xs text-gray-500">Fiyat</p>
-                                <p class="font-medium">${(itemFinalPrice * (parseInt(item.quantity) || 1)).toFixed(2)} ₺</p>
-                            </div>
-                        </div>`;
-                }).join('');
+                            <span class="font-semibold text-gray-800 flex-shrink-0">${itemLineTotal} ₺</span>
+                        </li>`;
+                }).join("");
                 
                 const grandTotalDisplay = typeof order.grandTotal !== 'undefined' && !isNaN(order.grandTotal)
                     ? `${order.grandTotal.toFixed(2)} ₺`
                     : 'Hesaplanamadı';
 
-                orderCard.innerHTML = `
-                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 border-b pb-3">
-                        <div><p class="text-xs text-gray-500">Sipariş Kodu</p><p class="font-mono text-primary font-semibold text-sm">${order.id.toUpperCase().substring(0, 8)}</p></div>
-                        <div><p class="text-xs text-gray-500">Tarih</p><p class="font-semibold text-sm">${orderDate}</p></div>
-                        <div><p class="text-xs text-gray-500">Teslimat</p><p class="font-semibold text-sm">${order.deliveryType === 'home' ? 'Eve Teslim' : 'Depodan Teslim'}</p></div>
-                        <div><p class="text-xs text-gray-500">Durum</p><span class="px-3 py-1 text-xs font-semibold rounded-full ${currentStatus.bg} ${currentStatus.text_color}">${currentStatus.text}</span></div>
+                const card = `
+                    <div class="bg-white rounded-lg shadow-md p-4 space-y-2 border border-gray-200">
+                        <div class="flex justify-between items-center pb-2 border-b border-gray-100 mb-2">
+                            <h3 class="font-bold text-primary text-lg">Sipariş: ${order.id.substring(0, 8).toUpperCase()}</h3>
+                            <span class="px-2 py-1 text-xs font-semibold rounded-full ${currentStatus.bg} ${currentStatus.text_color}">${currentStatus.text}</span>
+                        </div>
+                        <p class="text-sm text-gray-500">Tarih: ${orderDate}</p>
+                        <p class="text-sm text-gray-500">Teslimat: ${order.deliveryType === 'home' ? 'Eve Teslim' : 'Depodan Teslim'}${order.selectedCity ? ` (${order.selectedCity})` : ''}</p>
+                        <p class="text-sm text-gray-500">Adres: ${order.deliveryAddress}</p>
+                        
+                        <h4 class="font-semibold text-gray-700 mt-4 mb-2">Ürünler:</h4>
+                        <ul class="space-y-2 border-t pt-2">${itemsHtml}</ul>
+                        
+                        <div class="flex justify-end border-t pt-3 mt-4">
+                            <div class="text-right">
+                                <p class="text-sm text-gray-500">Genel Toplam</p>
+                                <p class="font-bold text-lg">${grandTotalDisplay}</p>
+                            </div>
+                        </div>
                     </div>
-                    <div class="space-y-1">${itemsHtml}</div>
-                    <div class="flex justify-end border-t pt-3 mt-2"><div class="text-right"><p class="text-sm text-gray-500">Genel Toplam</p><p class="font-bold text-lg">${grandTotalDisplay}</p></div></div>`;
-                ordersList.appendChild(orderCard);
+                `;
+                ordersList.innerHTML += card;
             });
         }
 
@@ -927,8 +950,11 @@
             console.log("checkContentVisibility çağrıldı. Sepet öğe sayısı:", cartItems.length, "Geçmiş sipariş sayısı:", pastOrders.length, "Current User:", currentUser ? currentUser.uid : "None"); 
 
             if (!currentUser) {
-                // Eğer kullanıcı giriş yapmamışsa, sadece 'içerik yok' mesajını göster.
-                if (noOrdersMessage) noOrdersMessage.classList.remove('hidden');
+                // Eğer kullanıcı giriş yapmamışsa, genel 'içerik yok' mesajını göster.
+                if (noContentMessage) {
+                    noContentMessage.classList.remove('hidden');
+                    noContentMessage.querySelector('p').textContent = "Sepetinizi ve geçmiş siparişlerinizi görüntülemek için lütfen giriş yapın.";
+                }
                 if (mainContent) mainContent.classList.remove('hidden');
                 if (activeCartWrapper) activeCartWrapper.classList.add('hidden');
                 if (pastOrdersWrapper) pastOrdersWrapper.classList.add('hidden');
@@ -937,15 +963,19 @@
             }
 
             // Kullanıcı giriş yapmışsa, sepet ve sipariş durumuna göre içeriği göster/gizle
-            if (!noOrdersMessage || !mainContent || !activeCartWrapper || !pastOrdersWrapper || !loader) {
+            if (!noContentMessage || !mainContent || !activeCartWrapper || !pastOrdersWrapper || !loader) {
                 console.error("Kritik içerik görünürlüğü DOM öğeleri eksik.");
                 return;
             }
             
-            if (cartItems.length > 0 || pastOrders.length > 0) {
-                noOrdersMessage.classList.add('hidden'); 
-                mainContent.classList.remove('hidden'); 
-
+            // Eğer hem sepet boşsa hem de geçmiş sipariş yoksa genel mesajı göster
+            if (cartItems.length === 0 && pastOrders.length === 0) {
+                noContentMessage.classList.remove('hidden'); 
+                noContentMessage.querySelector('p').textContent = "Sepetinizde veya geçmiş siparişlerinizde görüntüleyecek bir şey bulunmuyor.";
+                activeCartWrapper.classList.add('hidden');
+                pastOrdersWrapper.classList.add('hidden');
+            } else {
+                noContentMessage.classList.add('hidden'); 
                 if (cartItems.length > 0) {
                     activeCartWrapper.classList.remove('hidden');
                 } else {
@@ -956,12 +986,8 @@
                 } else {
                     pastOrdersWrapper.classList.add('hidden');
                 }
-            } else {
-                activeCartWrapper.classList.add('hidden');
-                pastOrdersWrapper.classList.add('hidden');
-                noOrdersMessage.classList.remove('hidden'); 
-                mainContent.classList.remove('hidden'); 
             }
+            mainContent.classList.remove('hidden'); 
             loader.classList.add('hidden'); 
         }
 
