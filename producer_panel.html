@@ -390,7 +390,6 @@
 
         try {
             // My Products Stats
-            // currentUser'ın varlığını burada tekrar kontrol etmek iyi bir pratik
             if (!currentUser) {
                 console.warn("loadProducerDashboardData: currentUser tanımlı değil.");
                 return;
@@ -401,56 +400,56 @@
             let pendingCount = 0;
             myProductsSnapshot.forEach(doc => {
                 const product = doc.data();
-                // Check for explicit boolean `false` or absence of `isApproved`
                 if (product.isApproved === true) {
                     approvedCount++;
-                } else if (product.isApproved === false || typeof product.isApproved === 'undefined' || product.isApproved === 'rejected') { // Also count 'rejected' as pending for producer dashboard
+                } else if (product.isApproved === false || typeof product.isApproved === 'undefined' || product.isApproved === 'rejected') {
                     pendingCount++;
                 }
             });
             approvedProductsCount.textContent = approvedCount;
             pendingProductsCount.textContent = pendingCount;
 
-            // Latest Orders & Sales Volume (for producer's products)
-            // Fetch all orders and filter client-side for producer's items
-            const allOrdersSnapshot = await getDocs(collection(db, "orders"));
+            // Latest Orders & Sales Volume (for producer's products) - GÜNCELLENDİ
+            // Yalnızca ilgili üretici ID'sini içeren siparişleri sorgula
+            const producerOrdersQuery = query(
+                collection(db, "orders"),
+                where("involvedProducerIds", "array-contains", currentUser.uid), // Yeni alan üzerinden sorgulama
+                orderBy("orderDate", "desc"),
+                limit(5)
+            );
+            const producerOrdersSnapshot = await getDocs(producerOrdersQuery);
+
             let producerOrders = [];
             let currentMonthSales = 0;
             const now = new Date();
             const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-            allOrdersSnapshot.forEach(orderDoc => {
+            producerOrdersSnapshot.forEach(orderDoc => {
                 const order = orderDoc.data();
-                if (order.items && order.items.length > 0) {
-                    const producerItemsInOrder = order.items.filter(item => 
-                        item.type === 'producer_product' && item.producerId === currentUser.uid
-                    );
-                    if (producerItemsInOrder.length > 0) {
-                        // Create a new order object with only relevant items for the producer
-                        const producerSpecificOrder = { 
-                            id: orderDoc.id, 
-                            orderDate: order.orderDate,
-                            status: order.status,
-                            userFullName: order.userFullName,
-                            producerItems: producerItemsInOrder,
-                            totalForProducer: producerItemsInOrder.reduce((sum, item) => sum + (item.productPrice * item.quantity), 0)
-                        };
-                        producerOrders.push(producerSpecificOrder);
+                const producerItemsInOrder = order.items.filter(item => 
+                    item.type === 'producer_product' && item.producerId === currentUser.uid
+                );
+                
+                // Güvenlik kuralı artık bu kontrolü yapıyor, ancak client-side filtreleme yine de iyi bir pratik
+                if (producerItemsInOrder.length > 0) {
+                    const producerSpecificOrder = { 
+                        id: orderDoc.id, 
+                        orderDate: order.orderDate,
+                        status: order.status,
+                        userFullName: order.userFullName,
+                        producerItems: producerItemsInOrder,
+                        totalForProducer: producerItemsInOrder.reduce((sum, item) => sum + (item.productPrice * item.quantity), 0)
+                    };
+                    producerOrders.push(producerSpecificOrder);
 
-                        // Calculate monthly sales
-                        const orderDate = order.orderDate?.toDate();
-                        if (orderDate && orderDate >= startOfMonth && order.status === 'delivered') {
-                             currentMonthSales += producerSpecificOrder.totalForProducer;
-                        }
+                    const orderDate = order.orderDate?.toDate();
+                    if (orderDate && orderDate >= startOfMonth && order.status === 'delivered') {
+                         currentMonthSales += producerSpecificOrder.totalForProducer;
                     }
                 }
             });
 
             totalSalesVolume.textContent = `${currentMonthSales.toFixed(2)} ₺`;
-
-            // Sort orders by date descending and take top 5
-            producerOrders.sort((a, b) => (b.orderDate?.toDate().getTime() || 0) - (a.orderDate?.toDate().getTime() || 0));
-            const latestProducerOrders = producerOrders.slice(0, 5);
 
             latestOrdersTableBody.innerHTML = `
                 <thead class="bg-gray-50"><tr>
@@ -460,10 +459,10 @@
                     <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Durum</th>
                 </tr></thead>
             `;
-            if (latestProducerOrders.length === 0) {
+            if (producerOrders.length === 0) {
                 latestOrdersTableBody.innerHTML += '<tr><td colspan="4" class="text-center py-4 text-gray-500">Ürünlerinizi içeren bekleyen sipariş yok.</td></tr>';
             } else {
-                latestProducerOrders.forEach(order => {
+                producerOrders.forEach(order => {
                     const statusInfo = ORDER_STATUS_MAP[order.status] || {text: 'Bilinmiyor', style: 'status-unknown'};
                     latestOrdersTableBody.innerHTML += `
                         <tr class="border-t">
@@ -701,7 +700,7 @@
                 loadMyProducts(); // Reload products after deletion
             } catch (error) {
                 console.error("Ürün silinirken hata:", error);
-                showToast('Ürün silinirken bir hata oluştu. İzinleri kontrol edin.');
+                showToast('Ürün silinirken bir hata oluştu.');
             }
         }
     });
@@ -769,8 +768,13 @@
                 console.warn("loadMyOrders: currentUser tanımlı değil.");
                 return;
             }
-            // Fetch all orders and filter client-side for producer's items
-            const allOrdersSnapshot = await getDocs(query(collection(db, "orders"), orderBy("orderDate", "desc")));
+            // Siparişleri sadece ilgili producerId içerenleri sorgula - GÜNCELLENDİ
+            const q = query(
+                collection(db, "orders"),
+                where("involvedProducerIds", "array-contains", currentUser.uid), // Yeni alan üzerinden sorgulama
+                orderBy("orderDate", "desc")
+            );
+            const allOrdersSnapshot = await getDocs(q);
             let ordersContainingMyProducts = [];
 
             allOrdersSnapshot.forEach(orderDoc => {
@@ -859,7 +863,13 @@
                 console.warn("loadMySales: currentUser tanımlı değil.");
                 return;
             }
-            const allOrdersSnapshot = await getDocs(query(collection(db, "orders"), orderBy("orderDate", "desc")));
+            // Siparişleri sadece ilgili producerId içerenleri sorgula - GÜNCELLENDİ
+            const q = query(
+                collection(db, "orders"),
+                where("involvedProducerIds", "array-contains", currentUser.uid), // Yeni alan üzerinden sorgulama
+                orderBy("orderDate", "desc")
+            );
+            const allOrdersSnapshot = await getDocs(q);
             let totalSales = 0;
             let completedSalesOrders = 0;
             let pendingSales = 0;
