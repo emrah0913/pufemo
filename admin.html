@@ -46,6 +46,7 @@
             font-family: 'Inter', sans-serif;
             background-color: #f7fafc;
         }
+        /* Gizli öğeleri varsayılan olarak gizler */
         .hidden { display: none; }
         .loader {
             border: 4px solid #f3f3f3; 
@@ -99,14 +100,16 @@
             width: 100%;
             height: 100%;
             background: rgba(0, 0, 0, 0.6);
-            display: flex;
+            display: none; /* Varsayılan olarak gizli */
             justify-content: center;
             align-items: center;
             z-index: 1001;
             opacity: 0;
             transition: opacity 0.3s ease-in-out;
         }
+        /* Modal gösterildiğinde görünür yap ve opaklığı ayarla */
         .modal-overlay.show {
+            display: flex; /* Modal'ı görünür yap */
             opacity: 1;
         }
         .modal-content {
@@ -361,7 +364,7 @@
     import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
     import { getFirestore, doc, getDoc, collection, onSnapshot, query, orderBy, getDocs, updateDoc, setDoc, where, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
-    // Firebase yapılandırma bilgileriniz
+    // Firebase yapılandırma bilgileri
     const firebaseConfig = {
         apiKey: "AIzaSyB64tAKvCHeYnJ8-HNRLpzB7sQRng4FHyA",
         authDomain: "pufemo-2dc3a.firebaseapp.com",
@@ -541,7 +544,7 @@
             content.classList.add('hidden');
         });
         tabButtons.forEach(button => {
-            button.classList.remove('active'); 
+            button.classList.remove('active'); // Önceki aktif sınıfı kaldır
             button.classList.remove('border-primary-500', 'text-primary');
             button.classList.add('border-transparent', 'text-gray-600');
         });
@@ -709,7 +712,10 @@
             selectElement.addEventListener('change', async (e) => {
                 const orderId = e.target.dataset.orderId;
                 const newStatus = e.target.value;
-                if (confirm(`Siparişin durumunu "${currentStatusInfo.label}" konumundan "${statusOptions.find(s => s.value === newStatus).label}" konumuna değiştirmek istediğinize emin misiniz?`)) {
+                const oldStatusLabel = statusOptions.find(s => s.value === order.status).label;
+                const newStatusLabel = statusOptions.find(s => s.value === newStatus).label;
+
+                if (confirm(`Siparişin durumunu "${oldStatusLabel}" konumundan "${newStatusLabel}" konumuna değiştirmek istediğinize emin misiniz?`)) {
                     await updateOrderStatus(orderId, newStatus);
                 } else {
                     e.target.value = orders.find(o => o.id === orderId).status;
@@ -753,7 +759,10 @@
     function renderUsers(users) {
         if (!usersList || !noUsersMessage) return;
 
-        if (users.length === 0) {
+        // Sadece customer rolündekileri filtrele ve say
+        const customerUsers = users.filter(user => user.role === 'customer');
+
+        if (customerUsers.length === 0) {
             noUsersMessage.classList.remove('hidden');
             usersList.innerHTML = '';
             return;
@@ -762,29 +771,26 @@
         noUsersMessage.classList.add('hidden');
         usersList.innerHTML = '';
 
-        users.forEach(user => {
-            // Sadece customer rolündekileri listele, producer'lar ayrı sekmede
-            if (user.role === 'customer') {
-                const userCard = document.createElement('div');
-                userCard.className = 'bg-white rounded-lg shadow-md p-4 space-y-2 border border-gray-200 flex flex-col sm:flex-row items-start sm:items-center justify-between';
-                userCard.innerHTML = `
-                    <div class="flex items-center gap-3 mb-3 sm:mb-0">
-                        <img src="${user.photoURL || 'https://placehold.co/40x40/cccccc/000000?text=U'}" alt="User" class="w-10 h-10 rounded-full object-cover">
-                        <div>
-                            <p class="font-semibold text-gray-800">${user.fullName || 'İsim Yok'}</p>
-                            <p class="text-sm text-gray-600">${user.email || 'E-posta Yok'}</p>
-                            <p class="text-xs text-gray-500">${user.phone || 'Telefon Yok'}</p>
-                        </div>
+        customerUsers.forEach(user => {
+            const userCard = document.createElement('div');
+            userCard.className = 'bg-white rounded-lg shadow-md p-4 space-y-2 border border-gray-200 flex flex-col sm:flex-row items-start sm:items-center justify-between';
+            userCard.innerHTML = `
+                <div class="flex items-center gap-3 mb-3 sm:mb-0">
+                    <img src="${user.photoURL || 'https://placehold.co/40x40/cccccc/000000?text=U'}" alt="User" class="w-10 h-10 rounded-full object-cover">
+                    <div>
+                        <p class="font-semibold text-gray-800">${user.fullName || 'İsim Yok'}</p>
+                        <p class="text-sm text-gray-600">${user.email || 'E-posta Yok'}</p>
+                        <p class="text-xs text-gray-500">${user.phone || 'Telefon Yok'}</p>
                     </div>
-                    <div class="flex items-center gap-2 flex-wrap">
-                        <span class="text-sm font-medium px-3 py-1 rounded-full ${user.role === 'admin' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}">${user.role || 'customer'}</span>
-                        <button data-user-id="${user.id}" data-current-role="${user.role}" class="toggle-admin-btn bg-purple-500 text-white text-sm px-3 py-1 rounded-button hover:bg-purple-600 transition-colors">
-                            ${user.role === 'admin' ? 'Adminlikten Çıkar' : 'Admin Yap'}
-                        </button>
-                    </div>
-                `;
-                usersList.appendChild(userCard);
-            }
+                </div>
+                <div class="flex items-center gap-2 flex-wrap">
+                    <span class="text-sm font-medium px-3 py-1 rounded-full ${user.role === 'admin' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}">${user.role || 'customer'}</span>
+                    <button data-user-id="${user.id}" data-current-role="${user.role}" class="toggle-admin-btn bg-purple-500 text-white text-sm px-3 py-1 rounded-button hover:bg-purple-600 transition-colors">
+                        ${user.role === 'admin' ? 'Adminlikten Çıkar' : 'Admin Yap'}
+                    </button>
+                </div>
+            `;
+            usersList.appendChild(userCard);
         });
 
         document.querySelectorAll('.toggle-admin-btn').forEach(button => {
