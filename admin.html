@@ -48,7 +48,7 @@
         }
         .hidden { display: none; }
         .loader {
-            border: 4px solid #f3f3f3; /* Corrected border width */
+            border: 4px solid #f3f3f3; 
             border-top: 4px solid #5d3ebc;
             border-radius: 50%;
             width: 40px;
@@ -85,6 +85,12 @@
             opacity: 1;
             transform: translateY(0);
         }
+        /* Tab button active state */
+        .tab-button.active {
+            border-color: #5d3ebc; /* Primary color */
+            color: #5d3ebc;
+            font-weight: 600;
+        }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -118,7 +124,7 @@
 
         <section id="admin-dashboard" class="hidden">
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                <!-- Dashboard Bilgi Kartları (Örnek) -->
+                <!-- Dashboard Bilgi Kartları -->
                 <div class="bg-white p-6 rounded-lg shadow-md flex items-center gap-4">
                     <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
                         <i class="ri-bar-chart-box-line ri-xl text-blue-600"></i>
@@ -148,12 +154,12 @@
                 </div>
             </div>
 
-            <!-- Yeni Sekmeler Menüsü -->
-            <div class="flex border-b border-gray-200 mb-6">
-                <button data-tab="orders" class="px-4 py-2 text-sm font-medium text-primary border-b-2 border-primary-500 focus:outline-none tab-button">Tüm Siparişler</button>
-                <button data-tab="users" class="px-4 py-2 text-sm font-medium text-gray-600 hover:text-primary focus:outline-none tab-button">Kullanıcılar</button>
-                <button data-tab="products" class="px-4 py-2 text-sm font-medium text-gray-600 hover:text-primary focus:outline-none tab-button">Ürün Yönetimi</button>
-                <button data-tab="settings" class="px-4 py-2 text-sm font-medium text-gray-600 hover:text-primary focus:outline-none tab-button">Ayarlar</button>
+            <!-- Sekmeler Menüsü -->
+            <div class="flex border-b border-gray-200 mb-6 -mt-2">
+                <button data-tab="orders" class="tab-button px-4 py-2 text-sm font-medium text-gray-600 hover:text-primary focus:outline-none border-b-2 border-transparent transition-colors duration-200">Tüm Siparişler</button>
+                <button data-tab="users" class="tab-button px-4 py-2 text-sm font-medium text-gray-600 hover:text-primary focus:outline-none border-b-2 border-transparent transition-colors duration-200">Kullanıcılar</button>
+                <button data-tab="products" class="tab-button px-4 py-2 text-sm font-medium text-gray-600 hover:text-primary focus:outline-none border-b-2 border-transparent transition-colors duration-200">Ürün Yönetimi</button>
+                <button data-tab="settings" class="tab-button px-4 py-2 text-sm font-medium text-gray-600 hover:text-primary focus:outline-none border-b-2 border-transparent transition-colors duration-200">Ayarlar</button>
             </div>
 
             <!-- Siparişler Sekmesi İçeriği -->
@@ -198,13 +204,11 @@
                 <div class="bg-white p-6 rounded-lg shadow-md">
                     <h3 class="font-semibold text-lg mb-4">Kategori Oranları (%)</h3>
                     <div id="category-rates-settings" class="space-y-3">
-                        <!-- Kategori oranları buraya dinamik olarak yüklenecek -->
                         <p class="text-gray-500">Ayarlar yükleniyor...</p>
                     </div>
 
                     <h3 class="font-semibold text-lg mt-6 mb-4">Şehir Teslimat Ücretleri (₺)</h3>
                     <div id="city-fees-settings" class="space-y-3">
-                        <!-- Şehir ücretleri buraya dinamik olarak yüklenecek -->
                         <p class="text-gray-500">Ayarlar yükleniyor...</p>
                     </div>
                     <button id="save-settings-btn" class="mt-6 bg-primary text-white py-2 px-4 rounded-button font-semibold hover:bg-primary/90 transition-colors">Ayarları Kaydet</button>
@@ -227,9 +231,9 @@
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
-    import { getFirestore, doc, getDoc, collection, onSnapshot, query, orderBy, getDocs, updateDoc, setDoc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, collection, onSnapshot, query, orderBy, getDocs, updateDoc, setDoc, where, deleteDoc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
-    // Firebase yapılandırma bilgileriniz (sepet.html ile aynı)
+    // Firebase yapılandırma bilgileriniz
     const firebaseConfig = {
         apiKey: "AIzaSyB64tAKvCHeYnJ8-HNRLpzB7sQRng4FHyA",
         authDomain: "pufemo-2dc3a.firebaseapp.com",
@@ -247,7 +251,7 @@
     console.log("Auth objesi başlatıldı (Admin):", auth);
 
     let currentUser = null;
-    let pricingSettings = {}; // Fiyatlandırma ayarları, sipariş detayları için gerekli
+    let pricingSettings = {}; 
     const DEFAULT_SETTINGS = {
         categoryRates: { 'furniture': 0.70, 'electronics': 0.70, 'clothing': 0.45, 'cosmetics': 0.70, 'stationery': 0.40, 'default': 0.50 },
         cityFees: { 'Lefkoşa': 200, 'Girne': 350, 'Gazimağusa': 300, 'Güzelyurt': 400, 'İskele': 450, 'Diğer': 500 }
@@ -258,12 +262,11 @@
     const adminContent = document.getElementById('admin-content');
     const unauthorizedMessage = document.getElementById('unauthorized-message');
     const adminDashboard = document.getElementById('admin-dashboard');
-    const ordersList = document.getElementById('orders-list'); // Orders Tab's list
-    const noOrdersAdminMessage = document.getElementById('no-orders-admin-message'); // Orders Tab's message
+    const ordersList = document.getElementById('orders-list'); 
+    const noOrdersAdminMessage = document.getElementById('no-orders-admin-message'); 
     const profileImg = document.getElementById('profile-img');
     const profileContainer = document.getElementById('profile-container');
 
-    // New DOM elements for dashboard sections
     const totalOrdersCount = document.getElementById('total-orders-count');
     const completedOrdersCount = document.getElementById('completed-orders-count');
     const totalUsersCount = document.getElementById('total-users-count');
@@ -305,34 +308,30 @@
 
     document.addEventListener('DOMContentLoaded', () => {
         onAuthStateChanged(auth, async (user) => {
-            if (loader) loader.classList.remove('hidden'); // Yükleyiciyi göster
-            if (adminContent) adminContent.classList.add('hidden'); // İçeriği gizle
+            if (loader) loader.classList.remove('hidden'); 
+            if (adminContent) adminContent.classList.add('hidden'); 
 
             if (user) {
                 currentUser = user;
                 if (profileImg) profileImg.src = user.photoURL || 'https://placehold.co/40x40/cccccc/000000?text=P';
                 if (profileContainer) profileContainer.classList.remove('hidden');
 
-                // Kullanıcının rolünü kontrol et
                 const userDocRef = doc(db, 'users', user.uid);
                 const userDocSnap = await getDoc(userDocRef);
 
                 if (userDocSnap.exists() && userDocSnap.data().role === 'admin') {
                     console.log("Yönetici girişi başarılı.");
-                    await loadPricingSettings(); // Yönetici panelinde de fiyatlandırma ayarları gerekli olabilir
+                    await loadPricingSettings(); 
                     if (adminContent) adminContent.classList.remove('hidden');
                     if (adminDashboard) adminDashboard.classList.remove('hidden');
                     if (unauthorizedMessage) unauthorizedMessage.classList.add('hidden');
                     
-                    // Dashboard verilerini yükle
                     await loadDashboardData();
-
-                    // İlk olarak siparişler sekmesini göster
-                    showTab('orders'); 
-                    listenToAllOrders(); // Tüm siparişleri dinlemeye başla
-                    listenToAllUsers(); // Tüm kullanıcıları dinlemeye başla
-                    listenToPendingProducts(); // Onay bekleyen ürünleri dinle
-                    renderSettings(); // Ayarları render et
+                    showTab('orders'); // Varsayılan olarak siparişler sekmesini göster
+                    listenToAllOrders(); 
+                    listenToAllUsers(); 
+                    listenToPendingProducts(); 
+                    renderSettings(); 
                 } else {
                     console.warn("Yetkisiz erişim: Kullanıcı yönetici değil.");
                     if (adminContent) adminContent.classList.remove('hidden');
@@ -347,7 +346,7 @@
                 if (adminDashboard) adminDashboard.classList.add('hidden');
                 showToast("Yönetici panelini görüntülemek için giriş yapmanız gerekiyor.");
             }
-            if (loader) loader.classList.add('hidden'); // Yükleyiciyi gizle
+            if (loader) loader.classList.add('hidden'); 
         });
 
         // Tab değiştirme olay dinleyicileri
@@ -370,28 +369,28 @@
             content.classList.add('hidden');
         });
         tabButtons.forEach(button => {
+            button.classList.remove('active'); // Önceki aktif sınıfı kaldır
             button.classList.remove('border-primary-500', 'text-primary');
             button.classList.add('border-transparent', 'text-gray-600');
         });
 
         document.getElementById(`${tabId}-tab`).classList.remove('hidden');
-        document.querySelector(`[data-tab="${tabId}"]`).classList.add('border-primary-500', 'text-primary');
-        document.querySelector(`[data-tab="${tabId}"]`).classList.remove('border-transparent', 'text-gray-600');
+        const activeTabButton = document.querySelector(`[data-tab="${tabId}"]`);
+        activeTabButton.classList.add('active'); // Yeni aktif sınıfı ekle
+        activeTabButton.classList.add('border-primary-500', 'text-primary');
+        activeTabButton.classList.remove('border-transparent', 'text-gray-600');
     }
 
     // Dashboard özet verilerini yükle
     async function loadDashboardData() {
         try {
-            // Toplam Siparişler
             const ordersSnapshot = await getDocs(collection(db, 'orders'));
             if (totalOrdersCount) totalOrdersCount.textContent = ordersSnapshot.size;
 
-            // Tamamlanan Siparişler (status === 'delivered')
             const completedOrdersQuery = query(collection(db, 'orders'), where('status', '==', 'delivered'));
             const completedOrdersSnapshot = await getDocs(completedOrdersQuery);
             if (completedOrdersCount) completedOrdersCount.textContent = completedOrdersSnapshot.size;
 
-            // Toplam Kullanıcılar
             const usersSnapshot = await getDocs(collection(db, 'users'));
             if (totalUsersCount) totalUsersCount.textContent = usersSnapshot.size;
 
@@ -411,7 +410,6 @@
                 pricingSettings = docSnap.data();
             } else {
                 pricingSettings = DEFAULT_SETTINGS;
-                // Eğer ayarlar yoksa, varsayılanları Firestore'a kaydet (ilk kez)
                 await setDoc(docRef, DEFAULT_SETTINGS);
                 console.log("Varsayılan fiyatlandırma ayarları Firestore'a kaydedildi.");
             }
@@ -429,7 +427,6 @@
         }
 
         const ordersRef = collection(db, 'orders');
-        // Tüm siparişleri, en yeni olandan en eskiye doğru sırala
         const q = query(ordersRef, orderBy("orderDate", "desc"));
 
         onSnapshot(q, (snapshot) => {
@@ -462,14 +459,15 @@
                     })
                 : "Tarih Yok";
             
-            const statusStyles = {
-                pending_payment: { text: 'Ödeme Bekleniyor', bg: 'bg-yellow-500', text_color: 'text-white' },
-                processing: { text: 'İşleniyor', bg: 'bg-blue-500', text_color: 'text-white' }, 
-                shipped: { text: 'Kargoya Verildi', bg: 'bg-teal-500', text_color: 'text-white' },
-                delivered: { text: 'Teslim Edildi', bg: 'bg-green-500', text_color: 'text-white' },
-                cancelled: { text: 'İptal Edildi', bg: 'bg-red-500', text_color: 'text-white' }
-            };
-            const currentStatus = statusStyles[order.status] || { text: order.status, bg: 'bg-gray-400', text_color: 'text-white' };
+            const statusOptions = [
+                { value: 'pending_payment', label: 'Ödeme Bekleniyor', class: 'bg-yellow-500 text-white' },
+                { value: 'processing', label: 'İşleniyor', class: 'bg-blue-500 text-white' },
+                { value: 'shipped', label: 'Kargoya Verildi', class: 'bg-teal-500 text-white' },
+                { value: 'delivered', label: 'Teslim Edildi', class: 'bg-green-500 text-white' },
+                { value: 'cancelled', label: 'İptal Edildi', class: 'bg-red-500 text-white' }
+            ];
+
+            const currentStatusInfo = statusOptions.find(s => s.value === order.status) || { label: order.status, class: 'bg-gray-400 text-white' };
 
             const categoryRates = pricingSettings.categoryRates || {};
             const itemsHtml = (order.items ?? []).map(item => {
@@ -492,22 +490,27 @@
                     </li>`;
             }).join("");
             
-            // Debugging: Log the raw grandTotal from Firestore
-            console.log(`Order ID: ${order.id}, Raw grandTotal:`, order.grandTotal, `Type:`, typeof order.grandTotal);
-
-            // Ensure grandTotal is treated as a number for display
-            const numericGrandTotal = parseFloat(order.grandTotal); // Explicitly parse as float
-
+            const numericGrandTotal = parseFloat(order.grandTotal); 
             const grandTotalDisplay = !isNaN(numericGrandTotal)
                 ? `${numericGrandTotal.toFixed(2)} ₺`
-                : 'Hesaplanamadı'; // Fallback if it's still not a valid number or is NaN
+                : 'Hesaplanamadı'; 
 
+            const statusDropdownOptions = statusOptions.map(option => `
+                <option value="${option.value}" ${order.status === option.value ? 'selected' : ''}>
+                    ${option.label}
+                </option>
+            `).join('');
 
             const card = `
                 <div class="bg-white rounded-lg shadow-md p-4 space-y-2 border border-gray-200">
                     <div class="flex justify-between items-center pb-2 border-b border-gray-100 mb-2">
                         <h3 class="font-bold text-primary text-lg">Sipariş: ${order.id.substring(0, 8).toUpperCase()}</h3>
-                        <span class="px-2 py-1 text-xs font-semibold rounded-full ${currentStatus.bg} ${currentStatus.text_color}">${currentStatus.text}</span>
+                        <div class="flex items-center gap-2">
+                            <span class="px-2 py-1 text-xs font-semibold rounded-full ${currentStatusInfo.class}">${currentStatusInfo.label}</span>
+                            <select data-order-id="${order.id}" class="order-status-select bg-gray-100 border border-gray-300 text-gray-800 text-xs rounded-md p-1 focus:ring-primary focus:border-primary">
+                                ${statusDropdownOptions}
+                            </select>
+                        </div>
                     </div>
                     <p class="text-sm text-gray-500">Kullanıcı: ${order.userFullName || 'Bilinmiyor'} (${order.userEmail})</p>
                     <p class="text-sm text-gray-500">Telefon: ${order.userPhone || 'Bilinmiyor'}</p>
@@ -528,6 +531,32 @@
             `;
             ordersList.innerHTML += card;
         });
+
+        // Sipariş durumunu değiştirmek için olay dinleyici
+        document.querySelectorAll('.order-status-select').forEach(selectElement => {
+            selectElement.addEventListener('change', async (e) => {
+                const orderId = e.target.dataset.orderId;
+                const newStatus = e.target.value;
+                if (confirm(`Siparişin durumunu "${newStatus}" olarak değiştirmek istediğinize emin misiniz?`)) {
+                    await updateOrderStatus(orderId, newStatus);
+                } else {
+                    // Eğer kullanıcı işlemi iptal ederse, dropdown'ı eski haline getir
+                    e.target.value = orders.find(o => o.id === orderId).status;
+                }
+            });
+        });
+    }
+
+    // Sipariş durumunu güncelleme fonksiyonu
+    async function updateOrderStatus(orderId, newStatus) {
+        try {
+            const orderRef = doc(db, 'orders', orderId);
+            await updateDoc(orderRef, { status: newStatus });
+            showToast(`Sipariş (${orderId.substring(0, 8).toUpperCase()}) durumu "${newStatus}" olarak güncellendi.`);
+        } catch (error) {
+            console.error("Sipariş durumu güncellenirken hata:", error);
+            showToast("Sipariş durumu güncellenemedi: " + error.message);
+        }
     }
 
     // --- Kullanıcı Yönetimi Fonksiyonları ---
@@ -537,7 +566,7 @@
             return;
         }
         const usersRef = collection(db, 'users');
-        const q = query(usersRef, orderBy("createdAt", "desc")); // Kullanıcıları oluşturulma tarihine göre sırala
+        const q = query(usersRef, orderBy("createdAt", "desc")); 
 
         onSnapshot(q, (snapshot) => {
             const allUsers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -564,16 +593,17 @@
 
         users.forEach(user => {
             const userCard = document.createElement('div');
-            userCard.className = 'bg-white rounded-lg shadow-md p-4 space-y-2 border border-gray-200 flex items-center justify-between';
+            userCard.className = 'bg-white rounded-lg shadow-md p-4 space-y-2 border border-gray-200 flex flex-col sm:flex-row items-start sm:items-center justify-between';
             userCard.innerHTML = `
-                <div class="flex items-center gap-3">
-                    <img src="${user.photoURL || 'https://placehold.co/40x40/cccccc/000000?text=U'}" alt="User" class="w-10 h-10 rounded-full">
+                <div class="flex items-center gap-3 mb-3 sm:mb-0">
+                    <img src="${user.photoURL || 'https://placehold.co/40x40/cccccc/000000?text=U'}" alt="User" class="w-10 h-10 rounded-full object-cover">
                     <div>
-                        <p class="font-semibold text-gray-800">${user.fullName || user.email}</p>
-                        <p class="text-sm text-gray-600">${user.email}</p>
+                        <p class="font-semibold text-gray-800">${user.fullName || 'İsim Yok'}</p>
+                        <p class="text-sm text-gray-600">${user.email || 'E-posta Yok'}</p>
+                        <p class="text-xs text-gray-500">${user.phone || 'Telefon Yok'}</p>
                     </div>
                 </div>
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-2 flex-wrap">
                     <span class="text-sm font-medium px-3 py-1 rounded-full ${user.role === 'admin' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}">${user.role || 'customer'}</span>
                     <button data-user-id="${user.id}" data-current-role="${user.role}" class="toggle-admin-btn bg-purple-500 text-white text-sm px-3 py-1 rounded-button hover:bg-purple-600 transition-colors">
                         ${user.role === 'admin' ? 'Adminlikten Çıkar' : 'Admin Yap'}
@@ -583,7 +613,6 @@
             usersList.appendChild(userCard);
         });
 
-        // Rol değiştirme butonlarına olay dinleyici ekle
         document.querySelectorAll('.toggle-admin-btn').forEach(button => {
             button.addEventListener('click', async (e) => {
                 const userId = e.target.dataset.userId;
@@ -611,7 +640,7 @@
             return;
         }
         const productsRef = collection(db, 'products');
-        const q = query(productsRef, where("isApproved", "==", false), orderBy("createdAt", "desc")); // Onay bekleyen ürünleri getir
+        const q = query(productsRef, where("isApproved", "==", false), orderBy("createdAt", "desc")); 
 
         onSnapshot(q, (snapshot) => {
             const pendingProducts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -640,13 +669,13 @@
             const productCard = document.createElement('div');
             productCard.className = 'bg-white rounded-lg shadow-md p-4 space-y-2 border border-gray-200';
             productCard.innerHTML = `
-                <div class="flex items-center gap-4">
-                    <img src="${product.imageUrl || 'https://placehold.co/80x80/e2e8f0/64748b?text=Ürün'}" alt="${product.productName}" class="w-20 h-20 object-cover rounded-md">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-3 sm:mb-0">
+                    <img src="${product.imageUrl || 'https://placehold.co/80x80/e2e8f0/64748b?text=Ürün'}" alt="${product.productName}" class="w-20 h-20 object-cover rounded-md flex-shrink-0">
                     <div class="flex-1">
-                        <p class="font-semibold text-lg text-gray-800">${product.productName}</p>
-                        <p class="text-sm text-gray-600 line-clamp-2">${product.description}</p>
-                        <p class="text-md font-bold text-primary">${product.price.toFixed(2)} ₺</p>
-                        <p class="text-xs text-gray-500">Üretici ID: ${product.producerId}</p>
+                        <p class="font-semibold text-lg text-gray-800">${product.productName || 'İsimsiz Ürün'}</p>
+                        <p class="text-sm text-gray-600 line-clamp-2">${product.description || 'Açıklama yok.'}</p>
+                        <p class="text-md font-bold text-primary">${(parseFloat(product.price) || 0).toFixed(2)} ₺</p>
+                        <p class="text-xs text-gray-500">Üretici ID: ${product.producerId || 'Bilinmiyor'}</p>
                     </div>
                 </div>
                 <div class="flex justify-end gap-2 mt-4">
@@ -657,14 +686,13 @@
             productsList.appendChild(productCard);
         });
 
-        // Onay/Reddet butonlarına olay dinleyici ekle
         document.querySelectorAll('.approve-product-btn').forEach(button => {
             button.addEventListener('click', async (e) => {
                 const productId = e.target.dataset.productId;
                 if (confirm('Bu ürünü onaylamak istediğinize emin misiniz?')) {
                     try {
                         const productRef = doc(db, 'products', productId);
-                        await updateDoc(productRef, { isApproved: true });
+                        await updateDoc(productRef, { isApproved: true, approvedAt: serverTimestamp() });
                         showToast("Ürün başarıyla onaylandı!");
                     } catch (error) {
                         console.error("Ürün onaylanırken hata:", error);
@@ -724,14 +752,34 @@
 
     async function savePricingSettings() {
         const updatedCategoryRates = {};
+        let validationError = false;
         document.querySelectorAll('[data-setting-type="category"]').forEach(input => {
-            updatedCategoryRates[input.dataset.key] = parseFloat(input.value) / 100;
+            const value = parseFloat(input.value);
+            if (isNaN(value) || value < 0 || value > 100) {
+                validationError = true;
+                input.classList.add('border-red-500'); // Hatalı girişi vurgula
+            } else {
+                input.classList.remove('border-red-500');
+                updatedCategoryRates[input.dataset.key] = value / 100;
+            }
         });
 
         const updatedCityFees = {};
         document.querySelectorAll('[data-setting-type="city"]').forEach(input => {
-            updatedCityFees[input.dataset.key] = parseFloat(input.value);
+            const value = parseFloat(input.value);
+            if (isNaN(value) || value < 0) {
+                validationError = true;
+                input.classList.add('border-red-500'); // Hatalı girişi vurgula
+            } else {
+                input.classList.remove('border-red-500');
+                updatedCityFees[input.dataset.key] = value;
+            }
         });
+
+        if (validationError) {
+            showToast("Lütfen tüm ayar değerlerini geçerli aralıkta giriniz (Oranlar 0-100%, Ücretler 0'dan büyük).");
+            return;
+        }
 
         try {
             const settingsRef = doc(db, 'settings', 'pricing');
