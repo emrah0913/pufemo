@@ -244,7 +244,7 @@
             <div id="products-tab" class="tab-content hidden">
                 <h2 class="text-2xl font-semibold text-gray-800 mb-4">Ürün Yönetimi (Tüm Ürünler)</h2>
                 <div class="mb-4">
-                    <label for="product-filter-status" class="block text-sm font-medium text-gray-700 mb-1">Duruma Göre Filtrele:</label>
+                    <label for="product-filter-status" class="block text-sm font-medium text-gray-700 mb-1">Duruma Gööre Filtrele:</label>
                     <select id="product-filter-status" class="w-full md:w-auto p-2 border border-gray-300 rounded-md bg-white text-sm">
                         <option value="all">Tümü</option>
                         <option value="approved">Onaylı Ürünler</option>
@@ -917,7 +917,39 @@
         }
 
         try {
-            // Firebase Auth üzerinden yeni kullanıcı oluştur
+            // İlk olarak, bu e-posta adresine sahip bir kullanıcının Firestore 'users' koleksiyonunda olup olmadığını kontrol edin.
+            const usersRef = collection(db, 'users');
+            const q = query(usersRef, where("email", "==", email));
+            const userSnapshots = await getDocs(q);
+
+            if (!userSnapshots.empty) {
+                // Firestore'da kullanıcı belgesi bulundu
+                const existingUserDoc = userSnapshots.docs[0];
+                const existingUserData = existingUserDoc.data();
+                const existingUserId = existingUserDoc.id;
+
+                if (existingUserData.role === 'customer') {
+                    // Mevcut müşteri bulundu, yükseltme iste
+                    if (confirm(`"${email}" e-posta adresine sahip bir müşteri hesabı zaten mevcut. Bu hesabı üreticiye yükseltmek istiyor musunuz?`)) {
+                        const userRef = doc(db, 'users', existingUserId);
+                        await updateDoc(userRef, { role: 'producer' });
+                        showToast(`Müşteri hesabı "${email}" başarıyla üreticiye yükseltildi!`);
+                        addProducerModal.classList.remove('show');
+                        return; // Yükseltme sonrası fonksiyondan çık
+                    } else {
+                        showToast("Üretici ekleme işlemi iptal edildi.");
+                        return; // Kullanıcı iptal etti
+                    }
+                } else if (existingUserData.role === 'producer') {
+                    showToast(`"${email}" e-posta adresine sahip hesap zaten bir üretici hesabı.`);
+                    return; // Zaten üretici
+                } else if (existingUserData.role === 'admin') {
+                    showToast(`"${email}" e-posta adresine sahip hesap zaten bir yönetici hesabı.`);
+                    return; // Zaten yönetici
+                }
+            }
+
+            // Firestore'da kullanıcı belgesi bulunamazsa veya kullanıcı yükseltmeyi iptal ederse, yeni Auth kullanıcısı oluşturmaya devam et
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const newProducerUid = userCredential.user.uid;
 
@@ -935,11 +967,12 @@
 
             showToast("Yeni üretici başarıyla eklendi!");
             addProducerModal.classList.remove('show');
+
         } catch (error) {
             console.error("Üretici eklenirken hata:", error);
             let errorMessage = "Üretici eklenemedi.";
             if (error.code === 'auth/email-already-in-use') {
-                errorMessage = "Bu e-posta adresi zaten kullanımda. Lütfen farklı bir e-posta adresi deneyin.";
+                errorMessage = "Bu e-posta adresi Firebase Authentication'da zaten kayıtlı. Lütfen farklı bir e-posta adresi deneyin veya mevcut bir hesabı yükseltmeyi düşünün.";
             } else if (error.code === 'auth/weak-password') {
                 errorMessage = "Şifre en az 6 karakter olmalıdır.";
             } else if (error.code === 'auth/invalid-email') {
@@ -1056,7 +1089,8 @@
                         const productRef = doc(db, 'products', productId);
                         await deleteDoc(productRef); 
                         showToast("Ürün başarıyla silindi!");
-                    } catch (error) {
+                    }
+                     catch (error) {
                         console.error("Ürün silinirken hata:", error);
                         showToast("Ürün silinemedi: " + error.message);
                     }
