@@ -213,7 +213,9 @@
                     </div>
                     <div>
                         <label for="product-category" class="block text-sm font-medium text-gray-700">Kategori<span class="text-red-500">*</span></label>
-                        <select id="product-category" required class="mt-1 p-2 w-full border rounded-lg"></select>
+                        <select id="product-category" required class="mt-1 p-2 w-full border rounded-lg">
+                             <option value="" disabled selected>Kategoriler Yükleniyor...</option>
+                        </select>
                     </div>
                     <div class="flex gap-2 mt-4">
                         <button type="submit" id="save-producer-product-btn" class="flex-1 bg-primary text-white py-2 rounded-lg hover:bg-primary/90">Kaydet</button>
@@ -249,6 +251,9 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
+    let currentUser = null; // Mevcut Firebase kullanıcısı
+    let currentUserProfile = null; // Firestore'daki kullanıcı profili
+
     const navLinks = document.querySelectorAll('aside nav a');
     const contentSections = document.querySelectorAll('.producer-content-section');
     const producerLogoutBtn = document.getElementById('producer-logout-btn');
@@ -283,6 +288,8 @@
                     console.log("Üretici Paneli: Kullanıcı rolü:", currentUserProfile.role); // Debug log 3
 
                     if (currentUserProfile.role === 'producer') {
+                        // Kategorileri yükle (modal açılmadan önce de kullanılabilir)
+                        await populateProductCategoriesDropdown(productCategorySelect);
                         showSection('content-dashboard');
                         console.log("Üretici Paneli: Erişim izni verildi (rol: producer)."); // Debug log 4
                     } else {
@@ -334,10 +341,15 @@
         document.getElementById(`nav-${sectionId.replace('content-', '')}`)?.classList.add('active-nav-link');
 
         // Load data for the selected section
-        if (sectionId === 'content-dashboard') loadProducerDashboardData();
-        if (sectionId === 'content-my-products') loadMyProducts();
-        if (sectionId === 'content-my-orders') loadMyOrders();
-        if (sectionId === 'content-my-sales') loadMySales();
+        // Sadece currentUser ve currentUserProfile tanımlanmışsa veri yüklemesini yap
+        if (currentUser && currentUserProfile) {
+            if (sectionId === 'content-dashboard') loadProducerDashboardData();
+            if (sectionId === 'content-my-products') loadMyProducts();
+            if (sectionId === 'content-my-orders') loadMyOrders();
+            if (sectionId === 'content-my-sales') loadMySales();
+        } else {
+            console.warn("Kullanıcı kimlik doğrulama verileri yüklenmediği için veri yükleme atlandı.");
+        }
     }
 
     // --- STATUS MAPS ---
@@ -365,6 +377,12 @@
         const totalSalesVolume = document.getElementById('total-sales-volume');
         const latestOrdersTableBody = document.getElementById('latest-producer-orders-table-body');
 
+        // Null kontrolü
+        if (!approvedProductsCount || !pendingProductsCount || !totalSalesVolume || !latestOrdersTableBody) {
+             console.error("Dashboard DOM öğeleri bulunamadı.");
+             return;
+        }
+
         approvedProductsCount.textContent = 'Yükleniyor...';
         pendingProductsCount.textContent = 'Yükleniyor...';
         totalSalesVolume.textContent = 'Yükleniyor...';
@@ -372,15 +390,21 @@
 
         try {
             // My Products Stats
+            // currentUser'ın varlığını burada tekrar kontrol etmek iyi bir pratik
+            if (!currentUser) {
+                console.warn("loadProducerDashboardData: currentUser tanımlı değil.");
+                return;
+            }
             const myProductsQuery = query(collection(db, "products"), where("producerId", "==", currentUser.uid));
             const myProductsSnapshot = await getDocs(myProductsQuery);
             let approvedCount = 0;
             let pendingCount = 0;
             myProductsSnapshot.forEach(doc => {
                 const product = doc.data();
+                // Check for explicit boolean `false` or absence of `isApproved`
                 if (product.isApproved === true) {
                     approvedCount++;
-                } else if (product.isApproved === false || typeof product.isApproved === 'undefined') {
+                } else if (product.isApproved === false || typeof product.isApproved === 'undefined' || product.isApproved === 'rejected') { // Also count 'rejected' as pending for producer dashboard
                     pendingCount++;
                 }
             });
@@ -481,27 +505,38 @@
 
     let currentEditingProductId = null; // To keep track of which product is being edited
 
-    addnewProductBtn.addEventListener('click', () => {
+    addnewProductBtn.addEventListener('click', async () => {
         resetProductForm();
         productFormTitle.textContent = 'Yeni Ürün Ekle';
         deleteProducerProductBtn.classList.add('hidden');
         productFormModal.classList.remove('hidden');
-        populateProductCategoriesDropdown(productCategorySelect);
+        try {
+            await populateProductCategoriesDropdown(productCategorySelect);
+        } catch (error) {
+            console.error("Yeni ürün eklerken kategori yüklenirken hata:", error);
+            showToast("Kategoriler yüklenemedi. Lütfen Yönetici Paneli'nden kategorileri kontrol edin ve sayfa yetkilerini güncelleyin.");
+        }
     });
 
     closeProductFormModal.addEventListener('click', () => productFormModal.classList.add('hidden'));
 
     function resetProductForm() {
-        producerProductForm.reset();
+        if (producerProductForm) producerProductForm.reset();
         currentEditingProductId = null;
-        productNameInput.value = '';
-        productDescriptionInput.value = '';
-        productPriceInput.value = '';
-        productImageUrlInput.value = '';
-        productCategorySelect.value = ''; // Reset select
+        if (productNameInput) productNameInput.value = '';
+        if (productDescriptionInput) productDescriptionInput.value = '';
+        if (productPriceInput) productPriceInput.value = '';
+        if (productImageUrlInput) productImageUrlInput.value = '';
+        // Kategori seçimi resetlenirken varsayılan "Kategoriler Yükleniyor..." seçeneği gösterilsin
+        if (productCategorySelect) productCategorySelect.innerHTML = '<option value="" disabled selected>Kategoriler Yükleniyor...</option>'; 
     }
 
     async function loadMyProducts() {
+        if (!myProductsTableBody || !noMyProductsMessage) {
+            console.error("Ürünlerim DOM öğeleri bulunamadı.");
+            return;
+        }
+
         myProductsTableBody.innerHTML = `
             <thead class="bg-gray-50"><tr>
                 <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Görsel</th>
@@ -514,18 +549,24 @@
         `;
         noMyProductsMessage.classList.add('hidden');
         try {
+            if (!currentUser) {
+                console.warn("loadMyProducts: currentUser tanımlı değil.");
+                return;
+            }
             const q = query(collection(db, "products"), where("producerId", "==", currentUser.uid));
             const snapshot = await getDocs(q);
             myProducts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             renderMyProductsTable();
         } catch (error) {
             console.error("Error loading my products:", error);
-            showToast("Ürünleriniz yüklenirken hata oluştu.");
+            showToast("Ürünleriniz yüklenirken hata oluştu. İzinleri kontrol edin.");
             myProductsTableBody.innerHTML += '<tr><td colspan="6" class="text-center py-4 text-red-500">Ürünleriniz yüklenemedi.</td></tr>';
         }
     }
 
     function renderMyProductsTable() {
+        if (!myProductsTableBody || !noMyProductsMessage) return;
+
         myProductsTableBody.innerHTML = `
             <thead class="bg-gray-50"><tr>
                 <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Görsel</th>
@@ -535,7 +576,10 @@
                 <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Durum</th>
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">İşlem</th>
             </tr></thead>
+            <tbody></tbody> <!-- tbody ekledim -->
         `;
+        const tableBody = myProductsTableBody.querySelector('tbody'); // tbody'yi seç
+
         if (myProducts.length === 0) {
             noMyProductsMessage.classList.remove('hidden');
         } else {
@@ -544,7 +588,7 @@
                 const statusKey = typeof product.isApproved === 'boolean' ? (product.isApproved ? 'approved' : 'pending-approval') : (product.isApproved === 'rejected' ? 'rejected' : 'pending-approval');
                 const statusInfo = PRODUCT_STATUS_MAP[statusKey];
 
-                myProductsTableBody.innerHTML += `
+                tableBody.innerHTML += `
                     <tr class="border-t">
                         <td class="px-4 py-2 text-sm"><img src="${product.imageUrl || 'https://placehold.co/40x40/e2e8f0/64748b?text=P'}" alt="Product Image" class="w-10 h-10 object-cover rounded-md"></td>
                         <td class="px-4 py-2 text-sm">${product.name}</td>
@@ -567,6 +611,11 @@
     });
 
     async function showEditProductModal(product) {
+        if (!productFormTitle || !productNameInput || !productDescriptionInput || !productPriceInput || !productImageUrlInput || !productCategorySelect || !deleteProducerProductBtn || !productFormModal) {
+            console.error("Ürün düzenleme modalı DOM öğeleri eksik.");
+            return;
+        }
+
         productFormTitle.textContent = 'Ürün Düzenle';
         currentEditingProductId = product.id;
         productNameInput.value = product.name || '';
@@ -574,8 +623,13 @@
         productPriceInput.value = product.price || 0;
         productImageUrlInput.value = product.imageUrl || '';
         
-        await populateProductCategoriesDropdown(productCategorySelect);
-        productCategorySelect.value = product.category || '';
+        try {
+            await populateProductCategoriesDropdown(productCategorySelect);
+            productCategorySelect.value = product.category || '';
+        } catch (error) {
+             console.error("Ürün düzenlerken kategori yüklenirken hata:", error);
+             showToast("Kategoriler yüklenemedi. Lütfen Yönetici Paneli'nden kategorileri kontrol edin ve sayfa yetkilerini güncelleyin.");
+        }
 
         deleteProducerProductBtn.classList.remove('hidden'); // Show delete button for existing products
         productFormModal.classList.remove('hidden');
@@ -592,6 +646,11 @@
 
         if (!name || isNaN(price) || price <= 0 || !category) {
             showToast('Lütfen tüm gerekli alanları doldurun ve geçerli bir fiyat girin.');
+            return;
+        }
+
+        if (!currentUser || !currentUserProfile) {
+            showToast("Profil bilgileri eksik. Lütfen tekrar giriş yapın.");
             return;
         }
 
@@ -626,7 +685,7 @@
             loadMyProducts(); // Reload products after add/update
         } catch (error) {
             console.error("Ürün kaydederken hata:", error);
-            showToast('Ürün kaydedilirken bir hata oluştu.');
+            showToast('Ürün kaydedilirken bir hata oluştu. İzinleri kontrol edin.');
         }
     });
 
@@ -642,16 +701,26 @@
                 loadMyProducts(); // Reload products after deletion
             } catch (error) {
                 console.error("Ürün silinirken hata:", error);
-                showToast('Ürün silinirken bir hata oluştu.');
+                showToast('Ürün silinirken bir hata oluştu. İzinleri kontrol edin.');
             }
         }
     });
 
     // Function to populate category dropdown for product forms
     async function populateProductCategoriesDropdown(selectElement) {
-        selectElement.innerHTML = '<option value="">Kategori Seçiniz</option>'; // Default empty option
+        if (!selectElement) {
+            console.error("populateProductCategoriesDropdown: selectElement tanımlı değil.");
+            return;
+        }
+        selectElement.innerHTML = '<option value="" disabled selected>Kategori Seçiniz</option>'; // Default empty option
         try {
             const snapshot = await getDocs(collection(db, "categories"));
+            if (snapshot.empty) {
+                console.warn("Firestore'da kategori bulunamadı.");
+                selectElement.innerHTML = '<option value="" disabled selected>Kategori Bulunamadı</option>';
+                showToast("Kategori bulunamadı. Lütfen yöneticinizden kategori eklemesini isteyin.");
+                return;
+            }
             snapshot.docs.forEach(doc => {
                 const categoryName = doc.data().name;
                 const option = document.createElement('option');
@@ -661,7 +730,8 @@
             });
         } catch (error) {
             console.error("Kategori dropdown yüklenirken hata:", error);
-            showToast("Kategoriler yüklenirken bir sorun oluştu.");
+            showToast("Kategoriler yüklenirken bir sorun oluştu. İzinleri kontrol edin.");
+            selectElement.innerHTML = '<option value="" disabled selected>Kategori Yüklenemedi</option>';
         }
     }
 
@@ -670,8 +740,12 @@
     async function loadMyOrders() {
         const myOrdersTableBody = document.getElementById('my-orders-table-body');
         const noMyOrdersMessage = document.getElementById('no-my-orders-message');
-        myOrdersTableBody.innerHTML = '';
-        noMyOrdersMessage.classList.add('hidden');
+        
+        // Null kontrolü
+        if (!myOrdersTableBody || !noMyOrdersMessage) {
+            console.error("Siparişlerim DOM öğeleri bulunamadı.");
+            return;
+        }
 
         myOrdersTableBody.innerHTML = `
             <thead class="bg-gray-50"><tr>
@@ -686,10 +760,15 @@
             </tr></thead>
             <tbody></tbody>
         `;
+        noMyOrdersMessage.classList.add('hidden');
 
         const tableBody = myOrdersTableBody.querySelector('tbody');
 
         try {
+            if (!currentUser) {
+                console.warn("loadMyOrders: currentUser tanımlı değil.");
+                return;
+            }
             // Fetch all orders and filter client-side for producer's items
             const allOrdersSnapshot = await getDocs(query(collection(db, "orders"), orderBy("orderDate", "desc")));
             let ordersContainingMyProducts = [];
@@ -739,8 +818,8 @@
 
         } catch (error) {
             console.error("My Orders (Producer) error:", error);
-            showToast("Siparişleriniz yüklenirken hata oluştu.");
-            tableBody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-red-500">Siparişler yüklenemedi.</td></tr>';
+            showToast("Siparişleriniz yüklenirken hata oluştu. İzinleri kontrol edin.");
+            if (tableBody) tableBody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-red-500">Siparişler yüklenemedi.</td></tr>';
         }
     }
 
@@ -750,6 +829,12 @@
         const completedOrdersCount = document.getElementById('completed-orders-count');
         const pendingSalesAmount = document.getElementById('pending-sales-amount');
         const salesDetailTableBody = document.getElementById('sales-detail-table-body');
+
+        // Null kontrolü
+        if (!totalSalesAmount || !completedOrdersCount || !pendingSalesAmount || !salesDetailTableBody) {
+             console.error("Satışlar DOM öğeleri bulunamadı.");
+             return;
+        }
 
         totalSalesAmount.textContent = 'Yükleniyor...';
         completedOrdersCount.textContent = 'Yükleniyor...';
@@ -765,11 +850,15 @@
                 <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Satış Tutarı</th>
                 <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Sipariş Durumu</th>
             </tr></thead>
-            <tbody></tbody>
+            <tbody></tbody> <!-- tbody ekledim -->
         `;
         const tableBody = salesDetailTableBody.querySelector('tbody');
 
         try {
+            if (!currentUser) {
+                console.warn("loadMySales: currentUser tanımlı değil.");
+                return;
+            }
             const allOrdersSnapshot = await getDocs(query(collection(db, "orders"), orderBy("orderDate", "desc")));
             let totalSales = 0;
             let completedSalesOrders = 0;
@@ -809,7 +898,7 @@
             pendingSalesAmount.textContent = `${pendingSales.toFixed(2)} ₺`;
 
             if (salesDetails.length === 0) {
-                tableBody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-gray-500">Henüz satış bulunmuyor.</td></tr>';
+                if (tableBody) tableBody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-gray-500">Henüz satış bulunmuyor.</td></tr>';
                 return;
             }
 
@@ -829,20 +918,20 @@
 
         } catch (error) {
             console.error("My Sales (Producer) error:", error);
-            showToast("Satış verileriniz yüklenirken hata oluştu.");
+            showToast("Satış verileriniz yüklenirken hata oluştu. İzinleri kontrol edin.");
             totalSalesAmount.textContent = 'Hata!';
             completedOrdersCount.textContent = 'Hata!';
             pendingSalesAmount.textContent = 'Hata!';
-            salesDetailTableBody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-red-500">Veriler yüklenemedi.</td></tr>';
+            if (tableBody) tableBody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-red-500">Veriler yüklenemedi.</td></tr>';
         }
     }
 
 
     // Initial load when the page loads (after authentication check)
-    document.addEventListener('DOMContentLoaded', () => {
-        // Categories need to be loaded for product forms regardless of initial section
-        populateProductCategoriesDropdown(productCategorySelect);
-    });
+    // Bu kısım onAuthStateChanged içinde çağrıldığı için DOMContentLoaded olayına gerek kalmıyor
+    // document.addEventListener('DOMContentLoaded', () => {
+    //     populateProductCategoriesDropdown(productCategorySelect);
+    // });
 
 </script>
 </body>
