@@ -937,8 +937,15 @@
             addProducerModal.classList.remove('show');
         } catch (error) {
             console.error("Üretici eklenirken hata:", error);
-            showToast("Üretici eklenemedi: " + error.message);
-            // FirebaseAuth hatalarını daha anlaşılır hale getir (örneğin: 'auth/email-already-in-use')
+            let errorMessage = "Üretici eklenemedi.";
+            if (error.code === 'auth/email-already-in-use') {
+                errorMessage = "Bu e-posta adresi zaten kullanımda. Lütfen farklı bir e-posta adresi deneyin.";
+            } else if (error.code === 'auth/weak-password') {
+                errorMessage = "Şifre en az 6 karakter olmalıdır.";
+            } else if (error.code === 'auth/invalid-email') {
+                errorMessage = "Geçersiz e-posta adresi formatı.";
+            }
+            showToast(errorMessage);
         }
     }
 
