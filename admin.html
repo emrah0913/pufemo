@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Getir Kıbrıs - Yönetici Paneli</title>
+    <title>Yönetici Paneli | Getir Kıbrıs</title>
     <meta name="description" content="Getir Kıbrıs Yönetici Paneli - Siparişleri ve kullanıcıları yönetin.">
     <link rel="icon" href="https://pufemo.netlify.app/favicon.ico?v=2" type="image/x-icon">
 
@@ -639,9 +639,10 @@
                 { value: 'pending_payment', label: 'Ödeme Bekleniyor', class: 'bg-yellow-500 text-white' },
                 { value: 'processing', label: 'İşleniyor', class: 'bg-blue-500 text-white' },
                 { value: 'shipped', label: 'Kargoya Verildi', class: 'bg-teal-500 text-white' },
-                { value: 'delivered', label: 'Teslim Edildi', class: 'bg-green-500 text-white' },
-                { value: 'cancelled', label: 'İptal Edildi', class: 'bg-red-500 text-white' }
+                { value: 'delivered', label: 'Teslim Edildi', class: 'bg-green-500', text_color: 'text-white' }, // Corrected text_color
+                { value: 'cancelled', label: 'İptal Edildi', class: 'bg-red-500', text_color: 'text-white' } // Corrected text_color
             ];
+
 
             const currentStatusInfo = statusOptions.find(s => s.value === order.status) || { label: order.status, class: 'bg-gray-400 text-white' };
 
@@ -712,13 +713,16 @@
             selectElement.addEventListener('change', async (e) => {
                 const orderId = e.target.dataset.orderId;
                 const newStatus = e.target.value;
-                const oldStatusLabel = statusOptions.find(s => s.value === order.status).label;
+                // find the correct old status label from the original order object
+                const currentOrder = orders.find(o => o.id === orderId);
+                const oldStatusLabel = statusOptions.find(s => s.value === currentOrder.status).label;
                 const newStatusLabel = statusOptions.find(s => s.value === newStatus).label;
 
                 if (confirm(`Siparişin durumunu "${oldStatusLabel}" konumundan "${newStatusLabel}" konumuna değiştirmek istediğinize emin misiniz?`)) {
                     await updateOrderStatus(orderId, newStatus);
                 } else {
-                    e.target.value = orders.find(o => o.id === orderId).status;
+                    // Revert select back to original status if cancelled
+                    e.target.value = currentOrder.status;
                 }
             });
         });
@@ -998,6 +1002,7 @@
         if (filterStatus === 'approved') {
             q = query(productsRef, where("isApproved", "==", true), orderBy("createdAt", "desc"));
         } else if (filterStatus === 'pending') {
+            // Only show products that are explicitly false or do not have isApproved field
             q = query(productsRef, where("isApproved", "==", false), orderBy("createdAt", "desc"));
         }
         // 'all' durumu için ekstra where clause eklemeye gerek yok
@@ -1030,19 +1035,19 @@
             productCard.className = 'bg-white rounded-lg shadow-md p-4 space-y-2 border border-gray-200';
             productCard.innerHTML = `
                 <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-3 sm:mb-0">
-                    <img src="${product.imageUrl || 'https://placehold.co/80x80/e2e8f0/64748b?text=Ürün'}" alt="${product.productName}" class="w-20 h-20 object-cover rounded-md flex-shrink-0">
+                    <img src="${product.imageUrl || 'https://placehold.co/80x80/e2e8f0/64748b?text=Ürün'}" alt="${product.name}" class="w-20 h-20 object-cover rounded-md flex-shrink-0">
                     <div class="flex-1">
-                        <p class="font-semibold text-lg text-gray-800">${product.productName || 'İsimsiz Ürün'}</p>
+                        <p class="font-semibold text-lg text-gray-800">${product.name || 'İsimsiz Ürün'}</p>
                         <p class="text-sm text-gray-600 line-clamp-2">${product.description || 'Açıklama yok.'}</p>
                         <p class="text-md font-bold text-primary">${(parseFloat(product.price) || 0).toFixed(2)} ₺</p>
                         <p class="text-xs text-gray-500">Kategori: ${product.category || 'Belirtilmemiş'}</p>
                         <p class="text-xs text-gray-500">Üretici ID: ${product.producerId || 'Bilinmiyor'}</p>
-                        <p class="text-xs font-semibold ${product.isApproved ? 'text-green-600' : 'text-orange-600'}">Durum: ${product.isApproved ? 'Onaylı' : 'Onay Bekliyor'}</p>
+                        <p class="text-xs font-semibold ${product.isApproved ? 'text-green-600' : (product.isApproved === false ? 'text-orange-600' : 'text-gray-500')}">Durum: ${product.isApproved ? 'Onaylı' : (product.isApproved === false ? 'Onay Bekliyor' : 'Bilinmiyor')}</p>
                     </div>
                 </div>
                 <div class="flex justify-end gap-2 mt-4">
                     <button data-product-id="${product.id}" class="edit-product-btn bg-blue-500 text-white text-sm px-4 py-2 rounded-button hover:bg-blue-600 transition-colors">Düzenle</button>
-                    ${!product.isApproved ? `<button data-product-id="${product.id}" class="approve-product-btn bg-green-500 text-white text-sm px-4 py-2 rounded-button hover:bg-green-600 transition-colors">Onayla</button>` : ''}
+                    ${product.isApproved === false ? `<button data-product-id="${product.id}" class="approve-product-btn bg-green-500 text-white text-sm px-4 py-2 rounded-button hover:bg-green-600 transition-colors">Onayla</button>` : ''}
                     <button data-product-id="${product.id}" class="delete-product-btn bg-red-500 text-white text-sm px-4 py-2 rounded-button hover:bg-red-600 transition-colors">Sil</button>
                 </div>
             `;
@@ -1055,7 +1060,7 @@
                 const productToEdit = products.find(p => p.id === productId);
                 if (productToEdit) {
                     document.getElementById('edit-product-id').value = productToEdit.id;
-                    document.getElementById('edit-product-name').value = productToEdit.productName || '';
+                    document.getElementById('edit-product-name').value = productToEdit.name || ''; 
                     document.getElementById('edit-product-description').value = productToEdit.description || '';
                     document.getElementById('edit-product-price').value = productToEdit.price || 0;
                     document.getElementById('edit-product-category').value = productToEdit.category || '';
@@ -1081,7 +1086,7 @@
             });
         });
 
-        document.querySelectorAll('.delete-product-btn').forEach(button => { // Changed from reject-product-btn to delete-product-btn
+        document.querySelectorAll('.delete-product-btn').forEach(button => {
             button.addEventListener('click', async (e) => {
                 const productId = e.target.dataset.productId;
                 if (confirm('Bu ürünü silmek istediğinize emin misiniz? Bu işlem geri alınamaz!')) {
@@ -1116,7 +1121,7 @@
         try {
             const productRef = doc(db, 'products', productId);
             await updateDoc(productRef, {
-                productName: productName,
+                name: productName, // Burası düzeltildi: productName yerine 'name' kullanıldı
                 description: description,
                 price: price,
                 category: category,
