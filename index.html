@@ -18,24 +18,23 @@
         .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.95); z-index: 10000; display: flex; justify-content: center; align-items: center; font-size: 1.5rem; transition: opacity 0.5s ease; flex-direction: column; }
         .loading-overlay.hidden { opacity: 0; pointer-events: none; }
 
-        /* YENİ PROMO BAR STİLLERİ BAŞLANGIÇ */
         .promo-bar {
-            background-color: var(--secondary-color); /* Promosyon rengi */
+            background-color: var(--secondary-color); 
             color: var(--light-text-color);
             text-align: center;
             padding: 8px 0;
             font-size: 0.95rem;
             font-weight: 600;
-            overflow: hidden; /* Akan yazının dışarı taşmasını engelle */
-            white-space: nowrap; /* Yazının tek satırda kalmasını sağla */
+            overflow: hidden; 
+            white-space: nowrap; 
             position: relative;
-            z-index: 1001; /* Header'dan daha düşük ama önemli */
+            z-index: 1001; 
         }
 
         .promo-text {
-            display: inline-block; /* Yazının akmasını sağlamak için */
-            padding-left: 100%; /* Başlangıçta ekranın dışında kalması için */
-            animation: scroll-text 20s linear infinite; /* Animasyon */
+            display: inline-block; 
+            padding-left: 100%; 
+            animation: scroll-text 20s linear infinite; 
         }
 
         @keyframes scroll-text {
@@ -43,10 +42,9 @@
                 transform: translateX(0%);
             }
             100% {
-                transform: translateX(-100%); /* Yazı sola doğru kayacak */
+                transform: translateX(-100%); 
             }
         }
-        /* YENİ PROMO BAR STİLLERİ BİTİŞ */
 
         .main-header { 
             background-color: var(--card-bg-color); 
@@ -107,7 +105,6 @@
         .slide video, .slide .slide-bg-image { width: 100%; height: 100%; object-fit: cover; background-size: cover; background-position: center; }
         .slide.active { opacity: 1; visibility: visible; }
         
-        /* SLIDE CONTENT POSITIONING ADJUSTMENT START */
         .slide-content { 
             position: absolute; 
             top: 70%; 
@@ -117,7 +114,6 @@
             text-align: center; 
             max-width: 80%; 
         }
-        /* SLIDE CONTENT POSITIONING ADJUSTMENT END */
 
         .slide-content h2 { font-size: 2.8rem; font-weight: 700; margin-bottom: 1rem; text-shadow: 2px 2px 8px rgba(0,0,0,0.8); }
         .slide-content p { font-size: 1.2rem; margin-bottom: 1.5rem; text-shadow: 1px 1px 6px rgba(0,0,0,0.8); }
@@ -128,7 +124,28 @@
         main { padding: 3rem 0; }
         .section { padding-top: 60px; margin-top: -60px; }
         .section-title { text-align: center; margin-bottom: 2.5rem; font-size: 2.2rem; font-weight: 600; color: var(--primary-color); }
-        .product-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; }
+        
+        /* ÜRÜN GRİD DÜZENİ BAŞLANGIÇ */
+        .product-grid { 
+            display: grid; 
+            gap: 2rem; 
+            /* Mobil varsayılan: 2 sütun */
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); /* Min genişlik daha küçük cihazlar için uygun */
+        }
+        
+        @media (min-width: 768px) { /* Tabletler ve daha büyük ekranlar için */
+            .product-grid {
+                grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); /* 3 veya 4 sütun için uygun min genişlik */
+            }
+        }
+
+        @media (min-width: 1200px) { /* Masaüstü ve daha büyük ekranlar için */
+            .product-grid {
+                grid-template-columns: repeat(4, 1fr); /* Tam 4 sütun */
+            }
+        }
+        /* ÜRÜN GRİD DÜZENİ BİTİŞ */
+
         .product-card { 
             background-color: var(--card-bg-color); 
             border-radius: var(--border-radius); 
@@ -140,7 +157,7 @@
             position: relative; 
         }
         .product-card:hover { transform: translateY(-10px); box-shadow: 0 10px 20px rgba(0,0,0,0.15); }
-        /* PRODUCT IMAGE ADJUSTMENTS START */
+        
         .product-image-link { 
             display: flex; 
             justify-content: center;
@@ -154,7 +171,7 @@
             max-height: 100%; 
             object-fit: contain; 
         }
-        /* PRODUCT IMAGE ADJUSTMENTS END */
+        
         .product-info { padding: 1.5rem; flex-grow: 1; display: flex; flex-direction: column; }
         .product-info-top { flex-grow: 1; }
         .product-name { font-size: 1.3rem; font-weight: 600; margin-bottom: 0.5rem; }
@@ -227,6 +244,7 @@
     <div class="promo-bar">
         <span id="promo-text-content" class="promo-text">Ücretsiz Kargo İmkanı! Türkiye'nin Her Yerine Mobilyalarınız Kapınızda!</span>
     </div>
+
     <div id="loading-overlay" class="loading-overlay"><i class="fa-solid fa-couch fa-bounce" style="font-size: 3rem;"></i><p style="margin-top: 1.5rem;">PUFEMO Yükleniyor...</p></div>
     <div id="mobile-nav-overlay" class="mobile-nav-overlay"></div>
     <header class="main-header">
@@ -335,7 +353,7 @@
                     const [settingsDoc, categoriesDoc, productsSnap] = await Promise.all([
                         db.collection('pufemo').doc('settings').get(),
                         db.collection('pufemo').doc('categories').get(),
-                        db.collection('pufemo-products').get()
+                        db.collection('pufemo').doc('pufemo-products').get()
                     ]);
                     siteData.settings = settingsDoc.exists ? settingsDoc.data() : { exchangeRates: { TRY: 1 }, currencySymbols: { TRY: '₺'} };
                     siteData.categories = categoriesDoc.exists ? categoriesDoc.data() : {};
@@ -354,7 +372,7 @@
                 document.documentElement.lang = currentLang;
                 const translate = (key) => staticTranslations[key]?.[currentLang] || staticTranslations[key]?.['tr'];
                 document.querySelector('#loading-overlay p').textContent = translate('loading_text');
-                document.getElementById('promo-text-content').textContent = translate('free_shipping_promo'); // Akan yazı için ekleme
+                document.getElementById('promo-text-content').textContent = translate('free_shipping_promo'); 
                 document.getElementById('main-section-title').textContent = translate('main_section_title');
                 document.getElementById('footer-title-pufemo').textContent = translate('footer-title-pufemo');
                 document.getElementById('footer-desc-pufemo').textContent = translate('footer-desc-pufemo');
