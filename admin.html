@@ -66,8 +66,19 @@
         .media-input-group input { flex-grow: 1; }
         .category-tree-container ul, .category-checklist-container ul { list-style: none; padding-left: 20px; }
         .category-item { background-color: #fff; border: 1px solid var(--border-color); border-radius: 5px; padding: 10px 15px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; }
-        .category-name-inputs { display: flex; gap: 15px; flex-grow: 1;}
-        .category-name-inputs .form-group { margin-bottom: 0; flex: 1; }
+        .category-name-inputs { 
+            display: flex; 
+            gap: 15px; 
+            flex-grow: 1;
+            /* Yeni eklenen stiller */
+            flex-wrap: wrap; 
+            margin-bottom: -0.5rem; /* Form-group'ların margin-bottom'unu telafi etmek için */
+        }
+        .category-name-inputs .form-group { 
+            margin-bottom: 0.5rem; /* Daha az boşluk */
+            flex: 1 1 calc(50% - 7.5px); /* İki sütunlu yerleşim */
+            min-width: 150px; /* Çok küçük kalmasınlar */
+        }
         .category-name-inputs .form-group label { font-size: 0.8em; }
         .category-controls { display: flex; align-items: center; }
         .category-controls button { background: none; border: none; font-size: 1.2rem; cursor: pointer; margin-left: 10px; width: 30px; height: 30px; line-height: 30px; border-radius: 50%; }
@@ -166,7 +177,7 @@
             margin-left: 10px;
         }
         .language-item .lang-controls button:hover {
-            color: var(--primary-color); /* Hover rengini ayarla */
+            color: var(--primary-color); 
         }
     </style>
 </head>
@@ -445,7 +456,6 @@
                     // Fetched settings'ten veya localState'deki varsayılanlardan language listesini al
                     localState.settings = { 
                         ...fetchedSettings, 
-                        // languages'ı Firebase'den al veya localState'in varsayılanını kullan
                         languages: fetchedSettings.languages?.length ? fetchedSettings.languages : localState.settings.languages, 
                         banner: fetchedSettings.banner || { slides: [] },
                         general: {
@@ -680,7 +690,7 @@
                 });
             }
             
-            // === 5. KATEGORİ YÖNETİMİ ===
+            // === 5. KATEGORİ YÖNETİMİ GÜNCELLENDİ (Çoklu Dil Desteği) ===
             function refreshCategoryView() {
                 categoryTreeContainer.innerHTML = '';
                 const mainUl = document.createElement('ul');
@@ -692,8 +702,25 @@
                 const li = document.createElement('li');
                 li.dataset.id = category.id;
                 const languages = localState.settings.languages?.length ? localState.settings.languages : [{code: 'tr', name: 'Türkçe', flag: '🇹🇷'}];
-                let nameInputsHTML = languages.map(lang => `<div class="form-group"><label>${lang.flag || lang.code}</label><input type="text" class="category-name-input" data-lang="${lang.code}" value="${category.name?.[lang.code] || ''}"></div>`).join('');
-                li.innerHTML = `<div class="category-item"><div class="category-name-inputs">${nameInputsHTML}</div><div class="category-controls"><button class="add-subcategory-btn" title="Alt Kategori Ekle"><i class="fa-solid fa-plus"></i></button><button class="delete-category-btn" title="Kategoriyi Sil"><i class="fa-solid fa-trash"></i></button></div></div>`;
+                
+                // Kategori adı için çoklu dil giriş alanları oluştur
+                let nameInputsHTML = languages.map(lang => `
+                    <div class="form-group">
+                        <label>${lang.flag || lang.code}</label>
+                        <input type="text" class="category-name-input" data-lang="${lang.code}" value="${category.name?.[lang.code] || ''}">
+                    </div>
+                `).join('');
+
+                li.innerHTML = `
+                    <div class="category-item">
+                        <div class="category-name-inputs">
+                            ${nameInputsHTML}
+                        </div>
+                        <div class="category-controls">
+                            <button class="add-subcategory-btn" title="Alt Kategori Ekle"><i class="fa-solid fa-plus"></i></button>
+                            <button class="delete-category-btn" title="Kategoriyi Sil"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    </div>`;
                 const subcategoriesUl = document.createElement('ul');
                 if (category.children?.length > 0) {
                     category.children.forEach(child => subcategoriesUl.appendChild(createCategoryNode(child)));
@@ -707,8 +734,25 @@
                 const formLi = document.createElement('li');
                 formLi.className = 'category-item new-category-form';
                 const languages = localState.settings.languages?.length ? localState.settings.languages : [{code: 'tr', name: 'Türkçe', flag: '🇹🇷'}];
-                let nameInputsHTML = languages.map(lang => `<div class="form-group"><label>${lang.flag || lang.code}</label><input type="text" class="new-category-name-input" data-lang="${lang.code}" placeholder="${lang.name} Adı" required></div>`).join('');
-                formLi.innerHTML = `<form style="width: 100%;"><div class="category-name-inputs">${nameInputsHTML}</div><div class="form-actions" style="margin-top: 1rem;"><button type="button" class="btn btn-danger btn-sm cancel-new-category">İptal</button><button type="submit" class="btn btn-success btn-sm">Kaydet ✅</button></div></form>`;
+                
+                // Yeni kategori adı için çoklu dil giriş alanları oluştur
+                let nameInputsHTML = languages.map(lang => `
+                    <div class="form-group">
+                        <label>${lang.flag || lang.code}</label>
+                        <input type="text" class="new-category-name-input" data-lang="${lang.code}" placeholder="${lang.name} Adı" required>
+                    </div>
+                `).join('');
+
+                formLi.innerHTML = `
+                    <form style="width: 100%;">
+                        <div class="category-name-inputs">
+                            ${nameInputsHTML}
+                        </div>
+                        <div class="form-actions" style="margin-top: 1rem;">
+                            <button type="button" class="btn btn-danger btn-sm cancel-new-category">İptal</button>
+                            <button type="submit" class="btn btn-success btn-sm">Kaydet ✅</button>
+                        </div>
+                    </form>`;
                 container.prepend(formLi);
                 formLi.querySelector('input').focus();
                 
@@ -716,7 +760,10 @@
                     e.preventDefault();
                     const newCategory = { id: generateUniqueId(), name: {}, children: [] };
                     let hasName = false;
-                    formLi.querySelectorAll('.new-category-name-input').forEach(input => { if (input.value.trim()) hasName = true; newCategory.name[input.dataset.lang] = input.value.trim(); });
+                    formLi.querySelectorAll('.new-category-name-input').forEach(input => { 
+                        if (input.value.trim()) hasName = true; 
+                        newCategory.name[input.dataset.lang] = input.value.trim(); 
+                    });
                     if (!hasName) { alert('Lütfen en az bir dilde kategori adı girin.'); return; }
                     parentCategoryArray.push(newCategory);
                     await saveData('categories', localState.categories);
@@ -858,12 +905,69 @@
             });
             bannerSettingsContainer.addEventListener('click', (e) => { if (e.target.closest('.delete-slide-btn')) { const index = e.target.closest('.form-section').dataset.index; localState.settings.banner.slides.splice(index, 1); renderBannerSettings(); } });
             
-            // --- KATEGORİ YÖNETİMİ OLAYLARI ---
+            // --- KATEGORİ YÖNETİMİ OLAYLARI GÜNCELLENDİ (Çoklu Dil Desteği) ---
             document.getElementById('add-main-category-btn').addEventListener('click', () => { showCategoryInputForm(categoryTreeContainer.querySelector('ul'), localState.categories); });
-            categoryTreeContainer.addEventListener('click', e => { const btn = e.target.closest('button'); if (!btn) return; const li = btn.closest('li[data-id]'); const id = li?.dataset.id; const findCategory = (cats, catId) => { for (const cat of cats) { if (cat.id === catId) return cat; if (cat.children) { const found = findCategory(cat.children, catId); if (found) return found; } } return null; }; const findAndRemove = (cats, catId) => { for (let i = 0; i < cats.length; i++) { if(cats[i].id === catId) { cats.splice(i, 1); return true; } if(cats[i].children && findAndRemove(cats[i].children, catId)) return true; } return false; }; if (btn.matches('.add-subcategory-btn, .add-subcategory-btn *')) { const parentCategory = findCategory(localState.categories, id); if (parentCategory) { if (!parentCategory.children) parentCategory.children = []; let subList = li.querySelector('ul'); if(!subList) { subList = document.createElement('ul'); li.appendChild(subList); } showCategoryInputForm(subList, parentCategory.children); } } else if (btn.matches('.delete-category-btn, .delete-category-btn *')) { if (confirm('Bu kategoriyi ve tüm alt kategorilerini silmek istediğinizden emin misiniz?')) { findAndRemove(localState.categories, id); saveData('categories', localState.categories).then(refreshCategoryView); } } });
-            categoryTreeContainer.addEventListener('change', e => { if(e.target.matches('.category-name-input')) { const id = e.target.closest('li[data-id]').dataset.id; const lang = e.target.dataset.lang; const findAndUpdate = (cats, catId) => { for(const cat of cats) { if(cat.id === catId) { if(!cat.name) cat.name={}; cat.name[lang] = e.target.value; return true; } if(cat.children && findAndUpdate(cat.children, catId)) return true; } return false; }; if (findAndUpdate(localState.categories, id)) { saveData('categories', localState.categories); } } });
+            categoryTreeContainer.addEventListener('click', async e => { 
+                const btn = e.target.closest('button'); 
+                if (!btn) return; 
+                const li = btn.closest('li'); // li[data-id] olmadan da çalışır
 
-            // --- YENİ EKLENEN GENEL AYARLAR FONKSİYONLARI VE OLAY DİNLEYİCİLERİ ---
+                if (btn.matches('.add-subcategory-btn, .add-subcategory-btn *')) {
+                    const id = li?.dataset.id;
+                    const parentCategory = findCategoryInTree(localState.categories, id);
+                    if (parentCategory) {
+                        if (!parentCategory.children) parentCategory.children = [];
+                        let subList = li.querySelector('ul');
+                        if(!subList) { 
+                            subList = document.createElement('ul'); 
+                            li.appendChild(subList); 
+                        }
+                        showCategoryInputForm(subList, parentCategory.children);
+                    }
+                } else if (btn.matches('.delete-category-btn, .delete-category-btn *')) {
+                    const id = li?.dataset.id;
+                    if (confirm('Bu kategoriyi ve tüm alt kategorilerini silmek istediğinizden emin misiniz?')) { 
+                        findAndRemoveCategory(localState.categories, id); 
+                        await saveData('categories', localState.categories); // Kategori silindikten sonra kaydet
+                        refreshCategoryView();
+                    } 
+                } else if (e.target.matches('.category-name-input')) { // Input değiştiğinde kaydet
+                    const id = e.target.closest('li').dataset.id;
+                    const lang = e.target.dataset.lang;
+                    const value = e.target.value.trim();
+                    const categoryToUpdate = findCategoryInTree(localState.categories, id);
+                    if (categoryToUpdate) {
+                        if (!categoryToUpdate.name) categoryToUpdate.name = {};
+                        categoryToUpdate.name[lang] = value;
+                        await saveData('categories', localState.categories); // Her input değişiminde kaydet
+                    }
+                }
+            });
+
+            // Yardımcı fonksiyonlar (kategori ağacında arama ve silme)
+            function findCategoryInTree(categories, id) {
+                for (const cat of categories) {
+                    if (cat.id === id) return cat;
+                    if (cat.children) {
+                        const found = findCategoryInTree(cat.children, id);
+                        if (found) return found;
+                    }
+                }
+                return null;
+            }
+
+            function findAndRemoveCategory(categories, id) {
+                for (let i = 0; i < categories.length; i++) {
+                    if(categories[i].id === id) {
+                        categories.splice(i, 1);
+                        return true;
+                    }
+                    if(categories[i].children && findAndRemoveCategory(categories[i].children, id)) return true;
+                }
+                return false;
+            }
+
+            // --- GENEL AYARLAR FONKSİYONLARI VE OLAY DİNLEYİCİLERİ ---
 
             function toggleLogoOptions() {
                 const selectedType = logoTypeSelect.value;
@@ -903,7 +1007,6 @@
                 // Promosyon Bandı Ayarları
                 document.getElementById('promoBarBgColor').value = generalSettings.promoBar?.bgColor || '#e74c3c';
                 document.getElementById('promoBarTextColor').value = generalSettings.promoBar?.textColor || '#ffffff';
-                // Değerleri alırken 'px' veya 's' kısımlarını temizle
                 document.getElementById('promoBarFontSize').value = parseFloat(generalSettings.promoBar?.fontSize) || 15;
                 document.getElementById('promoBarScrollSpeed').value = parseFloat(generalSettings.promoBar?.scrollSpeed) || 20;
 
@@ -918,14 +1021,13 @@
                 renderLanguageList();
             }
 
-            // YENİ: Dilleri Listeleme ve Yönetme Fonksiyonları
+            // Dilleri Listeleme ve Yönetme Fonksiyonları (Güncellendi: saveLanguages adımı eklendi)
             function renderLanguageList() {
                 languageListContainer.innerHTML = '';
-                // localState.settings.languages'ı kontrol et ve varsa kullan, yoksa boş array ile başla
                 (localState.settings.languages || []).forEach(lang => {
                     const langItem = document.createElement('div');
                     langItem.className = 'language-item';
-                    langItem.dataset.code = lang.code; // Silme için kodu sakla
+                    langItem.dataset.code = lang.code; 
                     langItem.innerHTML = `
                         <span class="lang-name-flag">${lang.flag || ''} ${lang.name} (${lang.code})</span>
                         <div class="lang-controls">
@@ -937,7 +1039,7 @@
             }
 
             function showNewLanguageForm() {
-                if (newLanguageFormContainer.querySelector('form')) return; // Zaten form açıksa tekrar açma
+                if (newLanguageFormContainer.querySelector('form')) return; 
 
                 const form = document.createElement('form');
                 form.innerHTML = `
@@ -981,13 +1083,24 @@
                     }
 
                     localState.settings.languages.push({ name, code, flag });
-                    await saveData('settings', localState.settings);
-                    newLanguageFormContainer.innerHTML = ''; // Formu temizle
-                    renderLanguageList(); // Dil listesini yeniden render et
+                    await saveData('settings', { languages: localState.settings.languages }); // Sadece dilleri kaydet
+                    newLanguageFormContainer.innerHTML = ''; 
+                    renderLanguageList(); 
                     // Tüm formları yeniden render et ki yeni dil sekmesi görünsün
                     renderBannerSettings();
-                    loadProductForEditing(productForm.querySelector('#productId').value); // Mevcut ürünü yeniden yükle
-                    renderGeneralSettings(); // Genel ayarları yeniden yükle (promo text vb. için)
+                    // Ürün formu mevcutsa yeniden yükle
+                    const currentProductId = productForm.querySelector('#productId').value;
+                    if (currentProductId) {
+                        loadProductForEditing(currentProductId); 
+                    } else {
+                        // Yeni ürün formu açıksa, dil sekmelerini güncelle
+                        const productLangTabsContainer = productForm.querySelector('#product-lang-tabs-container');
+                        const productLangContentContainer = productForm.querySelector('#product-lang-content-container');
+                        if (productLangTabsContainer && productLangContentContainer && productForm.style.display !== 'none') {
+                           createLangTabs(productLangTabsContainer, productLangContentContainer, {}, [{ label: 'Ürün Adı', key: 'name' }, { label: 'Açıklama', key: 'description', type: 'textarea' }]);
+                        }
+                    }
+                    renderGeneralSettings(); 
                 });
 
                 form.querySelector('.cancel-new-language-btn').addEventListener('click', () => {
@@ -1028,7 +1141,7 @@
                 });
 
                 localState.settings.general = newGeneralSettings;
-                // Sadece general ayarlarını kaydet, diller ayrı kaydedildi
+                // Genel ayarları kaydet
                 await saveData('settings', { general: newGeneralSettings });
             });
 
@@ -1043,7 +1156,7 @@
                 }
             });
 
-            // YENİ: Dil Ekle/Sil Olay Dinleyicileri
+            // Dil Ekle/Sil Olay Dinleyicileri
             addLanguageBtn.addEventListener('click', showNewLanguageForm);
             languageListContainer.addEventListener('click', async (e) => {
                 const deleteBtn = e.target.closest('.delete-language-btn');
@@ -1060,11 +1173,22 @@
                     }
 
                     localState.settings.languages = localState.settings.languages.filter(lang => lang.code !== langCodeToDelete);
-                    await saveData('settings', { languages: localState.settings.languages });
-                    renderLanguageList(); // Dil listesini yeniden render et
+                    await saveData('settings', { languages: localState.settings.languages }); // Sadece dilleri kaydet
+                    renderLanguageList(); 
                     // Tüm formları yeniden render et ki dil sekmeleri güncellensin
                     renderBannerSettings();
-                    loadProductForEditing(productForm.querySelector('#productId').value); // Mevcut ürünü yeniden yükle
+                    // Ürün formu mevcutsa yeniden yükle
+                    const currentProductId = productForm.querySelector('#productId').value;
+                    if (currentProductId) {
+                        loadProductForEditing(currentProductId); 
+                    } else {
+                        // Yeni ürün formu açıksa, dil sekmelerini güncelle
+                        const productLangTabsContainer = productForm.querySelector('#product-lang-tabs-container');
+                        const productLangContentContainer = productForm.querySelector('#product-lang-content-container');
+                        if (productLangTabsContainer && productLangContentContainer && productForm.style.display !== 'none') {
+                           createLangTabs(productLangTabsContainer, productLangContentContainer, {}, [{ label: 'Ürün Adı', key: 'name' }, { label: 'Açıklama', key: 'description', type: 'textarea' }]);
+                        }
+                    }
                     renderGeneralSettings(); // Genel ayarları yeniden yükle (promo text vb. için)
                 }
             });
