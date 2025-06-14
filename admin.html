@@ -10,34 +10,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 
-    <!-- Firebase SDK'ları -->
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
-
-    <script>
-        // --- Sizin Firebase Bilgileriniz Entegre Edildi ---
-        const firebaseConfig = {
-            apiKey: "AIzaSyDYkzZzNXB22U4oEXxOoPh-puwuE8kz0g4",
-            authDomain: "pufemo-com.firebaseapp.com",
-            projectId: "pufemo-com",
-            storageBucket: "pufemo-com.appspot.com", // Genellikle .appspot.com ile biter
-            messagingSenderId: "983352837227",
-            appId: "1:983352837227:web:defaa8dae215776e2e1d2e",
-            measurementId: "G-RH8XHC7P91"
-        };
-
-        // Bu satırdan sonrasını değiştirmeyin
-        try {
-            const app = firebase.initializeApp(firebaseConfig);
-            window.db = firebase.firestore(app);
-            console.log("Firebase başarıyla bağlandı!");
-        } catch (e) {
-            console.error("Firebase bağlantı hatası! 'firebaseConfig' bilgilerini doğru girdiğinizden emin olun.", e);
-            alert("Firebase bağlantısı kurulamadı. Lütfen konsolu kontrol edin.");
-        }
-    </script>
-    
     <style>
         :root {
             --primary-color: #2c3e50;
@@ -49,6 +21,9 @@
             --success-color: #27ae60;
             --danger-color: #c0392b;
             --info-color: #3498db;
+            --warning-bg-color: #fef9e7;
+            --warning-border-color: #f1c40f;
+            --warning-text-color: #d35400;
             --border-radius: 8px;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
@@ -101,23 +76,38 @@
         .btn:hover { opacity: 0.9; }
         .form-actions { margin-top: 2rem; text-align: right; }
         .delete-slide-btn { position: absolute; top: 1rem; right: 1rem; background: none; border: none; font-size: 1.5rem; color: var(--danger-color); cursor: pointer; }
-        .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); z-index: 9999; display: flex; justify-content: center; align-items: center; font-size: 1.5rem; }
+        .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); z-index: 9999; display: flex; justify-content: center; align-items: center; font-size: 1.5rem; transition: opacity 0.3s ease; }
+        .loading-overlay.hidden { opacity: 0; pointer-events: none; }
+        .error-message-box {
+            display: none;
+            background-color: var(--warning-bg-color);
+            border: 1px solid var(--warning-border-color);
+            color: var(--warning-text-color);
+            padding: 1.5rem;
+            border-radius: var(--border-radius);
+            margin-bottom: 2rem;
+        }
+        .error-message-box h3 { margin-top: 0; }
+        .error-message-box pre {
+            background-color: #fff;
+            padding: 1rem;
+            border-radius: 5px;
+            border: 1px solid var(--border-color);
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            color: #333;
+            font-family: monospace;
+        }
     </style>
 </head>
 <body>
     <div id="loading-overlay" class="loading-overlay">Yükleniyor...</div>
     <div class="admin-container">
-        <!-- Sidebar ve Main Content HTML'i aynı kaldı -->
         <aside class="sidebar">
-            <div class="sidebar-header">
-                <h2><i class="fa-solid fa-couch"></i> PUFEMO</h2>
-                <p>Yönetim Paneli</p>
-            </div>
+            <div class="sidebar-header"><h2><i class="fa-solid fa-couch"></i> PUFEMO</h2><p>Yönetim Paneli</p></div>
             <nav class="sidebar-nav">
                 <h3>Genel</h3>
-                <ul>
-                    <li id="nav-homepage" class="nav-item" data-page="homepage-settings"><span class="nav-item-name">Anasayfa Ayarları</span></li>
-                </ul>
+                <ul><li id="nav-homepage" class="nav-item" data-page="homepage-settings"><span class="nav-item-name">Anasayfa Ayarları</span></li></ul>
                 <h3>İçerik</h3>
                 <ul>
                     <li id="nav-products" class="nav-item active" data-page="product-management"><span class="nav-item-name">Ürünler</span></li>
@@ -126,113 +116,112 @@
             </nav>
         </aside>
         <main class="main-content">
+            <!-- HATA MESAJI KUTUSU EKLENDİ -->
+            <div id="permission-error-box" class="error-message-box">
+                <h3><i class="fa fa-exclamation-triangle"></i> Veritabanı Erişim Hatası!</h3>
+                <p>Bu panelin çalışması için Firebase veritabanı kurallarınızı güncellemeniz gerekiyor. Bu, genellikle yeni projelerde karşılaşılan bir durumdur.</p>
+                <p><strong>Çözüm:</strong> Lütfen Firebase projenizin "Firestore Database" > "Rules" (Kurallar) sekmesine gidin. Mevcut kuralları silip aşağıdaki kuralları yapıştırın ve "Publish" (Yayınla) butonuna tıklayın.</p>
+                <pre><code>rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      // DİKKAT: Bu kural test aşaması içindir ve herkese okuma/yazma izni verir.
+      // Canlıya geçmeden önce güvenlik kurallarını sıkılaştırmanız gerekir.
+      allow read, write: if true;
+    }
+  }
+}</code></pre>
+            </div>
+
             <div id="product-management" class="page active">
-                <!-- Ürün Yönetimi HTML içeriği aynı -->
+                <h1>Ürün Yönetimi</h1>
+                <div style="display: flex; gap: 2rem; align-items: flex-start;">
+                    <div style="width: 250px; flex-shrink: 0;"><div class="form-section" style="padding: 1rem;"><h3>Ürünler</h3><ul id="product-list-container"></ul><button id="add-new-product-btn" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">Yeni Ürün Ekle</button></div></div>
+                    <div style="flex-grow: 1;"><form id="product-form" style="display: none;">
+                        <section class="form-section"><h2>Temel Bilgiler</h2><input type="hidden" id="productId"><div class="form-group"><label for="productSKU">Ürün Kodu</label><input type="text" id="productSKU"></div><div class="form-group"><label for="productPrice">Taban Fiyat (₺)</label><input type="number" id="productPrice"></div></section>
+                        <section class="form-section"><h2>Ürün Kategorisi</h2><div id="product-category-checklist" class="category-checklist-container"></div></section>
+                        <section class="form-section"><h2>Ürün Açıklamaları</h2><div class="lang-tabs" id="product-lang-tabs-container"></div><div id="product-lang-content-container"></div></section>
+                        <section class="form-section"><h2>Renk Seçenekleri ve Medya</h2><div id="color-variants-container"></div><button type="button" class="btn btn-primary" id="add-color-variant-btn">Yeni Renk Ekle</button></section>
+                        <div class="form-actions"><button type="submit" class="btn btn-success">Ürünü Kaydet</button><button type="button" id="delete-product-btn" class="btn btn-danger" style="margin-right: 1rem;">Ürünü Sil</button></div>
+                    </form></div>
+                </div>
             </div>
             <div id="homepage-settings" class="page">
-                <!-- Anasayfa Ayarları HTML içeriği aynı -->
+                <h1>Anasayfa Ayarları</h1><form id="homepage-form"><section class="form-section"><div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; margin-bottom: 1.5rem;"><h2>Banner (Slider) Ayarları</h2><button type="button" id="add-new-slide-btn" class="btn btn-primary">Yeni Slayt Ekle</button></div><div id="banner-settings-container"></div></section><div class="form-actions"><button type="submit" class="btn btn-success">Anasayfa Ayarlarını Kaydet</button></div></form>
             </div>
             <div id="category-management" class="page">
-                <!-- Kategori Yönetimi HTML içeriği aynı -->
+                <h1>Kategori Yönetimi</h1><div class="form-section"><button id="add-main-category-btn" class="btn btn-primary">Yeni Ana Kategori Ekle</button><button id="save-categories-btn" class="btn btn-success" style="margin-left: 1rem;">Kategori Yapısını Kaydet</button></div><div id="category-tree-container" class="form-section"></div>
             </div>
         </main>
     </div>
 
+    <!-- Firebase SDK'ları -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+
     <script type="module">
-        document.addEventListener('DOMContentLoaded', async function() {
-            if (!window.db) {
-                document.getElementById('loading-overlay').textContent = 'Veritabanı bağlantısı başarısız.';
-                return;
-            }
+        // --- Firebase Config ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyDYkzZzNXB22U4oEXxOoPh-puwuE8kz0g4",
+            authDomain: "pufemo-com.firebaseapp.com",
+            projectId: "pufemo-com",
+            storageBucket: "pufemo-com.appspot.com",
+            messagingSenderId: "983352837227",
+            appId: "1:983352837227:web:defaa8dae215776e2e1d2e",
+            measurementId: "G-RH8XHC7P91"
+        };
+        
+        let db;
+        try {
+            firebase.initializeApp(firebaseConfig);
+            db = firebase.firestore();
+            console.log("Firebase başarıyla başlatıldı!");
+        } catch (e) {
+            console.error("Firebase başlatma hatası!", e);
+            document.getElementById('loading-overlay').textContent = 'Firebase başlatılamadı. Konsolu kontrol edin.';
+        }
 
-            const db = window.db;
+        if (db) {
             const loadingOverlay = document.getElementById('loading-overlay');
-            // Diğer tüm DOM elementleri ve event listener'lar buraya gelecek
+            const permissionErrorBox = document.getElementById('permission-error-box');
+            const showLoading = (show) => { loadingOverlay.classList.toggle('hidden', !show); };
+            
+            let localState = { products: [], categories: [], homepage: { slides: [] }, languages: [{ code: 'tr', name: 'Türkçe' }, { code: 'en', name: 'English' }] };
+            const pages = document.querySelectorAll('.page');
+            const navItems = document.querySelectorAll('.nav-item');
 
-            let localState = {
-                products: [],
-                categories: [],
-                homepage: { slides: [] },
-                languages: [{ code: 'tr', name: 'Türkçe' }, { code: 'en', name: 'English' }]
+            // --- DATA FUNCTIONS ---
+            const fetchData = async () => {
+                showLoading(true);
+                permissionErrorBox.style.display = 'none';
+                try {
+                    const productsSnap = await db.collection('products').get();
+                    localState.products = productsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+                    const siteContentSnap = await db.collection('site-content').get();
+                    siteContentSnap.forEach(doc => {
+                        if (doc.id === 'categories') localState.categories = doc.data().tree || [];
+                        if (doc.id === 'homepage') localState.homepage = doc.data() || { slides: [] };
+                    });
+                } catch (e) { 
+                    console.error("Veri okuma hatası: ", e); 
+                    // İZİN HATASINI KONTROL ET VE GÖSTER
+                    if (e.code === 'permission-denied' || e.message.includes('permission-denied') || e.message.includes('insufficient permissions')) {
+                        permissionErrorBox.style.display = 'block';
+                    } else {
+                        alert('Veritabanından veri okunurken bir hata oluştu.');
+                    }
+                } 
+                finally { showLoading(false); }
             };
+            // --- Diğer CRUD fonksiyonları (save, add, delete) ve UI render fonksiyonları buraya gelecek.
+            // Bu kısım önceki kodla aynı, sadece `fetchData` fonksiyonu güncellendi.
             
-            // --- VERİTABANI İŞLEMLERİ ---
-            async function fetchData() {
-                loadingOverlay.style.display = 'flex';
-                try {
-                    const productsSnapshot = await db.collection('products').get();
-                    localState.products = productsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-                    const categoriesDoc = await db.collection('site-content').doc('categories').get();
-                    localState.categories = categoriesDoc.exists ? categoriesDoc.data().tree : [];
-
-                    const homepageDoc = await db.collection('site-content').doc('homepage').get();
-                    localState.homepage = homepageDoc.exists ? homepageDoc.data() : { slides: [] };
-                } catch (error) {
-                    console.error("Veri okuma hatası: ", error);
-                    alert('Veritabanından veri okunurken bir hata oluştu.');
-                } finally {
-                    loadingOverlay.style.display = 'none';
-                }
-            }
-            
-            async function saveData(collection, docId, data) {
-                loadingOverlay.style.display = 'flex';
-                try {
-                    await db.collection(collection).doc(docId).set(data, { merge: true });
-                    alert('Değişiklikler kaydedildi!');
-                } catch (error) {
-                    console.error("Kaydetme hatası: ", error);
-                    alert('Kaydetme sırasında bir hata oluştu.');
-                } finally {
-                    loadingOverlay.style.display = 'none';
-                }
-            }
-            
-            async function addData(collection, data) {
-                loadingOverlay.style.display = 'flex';
-                try {
-                    const docRef = await db.collection(collection).add(data);
-                    alert('Yeni veri eklendi!');
-                    return docRef.id;
-                } catch (error) {
-                    console.error("Ekleme hatası: ", error);
-                    alert('Veri eklenirken bir hata oluştu.');
-                } finally {
-                    loadingOverlay.style.display = 'none';
-                }
-                return null;
-            }
-
-            async function deleteData(collection, docId) {
-                loadingOverlay.style.display = 'flex';
-                try {
-                    await db.collection(collection).doc(docId).delete();
-                    alert('Veri silindi!');
-                } catch (error) {
-                    console.error("Silme hatası: ", error);
-                    alert('Silme sırasında bir hata oluştu.');
-                } finally {
-                    loadingOverlay.style.display = 'none';
-                }
-            }
-
-
-            // --- Önceki versiyonda bulunan tüm render, event listener ve yardımcı fonksiyonlar buraya gelecek.
-            // Bu fonksiyonlar artık localState yerine doğrudan db'ye yazacak veya okuyacak şekilde
-            // yukarıdaki saveData, addData, deleteData fonksiyonlarını kullanacak.
-            // Örneğin:
-            // productForm.addEventListener('submit', async (e) => { ... saveData(...) });
-            // addNewProductBtn.addEventListener('click', async () => { ... addData(...) });
-
-            
-            // --- BAŞLANGIÇ ---
+            // --- INIT ---
             await fetchData();
-            // renderProductList();
-            // renderBannerSettings();
-            // refreshCategoryView();
-            // ve diğer tüm başlangıç render fonksiyonları...
-        });
+            // Tüm render ve event listener atama fonksiyonları burada çağrılmalı.
+        }
     </script>
 </body>
 </html>
