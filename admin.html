@@ -41,7 +41,6 @@
         .form-group label { display: block; font-weight: 500; margin-bottom: 0.5rem; }
         .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 5px; font-size: 1rem; }
         .form-group textarea { min-height: 120px; resize: vertical; }
-        /* Yeni checkbox stilini ekledik */
         .form-group input[type="checkbox"] {
             width: auto; 
             margin-right: 10px; 
@@ -79,7 +78,6 @@
         .form-actions { margin-top: 2rem; text-align: right; }
         .delete-slide-btn { position: absolute; top: 1rem; right: 1rem; background: none; border: none; font-size: 1.5rem; color: var(--danger-color); cursor: pointer; }
 
-        /* Yeni Eklenen Stil Ayarları Inputları İçin */
         .style-settings-group {
             border: 1px dashed var(--border-color);
             padding: 1rem;
@@ -102,7 +100,8 @@
             border: none;
             cursor: pointer;
         }
-        .style-settings-group .form-group input[type="text"].size-input {
+        .style-settings-group .form-group input[type="text"].size-input,
+        .style-settings-group .form-group input[type="number"].size-input { /* numara inputları için de genişlik ayarı */
             width: calc(100% - 90px); 
             display: inline-block;
             vertical-align: middle;
@@ -112,6 +111,31 @@
             font-size: 0.75rem;
             color: #777;
             margin-left: 5px;
+        }
+        /* İkon seçimi için fontawesome ikon listesi */
+        .icon-selection-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
+            gap: 5px;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            padding: 5px;
+            border-radius: 5px;
+            background-color: #fff;
+        }
+        .icon-selection-grid .icon-item {
+            cursor: pointer;
+            text-align: center;
+            padding: 5px;
+            border: 1px solid transparent;
+            border-radius: 3px;
+            transition: background-color 0.2s, border-color 0.2s;
+        }
+        .icon-selection-grid .icon-item:hover,
+        .icon-selection-grid .icon-item.selected {
+            background-color: #e0e7eb;
+            border-color: var(--primary-color);
         }
     </style>
 </head>
@@ -128,6 +152,7 @@
                 <h3>Genel</h3>
                 <ul>
                     <li class="nav-item" data-page="homepage-settings"><span class="nav-item-name">Anasayfa Ayarları</span></li>
+                    <li class="nav-item" data-page="general-settings"><span class="nav-item-name">Site Genel Ayarları</span></li>
                 </ul>
                 <h3>İçerik</h3>
                 <ul>
@@ -205,6 +230,58 @@
                 </form>
             </div>
 
+            <div id="general-settings" class="page">
+                <h1>Site Genel Ayarları</h1>
+                <form id="general-settings-form">
+                    <section class="form-section">
+                        <h2>Logo Ayarları</h2>
+                        <div class="form-group">
+                            <label for="logoText">Logo Metni</label>
+                            <input type="text" id="logoText" value="">
+                        </div>
+                        <div class="form-group">
+                            <label for="logoIcon">Logo İkonu (FontAwesome Sınıfı)</label>
+                            <input type="text" id="logoIcon" placeholder="Örn: fa-solid fa-couch" value="">
+                            <div class="icon-selection-grid" id="logoIconPicker"></div>
+                        </div>
+                        <div class="form-group">
+                            <label for="logoIconColor">Logo İkon Rengi</label>
+                            <input type="color" id="logoIconColor" value="#e74c3c">
+                        </div>
+                        <div class="form-group">
+                            <label for="logoTextColor">Logo Metin Rengi</label>
+                            <input type="color" id="logoTextColor" value="#2c3e50">
+                        </div>
+                    </section>
+
+                    <section class="form-section">
+                        <h2>Promosyon Bandı Ayarları</h2>
+                        <div class="form-group">
+                            <label for="promoBarBgColor">Arka Plan Rengi</label>
+                            <input type="color" id="promoBarBgColor" value="#e74c3c">
+                        </div>
+                        <div class="form-group">
+                            <label for="promoBarTextColor">Yazı Rengi</label>
+                            <input type="color" id="promoBarTextColor" value="#ffffff">
+                        </div>
+                        <div class="form-group">
+                            <label for="promoBarFontSize">Yazı Boyutu (px)</label>
+                            <input type="number" id="promoBarFontSize" min="10" max="30" step="1" value="15">
+                        </div>
+                        <div class="form-group">
+                            <label for="promoBarScrollSpeed">Kayma Hızı (saniye, ne kadar küçük o kadar hızlı)</label>
+                            <input type="number" id="promoBarScrollSpeed" min="5" max="60" step="1" value="20">
+                        </div>
+                        <h3 style="margin-top:1.5rem;">Promosyon Yazısı (Dile Göre)</h3>
+                        <div class="lang-tabs" id="promo-text-lang-tabs"></div>
+                        <div id="promo-text-lang-content"></div>
+                    </section>
+
+                    <div class="form-actions"><button type="submit" class="btn btn-success">Genel Ayarları Kaydet</button></div>
+                </form>
+            </div>
+
+
             <div id="category-management" class="page">
                 <h1>Kategori Yönetimi</h1>
                 <div class="form-section">
@@ -237,7 +314,18 @@
 
         if (db) {
             // === 1. GLOBAL STATE VE DOM ELEMENTLERİ ===
-            let localState = { settings: { languages: [], banner: { slides: [] } }, categories: [], products: [] };
+            let localState = { 
+                settings: { 
+                    languages: [], 
+                    banner: { slides: [] },
+                    general: { // Yeni genel ayarlar objesi
+                        logo: { text: 'PUFEMO', icon: 'fa-solid fa-couch', iconColor: '#e74c3c', textColor: '#2c3e50' },
+                        promoBar: { bgColor: '#e74c3c', textColor: '#ffffff', fontSize: '0.95rem', scrollSpeed: '20s', text: {} }
+                    }
+                }, 
+                categories: [], 
+                products: [] 
+            };
             
             const loadingOverlay = document.getElementById('loading-overlay');
             const productListContainer = document.getElementById('product-list-container');
@@ -245,6 +333,23 @@
             const homepageForm = document.getElementById('homepage-form');
             const bannerSettingsContainer = document.getElementById('banner-settings-container');
             const categoryTreeContainer = document.getElementById('category-tree-container');
+
+            // Yeni DOM elementleri
+            const generalSettingsForm = document.getElementById('general-settings-form');
+            const logoIconPicker = document.getElementById('logoIconPicker');
+
+
+            // FontAwesome ikonları listesi (örnek, genişletebilirsiniz)
+            const fontAwesomeIcons = [
+                "fa-solid fa-couch", "fa-solid fa-chair", "fa-solid fa-bed", "fa-solid fa-lamp", 
+                "fa-solid fa-door-closed", "fa-solid fa-table", "fa-solid fa-bath", "fa-solid fa-couch",
+                "fa-solid fa-house", "fa-solid fa-home", "fa-solid fa-building", "fa-solid fa-city",
+                "fa-solid fa-tree", "fa-solid fa-leaf", "fa-solid fa-star", "fa-solid fa-heart",
+                "fa-solid fa-check", "fa-solid fa-times", "fa-solid fa-truck-fast", "fa-solid fa-tag",
+                "fa-solid fa-percent", "fa-solid fa-dollar-sign", "fa-solid fa-euro-sign", "fa-solid fa-yen-sign",
+                "fa-solid fa-rupee-sign", "fa-solid fa-basket-shopping", "fa-solid fa-cart-shopping", "fa-solid fa-bag-shopping"
+            ];
+
 
             // === 2. ÇEKİRDEK FONKSİYONLAR ===
             const showLoading = () => loadingOverlay.classList.remove('hidden');
@@ -257,9 +362,19 @@
                     const [settingsDoc, categoriesDoc, productsSnapshot] = await Promise.all([
                         db.collection('pufemo').doc('settings').get(),
                         db.collection('pufemo').doc('categories').get(),
-                        db.collection('pufemo-products').get()
+                        db.collection('pufemo-products').get() // Admin panelinde tüm ürünleri çekmeye devam et
                     ]);
-                    localState.settings = settingsDoc.exists ? settingsDoc.data() : { languages: [], banner: { slides: [] } };
+                    // Eğer general ayarları yoksa varsayılan değerleri kullan
+                    const fetchedSettings = settingsDoc.exists ? settingsDoc.data() : {};
+                    localState.settings = { 
+                        ...fetchedSettings, 
+                        languages: fetchedSettings.languages || [],
+                        banner: fetchedSettings.banner || { slides: [] },
+                        general: {
+                            logo: fetchedSettings.general?.logo || { text: 'PUFEMO', icon: 'fa-solid fa-couch', iconColor: '#e74c3c', textColor: '#2c3e50' },
+                            promoBar: fetchedSettings.general?.promoBar || { bgColor: '#e74c3c', textColor: '#ffffff', fontSize: '0.95rem', scrollSpeed: '20s', text: {} }
+                        }
+                    };
                     localState.categories = categoriesDoc.exists ? categoriesDoc.data().tree || [] : [];
                     localState.products = productsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 } catch (error) {
@@ -330,13 +445,25 @@
                     let contentHTML = `<div class="lang-content ${isActive ? 'active' : ''}" data-lang-content="${lang.code}">`;
                     fields.forEach(field => {
                         const value = data?.[lang.code]?.[field.key] || '';
-                        const inputElement = field.type === 'textarea' 
-                            ? `<textarea class="lang-input" data-key="${field.key}" data-lang="${lang.code}">${value}</textarea>` 
-                            : `<input type="text" class="lang-input" data-key="${field.key}" data-lang="${lang.code}" value="${value}">`;
+                        const inputType = field.type === 'textarea' ? 'textarea' : 'text';
+                        const inputElement = inputType === 'textarea'
+                            ? `<textarea class="lang-input" data-key="${field.key}" data-lang="${lang.code}">${value}</textarea>`
+                            : `<input type="${field.inputType || 'text'}" class="lang-input" data-key="${field.key}" data-lang="${lang.code}" value="${value}">`; // inputType'ı da dikkate al
                         contentHTML += `<div class="form-group"><label>${field.label}</label>${inputElement}</div>`;
                     });
                     contentHTML += `</div>`;
                     contentContainer.innerHTML += contentHTML;
+                });
+
+                // Dil sekmelerine tıklama olayını ekle
+                tabsContainer.querySelectorAll('.lang-tab').forEach(tab => {
+                    tab.addEventListener('click', () => {
+                        const langCode = tab.dataset.lang;
+                        tab.parentNode.querySelectorAll('.lang-tab').forEach(t => t.classList.remove('active'));
+                        tab.classList.add('active');
+                        contentContainer.querySelectorAll('.lang-content').forEach(c => c.classList.remove('active'));
+                        contentContainer.querySelector(`[data-lang-content="${langCode}"]`).classList.add('active');
+                    });
                 });
             }
 
@@ -364,7 +491,6 @@
                 
                 productForm.querySelector('#productDiscountedPrice').value = product.discountedPrice || ''; 
                 productForm.querySelector('#productFreeShipping').checked = product.isFreeShipping || false;
-                // YENİ: Vitrinde Göster onay kutusunun durumunu yükle
                 productForm.querySelector('#productIsInShowcase').checked = product.isInShowcase || false;
 
                 const categoryChecklist = document.getElementById('product-category-checklist');
@@ -406,7 +532,7 @@
                 return block;
             }
 
-            // === 4. ANASAYFA YÖNETİMİ ===
+            // === 4. ANASAYFA YÖNETİMİ (Banner Ayarları) ===
             function renderBannerSettings() {
                 bannerSettingsContainer.innerHTML = '';
                 (localState.settings.banner?.slides || []).forEach((slide, index) => {
@@ -416,7 +542,6 @@
                     const tabsId = `banner-lang-tabs-${index}`;
                     const contentId = `banner-lang-content-${index}`;
 
-                    // Firebase'den gelen stil verileri (varsayılan boş obje)
                     const currentStyle = slide.style || {}; 
 
                     slideSection.innerHTML = `
@@ -471,7 +596,7 @@
                 });
             }
             
-            // === 5. KATEGORİ YÖNETİMİ (YENİ VE İYİLEŞTİRİLMİŞ) ===
+            // === 5. KATEGORİ YÖNETİMİ ===
             function refreshCategoryView() {
                 categoryTreeContainer.innerHTML = '';
                 const mainUl = document.createElement('ul');
@@ -517,7 +642,20 @@
             }
 
             // === 6. OLAY DİNLEYİCİLER (EVENT LISTENERS) ===
-            document.querySelector('.sidebar-nav').addEventListener('click', e => { const navItem = e.target.closest('.nav-item'); if (!navItem) return; document.querySelectorAll('.sidebar-nav .nav-item').forEach(item => item.classList.remove('active')); navItem.classList.add('active'); const pageId = navItem.dataset.page; document.querySelectorAll('.page').forEach(page => page.classList.toggle('active', false)); document.getElementById(pageId)?.classList.add('active'); });
+            document.querySelector('.sidebar-nav').addEventListener('click', e => { 
+                const navItem = e.target.closest('.nav-item'); 
+                if (!navItem) return; 
+                document.querySelectorAll('.sidebar-nav .nav-item').forEach(item => item.classList.remove('active')); 
+                navItem.classList.add('active'); 
+                const pageId = navItem.dataset.page; 
+                document.querySelectorAll('.page').forEach(page => page.classList.toggle('active', false)); 
+                document.getElementById(pageId)?.classList.add('active'); 
+
+                // Yeni eklenen genel ayarlar sayfası için özel render çağrısı
+                if (pageId === 'general-settings') {
+                    renderGeneralSettings();
+                }
+            });
             
             document.getElementById('add-new-product-btn').addEventListener('click', () => { 
                 document.querySelectorAll('#product-list-container li').forEach(item => item.classList.remove('active')); 
@@ -527,7 +665,7 @@
                     price: 0, 
                     discountedPrice: null, 
                     isFreeShipping: false, 
-                    isInShowcase: false, // Yeni ürün eklerken varsayılan olarak vitrinde gösterme
+                    isInShowcase: false, 
                     categories: [], 
                     content: {}, 
                     variants: [] 
@@ -544,7 +682,7 @@
                     price: parseFloat(productForm.querySelector('#productPrice').value) || 0,
                     discountedPrice: parseFloat(productForm.querySelector('#productDiscountedPrice').value) || null, 
                     isFreeShipping: productForm.querySelector('#productFreeShipping').checked, 
-                    isInShowcase: productForm.querySelector('#productIsInShowcase').checked, // Vitrinde göster checkbox değerini al
+                    isInShowcase: productForm.querySelector('#productIsInShowcase').checked, 
                     categories: Array.from(document.querySelectorAll('#product-category-checklist input:checked')).map(cb => cb.value), 
                     content: {}, 
                     variants: [] 
@@ -580,7 +718,6 @@
             document.getElementById('delete-product-btn').addEventListener('click', async () => { const id = productForm.querySelector('#productId').value; if (await deleteProduct(id)) { productForm.style.display = 'none'; await fetchData(); renderProductList(); } });
             productForm.addEventListener('click', e => { const target = e.target; if (target.id === 'add-color-variant-btn') document.getElementById('color-variants-container').appendChild(createColorVariantBlock()); else if (target.matches('.remove-color-btn, .remove-color-btn *')) target.closest('.variant-color-block').remove(); else if (target.matches('.add-media-btn, .add-media-btn *')) target.closest('.variant-color-block').querySelector('.media-inputs-container').insertAdjacentHTML('beforeend', createMediaInputHTML()); else if (target.matches('.remove-media-btn, .remove-media-btn *')) target.closest('.media-input-group').remove(); else if (target.classList.contains('lang-tab')) { const langCode = target.dataset.lang; const formSection = target.closest('.form-section'); formSection.querySelectorAll('.lang-tab, .lang-content').forEach(el => el.classList.remove('active')); target.classList.add('active'); formSection.querySelector(`.lang-content[data-lang-content="${langCode}"]`).classList.add('active'); }});
             
-            // Homepage form submit event listener GÜNCELLENDİ
             homepageForm.addEventListener('submit', e => { 
                 e.preventDefault(); 
                 const newSlidesData = []; 
@@ -643,12 +780,90 @@
             categoryTreeContainer.addEventListener('click', e => { const btn = e.target.closest('button'); if (!btn) return; const li = btn.closest('li[data-id]'); const id = li?.dataset.id; const findCategory = (cats, catId) => { for (const cat of cats) { if (cat.id === catId) return cat; if (cat.children) { const found = findCategory(cat.children, catId); if (found) return found; } } return null; }; const findAndRemove = (cats, catId) => { for (let i = 0; i < cats.length; i++) { if(cats[i].id === catId) { cats.splice(i, 1); return true; } if(cats[i].children && findAndRemove(cats[i].children, catId)) return true; } return false; }; if (btn.matches('.add-subcategory-btn, .add-subcategory-btn *')) { const parentCategory = findCategory(localState.categories, id); if (parentCategory) { if (!parentCategory.children) parentCategory.children = []; let subList = li.querySelector('ul'); if(!subList) { subList = document.createElement('ul'); li.appendChild(subList); } showCategoryInputForm(subList, parentCategory.children); } } else if (btn.matches('.delete-category-btn, .delete-category-btn *')) { if (confirm('Bu kategoriyi ve tüm alt kategorilerini silmek istediğinizden emin misiniz?')) { findAndRemove(localState.categories, id); saveData('categories', localState.categories).then(refreshCategoryView); } } });
             categoryTreeContainer.addEventListener('change', e => { if(e.target.matches('.category-name-input')) { const id = e.target.closest('li[data-id]').dataset.id; const lang = e.target.dataset.lang; const findAndUpdate = (cats, catId) => { for(const cat of cats) { if(cat.id === catId) { if(!cat.name) cat.name={}; cat.name[lang] = e.target.value; return true; } if(cat.children && findAndUpdate(cat.children, catId)) return true; } return false; }; if (findAndUpdate(localState.categories, id)) { saveData('categories', localState.categories); } } });
 
+            // --- YENİ EKLENEN GENEL AYARLAR FONKSİYONLARI VE OLAY DİNLEYİCİLERİ ---
+
+            function renderGeneralSettings() {
+                const generalSettings = localState.settings.general || {};
+
+                // Logo Ayarları
+                document.getElementById('logoText').value = generalSettings.logo?.text || 'PUFEMO';
+                document.getElementById('logoIcon').value = generalSettings.logo?.icon || 'fa-solid fa-couch';
+                document.getElementById('logoIconColor').value = generalSettings.logo?.iconColor || '#e74c3c';
+                document.getElementById('logoTextColor').value = generalSettings.logo?.textColor || '#2c3e50';
+                
+                // İkon seçiciyi doldur
+                logoIconPicker.innerHTML = '';
+                fontAwesomeIcons.forEach(iconClass => {
+                    const iconItem = document.createElement('span');
+                    iconItem.className = `icon-item ${iconClass} ${iconClass === generalSettings.logo?.icon ? 'selected' : ''}`;
+                    iconItem.dataset.iconClass = iconClass;
+                    logoIconPicker.appendChild(iconItem);
+                });
+
+                // Promosyon Bandı Ayarları
+                document.getElementById('promoBarBgColor').value = generalSettings.promoBar?.bgColor || '#e74c3c';
+                document.getElementById('promoBarTextColor').value = generalSettings.promoBar?.textColor || '#ffffff';
+                document.getElementById('promoBarFontSize').value = parseFloat(generalSettings.promoBar?.fontSize) || 15;
+                document.getElementById('promoBarScrollSpeed').value = parseFloat(generalSettings.promoBar?.scrollSpeed) || 20;
+
+                // Promosyon Yazısı için çoklu dil sekmesi oluştur
+                createLangTabs(
+                    document.getElementById('promo-text-lang-tabs'),
+                    document.getElementById('promo-text-lang-content'),
+                    generalSettings.promoBar?.text || {},
+                    [{ label: 'Promosyon Yazısı', key: 'text' }]
+                );
+            }
+
+            generalSettingsForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const newGeneralSettings = {
+                    logo: {
+                        text: document.getElementById('logoText').value.trim(),
+                        icon: document.getElementById('logoIcon').value.trim(),
+                        iconColor: document.getElementById('logoIconColor').value,
+                        textColor: document.getElementById('logoTextColor').value
+                    },
+                    promoBar: {
+                        bgColor: document.getElementById('promoBarBgColor').value,
+                        textColor: document.getElementById('promoBarTextColor').value,
+                        fontSize: `${document.getElementById('promoBarFontSize').value}px`, // Px olarak kaydet
+                        scrollSpeed: `${document.getElementById('promoBarScrollSpeed').value}s`, // Saniye olarak kaydet
+                        text: {}
+                    }
+                };
+
+                document.querySelectorAll('#promo-text-lang-content .lang-content').forEach(cont => {
+                    const lang = cont.dataset.langContent;
+                    newGeneralSettings.promoBar.text[lang] = cont.querySelector('[data-key="text"]').value.trim();
+                });
+
+                localState.settings.general = newGeneralSettings;
+                await saveData('settings', localState.settings);
+            });
+
+            // İkon seçici olay dinleyicisi
+            logoIconPicker.addEventListener('click', (e) => {
+                const selectedIconItem = e.target.closest('.icon-item');
+                if (selectedIconItem) {
+                    // Tüm seçili ikonları kaldır
+                    logoIconPicker.querySelectorAll('.icon-item.selected').forEach(item => item.classList.remove('selected'));
+                    // Tıklanan ikonu seçili yap
+                    selectedIconItem.classList.add('selected');
+                    // Input alanına ikon sınıfını yaz
+                    document.getElementById('logoIcon').value = selectedIconItem.dataset.iconClass;
+                }
+            });
+
+
             // === 7. BAŞLANGIÇ FONKSİYONU ===
             async function init() {
                 await fetchData();
                 renderProductList();
                 renderBannerSettings(); 
                 refreshCategoryView();
+                // Admin panelini ilk açtığında genel ayarları da yükle (varsayılan olarak ürün yönetimi sayfasındayken gizli kalacak)
+                renderGeneralSettings(); 
                 
                 if (localState.products.length > 0) {
                     document.querySelector('#product-list-container li:first-child')?.click();
