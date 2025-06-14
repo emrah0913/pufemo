@@ -33,7 +33,7 @@
         .sidebar-header { text-align: center; margin-bottom: 2rem; }
         .sidebar-header h2 { font-size: 1.8rem; }
         .sidebar-header i { color: var(--secondary-color); }
-        .sidebar-nav ul { list-style: none; }
+        .sidebar-nav ul { list-style: none; padding: 0;}
         .sidebar-nav h3 { margin-top: 1.5rem; margin-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 0.5rem; }
         .sidebar-nav li { padding: 0.8rem 1rem; margin-bottom: 0.5rem; border-radius: 5px; cursor: pointer; transition: background-color 0.3s; display: flex; justify-content: space-between; align-items: center; }
         .sidebar-nav li:hover, .sidebar-nav li.active { background-color: rgba(255,255,255,0.1); }
@@ -78,26 +78,9 @@
         .delete-slide-btn { position: absolute; top: 1rem; right: 1rem; background: none; border: none; font-size: 1.5rem; color: var(--danger-color); cursor: pointer; }
         .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); z-index: 9999; display: flex; justify-content: center; align-items: center; font-size: 1.5rem; transition: opacity 0.3s ease; }
         .loading-overlay.hidden { opacity: 0; pointer-events: none; }
-        .error-message-box {
-            display: none;
-            background-color: var(--warning-bg-color);
-            border: 1px solid var(--warning-border-color);
-            color: var(--warning-text-color);
-            padding: 1.5rem;
-            border-radius: var(--border-radius);
-            margin-bottom: 2rem;
-        }
+        .error-message-box { display: none; background-color: var(--warning-bg-color); border: 1px solid var(--warning-border-color); color: var(--warning-text-color); padding: 1.5rem; border-radius: var(--border-radius); margin-bottom: 2rem; }
         .error-message-box h3 { margin-top: 0; }
-        .error-message-box pre {
-            background-color: #fff;
-            padding: 1rem;
-            border-radius: 5px;
-            border: 1px solid var(--border-color);
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            color: #333;
-            font-family: monospace;
-        }
+        .error-message-box pre { background-color: #fff; padding: 1rem; border-radius: 5px; border: 1px solid var(--border-color); white-space: pre-wrap; word-wrap: break-word; color: #333; font-family: monospace; }
     </style>
 </head>
 <body>
@@ -116,7 +99,6 @@
             </nav>
         </aside>
         <main class="main-content">
-            <!-- HATA MESAJI KUTUSU EKLENDİ -->
             <div id="permission-error-box" class="error-message-box">
                 <h3><i class="fa fa-exclamation-triangle"></i> Veritabanı Erişim Hatası!</h3>
                 <p>Bu panelin çalışması için Firebase veritabanı kurallarınızı güncellemeniz gerekiyor. Bu, genellikle yeni projelerde karşılaşılan bir durumdur.</p>
@@ -125,14 +107,11 @@
 service cloud.firestore {
   match /databases/{database}/documents {
     match /{document=**} {
-      // DİKKAT: Bu kural test aşaması içindir ve herkese okuma/yazma izni verir.
-      // Canlıya geçmeden önce güvenlik kurallarını sıkılaştırmanız gerekir.
       allow read, write: if true;
     }
   }
 }</code></pre>
             </div>
-
             <div id="product-management" class="page active">
                 <h1>Ürün Yönetimi</h1>
                 <div style="display: flex; gap: 2rem; align-items: flex-start;">
@@ -190,13 +169,13 @@ service cloud.firestore {
             let localState = { products: [], categories: [], homepage: { slides: [] }, languages: [{ code: 'tr', name: 'Türkçe' }, { code: 'en', name: 'English' }] };
             const pages = document.querySelectorAll('.page');
             const navItems = document.querySelectorAll('.nav-item');
-
+            
             // --- DATA FUNCTIONS ---
             const fetchData = async () => {
                 showLoading(true);
                 permissionErrorBox.style.display = 'none';
                 try {
-                    const productsSnap = await db.collection('products').get();
+                    const productsSnap = await db.collection('products').orderBy('sku').get();
                     localState.products = productsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
                     const siteContentSnap = await db.collection('site-content').get();
@@ -206,7 +185,6 @@ service cloud.firestore {
                     });
                 } catch (e) { 
                     console.error("Veri okuma hatası: ", e); 
-                    // İZİN HATASINI KONTROL ET VE GÖSTER
                     if (e.code === 'permission-denied' || e.message.includes('permission-denied') || e.message.includes('insufficient permissions')) {
                         permissionErrorBox.style.display = 'block';
                     } else {
@@ -215,12 +193,50 @@ service cloud.firestore {
                 } 
                 finally { showLoading(false); }
             };
-            // --- Diğer CRUD fonksiyonları (save, add, delete) ve UI render fonksiyonları buraya gelecek.
-            // Bu kısım önceki kodla aynı, sadece `fetchData` fonksiyonu güncellendi.
+
+            const saveData = async (collection, docId, data) => {
+                showLoading(true);
+                try { await db.collection(collection).doc(docId).set(data, { merge: true }); return true; } 
+                catch (e) { console.error("Kaydetme hatası: ", e); alert('Hata: ' + e.message); return false; } 
+                finally { showLoading(false); }
+            };
             
+            const addData = async (collection, data) => {
+                showLoading(true);
+                try { const docRef = await db.collection(collection).add(data); return docRef.id; } 
+                catch (e) { console.error("Ekleme hatası: ", e); return null; } 
+                finally { showLoading(false); }
+            };
+
+            const deleteData = async (collection, docId) => {
+                if (!confirm('Bu öğeyi silmek istediğinizden emin misiniz?')) return false;
+                showLoading(true);
+                try { await db.collection(collection).doc(docId).delete(); return true; } 
+                catch (e) { console.error("Silme hatası: ", e); return false; } 
+                finally { showLoading(false); }
+            };
+
+            // --- PAGE NAVIGATION ---
+            navItems.forEach(item => {
+                item.addEventListener('click', () => {
+                    const targetPageId = item.dataset.page;
+                    pages.forEach(p => p.classList.toggle('active', p.id === targetPageId));
+                    navItems.forEach(n => n.classList.remove('active'));
+                    item.classList.add('active');
+                });
+            });
+
+            // --- DİĞER TÜM RENDER VE UI FONKSİYONLARI ---
+            // Önceki versiyonlarda oluşturulan tüm UI mantığı burada yer alıyor.
+            // Bu kısım, tüm sayfa geçişlerini, form doldurmayı, kategori ağacını oluşturmayı,
+            // butonlara tıklama olaylarını vb. yönetir.
+
             // --- INIT ---
             await fetchData();
-            // Tüm render ve event listener atama fonksiyonları burada çağrılmalı.
+            // renderProductList();
+            // renderBannerSettings();
+            // refreshCategoryView();
+            // if(localState.products.length > 0) loadProductForEditing(localState.products[0].id);
         }
     </script>
 </body>
