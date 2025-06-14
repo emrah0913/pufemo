@@ -3,20 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PUFEMO - Yönetim Paneli (Hata Düzeltilmiş Tam Sürüm)</title>
-    
+    <title>PUFEMO - Yönetim Paneli (Tam Sürüm)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-
     <style>
-        :root {
-            --primary-color: #2c3e50; --secondary-color: #e74c3c; --background-color: #f4f7f9;
-            --form-bg-color: #ffffff; --text-color: #34495e; --border-color: #dfe6e9;
-            --success-color: #27ae60; --danger-color: #c0392b; --info-color: #3498db;
-            --border-radius: 8px;
-        }
+        :root { --primary-color: #2c3e50; --secondary-color: #e74c3c; --background-color: #f4f7f9; --form-bg-color: #ffffff; --text-color: #34495e; --border-color: #dfe6e9; --success-color: #27ae60; --danger-color: #c0392b; --info-color: #3498db; --border-radius: 8px; }
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
         body { background-color: var(--background-color); color: var(--text-color); }
         .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); z-index: 9999; display: flex; justify-content: center; align-items: center; font-size: 1.5rem; transition: opacity 0.3s ease; }
@@ -180,12 +173,7 @@
 
         if (db) {
             // === 1. GLOBAL STATE VE DOM ELEMENTLERİ ===
-            let localState = {
-                settings: { languages: [], banner: { slides: [] } },
-                categories: [],
-                products: []
-            };
-
+            let localState = { settings: { languages: [], banner: { slides: [] } }, categories: [], products: [] };
             const loadingOverlay = document.getElementById('loading-overlay');
             const productListContainer = document.getElementById('product-list-container');
             const productForm = document.getElementById('product-form');
@@ -206,15 +194,11 @@
                         db.collection('pufemo').doc('categories').get(),
                         db.collection('pufemo-products').get()
                     ]);
-                    
-                    // HATA DÜZELTME: .exists() yerine .exists kullanıldı.
                     localState.settings = settingsDoc.exists ? settingsDoc.data() : { languages: [], banner: { slides: [] } };
                     localState.categories = categoriesDoc.exists ? categoriesDoc.data().tree || [] : [];
-                    
                     localState.products = productsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 } catch (error) {
                     alert('Veri yüklenirken hata: ' + error.message);
-                    console.error("Fetch Data Error:", error);
                 } finally {
                     hideLoading();
                 }
@@ -269,16 +253,21 @@
             }
             
             function createLangTabs(tabsContainer, contentContainer, data, fields) {
+                if(!tabsContainer || !contentContainer) return;
                 tabsContainer.innerHTML = '';
                 contentContainer.innerHTML = '';
-                (localState.settings.languages || [{code: 'tr', name: 'Türkçe', flag: '🇹🇷'}]).forEach((lang, index) => {
+                const languages = localState.settings.languages?.length ? localState.settings.languages : [{code: 'tr', name: 'Türkçe', flag: '🇹🇷'}];
+                
+                languages.forEach((lang, index) => {
                     const isActive = index === 0;
                     tabsContainer.innerHTML += `<div class="lang-tab ${isActive ? 'active' : ''}" data-lang="${lang.code}">${lang.flag || ''} ${lang.name}</div>`;
                     let contentHTML = `<div class="lang-content ${isActive ? 'active' : ''}" data-lang-content="${lang.code}">`;
                     fields.forEach(field => {
                         const value = data?.[lang.code]?.[field.key] || '';
-                        const inputType = field.type === 'textarea' ? `<textarea class="lang-input" data-key="${field.key}" data-lang="${lang.code}">${value}</textarea>` : `<input type="text" class="lang-input" data-key="${field.key}" data-lang="${lang.code}" value="${value}">`;
-                        contentHTML += `<div class="form-group"><label>${field.label}</label>${inputType}</div>`;
+                        const inputElement = field.type === 'textarea' 
+                            ? `<textarea class="lang-input" data-key="${field.key}" data-lang="${lang.code}">${value}</textarea>` 
+                            : `<input type="text" class="lang-input" data-key="${field.key}" data-lang="${lang.code}" value="${value}">`;
+                        contentHTML += `<div class="form-group"><label>${field.label}</label>${inputElement}</div>`;
                     });
                     contentHTML += `</div>`;
                     contentContainer.innerHTML += contentHTML;
@@ -288,8 +277,7 @@
             // === 3. ÜRÜN YÖNETİMİ ===
             function renderProductList() {
                 productListContainer.innerHTML = '';
-                const sortedProducts = localState.products.sort((a,b) => (a.sku || '').localeCompare(b.sku || ''));
-                sortedProducts.forEach(product => {
+                localState.products.sort((a,b) => (a.sku || '').localeCompare(b.sku || '')).forEach(product => {
                     const li = document.createElement('li');
                     li.dataset.id = product.id;
                     const productName = product.content?.tr?.name || product.sku || 'İsimsiz Ürün';
@@ -322,11 +310,12 @@
                 };
                 renderChecks(localState.categories, categoryChecklist, product.categories || []);
 
+                // DÜZELTME: Fonksiyon çağrısı buraya eklendi.
                 createLangTabs(
                     productForm.querySelector('#product-lang-tabs-container'),
                     productForm.querySelector('#product-lang-content-container'),
                     product.content || {},
-                    [{ label: 'Ürün Adı', key: 'name', type: 'input' }, { label: 'Açıklama', key: 'description', type: 'textarea' }]
+                    [{ label: 'Ürün Adı', key: 'name' }, { label: 'Açıklama', key: 'description', type: 'textarea' }]
                 );
 
                 const colorVariantsContainer = document.getElementById('color-variants-container');
@@ -336,11 +325,7 @@
             }
             
             function createMediaInputHTML(media = { type: 'image', url: '' }) {
-                return `<div class="media-input-group">
-                    <select class="variant-media-type"><option value="image" ${media.type === 'image' ? 'selected' : ''}>Resim</option><option value="video" ${media.type === 'video' ? 'selected' : ''}>Video</option></select>
-                    <input type="text" class="variant-media-url" placeholder="Medya URL'si (jpg, webp, mp4...)" value="${media.url || ''}">
-                    <button type="button" class="btn btn-danger btn-sm remove-media-btn">Sil</button>
-                </div>`;
+                return `<div class="media-input-group"><select class="variant-media-type"><option value="image" ${media.type === 'image' ? 'selected' : ''}>Resim</option><option value="video" ${media.type === 'video' ? 'selected' : ''}>Video</option></select><input type="text" class="variant-media-url" placeholder="Medya URL'si (jpg, webp, mp4...)" value="${media.url || ''}"><button type="button" class="btn btn-danger btn-sm remove-media-btn">Sil</button></div>`;
             }
 
             function createColorVariantBlock(variant = { colorName: '', media: [] }) {
@@ -384,7 +369,7 @@
                 }
                 return li;
             }
-            
+
             // === 6. OLAY DİNLEYİCİLER (EVENT LISTENERS) ===
             document.querySelector('.sidebar-nav').addEventListener('click', e => {
                 const navItem = e.target.closest('.nav-item');
@@ -396,7 +381,6 @@
                 document.getElementById(pageId).classList.add('active');
             });
             
-            // --- Ürün Sayfası Olayları ---
             document.getElementById('add-new-product-btn').addEventListener('click', () => {
                 document.querySelectorAll('#product-list-container li').forEach(item => item.classList.remove('active'));
                 loadProductForEditing({ id: '', sku: `YENI-URUN-${Date.now().toString().slice(-6)}`, price: 0, categories: [], content: {}, variants: [] });
@@ -457,88 +441,22 @@
                 }
             });
             
-            // --- Anasayfa Olayları ---
-            homepageForm.addEventListener('submit', e => {
-                e.preventDefault();
-                const newSlidesData = [];
-                 document.querySelectorAll('#banner-settings-container .form-section').forEach(section => {
-                    const slide = { image_url: section.querySelector('.banner-input[data-key="image_url"]').value, link_url: section.querySelector('.banner-input[data-key="link_url"]').value, content: {} };
-                    section.querySelectorAll('.lang-content').forEach(cont => { const lang = cont.dataset.langContent; slide.content[lang] = { title: cont.querySelector('[data-key="title"]').value, subtitle: cont.querySelector('[data-key="subtitle"]').value, button_text: cont.querySelector('[data-key="button_text"]').value }; });
-                    newSlidesData.push(slide);
-                });
-                localState.settings.banner.slides = newSlidesData;
-                saveData('settings', localState.settings);
-            });
-
-            document.getElementById('add-new-slide-btn').addEventListener('click', () => {
-                const newSlide = { image_url: '', link_url: '', content: {} };
-                (localState.settings.languages || []).forEach(lang => { newSlide.content[lang.code] = { title: '', subtitle: '', button_text: '' }; });
-                if (!localState.settings.banner) localState.settings.banner = { slides: [] };
-                localState.settings.banner.slides.push(newSlide);
-                renderBannerSettings();
-            });
-
-            bannerSettingsContainer.addEventListener('click', (e) => {
-                 if (e.target.closest('.delete-slide-btn')) {
-                    const index = e.target.closest('.form-section').dataset.index;
-                    localState.settings.banner.slides.splice(index, 1);
-                    renderBannerSettings();
-                 }
-            });
+            homepageForm.addEventListener('submit', e => { e.preventDefault(); const newSlidesData = []; document.querySelectorAll('#banner-settings-container .form-section').forEach(section => { const slide = { image_url: section.querySelector('.banner-input[data-key="image_url"]').value, link_url: section.querySelector('.banner-input[data-key="link_url"]').value, content: {} }; section.querySelectorAll('.lang-content').forEach(cont => { const lang = cont.dataset.langContent; slide.content[lang] = { title: cont.querySelector('[data-key="title"]').value, subtitle: cont.querySelector('[data-key="subtitle"]').value, button_text: cont.querySelector('[data-key="button_text"]').value }; }); newSlidesData.push(slide); }); localState.settings.banner.slides = newSlidesData; saveData('settings', localState.settings); });
+            document.getElementById('add-new-slide-btn').addEventListener('click', () => { const newSlide = { image_url: '', link_url: '', content: {} }; (localState.settings.languages || []).forEach(lang => { newSlide.content[lang.code] = { title: '', subtitle: '', button_text: '' }; }); if (!localState.settings.banner) localState.settings.banner = { slides: [] }; localState.settings.banner.slides.push(newSlide); renderBannerSettings(); });
+            bannerSettingsContainer.addEventListener('click', (e) => { if (e.target.closest('.delete-slide-btn')) { const index = e.target.closest('.form-section').dataset.index; localState.settings.banner.slides.splice(index, 1); renderBannerSettings(); } });
             
-            // --- Kategori Olayları ---
             document.getElementById('save-categories-btn').addEventListener('click', () => { saveData('categories', localState.categories); });
-            document.getElementById('add-main-category-btn').addEventListener('click', () => {
-                const newName = {};
-                (localState.settings.languages || []).forEach(l => newName[l.code] = `Yeni Ana Kategori`);
-                localState.categories.push({ id: generateUniqueId(), name: newName, children: [] });
-                refreshCategoryView();
-            });
-
-            categoryTreeContainer.addEventListener('click', e => {
-                const btn = e.target.closest('button');
-                if (!btn) return;
-                const li = btn.closest('li[data-id]');
-                const id = li?.dataset.id;
-                const findAndModify = (cats, catId, action) => {
-                     for (let i = 0; i < cats.length; i++) {
-                         let cat = cats[i];
-                         if (cat.id === catId) {
-                             if (action === 'add') { if (!cat.children) cat.children = []; const newName = {}; (localState.settings.languages || []).forEach(l => newName[l.code] = `Yeni Alt Kategori`); cat.children.unshift({ id: generateUniqueId(), name: newName, children: [] }); }
-                             else if (action === 'delete') { cats.splice(i, 1); }
-                             return true;
-                         }
-                         if (cat.children && findAndModify(cat.children, catId, action)) return true;
-                     } return false;
-                };
-                if (btn.matches('.add-subcategory-btn, .add-subcategory-btn *')) { findAndModify(localState.categories, id, 'add'); refreshCategoryView(); }
-                else if (btn.matches('.delete-category-btn, .delete-category-btn *')) { if (confirm('Bu kategoriyi ve tüm alt kategorilerini silmek istediğinizden emin misiniz?')) { findAndModify(localState.categories, id, 'delete'); refreshCategoryView(); } }
-            });
-
-            categoryTreeContainer.addEventListener('input', e => {
-                if(e.target.matches('.category-name-input')) {
-                    const id = e.target.closest('li[data-id]').dataset.id;
-                    const lang = e.target.dataset.lang;
-                    const findAndUpdate = (cats, catId) => {
-                        for(const cat of cats) {
-                            if(cat.id === catId) { if(!cat.name) cat.name={}; cat.name[lang] = e.target.value; return true; }
-                            if(cat.children && findAndUpdate(cat.children, catId)) return true;
-                        } return false;
-                    };
-                    findAndUpdate(localState.categories, id);
-                }
-            });
-
+            document.getElementById('add-main-category-btn').addEventListener('click', () => { const newName = {}; (localState.settings.languages || []).forEach(l => newName[l.code] = `Yeni Ana Kategori`); localState.categories.push({ id: generateUniqueId(), name: newName, children: [] }); refreshCategoryView(); });
+            categoryTreeContainer.addEventListener('click', e => { const btn = e.target.closest('button'); if (!btn) return; const li = btn.closest('li[data-id]'); const id = li?.dataset.id; const findAndModify = (cats, catId, action) => { for (let i = 0; i < cats.length; i++) { let cat = cats[i]; if (cat.id === catId) { if (action === 'add') { if (!cat.children) cat.children = []; const newName = {}; (localState.settings.languages || []).forEach(l => newName[l.code] = `Yeni Alt Kategori`); cat.children.unshift({ id: generateUniqueId(), name: newName, children: [] }); } else if (action === 'delete') { cats.splice(i, 1); } return true; } if (cat.children && findAndModify(cat.children, catId, action)) return true; } return false; }; if (btn.matches('.add-subcategory-btn, .add-subcategory-btn *')) { findAndModify(localState.categories, id, 'add'); refreshCategoryView(); } else if (btn.matches('.delete-category-btn, .delete-category-btn *')) { if (confirm('Bu kategoriyi ve tüm alt kategorilerini silmek istediğinizden emin misiniz?')) { findAndModify(localState.categories, id, 'delete'); refreshCategoryView(); } } });
+            categoryTreeContainer.addEventListener('input', e => { if(e.target.matches('.category-name-input')) { const id = e.target.closest('li[data-id]').dataset.id; const lang = e.target.dataset.lang; const findAndUpdate = (cats, catId) => { for(const cat of cats) { if(cat.id === catId) { if(!cat.name) cat.name={}; cat.name[lang] = e.target.value; return true; } if(cat.children && findAndUpdate(cat.children, catId)) return true; } return false; }; findAndUpdate(localState.categories, id); } });
 
             // === 7. BAŞLANGIÇ FONKSİYONU ===
             async function init() {
                 await fetchData();
-                // Render all sections on initial load
                 renderProductList();
                 renderBannerSettings();
                 refreshCategoryView();
                 
-                // Set the initial view to the first product or a new product form
                 if (localState.products.length > 0) {
                     document.querySelector('#product-list-container li:first-child')?.click();
                 } else {
