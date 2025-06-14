@@ -406,6 +406,9 @@
                     <button id="add-main-category-btn" class="btn btn-primary">Yeni Ana Kategori Ekle</button>
                 </div>
                 <div id="category-tree-container" class="form-section"></div>
+                <div class="form-actions" style="text-align: right;">
+                    <button type="button" id="save-categories-btn" class="btn btn-success">Kategorileri Kaydet</button>
+                </div>
             </div>
         </main>
     </div>
@@ -436,7 +439,8 @@
                 settings: { 
                     languages: [ 
                         { code: 'tr', name: 'Türkçe', flag: '🇹🇷' },
-                        { code: 'en', name: 'English', flag: '🇬🇧' }
+                        { code: 'en', name: 'English', flag: '🇬🇧' },
+                        { code: 'ru', name: 'Русский', flag: '🇷🇺' } // RUSÇA DİLİNİ EKLEDİK
                     ], 
                     banner: { slides: [] },
                     general: { 
@@ -465,6 +469,7 @@
             const newLanguageFormContainer = document.getElementById('new-language-form-container');
             const addLanguageBtn = document.getElementById('add-new-language-btn');
 
+            const saveCategoriesBtn = document.getElementById('save-categories-btn'); // Yeni eklenen buton
 
             const fontAwesomeIcons = [
                 "fa-solid fa-couch", "fa-solid fa-chair", "fa-solid fa-bed", "fa-solid fa-lamp", 
@@ -948,6 +953,24 @@
             bannerSettingsContainer.addEventListener('click', (e) => { if (e.target.closest('.delete-slide-btn')) { const index = e.target.closest('.form-section').dataset.index; localState.settings.banner.slides.splice(index, 1); renderBannerSettings(); } });
             
             // --- KATEGORİ YÖNETİMİ OLAYLARI GÜNCELLEMESİ ---
+            // "Yeni Ana Kategori Ekle" butonu için event listener
+            document.getElementById('add-main-category-btn').addEventListener('click', () => {
+                // Mevcut bir form varsa ekleme
+                if (!categoryTreeContainer.querySelector('.new-category-form')) {
+                    showCategoryInputForm(categoryTreeContainer, localState.categories);
+                }
+            });
+
+            // Kategori Kaydet Butonu Event Listener'ı (Yeni eklendi)
+            saveCategoriesBtn.addEventListener('click', async () => {
+                // DOM'dan mevcut kategori ağacını okuyarak localState'i güncelle
+                updateLocalCategoriesFromDOM(localState.categories, categoryTreeContainer.querySelector('ul'));
+
+                await saveData('categories', localState.categories);
+                alert('Kategoriler başarıyla kaydedildi!');
+                refreshCategoryView(); // Kayıt sonrası görünümü yenile
+            });
+
             // Bu event listener artık tüm kategori input değişikliklerini ve buton tıklamalarını tek bir yerden yönetecek
             categoryTreeContainer.addEventListener('click', async e => { 
                 const btn = e.target.closest('button'); 
@@ -978,29 +1001,21 @@
             // Bu event listener'ı 'input' yerine 'change' veya 'blur' yapabilirsiniz
             // Daha iyi performans için debounce uygulayabilirsiniz, ancak basitlik için şimdilik 'change' kullanacağız
             categoryTreeContainer.addEventListener('change', async e => { // 'change' olayı kullanıldı
-                if (e.target.matches('.category-name-input, .new-category-name-input')) { // Hem mevcut hem yeni kategori inputları için
+                if (e.target.matches('.category-name-input')) { // Sadece mevcut kategori inputları için
                     const li = e.target.closest('li');
-                    const id = li?.dataset.id; // Mevcut kategori için id, yeni için boş olabilir
+                    const id = li?.dataset.id; // Mevcut kategori için id
                     const lang = e.target.dataset.lang;
                     const value = e.target.value.trim();
 
-                    // Eğer yeni kategori formundaki input değişiyorsa, submit butonu ile kaydedilecek
-                    if (li.classList.contains('new-category-form')) {
-                         // Bu değişiklikleri formun submit handler'ı yönetecek, burada doğrudan kaydetmeyeceğiz
-                         // Sadece input alanındaki değerin localState'e yansıdığından emin olalım
-                         // (Ancak şu anki yapıda localState'e doğrudan yansıtmıyoruz, form submit'i bekliyoruz.
-                         // Bu, formda tüm diller doldurulana kadar kaydetmemek için iyidir.)
-                         return; // Yeni kategori formu için burada işlem yapma
-                    }
-
-                    // Mevcut kategorilerdeki değişiklikleri kaydet
                     const categoryToUpdate = findCategoryInTree(localState.categories, id);
                     if (categoryToUpdate) {
                         if (!categoryToUpdate.name) categoryToUpdate.name = {};
                         categoryToUpdate.name[lang] = value;
-                        await saveData('categories', localState.categories); 
-                        // Kayıt sonrası listeyi yenileyerek inputların güncel değerini göstermesi için
-                        refreshCategoryView(); 
+                        // Buradaki saveData'yı kaldırdık, çünkü artık toplu kaydı "Kategorileri Kaydet" butonu yapacak.
+                        // Yalnızca localState'i güncelliyoruz.
+                        // Eğer her tuş vuruşunda kaydetmek istiyorsanız bu satırı aktif bırakın, ancak tavsiye edilmez.
+                        // await saveData('categories', localState.categories);
+                        // refreshCategoryView(); // Kayıt sonrası listeyi yenileyerek inputların güncel değerini göstermesi için
                     }
                 }
             });
@@ -1028,6 +1043,30 @@
                 }
                 return false;
             }
+
+            // Kategori adı değişikliklerini DOM'dan alıp localState'e yansıtan yardımcı fonksiyon
+            function updateLocalCategoriesFromDOM(categoriesArray, ulElement) {
+                if (!ulElement) return;
+
+                Array.from(ulElement.children).forEach(li => {
+                    const categoryId = li.dataset.id;
+                    const category = findCategoryInTree(categoriesArray, categoryId);
+
+                    if (category) {
+                        li.querySelectorAll('.category-name-input').forEach(input => {
+                            const lang = input.dataset.lang;
+                            if (!category.name) category.name = {};
+                            category.name[lang] = input.value.trim();
+                        });
+                        // Çocuk kategorileri de güncelle
+                        const subUl = li.querySelector('ul');
+                        if (subUl) {
+                            updateLocalCategoriesFromDOM(category.children, subUl);
+                        }
+                    }
+                });
+            }
+
 
             // --- GENEL AYARLAR FONKSİYONLARI VE OLAY DİNLEYİCİLERİ ---
 
