@@ -62,8 +62,21 @@
         .product-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; }
         .product-card { background-color: var(--card-bg-color); border-radius: var(--border-radius); box-shadow: var(--box-shadow); overflow: hidden; transition: transform 0.3s ease, box-shadow 0.3s ease; display: flex; flex-direction: column; }
         .product-card:hover { transform: translateY(-10px); box-shadow: 0 10px 20px rgba(0,0,0,0.15); }
-        .product-image-link { display: block; width: 100%; height: 250px; }
-        .product-image { width: 100%; height: 100%; object-fit: cover; }
+        /* PRODUCT IMAGE ADJUSTMENTS START */
+        .product-image-link { 
+            display: flex; /* Use flexbox to center image vertically/horizontally */
+            justify-content: center;
+            align-items: center;
+            width: 100%; 
+            height: 250px; /* Keep fixed height or adjust as needed */
+            background-color: #f0f0f0; /* Background for when image is smaller than container */
+        }
+        .product-image { 
+            max-width: 100%; /* Ensure image doesn't overflow */
+            max-height: 100%; /* Ensure image doesn't overflow */
+            object-fit: contain; /* Changed from 'cover' to 'contain' for full image visibility */
+        }
+        /* PRODUCT IMAGE ADJUSTMENTS END */
         .product-info { padding: 1.5rem; flex-grow: 1; display: flex; flex-direction: column; }
         .product-info-top { flex-grow: 1; }
         .product-name { font-size: 1.3rem; font-weight: 600; margin-bottom: 0.5rem; }
@@ -311,17 +324,25 @@
                 dots.forEach(dot => dot.addEventListener('click', () => { setSlide(parseInt(dot.dataset.index)); clearInterval(slideInterval); slideInterval = setInterval(nextSlide, 5000); }));
             };
             
+            // Define a multiplier to reduce the displayed product price (e.g., 0.9 for 10% reduction)
+            const displayPriceMultiplier = 0.8; // Bu değeri isteğine göre değiştirebilirsin (0.9 = %10 indirim, 0.75 = %25 indirim)
+
             const formatPrice = (basePrice) => {
                 const rates = siteData.settings?.exchangeRates || { TRY: 1 };
                 const symbols = siteData.settings?.currencySymbols || { TRY: '₺' };
                 const rate = rates[currentCurrency] || 1;
                 const symbol = symbols[currentCurrency] || currentCurrency;
-                const convertedPrice = (basePrice || 0) * rate;
+                
+                // Apply the reduction here
+                const priceAfterReduction = (basePrice || 0) * displayPriceMultiplier; 
+                const convertedPrice = priceAfterReduction * rate;
 
                 if (currentCurrency === 'TRY') {
+                    // For TRY, format as integer
                     return `${new Intl.NumberFormat('tr-TR', { maximumFractionDigits: 0 }).format(convertedPrice)} ${symbol}`;
                 }
                 
+                // For other currencies, format with two decimal places
                 return `${symbol} ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(convertedPrice)}`;
             };
             
