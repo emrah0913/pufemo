@@ -15,8 +15,68 @@
         body { background-color: var(--background-color); color: var(--text-color); line-height: 1.6; }
         .container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
         a { text-decoration: none; color: inherit; }
-        .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.95); z-index: 10000; display: flex; justify-content: center; align-items: center; font-size: 1.5rem; transition: opacity 0.5s ease; flex-direction: column; }
+        
+        /* Loading Overlay Stilleri */
+        .loading-overlay { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(255,255,255,0.95); z-index: 10000; 
+            display: flex; justify-content: center; align-items: center; 
+            font-size: 1.5rem; transition: opacity 0.5s ease; flex-direction: column; 
+        }
         .loading-overlay.hidden { opacity: 0; pointer-events: none; }
+
+        /* Ülke Seçim Modalı Stilleri */
+        #country-selection-modal {
+            display: flex; /* Varsayılan olarak flex, JS ile göster/gizle */
+            position: fixed;
+            z-index: 10000; /* Loading overlay'in üstünde olmalı */
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.7);
+            justify-content: center;
+            align-items: center;
+        }
+        #country-selection-modal.hidden {
+            display: none;
+        }
+        #country-selection-modal-content {
+            background-color: #fefefe;
+            padding: 30px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        #country-selection-modal-content h2 {
+            margin-bottom: 20px;
+            color: var(--primary-color);
+        }
+        #country-selection-modal-content select {
+            width: calc(100% - 20px); /* Padding'i hesaba kat */
+            padding: 12px 10px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+        #country-selection-modal-content button {
+            padding: 12px 25px;
+            background-color: var(--success-color);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        #country-selection-modal-content button:hover {
+            background-color: #219653;
+        }
+
 
         .promo-bar {
             background-color: var(--secondary-color); 
@@ -30,12 +90,14 @@
             position: relative;
             z-index: 1001; 
         }
+        .promo-bar.hidden {
+            display: none; /* Promosyon bandı pasifse gizle */
+        }
 
         .promo-text {
             display: inline-block; 
             padding-left: 100%; 
-            /* Animasyon süresi JS ile güncellenecek */
-            animation: scroll-text 20s linear infinite; 
+            animation: scroll-text 20s linear infinite; /* Animasyon süresi JS ile güncellenecek */
         }
 
         @keyframes scroll-text {
@@ -376,18 +438,31 @@
         <span id="promo-text-content" class="promo-text">Ücretsiz Kargo İmkanı! Türkiye'nin Her Yerine Mobilyalarınız Kapınızda!</span>
     </div>
 
-    <div id="loading-overlay" class="loading-overlay"><i class="fa-solid fa-couch fa-bounce" style="font-size: 3rem;"></i><p style="margin-top: 1.5rem;">PUFEMO Yükleniyor...</p></div>
+    <div id="country-selection-modal" class="hidden">
+        <div id="country-selection-modal-content">
+            <h2>Hangi ülkeden ziyaret ediyorsunuz?</h2>
+            <p>Size en doğru fiyatları ve içeriği gösterebilmemiz için lütfen ülkenizi seçin.</p>
+            <select id="initial-country-select"></select>
+            <button id="save-country-selection-btn">Devam Et</button>
+        </div>
+    </div>
+
+    <div id="loading-overlay" class="loading-overlay">
+        <i class="fa-solid fa-couch fa-bounce" style="font-size: 3rem;"></i>
+        <p style="margin-top: 1.5rem;">PUFEMO Yükleniyor...</p>
+    </div>
+    
     <div id="mobile-nav-overlay" class="mobile-nav-overlay"></div>
+
     <header class="main-header">
         <div class="header-top">
-            <a href="index.html" class="logo" id="main-logo-link">
-                </a>
+            <a href="index.html" class="logo" id="main-logo-link"></a>
         </div>
         <div class="container">
             <button class="hamburger-menu" id="hamburger-menu-btn" aria-label="Menüyü aç/kapat"><span></span><span></span><span></span></button>
             <div class="header-controls">
-                <select id="language-selector" class="control-select"></select>
-                <select id="currency-selector" class="control-select"></select>
+                <span style="font-weight: 500;">Dil: <span id="current-language-display"></span></span>
+                <span style="font-weight: 500;">Fiyat: <span id="current-currency-display"></span></span>
                 <a href="cart.html" class="cart-icon"><i class="fa-solid fa-cart-shopping"></i><span class="cart-badge">0</span></a>
             </div>
         </div>
@@ -455,7 +530,7 @@
                 'mobile_menu_title': { tr: 'Kategoriler', en: 'Categories', el: 'Κατηγορίες', ru: 'Категории' },
                 'main_section_title': { tr: 'Öne Çıkan Ürünler', en: 'Featured Products', el: 'Προτεινόμενα Προϊόντα', ru: 'Рекомендуемые товары' },
                 'footer-title-pufemo': { tr: 'PUFEMO', en: 'PUFEMO', el: 'PUFEMO', ru: 'ПУΦΕΜΟ' },
-                'footer-desc-pufemo': { tr: 'Hayallerinizdeki konforu ve estetiği evinize taşıyoruz.', en: 'We bring the comfort and aesthetics of your dreams to your home.', el: 'Φέρνουμε την άνεση και την αισθητική των ονείρων σας στο σπίτι σας.', ru: 'Мы приносим комфорт και αισθητική των ονείρων σας στο σπίτι σας.' },
+                'footer-desc-pufemo': { tr: 'Hayallerinizdeki konforu ve estetiği evinize taşıyoruz.', en: 'We bring the comfort and aesthetics of your dreams to your home.', el: 'Φέρνουμε την άνεση και την αισθητική των ονείρων σας στο σπίτι σας.', ru: 'Мы приносим комфорт и эстетику ваших снов в ваш дом.' },
                 'footer-title-fast-links': { tr: 'Hızlı Bağlantılar', en: 'Quick Links', el: 'Γρήγοροι Σύνδεσμοι', ru: 'Быстрые ссылки' },
                 'footer-link-about': { tr: 'Hakkımızda', en: 'About Us', el: 'Σχετικά με εμάς', ru: 'О нас' },
                 'footer-link-contact': { tr: 'İletişim', en: 'Contact', el: 'Επικοινωνία', ru: 'Контакт' },
@@ -464,10 +539,12 @@
                 'footer-copyright': { tr: '&copy; 2025 PUFEMO.COM | Tüm Hakları Saklıdır.', en: '&copy; 2025 PUFEMO.COM | All Rights Reserved.', el: '&copy; 2025 PUFEMO.COM | Με την επιφύλαξη παντός δικαιώματος.', ru: '&copy; 2025 PUFEMO.COM | Все права защищены.' },
                 'default_button_text': { tr: 'Alışverişe Başla', en: 'Shop Now', el: 'Αγοράστε τώρα', ru: 'Купить сейчас' },
                 'free_shipping_text': { tr: 'Ücretsiz Kargo', en: 'Free Shipping', el: 'Δωρεάν Αποστολή', ru: 'Бесплатная доставка' },
-                'free_shipping_promo': { tr: 'Ücretsiz Kargo İmkanı! Türkiye\'nin Her Yerine Mobilyalarınız Kapınızda!', en: 'Free Shipping Available! Your Furniture Delivered Anywhere in Turkey!', el: 'Διαθέσιμη δωρεάν αποστολή! Τα έπιπλά σας παραδίδονται οπουδήποτε στην Τουρκία!', ru: 'Доступна бесплатная доставка! Ваша мебель доставляется в любую точку Турции!' }
+                // Promosyon bandı metni artık Firebase'den gelecek
             };
 
-            const supportedLanguages = [
+            // Bu listeyi artık Firebase'den çekeceğiz, bu sadece bir varsayılan.
+            // Ama admin panelinden diller silinirse burada güncel kalmalı.
+            const defaultSupportedLanguages = [
                 { code: 'tr', name: 'Türkçe', flag: '🇹🇷' },
                 { code: 'en', name: 'English', flag: '🇬🇧' },
                 { code: 'el', name: 'Ελληνικά', flag: '🇬🇷' },
@@ -475,164 +552,238 @@
             ];
 
             const loadingOverlay = document.getElementById('loading-overlay');
+            const promoBar = document.querySelector('.promo-bar');
+            const promoTextContent = document.getElementById('promo-text-content');
+            const mainLogoLink = document.getElementById('main-logo-link');
+            const productsContainer = document.getElementById('product-grid-container');
+            const currentLanguageDisplay = document.getElementById('current-language-display');
+            const currentCurrencyDisplay = document.getElementById('current-currency-display');
+            
+            // Ülke seçim modalı elementleri
+            const countrySelectionModal = document.getElementById('country-selection-modal');
+            const initialCountrySelect = document.getElementById('initial-country-select');
+            const saveCountrySelectionBtn = document.getElementById('save-country-selection-btn');
+
+
             let siteData = { 
                 settings: { 
-                    languages: [], 
+                    languages: [], // Bu, Firebase'den çekilecek
+                    countryPricing: {}, // Bu, Firebase'den çekilecek
                     banner: { slides: [] },
                     general: { // Varsayılan genel ayarlar
                         logo: { type: 'text_icon', text: 'PUFEMO', icon: 'fa-solid fa-couch', iconColor: '#e74c3c', textColor: '#2c3e50', imageUrl: '', imageWidth: 150, imageHeight: 40 },
-                        promoBar: { bgColor: '#e74c3c', textColor: '#ffffff', fontSize: '0.95rem', scrollSpeed: '20s', text: {} }
+                        promoBar: { bgColor: '#e74c3c', textColor: '#ffffff', fontSize: '0.95rem', scrollSpeed: '20s', text: {}, enabled: true }
                     }
                 }, 
-                categories: {}, 
+                categories: { tree: [] }, 
                 products: [] 
             };
 
-            let currentLang = localStorage.getItem('pufemo-language') || 'tr'; 
-            let currentCurrency = localStorage.getItem('pufemo-currency') || 'TRY';
+            let currentLanguage = localStorage.getItem('pufemo-language') || 'tr'; // Kullanıcının tercih ettiği dil
+            // currentCountryCode: Kullanıcının seçtiği ülkenin kodu (örn: 'TR', 'US', 'CY'). Bu code, countryPricing objesindeki anahtar ile eşleşecek
+            let currentCountryCode = localStorage.getItem('pufemo-country') || null; 
+            let currentCurrencySymbol = '₺'; // Aktif gösterilen para birimi sembolü
 
-            const fetchData = async () => {
-                try {
-                    const [settingsDoc, categoriesDoc, productsSnap] = await Promise.all([
-                        db.collection('pufemo').doc('settings').get(),
-                        db.collection('pufemo').doc('categories').get(),
-                        db.collection('pufemo-products').where('isInShowcase', '==', true).get() 
-                    ]);
-                    const fetchedSettings = settingsDoc.exists ? settingsDoc.data() : {};
-                    // siteData.settings.general'ı Firebase'den gelen verilerle ve varsayılanlarla birleştir
-                    siteData.settings = { 
-                        ...fetchedSettings, 
-                        languages: fetchedSettings.languages || [],
-                        banner: fetchedSettings.banner || { slides: [] },
-                        general: {
-                            logo: {
-                                type: fetchedSettings.general?.logo?.type || siteData.settings.general.logo.type,
-                                text: fetchedSettings.general?.logo?.text || siteData.settings.general.logo.text,
-                                icon: fetchedSettings.general?.logo?.icon || siteData.settings.general.logo.icon,
-                                iconColor: fetchedSettings.general?.logo?.iconColor || siteData.settings.general.logo.iconColor,
-                                textColor: fetchedSettings.general?.logo?.textColor || siteData.settings.general.logo.textColor,
-                                imageUrl: fetchedSettings.general?.logo?.imageUrl || siteData.settings.general.logo.imageUrl,
-                                imageWidth: fetchedSettings.general?.logo?.imageWidth || siteData.settings.general.logo.imageWidth,
-                                imageHeight: fetchedSettings.general?.logo?.imageHeight || siteData.settings.general.logo.imageHeight
-                            },
-                            promoBar: fetchedSettings.general?.promoBar || siteData.settings.general.promoBar
-                        }
-                    };
-                    siteData.categories = categoriesDoc.exists ? categoriesDoc.data() : {};
-                    siteData.products = productsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                } catch (e) { console.error("Veri okuma hatası: ", e); }
+            // --- Yardımcı Fonksiyonlar ---
+
+            // Fiyatı, ürünün baz fiyatı ve ülkeye özel yüzdesel ayarlama ile hesaplar
+            function calculateProductPrice(product, countryCode) {
+                // countryCode her zaman büyük harf olacak şekilde saklanır ve kullanılır
+                const countrySetting = siteData.settings.countryPricing?.[countryCode.toLowerCase()]; 
+                const basePrice = product.basePriceTL || 0;
+                const baseDiscountedPrice = product.baseDiscountedPriceTL;
+
+                let finalOriginalPrice = basePrice;
+                let finalDiscountedPrice = baseDiscountedPrice;
+                let currency = '₺'; // Varsayılan para birimi
+
+                if (countrySetting) {
+                    const adjustment = countrySetting.adjustment || 0;
+                    currency = countrySetting.currencySymbol || '₺';
+
+                    finalOriginalPrice = basePrice * (1 + adjustment / 100);
+                    if (baseDiscountedPrice !== null) {
+                        finalDiscountedPrice = baseDiscountedPrice * (1 + adjustment / 100);
+                    }
+                } else {
+                    // Eğer seçilen ülke ayarı yoksa, varsayılan TR ayarını kullan
+                    const trSetting = siteData.settings.countryPricing?.['tr'] || { adjustment: 0, currencySymbol: '₺' };
+                    currency = trSetting.currencySymbol;
+                    finalOriginalPrice = basePrice * (1 + trSetting.adjustment / 100);
+                    if (baseDiscountedPrice !== null) {
+                        finalDiscountedPrice = baseDiscountedPrice * (1 + trSetting.adjustment / 100);
+                    }
+                }
+
+                return {
+                    original: finalOriginalPrice,
+                    discounted: finalDiscountedPrice,
+                    currency: currency
+                };
+            }
+
+            // Fiyatı uluslararası formata ve para birimi sembolüne göre biçimlendirir
+            const formatPriceDisplay = (priceValue, currencySymbol) => {
+                if (priceValue === null || priceValue === undefined) return '';
+                // TR için farklı format, diğerleri için genel format
+                if (currencySymbol === '₺') {
+                    return `${new Intl.NumberFormat('tr-TR', { maximumFractionDigits: 0 }).format(priceValue)} ${currencySymbol}`;
+                }
+                // Diğer para birimleri için genel format (örneğin USD için en-US)
+                return `${currencySymbol} ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(priceValue)}`;
             };
             
-            const renderAll = () => {
-                renderStaticText();
-                renderCategories();
-                renderBanner();
-                renderProducts();
-                renderGeneralSiteElements(); // Yeni fonksiyon çağrısı
+            // Tüm ürünleri listele
+            const renderProducts = () => {
+                productsContainer.innerHTML = '';
+                if (!siteData.products || siteData.products.length === 0) {
+                    productsContainer.innerHTML = '<p>Ürün bulunamadı.</p>';
+                    return;
+                }
+
+                siteData.products.forEach(product => {
+                    const prices = calculateProductPrice(product, currentCountryCode);
+                    // Ürün adını ve açıklamasını geçerli dile göre al
+                    const productName = product.content?.[currentLanguage]?.name || product.content?.tr?.name || product.sku || 'İsimsiz Ürün';
+                    const productDescription = product.content?.[currentLanguage]?.description || product.content?.tr?.description || '';
+
+                    const productCard = document.createElement('div');
+                    productCard.className = 'product-card';
+                    const firstImage = product.variants?.[0]?.media?.[0]?.url || 'https://placehold.co/400x300/ccc/fff?text=Resim+Yok';
+
+                    let priceHTML = '';
+                    // İndirimli fiyat varsa ve orijinal fiyattan düşükse indirimli fiyatı göster
+                    if (prices.discounted !== null && prices.discounted < prices.original) {
+                        priceHTML = `
+                            <div class="price-container">
+                                <span class="original-price">${formatPriceDisplay(prices.original, prices.currency)}</span>
+                                <span class="discounted-price">${formatPriceDisplay(prices.discounted, prices.currency)}</span>
+                            </div>
+                        `;
+                    } else {
+                        // Sadece orijinal fiyatı göster
+                        priceHTML = `<div class="price-container"><span class="discounted-price">${formatPriceDisplay(prices.original, prices.currency)}</span></div>`;
+                    }
+
+                    const freeShippingText = staticTranslations['free_shipping_text'][currentLanguage] || staticTranslations['free_shipping_text']['tr'];
+                    const freeShippingTag = product.isFreeShipping 
+                        ? `<div class="free-shipping-tag">${freeShippingText}</div>`
+                        : '';
+
+                    productCard.innerHTML = `
+                        <a href="product.html?id=${product.id}" class="product-image-link">
+                            <img src="${firstImage}" alt="${productName}" class="product-image">
+                        </a>
+                        <div class="product-info">
+                            <div class="product-info-top">
+                                <h3 class="product-name"><a href="product.html?id=${product.id}">${productName}</a></h3>
+                                </div>
+                            ${priceHTML} 
+                        </div>
+                        ${freeShippingTag}`; 
+                    productsContainer.appendChild(productCard);
+                });
             };
 
-            const renderStaticText = () => {
-                document.documentElement.lang = currentLang;
-                const translate = (key) => staticTranslations[key]?.[currentLang] || staticTranslations[key]?.['tr'];
-                document.querySelector('#loading-overlay p').textContent = translate('loading_text');
-                // Promosyon metni artık renderGeneralSiteElements() içinde çekiliyor
-                document.getElementById('main-section-title').textContent = translate('main_section_title');
-                document.getElementById('footer-title-pufemo').textContent = translate('footer-title-pufemo');
-                document.getElementById('footer-desc-pufemo').textContent = translate('footer-desc-pufemo');
-                document.getElementById('footer-title-fast-links').textContent = translate('footer-title-fast-links');
-                document.getElementById('footer-link-about').textContent = translate('footer-link-about');
-                document.getElementById('footer-link-contact').textContent = translate('footer-link-contact');
-                document.getElementById('footer-link-privacy').textContent = translate('footer-link-privacy');
-                document.getElementById('footer-title-follow-us').textContent = translate('footer-title-follow-us');
-                document.getElementById('footer-copyright').innerHTML = translate('footer-copyright');
-            };
-
-            // Yeni fonksiyon: Genel site elementlerini render et
+            // Banner ve genel site elementlerini render et
             const renderGeneralSiteElements = () => {
                 const generalSettings = siteData.settings.general || {};
-                const logoLink = document.getElementById('main-logo-link');
 
-                if (logoLink) {
-                    // Önceki içeriği temizle
-                    logoLink.innerHTML = ''; 
-
+                // Logo Ayarları
+                if (mainLogoLink) {
+                    mainLogoLink.innerHTML = ''; 
                     if (generalSettings.logo?.type === 'image' && generalSettings.logo.imageUrl) {
-                        // Resim logo kullanılıyorsa
                         const img = document.createElement('img');
                         img.src = generalSettings.logo.imageUrl;
                         img.alt = generalSettings.logo.text || 'PUFEMO Logo';
                         if (generalSettings.logo.imageWidth) img.style.width = `${generalSettings.logo.imageWidth}px`;
                         if (generalSettings.logo.imageHeight) img.style.height = `${generalSettings.logo.imageHeight}px`;
-                        logoLink.appendChild(img);
-                        // Resim logo kullanıldığında, a etiketinin renk stilini temizle (sadece ikona veya metne uygulanıyor)
-                        logoLink.style.color = ''; 
+                        mainLogoLink.appendChild(img);
+                        mainLogoLink.style.color = ''; 
                     } else {
-                        // Metin ve İkon logo kullanılıyorsa (varsayılan)
                         const icon = document.createElement('i');
                         icon.className = generalSettings.logo?.icon || 'fa-solid fa-couch';
                         icon.style.color = generalSettings.logo?.iconColor || 'var(--secondary-color)';
-                        logoLink.appendChild(icon);
+                        mainLogoLink.appendChild(icon);
 
                         const textNode = document.createTextNode(generalSettings.logo?.text ? ` ${generalSettings.logo.text}` : ' PUFEMO');
-                        logoLink.appendChild(textNode);
-                        logoLink.style.color = generalSettings.logo?.textColor || 'var(--primary-color)';
+                        mainLogoLink.appendChild(textNode);
+                        mainLogoLink.style.color = generalSettings.logo?.textColor || 'var(--primary-color)';
                     }
                 }
 
                 // Promosyon Bandı Ayarları
-                const promoBar = document.querySelector('.promo-bar');
-                const promoTextContent = document.getElementById('promo-text-content');
                 if (promoBar && promoTextContent) {
                     promoBar.style.backgroundColor = generalSettings.promoBar?.bgColor || 'var(--secondary-color)';
                     promoBar.style.color = generalSettings.promoBar?.textColor || 'var(--light-text-color)';
                     promoBar.style.fontSize = generalSettings.promoBar?.fontSize || '0.95rem';
 
                     const scrollSpeed = generalSettings.promoBar?.scrollSpeed || '20s';
-                    // Dinamik animasyon süresi için CSS değişkenini güncelle veya inline stil kullan
                     promoTextContent.style.animationDuration = scrollSpeed;
                     
-                    const promoText = generalSettings.promoBar?.text?.[currentLang] || generalSettings.promoBar?.text?.tr || staticTranslations['free_shipping_promo'][currentLang] || staticTranslations['free_shipping_promo']['tr'];
+                    const promoBarEnabled = generalSettings.promoBar?.enabled;
+                    promoBar.classList.toggle('hidden', !promoBarEnabled); // Gizle/göster
+
+                    const promoText = generalSettings.promoBar?.text?.[currentLanguage] || generalSettings.promoBar?.text?.tr || staticTranslations['free_shipping_promo'][currentLanguage] || staticTranslations['free_shipping_promo']['tr'];
                     promoTextContent.textContent = promoText;
                 }
+
+                // Dil ve Para Birimi Göstergelerini güncelle
+                currentLanguageDisplay.textContent = siteData.settings.languages.find(l => l.code === currentLanguage)?.name || currentLanguage.toUpperCase();
+                currentCurrencyDisplay.textContent = currentCurrencySymbol;
+                document.documentElement.lang = currentLanguage; // HTML lang niteliğini de güncelle
             };
 
+            // Kategori Menüsünü render et
             const renderCategories = () => {
                 const desktopContainer = document.getElementById('category-menu-container');
                 const mobileContainer = document.getElementById('mobile-nav');
-                if (!siteData.categories?.tree) return;
+                if (!desktopContainer || !mobileContainer || !siteData.categories?.tree) return;
+                
                 desktopContainer.innerHTML = '';
                 mobileContainer.innerHTML = '';
-                const mobileMenuTitle = staticTranslations['mobile_menu_title']?.[currentLang] || staticTranslations['mobile_menu_title']?.['tr'];
+
+                const mobileMenuTitle = staticTranslations['mobile_menu_title']?.[currentLanguage] || staticTranslations['mobile_menu_title']?.['tr'];
                 mobileContainer.innerHTML += `<div class="mobile-nav-header">${mobileMenuTitle}</div>`;
+
                 const createMenu = (categories) => {
                     const ul = document.createElement('ul');
                     categories.forEach(cat => {
                         const li = document.createElement('li');
-                        li.innerHTML = `<a href="#">${cat.name[currentLang] || cat.name.tr}</a>`;
+                        const categoryName = cat.name?.[currentLanguage] || cat.name?.tr || cat.id; // Kategori adını geçerli dile göre al
+                        li.innerHTML = `<a href="#">${categoryName}</a>`;
                         if (cat.children && cat.children.length > 0) li.appendChild(createMenu(cat.children));
                         ul.appendChild(li);
                     });
                     return ul;
                 };
+
                 siteData.categories.tree.forEach(cat => {
                     const li = document.createElement('li');
-                    li.innerHTML = `<a href="#">${cat.name[currentLang] || cat.name.tr}</a>`;
+                    const categoryName = cat.name?.[currentLanguage] || cat.name?.tr || cat.id; // Kategori adını geçerli dile göre al
+                    li.innerHTML = `<a href="#">${categoryName}</a>`;
                     desktopContainer.appendChild(li);
                 });
                 mobileContainer.appendChild(createMenu(siteData.categories.tree));
             };
 
-            // renderBanner fonksiyonu GÜNCEL HALİ
+            // Banner'ı render et
             const renderBanner = () => {
                 const bannerContainer = document.getElementById('hero-banner-container');
+                const slideNav = bannerContainer.querySelector('.slide-nav'); // Nav dot container'ı
                 if (!bannerContainer || !siteData.settings?.banner?.slides) return;
-                const slideNav = bannerContainer.querySelector('.slide-nav');
-                bannerContainer.innerHTML = ''; 
+                
+                // Önceki slaytları ve dot'ları temizle
+                bannerContainer.querySelectorAll('.slide').forEach(s => s.remove());
+                if (slideNav) slideNav.innerHTML = ''; // Slayt navigasyon dotlarını temizle
+
                 siteData.settings.banner.slides.forEach((slideData, index) => {
                     const slideEl = document.createElement('div');
                     slideEl.className = 'slide' + (index === 0 ? ' active' : '');
-                    const content = slideData.content[currentLang] || slideData.content.tr || {};
-                    const defaultButtonText = staticTranslations['default_button_text']?.[currentLang] || staticTranslations['default_button_text']?.['tr'];
+                    
+                    // Slayt içeriğini geçerli dile göre al
+                    const content = slideData.content[currentLanguage] || slideData.content.tr || {};
+                    const defaultButtonText = staticTranslations['default_button_text']?.[currentLanguage] || staticTranslations['default_button_text']?.['tr'];
                     const buttonText = content.button_text || defaultButtonText;
                     
                     const slideStyle = slideData.style || {}; 
@@ -666,143 +817,165 @@
                             <p style="${subtitleStyle}">${content.subtitle || ''}</p>
                             <a href="${slideData.link_url || '#'}" class="btn-shop" style="${buttonInlineStyle}">${buttonText}</a>
                         </div>`;
-                    bannerContainer.appendChild(slideEl);
+                    bannerContainer.prepend(slideEl); // Slaytları en başa ekle
                 });
-                bannerContainer.appendChild(slideNav);
+                bannerContainer.appendChild(slideNav); // Nav dot container'ı sona ekle
                 startSlider();
             };
             
-            const renderProducts = () => {
-                const container = document.getElementById('product-grid-container');
-                if (!container || !siteData.products) return;
-                container.innerHTML = '';
-
-                const formatPriceDisplay = (price) => {
-                    const rates = siteData.settings?.exchangeRates || { TRY: 1 };
-                    const symbols = siteData.settings?.currencySymbols || { TRY: '₺' };
-                    const rate = rates[currentCurrency] || 1;
-                    const symbol = symbols[currentCurrency] || currentCurrency;
-                    const convertedPrice = (price || 0) * rate;
-
-                    if (currentCurrency === 'TRY') {
-                        return `${new Intl.NumberFormat('tr-TR', { maximumFractionDigits: 0 }).format(convertedPrice)} ${symbol}`;
-                    }
-                    return `${symbol} ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(convertedPrice)}`;
-                };
-
-                siteData.products.forEach(product => { 
-                    const card = document.createElement('div');
-                    card.className = 'product-card';
-                    const firstImage = product.variants?.[0]?.media?.[0]?.url || 'https://placehold.co/400x300/ccc/fff?text=Resim+Yok';
-                    const name = product.content?.[currentLang]?.name || product.content?.tr?.name || 'İsimsiz Ürün';
-
-                    let priceHTML = '';
-                    if (product.discountedPrice !== null && typeof product.discountedPrice === 'number' && product.discountedPrice < product.price) {
-                        priceHTML = `
-                            <div class="price-container">
-                                <span class="original-price">${formatPriceDisplay(product.price)}</span>
-                                <span class="discounted-price">${formatPriceDisplay(product.discountedPrice)}</span>
-                            </div>
-                        `;
-                    } else {
-                        priceHTML = `<div class="price-container"><span class="discounted-price">${formatPriceDisplay(product.price)}</span></div>`;
-                    }
-
-                    const freeShippingTag = product.isFreeShipping 
-                        ? `<div class="free-shipping-tag">${staticTranslations['free_shipping_text'][currentLang] || staticTranslations['free_shipping_text']['tr']}</div>`
-                        : '';
-
-                    card.innerHTML = `
-                        <a href="product.html?id=${product.id}" class="product-image-link">
-                            <img src="${firstImage}" alt="${name}" class="product-image">
-                        </a>
-                        <div class="product-info">
-                            <div class="product-info-top">
-                                <h3 class="product-name"><a href="product.html?id=${product.id}">${name}</a></h3>
-                            </div>
-                            ${priceHTML} 
-                        </div>
-                        ${freeShippingTag}`; 
-                    container.appendChild(card);
-                });
-            };
-
+            let slideIntervalInstance; // Slider intervalini tutmak için
             const startSlider = () => {
-                const slides = document.querySelectorAll('.slide');
-                const navContainer = document.querySelector('.slide-nav');
-                navContainer.innerHTML = '';
-                if (slides.length <= 1) return;
+                // Önceki interval'i temizle
+                if (slideIntervalInstance) clearInterval(slideIntervalInstance);
+
+                const slides = document.querySelectorAll('.hero-banner .slide');
+                const navContainer = document.querySelector('.hero-banner .slide-nav');
+                
+                navContainer.innerHTML = ''; // Nav dotları temizle
+                if (slides.length <= 1) {
+                    slides[0]?.classList.add('active'); // Tek slayt varsa onu aktif yap
+                    return; // Tek slayt varsa slider'ı başlatma
+                }
+
                 slides.forEach((_, index) => {
                     const dot = document.createElement('div');
                     dot.className = 'nav-dot' + (index === 0 ? ' active' : '');
                     dot.dataset.index = index;
                     navContainer.appendChild(dot);
                 });
-                const dots = navContainer.querySelectorAll('.nav-dot');
-                let currentSlide = 0;
-                let slideInterval = setInterval(nextSlide, 5000);
-                function setSlide(index) { slides.forEach((s, i) => s.classList.toggle('active', i === index)); dots.forEach((d, i) => d.classList.toggle('active', i === index)); currentSlide = index; }
-                function nextSlide() { setSlide((currentSlide + 1) % slides.length); }
-                dots.forEach(dot => dot.addEventListener('click', () => { setSlide(parseInt(dot.dataset.index)); clearInterval(slideInterval); slideInterval = setInterval(nextSlide, 5000); }));
-            };
-            
-            const formatPrice = (basePrice) => {
-                const rates = siteData.settings?.exchangeRates || { TRY: 1 };
-                const symbols = siteData.settings?.currencySymbols || { TRY: '₺' };
-                const rate = rates[currentCurrency] || 1;
-                const symbol = symbols[currentCurrency] || currentCurrency;
-                const convertedPrice = (basePrice || 0) * rate;
 
-                if (currentCurrency === 'TRY') {
-                    return `${new Intl.NumberFormat('tr-TR', { maximumFractionDigits: 0 }).format(convertedPrice)} ${symbol}`;
-                }
-                return `${symbol} ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(convertedPrice)}`;
+                const dots = navContainer.querySelectorAll('.nav-dot');
+                let currentSlideIndex = 0;
+
+                const setSlide = (index) => { 
+                    slides.forEach((s, i) => s.classList.toggle('active', i === index)); 
+                    dots.forEach((d, i) => d.classList.toggle('active', i === index)); 
+                    currentSlideIndex = index; 
+                };
+
+                const nextSlide = () => { 
+                    setSlide((currentSlideIndex + 1) % slides.length); 
+                };
+
+                // Başlangıçta ilk slaytı aktif et
+                setSlide(0);
+
+                // Otomatik geçişi başlat
+                slideIntervalInstance = setInterval(nextSlide, 5000); // 5 saniyede bir
+
+                // Dot'lara tıklama eventi ekle
+                dots.forEach(dot => dot.addEventListener('click', () => { 
+                    setSlide(parseInt(dot.dataset.index)); 
+                    clearInterval(slideIntervalInstance); // Manuel geçişte otomatik geçişi durdur
+                    slideIntervalInstance = setInterval(nextSlide, 5000); // Tekrar başlat
+                }));
             };
-            
-            const setupControls = () => {
-                const languageSelector = document.getElementById('language-selector');
-                const currencySelector = document.getElementById('currency-selector');
+
+            // Mobil navigasyon
+            const setupMobileNav = () => {
                 const hamburgerBtn = document.getElementById('hamburger-menu-btn');
                 const mobileNav = document.getElementById('mobile-nav');
                 const mobileNavOverlay = document.getElementById('mobile-nav-overlay');
 
-                const currencies = siteData.settings?.currencySymbols || { TRY: '₺', USD: '$', EUR: '€', GBP: '£' };
-
-                languageSelector.innerHTML = supportedLanguages.map(l => `<option value="${l.code}">${l.flag || ''} ${l.name}</option>`).join('');
-                currencySelector.innerHTML = Object.keys(currencies).map(c => `<option value="${c}">${currencies[c]} ${c}</option>`).join('');
-                
-                languageSelector.value = currentLang;
-                currencySelector.value = currentCurrency;
-
-                languageSelector.addEventListener('change', (e) => { 
-                    currentLang = e.target.value;
-                    localStorage.setItem('pufemo-language', currentLang);
-                    renderAll(); 
-                });
-                
-                currencySelector.addEventListener('change', (e) => { 
-                    currentCurrency = e.target.value;
-                    localStorage.setItem('pufemo-currency', currentCurrency);
-                    renderAll(); 
-                });
-                
                 const toggleMenu = () => { 
                     hamburgerBtn.classList.toggle('open'); 
                     mobileNav.classList.toggle('open'); 
                     mobileNavOverlay.classList.toggle('open');
-                    document.querySelector('.main-header').classList.toggle('mobile-menu-open');
+                    document.body.classList.toggle('no-scroll', mobileNav.classList.contains('open')); // Menü açıkken scroll'u kapat
                 };
+
                 hamburgerBtn.addEventListener('click', toggleMenu);
                 mobileNavOverlay.addEventListener('click', toggleMenu);
-                mobileNav.addEventListener('click', (e) => { if (e.target.tagName === 'A') toggleMenu(); });
+                mobileNav.addEventListener('click', (e) => { 
+                    // Mobil menüdeki linke tıklanınca menüyü kapat
+                    if (e.target.tagName === 'A' || e.target.closest('a')) {
+                        toggleMenu(); 
+                    }
+                });
             };
 
+            // Sayfa yüklendiğinde çalışacak ana fonksiyon
             const init = async () => {
-                await fetchData();
-                setupControls();
-                renderAll();
-                loadingOverlay.classList.add('hidden');
+                showLoadingOverlay(); // Yükleniyor ekranını göster
+                await fetchData(); // Firebase'den tüm verileri çek
+
+                // Eğer localStorage'da ülke yoksa, ülke seçim modalını göster
+                // VEYA Firebase'den çekilen countryPricing listesinde seçilen ülke yoksa da modalı göster
+                if (!currentCountryCode || !siteData.settings.countryPricing[currentCountryCode.toLowerCase()]) {
+                    // Ülke seçim modalındaki select box'ı doldur
+                    initialCountrySelect.innerHTML = Object.entries(siteData.settings.countryPricing)
+                        .sort(([, a], [, b]) => a.name.localeCompare(b.name)) 
+                        .map(([code, data]) => `<option value="${code.toUpperCase()}">${data.flag} ${data.name}</option>`)
+                        .join('');
+                    countrySelectionModal.classList.remove('hidden'); // Modalı göster
+                } else {
+                    countrySelectionModal.classList.add('hidden'); // Modalı gizle
+                    // localstorage'dan gelen ülke koduna göre dil ve para birimini ayarla
+                    const selectedCountrySetting = siteData.settings.countryPricing[currentCountryCode.toLowerCase()];
+                    if (selectedCountrySetting) {
+                        currentLanguage = selectedCountrySetting.defaultLanguage;
+                        currentCurrencySymbol = selectedCountrySetting.currencySymbol;
+                    }
+                }
+
+                // Tüm UI elementlerini render et ve güncel verilerle doldur
+                renderGeneralSiteElements(); // Logo, promosyon bandı, dil/para birimi göstergeleri
+                renderCategories(); // Kategoriler
+                renderBanner(); // Banner
+                renderProducts(); // Ürünler
+                setupMobileNav(); // Mobil menüyü kur
+
+                hideLoadingOverlay(); // Yükleniyor ekranını gizle
             };
+
+            // Yükleniyor overlay fonksiyonları
+            const showLoadingOverlay = () => { loadingOverlay.classList.remove('hidden'); };
+            const hideLoadingOverlay = () => { loadingOverlay.classList.add('hidden'); };
+
+            // --- Event Listeners ---
+
+            // Ülke seçimini kaydet butonu
+            saveCountrySelectionBtn.addEventListener('click', () => {
+                const newSelectedCountryCode = initialCountrySelect.value;
+                if (newSelectedCountryCode) {
+                    localStorage.setItem('pufemo-country', newSelectedCountryCode);
+                    currentCountryCode = newSelectedCountryCode;
+                    
+                    // Seçilen ülkeye göre dil ve para birimi sembolünü ayarla
+                    const selectedCountrySetting = siteData.settings.countryPricing[currentCountryCode.toLowerCase()];
+                    if (selectedCountrySetting) {
+                        currentLanguage = selectedCountrySetting.defaultLanguage;
+                        currentCurrencySymbol = selectedCountrySetting.currencySymbol;
+                        localStorage.setItem('pufemo-language', currentLanguage); // Dili de kaydet
+                        // localStorage.setItem('pufemo-currency', currentCurrencySymbol); // Para birimi sembolünü kaydetmeye gerek yok, ülkeden çekiyoruz
+                    } else {
+                         // Eğer seçilen ülke ayarı yoksa varsayılanları kullan
+                        currentLanguage = 'tr';
+                        currentCurrencySymbol = '₺';
+                        localStorage.setItem('pufemo-language', currentLanguage);
+                    }
+
+                    countrySelectionModal.classList.add('hidden'); // Modalı gizle
+                    // Tüm UI'ı yeni seçilen ülke/dil/para birimine göre yeniden render et
+                    renderGeneralSiteElements();
+                    renderCategories();
+                    renderBanner();
+                    renderProducts();
+                } else {
+                    alert('Lütfen bir ülke seçin.');
+                }
+            });
+
+            // Sepet sayfasındaki fiyatları güncelleyecek fonksiyon (Örn. Teslimat Ülkesi değiştiğinde)
+            // Bu fonksiyon cart.html dosyasında kullanılabilir veya buraya entegre edilebilir.
+            // Sadece örnek olarak burada bırakıldı:
+            // async function updateCartPricesByCountry(deliveryCountryCode) {
+            //     // ... Sepet içeriğini çekme ve fiyatları yeniden hesaplama mantığı ...
+            //     // Bu kısım, sepetinizin nasıl yönetildiğine bağlı olacaktır.
+            //     // Ürünleri tek tek çekip calculateProductPrice() ile fiyatlarını hesaplayıp toplamı güncelleyebilirsiniz.
+            // }
+
+            // Sayfa yüklendiğinde init fonksiyonunu çağır
             init();
         }
     </script>
