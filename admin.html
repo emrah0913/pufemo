@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PUFEMO - Yönetim Paneli (Tam Sürüm)</title>
+    <title>PUFEMO - Yönetim Paneli (Hata Düzeltilmiş Tam Sürüm)</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -187,22 +187,10 @@
             };
 
             const loadingOverlay = document.getElementById('loading-overlay');
-            const mainContent = document.querySelector('.main-content');
-            
-            // --- Sayfa Elementleri
-            const productManagementPage = document.getElementById('product-management');
-            const homepageSettingsPage = document.getElementById('homepage-settings');
-            const categoryManagementPage = document.getElementById('category-management');
-
-            // --- Ürün Elementleri
             const productListContainer = document.getElementById('product-list-container');
             const productForm = document.getElementById('product-form');
-
-            // --- Anasayfa Elementleri
             const homepageForm = document.getElementById('homepage-form');
             const bannerSettingsContainer = document.getElementById('banner-settings-container');
-
-            // --- Kategori Elementleri
             const categoryTreeContainer = document.getElementById('category-tree-container');
 
             // === 2. ÇEKİRDEK FONKSİYONLAR (VERİTABANI, YARDIMCILAR) ===
@@ -218,11 +206,15 @@
                         db.collection('pufemo').doc('categories').get(),
                         db.collection('pufemo-products').get()
                     ]);
-                    localState.settings = settingsDoc.exists() ? settingsDoc.data() : { languages: [], banner: { slides: [] } };
-                    localState.categories = categoriesDoc.exists() ? categoriesDoc.data().tree || [] : [];
+                    
+                    // HATA DÜZELTME: .exists() yerine .exists kullanıldı.
+                    localState.settings = settingsDoc.exists ? settingsDoc.data() : { languages: [], banner: { slides: [] } };
+                    localState.categories = categoriesDoc.exists ? categoriesDoc.data().tree || [] : [];
+                    
                     localState.products = productsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 } catch (error) {
                     alert('Veri yüklenirken hata: ' + error.message);
+                    console.error("Fetch Data Error:", error);
                 } finally {
                     hideLoading();
                 }
@@ -296,7 +288,8 @@
             // === 3. ÜRÜN YÖNETİMİ ===
             function renderProductList() {
                 productListContainer.innerHTML = '';
-                localState.products.sort((a,b) => (a.sku || '').localeCompare(b.sku || '')).forEach(product => {
+                const sortedProducts = localState.products.sort((a,b) => (a.sku || '').localeCompare(b.sku || ''));
+                sortedProducts.forEach(product => {
                     const li = document.createElement('li');
                     li.dataset.id = product.id;
                     const productName = product.content?.tr?.name || product.sku || 'İsimsiz Ürün';
@@ -391,7 +384,7 @@
                 }
                 return li;
             }
-
+            
             // === 6. OLAY DİNLEYİCİLER (EVENT LISTENERS) ===
             document.querySelector('.sidebar-nav').addEventListener('click', e => {
                 const navItem = e.target.closest('.nav-item');
@@ -409,7 +402,7 @@
                 loadProductForEditing({ id: '', sku: `YENI-URUN-${Date.now().toString().slice(-6)}`, price: 0, categories: [], content: {}, variants: [] });
             });
             
-            productListContainer.addEventListener('click', (e) => {
+            productListContainer.addEventListener('click', e => {
                 const li = e.target.closest('li');
                 if (li) {
                     document.querySelectorAll('#product-list-container li').forEach(item => item.classList.remove('active'));
@@ -465,7 +458,18 @@
             });
             
             // --- Anasayfa Olayları ---
-            homepageForm.addEventListener('submit', e => { e.preventDefault(); saveData('settings', localState.settings); });
+            homepageForm.addEventListener('submit', e => {
+                e.preventDefault();
+                const newSlidesData = [];
+                 document.querySelectorAll('#banner-settings-container .form-section').forEach(section => {
+                    const slide = { image_url: section.querySelector('.banner-input[data-key="image_url"]').value, link_url: section.querySelector('.banner-input[data-key="link_url"]').value, content: {} };
+                    section.querySelectorAll('.lang-content').forEach(cont => { const lang = cont.dataset.langContent; slide.content[lang] = { title: cont.querySelector('[data-key="title"]').value, subtitle: cont.querySelector('[data-key="subtitle"]').value, button_text: cont.querySelector('[data-key="button_text"]').value }; });
+                    newSlidesData.push(slide);
+                });
+                localState.settings.banner.slides = newSlidesData;
+                saveData('settings', localState.settings);
+            });
+
             document.getElementById('add-new-slide-btn').addEventListener('click', () => {
                 const newSlide = { image_url: '', link_url: '', content: {} };
                 (localState.settings.languages || []).forEach(lang => { newSlide.content[lang.code] = { title: '', subtitle: '', button_text: '' }; });
@@ -473,16 +477,13 @@
                 localState.settings.banner.slides.push(newSlide);
                 renderBannerSettings();
             });
-            homepageForm.addEventListener('input', e => {
-                if(e.target.matches('.banner-input, .lang-input')) {
-                    const newSlides = [];
-                    document.querySelectorAll('#banner-settings-container .form-section').forEach(section => {
-                        const slide = { image_url: section.querySelector('.banner-input[data-key="image_url"]').value, link_url: section.querySelector('.banner-input[data-key="link_url"]').value, content: {} };
-                        section.querySelectorAll('.lang-content').forEach(cont => { const lang = cont.dataset.langContent; slide.content[lang] = { title: cont.querySelector('[data-key="title"]').value, subtitle: cont.querySelector('[data-key="subtitle"]').value, button_text: cont.querySelector('[data-key="button_text"]').value }; });
-                        newSlides.push(slide);
-                    });
-                    localState.settings.banner.slides = newSlides;
-                }
+
+            bannerSettingsContainer.addEventListener('click', (e) => {
+                 if (e.target.closest('.delete-slide-btn')) {
+                    const index = e.target.closest('.form-section').dataset.index;
+                    localState.settings.banner.slides.splice(index, 1);
+                    renderBannerSettings();
+                 }
             });
             
             // --- Kategori Olayları ---
@@ -493,6 +494,7 @@
                 localState.categories.push({ id: generateUniqueId(), name: newName, children: [] });
                 refreshCategoryView();
             });
+
             categoryTreeContainer.addEventListener('click', e => {
                 const btn = e.target.closest('button');
                 if (!btn) return;
@@ -512,6 +514,7 @@
                 if (btn.matches('.add-subcategory-btn, .add-subcategory-btn *')) { findAndModify(localState.categories, id, 'add'); refreshCategoryView(); }
                 else if (btn.matches('.delete-category-btn, .delete-category-btn *')) { if (confirm('Bu kategoriyi ve tüm alt kategorilerini silmek istediğinizden emin misiniz?')) { findAndModify(localState.categories, id, 'delete'); refreshCategoryView(); } }
             });
+
             categoryTreeContainer.addEventListener('input', e => {
                 if(e.target.matches('.category-name-input')) {
                     const id = e.target.closest('li[data-id]').dataset.id;
@@ -525,6 +528,7 @@
                     findAndUpdate(localState.categories, id);
                 }
             });
+
 
             // === 7. BAŞLANGIÇ FONKSİYONU ===
             async function init() {
