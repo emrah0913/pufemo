@@ -324,25 +324,22 @@
                 dots.forEach(dot => dot.addEventListener('click', () => { setSlide(parseInt(dot.dataset.index)); clearInterval(slideInterval); slideInterval = setInterval(nextSlide, 5000); }));
             };
             
-            // Define a multiplier to reduce the displayed product price (e.g., 0.9 for 10% reduction)
-            const displayPriceMultiplier = 0.8; // Bu değeri isteğine göre değiştirebilirsin (0.9 = %10 indirim, 0.75 = %25 indirim)
-
+            // Ürün fiyatlarında herhangi bir düşüş uygulanmayacaktır (profit reduction kaldırıldı).
             const formatPrice = (basePrice) => {
                 const rates = siteData.settings?.exchangeRates || { TRY: 1 };
                 const symbols = siteData.settings?.currencySymbols || { TRY: '₺' };
                 const rate = rates[currentCurrency] || 1;
                 const symbol = symbols[currentCurrency] || currentCurrency;
                 
-                // Apply the reduction here
-                const priceAfterReduction = (basePrice || 0) * displayPriceMultiplier; 
-                const convertedPrice = priceAfterReduction * rate;
+                // Orijinal basePrice doğrudan kullanılır, fiyat azaltma (profit reduction) yapılmaz.
+                const convertedPrice = (basePrice || 0) * rate;
 
                 if (currentCurrency === 'TRY') {
-                    // For TRY, format as integer
+                    // TRY için tam sayı olarak biçimlendir
                     return `${new Intl.NumberFormat('tr-TR', { maximumFractionDigits: 0 }).format(convertedPrice)} ${symbol}`;
                 }
                 
-                // For other currencies, format with two decimal places
+                // Diğer para birimleri için iki ondalık basamakla biçimlendir
                 return `${symbol} ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(convertedPrice)}`;
             };
             
