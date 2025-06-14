@@ -101,7 +101,7 @@
             cursor: pointer;
         }
         .style-settings-group .form-group input[type="text"].size-input,
-        .style-settings-group .form-group input[type="number"].size-input { /* numara inputları için de genişlik ayarı */
+        .style-settings-group .form-group input[type="number"].size-input { 
             width: calc(100% - 90px); 
             display: inline-block;
             vertical-align: middle;
@@ -112,7 +112,6 @@
             color: #777;
             margin-left: 5px;
         }
-        /* İkon seçimi için fontawesome ikon listesi */
         .icon-selection-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
@@ -136,6 +135,13 @@
         .icon-selection-grid .icon-item.selected {
             background-color: #e0e7eb;
             border-color: var(--primary-color);
+        }
+        /* Logo tipi seçimi için show/hide class'ları */
+        .logo-type-option {
+            display: none;
+        }
+        .logo-type-option.active {
+            display: block;
         }
     </style>
 </head>
@@ -236,21 +242,46 @@
                     <section class="form-section">
                         <h2>Logo Ayarları</h2>
                         <div class="form-group">
-                            <label for="logoText">Logo Metni</label>
-                            <input type="text" id="logoText" value="">
+                            <label for="logoType">Logo Tipi</label>
+                            <select id="logoType">
+                                <option value="text_icon">Metin ve İkon</option>
+                                <option value="image">Resim</option>
+                            </select>
                         </div>
-                        <div class="form-group">
-                            <label for="logoIcon">Logo İkonu (FontAwesome Sınıfı)</label>
-                            <input type="text" id="logoIcon" placeholder="Örn: fa-solid fa-couch" value="">
-                            <div class="icon-selection-grid" id="logoIconPicker"></div>
+
+                        <div id="text-icon-logo-options" class="logo-type-option">
+                            <div class="form-group">
+                                <label for="logoText">Logo Metni</label>
+                                <input type="text" id="logoText" value="">
+                            </div>
+                            <div class="form-group">
+                                <label for="logoIcon">Logo İkonu (FontAwesome Sınıfı)</label>
+                                <input type="text" id="logoIcon" placeholder="Örn: fa-solid fa-couch" value="">
+                                <div class="icon-selection-grid" id="logoIconPicker"></div>
+                            </div>
+                            <div class="form-group">
+                                <label for="logoIconColor">Logo İkon Rengi</label>
+                                <input type="color" id="logoIconColor" value="#e74c3c">
+                            </div>
+                            <div class="form-group">
+                                <label for="logoTextColor">Logo Metin Rengi</label>
+                                <input type="color" id="logoTextColor" value="#2c3e50">
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label for="logoIconColor">Logo İkon Rengi</label>
-                            <input type="color" id="logoIconColor" value="#e74c3c">
-                        </div>
-                        <div class="form-group">
-                            <label for="logoTextColor">Logo Metin Rengi</label>
-                            <input type="color" id="logoTextColor" value="#2c3e50">
+
+                        <div id="image-logo-options" class="logo-type-option">
+                            <div class="form-group">
+                                <label for="logoImageUrl">Logo Resim URL'si (JPG, PNG, WebP vb.)</label>
+                                <input type="text" id="logoImageUrl" placeholder="https://example.com/logo.png" value="">
+                            </div>
+                            <div class="form-group">
+                                <label for="logoImageWidth">Resim Genişliği (px)</label>
+                                <input type="number" id="logoImageWidth" min="10" max="500" step="1" value="150">
+                            </div>
+                            <div class="form-group">
+                                <label for="logoImageHeight">Resim Yüksekliği (px)</label>
+                                <input type="number" id="logoImageHeight" min="10" max="200" step="1" value="40">
+                            </div>
                         </div>
                     </section>
 
@@ -280,7 +311,6 @@
                     <div class="form-actions"><button type="submit" class="btn btn-success">Genel Ayarları Kaydet</button></div>
                 </form>
             </div>
-
 
             <div id="category-management" class="page">
                 <h1>Kategori Yönetimi</h1>
@@ -319,7 +349,7 @@
                     languages: [], 
                     banner: { slides: [] },
                     general: { // Yeni genel ayarlar objesi
-                        logo: { text: 'PUFEMO', icon: 'fa-solid fa-couch', iconColor: '#e74c3c', textColor: '#2c3e50' },
+                        logo: { type: 'text_icon', text: 'PUFEMO', icon: 'fa-solid fa-couch', iconColor: '#e74c3c', textColor: '#2c3e50', imageUrl: '', imageWidth: 150, imageHeight: 40 },
                         promoBar: { bgColor: '#e74c3c', textColor: '#ffffff', fontSize: '0.95rem', scrollSpeed: '20s', text: {} }
                     }
                 }, 
@@ -337,6 +367,9 @@
             // Yeni DOM elementleri
             const generalSettingsForm = document.getElementById('general-settings-form');
             const logoIconPicker = document.getElementById('logoIconPicker');
+            const logoTypeSelect = document.getElementById('logoType');
+            const textIconLogoOptions = document.getElementById('text-icon-logo-options');
+            const imageLogoOptions = document.getElementById('image-logo-options');
 
 
             // FontAwesome ikonları listesi (örnek, genişletebilirsiniz)
@@ -362,7 +395,7 @@
                     const [settingsDoc, categoriesDoc, productsSnapshot] = await Promise.all([
                         db.collection('pufemo').doc('settings').get(),
                         db.collection('pufemo').doc('categories').get(),
-                        db.collection('pufemo-products').get() // Admin panelinde tüm ürünleri çekmeye devam et
+                        db.collection('pufemo-products').get() 
                     ]);
                     // Eğer general ayarları yoksa varsayılan değerleri kullan
                     const fetchedSettings = settingsDoc.exists ? settingsDoc.data() : {};
@@ -371,10 +404,15 @@
                         languages: fetchedSettings.languages || [],
                         banner: fetchedSettings.banner || { slides: [] },
                         general: {
-                            logo: fetchedSettings.general?.logo || { text: 'PUFEMO', icon: 'fa-solid fa-couch', iconColor: '#e74c3c', textColor: '#2c3e50' },
-                            promoBar: fetchedSettings.general?.promoBar || { bgColor: '#e74c3c', textColor: '#ffffff', fontSize: '0.95rem', scrollSpeed: '20s', text: {} }
+                            logo: fetchedSettings.general?.logo || localState.settings.general.logo,
+                            promoBar: fetchedSettings.general?.promoBar || localState.settings.general.promoBar
                         }
                     };
+                    // Ensure logo type is set if not present in fetched data
+                    if (!localState.settings.general.logo.type) {
+                        localState.settings.general.logo.type = 'text_icon'; 
+                    }
+
                     localState.categories = categoriesDoc.exists ? categoriesDoc.data().tree || [] : [];
                     localState.products = productsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 } catch (error) {
@@ -445,17 +483,16 @@
                     let contentHTML = `<div class="lang-content ${isActive ? 'active' : ''}" data-lang-content="${lang.code}">`;
                     fields.forEach(field => {
                         const value = data?.[lang.code]?.[field.key] || '';
-                        const inputType = field.type === 'textarea' ? 'textarea' : 'text';
+                        const inputType = field.type === 'textarea' ? 'textarea' : (field.inputType || 'text'); // inputType'ı da dikkate al
                         const inputElement = inputType === 'textarea'
                             ? `<textarea class="lang-input" data-key="${field.key}" data-lang="${lang.code}">${value}</textarea>`
-                            : `<input type="${field.inputType || 'text'}" class="lang-input" data-key="${field.key}" data-lang="${lang.code}" value="${value}">`; // inputType'ı da dikkate al
+                            : `<input type="${inputType}" class="lang-input" data-key="${field.key}" data-lang="${lang.code}" value="${value}">`;
                         contentHTML += `<div class="form-group"><label>${field.label}</label>${inputElement}</div>`;
                     });
                     contentHTML += `</div>`;
                     contentContainer.innerHTML += contentHTML;
                 });
 
-                // Dil sekmelerine tıklama olayını ekle
                 tabsContainer.querySelectorAll('.lang-tab').forEach(tab => {
                     tab.addEventListener('click', () => {
                         const langCode = tab.dataset.lang;
@@ -651,7 +688,6 @@
                 document.querySelectorAll('.page').forEach(page => page.classList.toggle('active', false)); 
                 document.getElementById(pageId)?.classList.add('active'); 
 
-                // Yeni eklenen genel ayarlar sayfası için özel render çağrısı
                 if (pageId === 'general-settings') {
                     renderGeneralSettings();
                 }
@@ -782,15 +818,33 @@
 
             // --- YENİ EKLENEN GENEL AYARLAR FONKSİYONLARI VE OLAY DİNLEYİCİLERİ ---
 
+            function toggleLogoOptions() {
+                const selectedType = logoTypeSelect.value;
+                if (selectedType === 'text_icon') {
+                    textIconLogoOptions.classList.add('active');
+                    imageLogoOptions.classList.remove('active');
+                } else {
+                    textIconLogoOptions.classList.remove('active');
+                    imageLogoOptions.classList.add('active');
+                }
+            }
+
             function renderGeneralSettings() {
                 const generalSettings = localState.settings.general || {};
 
                 // Logo Ayarları
+                logoTypeSelect.value = generalSettings.logo?.type || 'text_icon';
+                toggleLogoOptions(); // Seçime göre ilgili alanı göster/gizle
+
                 document.getElementById('logoText').value = generalSettings.logo?.text || 'PUFEMO';
                 document.getElementById('logoIcon').value = generalSettings.logo?.icon || 'fa-solid fa-couch';
                 document.getElementById('logoIconColor').value = generalSettings.logo?.iconColor || '#e74c3c';
                 document.getElementById('logoTextColor').value = generalSettings.logo?.textColor || '#2c3e50';
                 
+                document.getElementById('logoImageUrl').value = generalSettings.logo?.imageUrl || '';
+                document.getElementById('logoImageWidth').value = generalSettings.logo?.imageWidth || 150;
+                document.getElementById('logoImageHeight').value = generalSettings.logo?.imageHeight || 40;
+
                 // İkon seçiciyi doldur
                 logoIconPicker.innerHTML = '';
                 fontAwesomeIcons.forEach(iconClass => {
@@ -803,10 +857,10 @@
                 // Promosyon Bandı Ayarları
                 document.getElementById('promoBarBgColor').value = generalSettings.promoBar?.bgColor || '#e74c3c';
                 document.getElementById('promoBarTextColor').value = generalSettings.promoBar?.textColor || '#ffffff';
+                // Değerleri alırken 'px' veya 's' kısımlarını temizle
                 document.getElementById('promoBarFontSize').value = parseFloat(generalSettings.promoBar?.fontSize) || 15;
                 document.getElementById('promoBarScrollSpeed').value = parseFloat(generalSettings.promoBar?.scrollSpeed) || 20;
 
-                // Promosyon Yazısı için çoklu dil sekmesi oluştur
                 createLangTabs(
                     document.getElementById('promo-text-lang-tabs'),
                     document.getElementById('promo-text-lang-content'),
@@ -817,21 +871,30 @@
 
             generalSettingsForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
+                const selectedLogoType = logoTypeSelect.value;
                 const newGeneralSettings = {
                     logo: {
-                        text: document.getElementById('logoText').value.trim(),
-                        icon: document.getElementById('logoIcon').value.trim(),
-                        iconColor: document.getElementById('logoIconColor').value,
-                        textColor: document.getElementById('logoTextColor').value
+                        type: selectedLogoType // Logo tipini kaydet
                     },
                     promoBar: {
                         bgColor: document.getElementById('promoBarBgColor').value,
                         textColor: document.getElementById('promoBarTextColor').value,
-                        fontSize: `${document.getElementById('promoBarFontSize').value}px`, // Px olarak kaydet
-                        scrollSpeed: `${document.getElementById('promoBarScrollSpeed').value}s`, // Saniye olarak kaydet
+                        fontSize: `${document.getElementById('promoBarFontSize').value}px`, 
+                        scrollSpeed: `${document.getElementById('promoBarScrollSpeed').value}s`,
                         text: {}
                     }
                 };
+
+                if (selectedLogoType === 'text_icon') {
+                    newGeneralSettings.logo.text = document.getElementById('logoText').value.trim();
+                    newGeneralSettings.logo.icon = document.getElementById('logoIcon').value.trim();
+                    newGeneralSettings.logo.iconColor = document.getElementById('logoIconColor').value;
+                    newGeneralSettings.logo.textColor = document.getElementById('logoTextColor').value;
+                } else { // image type
+                    newGeneralSettings.logo.imageUrl = document.getElementById('logoImageUrl').value.trim();
+                    newGeneralSettings.logo.imageWidth = parseInt(document.getElementById('logoImageWidth').value) || 0;
+                    newGeneralSettings.logo.imageHeight = parseInt(document.getElementById('logoImageHeight').value) || 0;
+                }
 
                 document.querySelectorAll('#promo-text-lang-content .lang-content').forEach(cont => {
                     const lang = cont.dataset.langContent;
@@ -842,15 +905,14 @@
                 await saveData('settings', localState.settings);
             });
 
-            // İkon seçici olay dinleyicisi
+            // Logo tipi seçimi değiştiğinde
+            logoTypeSelect.addEventListener('change', toggleLogoOptions);
+
             logoIconPicker.addEventListener('click', (e) => {
                 const selectedIconItem = e.target.closest('.icon-item');
                 if (selectedIconItem) {
-                    // Tüm seçili ikonları kaldır
                     logoIconPicker.querySelectorAll('.icon-item.selected').forEach(item => item.classList.remove('selected'));
-                    // Tıklanan ikonu seçili yap
                     selectedIconItem.classList.add('selected');
-                    // Input alanına ikon sınıfını yaz
                     document.getElementById('logoIcon').value = selectedIconItem.dataset.iconClass;
                 }
             });
@@ -862,14 +924,7 @@
                 renderProductList();
                 renderBannerSettings(); 
                 refreshCategoryView();
-                // Admin panelini ilk açtığında genel ayarları da yükle (varsayılan olarak ürün yönetimi sayfasındayken gizli kalacak)
                 renderGeneralSettings(); 
-                
-                if (localState.products.length > 0) {
-                    document.querySelector('#product-list-container li:first-child')?.click();
-                } else {
-                    document.getElementById('add-new-product-btn').click();
-                }
             }
             
             init();
