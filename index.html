@@ -60,7 +60,16 @@
         .section { padding-top: 60px; margin-top: -60px; }
         .section-title { text-align: center; margin-bottom: 2.5rem; font-size: 2.2rem; font-weight: 600; color: var(--primary-color); }
         .product-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; }
-        .product-card { background-color: var(--card-bg-color); border-radius: var(--border-radius); box-shadow: var(--box-shadow); overflow: hidden; transition: transform 0.3s ease, box-shadow 0.3s ease; display: flex; flex-direction: column; }
+        .product-card { 
+            background-color: var(--card-bg-color); 
+            border-radius: var(--border-radius); 
+            box-shadow: var(--box-shadow); 
+            overflow: hidden; 
+            transition: transform 0.3s ease, box-shadow 0.3s ease; 
+            display: flex; 
+            flex-direction: column; 
+            position: relative; /* Ücretsiz Kargo etiketi için konumlandırma */
+        }
         .product-card:hover { transform: translateY(-10px); box-shadow: 0 10px 20px rgba(0,0,0,0.15); }
         /* PRODUCT IMAGE ADJUSTMENTS START */
         .product-image-link { 
@@ -81,7 +90,41 @@
         .product-info-top { flex-grow: 1; }
         .product-name { font-size: 1.3rem; font-weight: 600; margin-bottom: 0.5rem; }
         .product-description { font-size: 0.9rem; margin-bottom: 1rem; color: #7f8c8d; }
-        .product-price { font-size: 1.5rem; font-weight: 700; color: var(--secondary-color); margin-top: 1rem; }
+        
+        /* Fiyat gösterimi için yeni stiller */
+        .price-container {
+            display: flex;
+            align-items: baseline;
+            gap: 8px; /* Fiyatlar arası boşluk */
+            margin-top: 1rem;
+        }
+        .original-price {
+            font-size: 1rem;
+            color: #7f8c8d;
+            text-decoration: line-through; /* Üstü çizili */
+            font-weight: 400;
+        }
+        .discounted-price {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--secondary-color);
+        }
+
+        /* Ücretsiz Kargo etiketi */
+        .free-shipping-tag {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background-color: #27ae60; /* Yeşil renk */
+            color: var(--light-text-color);
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            z-index: 10;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
         .main-footer { background-color: var(--primary-color); color: var(--light-text-color); padding: 3rem 0; margin-top: 3rem; }
         .footer-content { display: flex; justify-content: space-around; flex-wrap: wrap; gap: 2rem; text-align: center; }
         .footer-section { flex: 1; min-width: 200px; }
@@ -180,7 +223,8 @@
                 'footer-link-privacy': { tr: 'Gizlilik Politikası', en: 'Privacy Policy', el: 'Πολιτική Απορρήτου', ru: 'Политика конфиденциальности' },
                 'footer-title-follow-us': { tr: 'Bizi Takip Edin', en: 'Follow Us', el: 'Ακολουθήστε μας', ru: 'Следите за нами' },
                 'footer-copyright': { tr: '&copy; 2025 PUFEMO.COM | Tüm Hakları Saklıdır.', en: '&copy; 2025 PUFEMO.COM | All Rights Reserved.', el: '&copy; 2025 PUFEMO.COM | Με την επιφύλαξη παντός δικαιώματος.', ru: '&copy; 2025 PUFEMO.COM | Все права защищены.' },
-                'default_button_text': { tr: 'Alışverişe Başla', en: 'Shop Now', el: 'Αγοράστε τώρα', ru: 'Купить сейчас' }
+                'default_button_text': { tr: 'Alışverişe Başla', en: 'Shop Now', el: 'Αγοράστε τώρα', ru: 'Купить сейчас' },
+                'free_shipping_text': { tr: 'Ücretsiz Kargo', en: 'Free Shipping', el: 'Δωρεάν Αποστολή', ru: 'Бесплатная доставка' } // Yeni eklenen çeviri
             };
 
             const supportedLanguages = [
@@ -284,14 +328,51 @@
                 const container = document.getElementById('product-grid-container');
                 if (!container || !siteData.products) return;
                 container.innerHTML = '';
+
+                // Fiyatı biçimlendirme yardımcı fonksiyonu (fiyatta değişiklik yok, sadece gösterim)
+                const formatPriceDisplay = (price) => {
+                    const rates = siteData.settings?.exchangeRates || { TRY: 1 };
+                    const symbols = siteData.settings?.currencySymbols || { TRY: '₺' };
+                    const rate = rates[currentCurrency] || 1;
+                    const symbol = symbols[currentCurrency] || currentCurrency;
+                    const convertedPrice = (price || 0) * rate;
+
+                    if (currentCurrency === 'TRY') {
+                        return `${new Intl.NumberFormat('tr-TR', { maximumFractionDigits: 0 }).format(convertedPrice)} ${symbol}`;
+                    }
+                    return `${symbol} ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(convertedPrice)}`;
+                };
+
                 siteData.products.forEach(product => {
                     const card = document.createElement('div');
                     card.className = 'product-card';
                     const firstImage = product.variants?.[0]?.media?.[0]?.url || 'https://placehold.co/400x300/ccc/fff?text=Resim+Yok';
                     const name = product.content?.[currentLang]?.name || product.content?.tr?.name || 'İsimsiz Ürün';
                     const description = product.content?.[currentLang]?.description || product.content?.tr?.description || '';
+
+                    // Fiyat gösterimi için HTML oluşturma
+                    let priceHTML = '';
+                    if (product.discountedPrice && product.discountedPrice < product.price) {
+                        // İndirimli fiyat varsa, orijinal fiyat üstü çizili, indirimli fiyat belirgin
+                        priceHTML = `
+                            <div class="price-container">
+                                <span class="original-price">${formatPriceDisplay(product.price)}</span>
+                                <span class="discounted-price">${formatPriceDisplay(product.discountedPrice)}</span>
+                            </div>
+                        `;
+                    } else {
+                        // İndirimli fiyat yoksa veya eşitse, sadece orijinal fiyatı göster
+                        priceHTML = `<div class="price-container"><span class="discounted-price">${formatPriceDisplay(product.price)}</span></div>`;
+                    }
+
+                    // Ücretsiz Kargo etiketi
+                    const freeShippingTag = product.isFreeShipping 
+                        ? `<div class="free-shipping-tag">${staticTranslations['free_shipping_text'][currentLang] || staticTranslations['free_shipping_text']['tr']}</div>`
+                        : '';
+
+
                     card.innerHTML = `
-                        <a href="product.html?id=${product.id}" class="product-image-link">
+                        ${freeShippingTag} <a href="product.html?id=${product.id}" class="product-image-link">
                             <img src="${firstImage}" alt="${name}" class="product-image">
                         </a>
                         <div class="product-info">
@@ -299,8 +380,7 @@
                                 <h3 class="product-name"><a href="product.html?id=${product.id}">${name}</a></h3>
                                 <p class="product-description">${description.substring(0, 100)}...</p>
                             </div>
-                            <div class="product-price">${formatPrice(product.price)}</div>
-                        </div>`;
+                            ${priceHTML} </div>`;
                     container.appendChild(card);
                 });
             };
@@ -324,22 +404,20 @@
                 dots.forEach(dot => dot.addEventListener('click', () => { setSlide(parseInt(dot.dataset.index)); clearInterval(slideInterval); slideInterval = setInterval(nextSlide, 5000); }));
             };
             
-            // Ürün fiyatlarında herhangi bir düşüş uygulanmayacaktır (profit reduction kaldırıldı).
+            // NOTE: formatPrice fonksiyonu artık kullanılmıyor, yerine renderProducts içinde formatPriceDisplay kullanılıyor
+            // ve indirimli fiyat ile orijinal fiyat ayrımı renderProducts içinde yapılıyor.
+            // Bu fonksiyonu istersen silebiliriz ya da sadece genel bir fiyat biçimlendirme olarak tutabiliriz.
+            // Şu anki durumda artık product-card renderında direct kullanılmıyor.
             const formatPrice = (basePrice) => {
                 const rates = siteData.settings?.exchangeRates || { TRY: 1 };
                 const symbols = siteData.settings?.currencySymbols || { TRY: '₺' };
                 const rate = rates[currentCurrency] || 1;
                 const symbol = symbols[currentCurrency] || currentCurrency;
-                
-                // Orijinal basePrice doğrudan kullanılır, fiyat azaltma (profit reduction) yapılmaz.
                 const convertedPrice = (basePrice || 0) * rate;
 
                 if (currentCurrency === 'TRY') {
-                    // TRY için tam sayı olarak biçimlendir
                     return `${new Intl.NumberFormat('tr-TR', { maximumFractionDigits: 0 }).format(convertedPrice)} ${symbol}`;
                 }
-                
-                // Diğer para birimleri için iki ondalık basamakla biçimlendir
                 return `${symbol} ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(convertedPrice)}`;
             };
             
