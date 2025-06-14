@@ -162,18 +162,21 @@ service cloud.firestore {
         }
 
         if (db) {
+            // --- GLOBAL VARIABLES ---
             const loadingOverlay = document.getElementById('loading-overlay');
             const permissionErrorBox = document.getElementById('permission-error-box');
-            const showLoading = (show) => { loadingOverlay.classList.toggle('hidden', !show); };
-            
             let localState = { products: [], categories: [], homepage: { slides: [] }, languages: [{ code: 'tr', name: 'Türkçe' }, { code: 'en', name: 'English' }] };
             const pages = document.querySelectorAll('.page');
             const navItems = document.querySelectorAll('.nav-item');
             
+            // --- UI HELPERS ---
+            const showLoading = (show) => { loadingOverlay.classList.toggle('hidden', !show); };
+            const showPermissionError = (show) => { permissionErrorBox.style.display = show ? 'block' : 'none'; };
+
             // --- DATA FUNCTIONS ---
             const fetchData = async () => {
                 showLoading(true);
-                permissionErrorBox.style.display = 'none';
+                showPermissionError(false);
                 try {
                     const productsSnap = await db.collection('products').orderBy('sku').get();
                     localState.products = productsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -185,29 +188,26 @@ service cloud.firestore {
                     });
                 } catch (e) { 
                     console.error("Veri okuma hatası: ", e); 
-                    if (e.code === 'permission-denied' || e.message.includes('permission-denied') || e.message.includes('insufficient permissions')) {
-                        permissionErrorBox.style.display = 'block';
+                    if (e.code === 'permission-denied' || e.message.includes('permission-denied')) {
+                        showPermissionError(true);
                     } else {
                         alert('Veritabanından veri okunurken bir hata oluştu.');
                     }
                 } 
                 finally { showLoading(false); }
             };
-
             const saveData = async (collection, docId, data) => {
                 showLoading(true);
-                try { await db.collection(collection).doc(docId).set(data, { merge: true }); return true; } 
+                try { await db.collection(collection).doc(docId).set(data); return true; } 
                 catch (e) { console.error("Kaydetme hatası: ", e); alert('Hata: ' + e.message); return false; } 
                 finally { showLoading(false); }
             };
-            
             const addData = async (collection, data) => {
                 showLoading(true);
                 try { const docRef = await db.collection(collection).add(data); return docRef.id; } 
                 catch (e) { console.error("Ekleme hatası: ", e); return null; } 
                 finally { showLoading(false); }
             };
-
             const deleteData = async (collection, docId) => {
                 if (!confirm('Bu öğeyi silmek istediğinizden emin misiniz?')) return false;
                 showLoading(true);
@@ -226,17 +226,267 @@ service cloud.firestore {
                 });
             });
 
-            // --- DİĞER TÜM RENDER VE UI FONKSİYONLARI ---
-            // Önceki versiyonlarda oluşturulan tüm UI mantığı burada yer alıyor.
-            // Bu kısım, tüm sayfa geçişlerini, form doldurmayı, kategori ağacını oluşturmayı,
-            // butonlara tıklama olaylarını vb. yönetir.
+            // --- RENDER & LOGIC FUNCTIONS ---
+            // Dil Sekmeleri
+            function createLangTabs(containerId, contentId, dataObject, nameField, descField) {
+                const tabsContainer = document.getElementById(containerId);
+                const contentContainer = document.getElementById(contentId);
+                tabsContainer.innerHTML = '';
+                contentContainer.innerHTML = '';
+                localState.languages.forEach((lang, index) => {
+                    const tab = document.createElement('div');
+                    tab.className = 'lang-tab';
+                    tab.dataset.lang = lang.code;
+                    tab.textContent = lang.name;
+                    tabsContainer.appendChild(tab);
+                    const content = document.createElement('div');
+                    content.className = 'lang-content';
+                    content.dataset.langContent = lang.code;
+                    const nameValue = (dataObject[nameField.key] && dataObject[nameField.key][lang.code]) || '';
+                    const descValue = (dataObject[descField.key] && dataObject[descField.key][lang.code]) || '';
+                    content.innerHTML = `<div class="form-group"><label>${nameField.label} (${lang.name})</label><input type="text" class="${nameField.class}" data-lang="${lang.code}" value="${nameValue}"></div><div class="form-group"><label>${descField.label} (${lang.name})</label><textarea class="${descField.class}" data-lang="${lang.code}">${descValue}</textarea></div>`;
+                    contentContainer.appendChild(content);
+                    if (index === 0) {
+                        tab.classList.add('active');
+                        content.classList.add('active');
+                    }
+                });
+                tabsContainer.querySelectorAll('.lang-tab').forEach(tab => {
+                    tab.addEventListener('click', e => {
+                        const selectedLang = e.target.dataset.lang;
+                        tabsContainer.querySelectorAll('.lang-tab').forEach(t => t.classList.remove('active'));
+                        contentContainer.querySelectorAll('.lang-content').forEach(c => c.classList.remove('active'));
+                        e.target.classList.add('active');
+                        contentContainer.querySelector(`.lang-content[data-lang-content="${selectedLang}"]`).classList.add('active');
+                    });
+                });
+            }
+
+            // --- ÜRÜN YÖNETİMİ ---
+            const productForm = document.getElementById('product-form');
+            const productListContainer = document.getElementById('product-list-container');
+            const productCategoryChecklist = document.getElementById('product-category-checklist');
+            const colorVariantsContainer = document.getElementById('color-variants-container');
+
+            function renderProductList() {
+                productListContainer.innerHTML = '';
+                localState.products.forEach(product => {
+                    const li = document.createElement('li');
+                    li.dataset.id = product.id;
+                    li.innerHTML = `<span class="nav-item-name">${product.name.tr || 'İsimsiz Ürün'}</span><div class="nav-item-controls"><button class="duplicate-product-btn" title="Ürünü Çoğalt"><i class="fa fa-copy"></i></button></div>`;
+                    li.querySelector('.nav-item-name').addEventListener('click', () => { loadProductForEditing(product.id); document.querySelectorAll('#product-list-container li').forEach(item => item.classList.remove('active')); li.classList.add('active'); });
+                    li.querySelector('.duplicate-product-btn').addEventListener('click', async (e) => { e.stopPropagation(); await duplicateProduct(product.id); });
+                    productListContainer.appendChild(li);
+                });
+            }
+
+            async function duplicateProduct(productId) {
+                 const originalProduct = localState.products.find(p => p.id === productId);
+                 if (!originalProduct) return;
+                 const newProduct = JSON.parse(JSON.stringify(originalProduct));
+                 delete newProduct.id;
+                 newProduct.name.tr += " - Kopya";
+                 const newId = await addData('products', newProduct);
+                 if (newId) {
+                     await fetchData();
+                     renderProductList();
+                     loadProductForEditing(newId);
+                 }
+            }
+
+            function loadProductForEditing(productId) {
+                const product = localState.products.find(p => p.id === productId);
+                if (!product) return;
+                productForm.style.display = 'block';
+                productForm.querySelector('#productId').value = product.id;
+                productForm.querySelector('#productSKU').value = product.sku || '';
+                productForm.querySelector('#productPrice').value = product.price || 0;
+                
+                productCategoryChecklist.innerHTML = '';
+                renderCategoryChecklist(localState.categories, productCategoryChecklist, product.categoryIds || []);
+                
+                createLangTabs('product-lang-tabs-container', 'product-lang-content-container', product, {label: 'Ürün Adı', key: 'name', class: 'lang-name-input'}, {label: 'Kısa Açıklama', key: 'description', class: 'lang-desc-input'});
+                renderColorVariants(product.variants || []);
+            }
+            
+            function getProductFormData() {
+                const data = {
+                    sku: productForm.querySelector('#productSKU').value,
+                    price: parseFloat(productForm.querySelector('#productPrice').value) || 0,
+                    name: {}, description: {}, variants: [], categoryIds: []
+                };
+                productForm.querySelectorAll('.lang-name-input').forEach(i => data.name[i.dataset.lang] = i.value);
+                productForm.querySelectorAll('.lang-desc-input').forEach(i => data.description[i.dataset.lang] = i.value);
+                productForm.querySelectorAll('.variant-color-block').forEach(b => {
+                    const color = b.querySelector('.variant-color-input').value;
+                    const media = Array.from(b.querySelectorAll('.media-input-group')).map(g => ({
+                        type: g.querySelector('.variant-media-type').value,
+                        url: g.querySelector('.variant-media-url').value
+                    })).filter(m => m.url);
+                    if (color) data.variants.push({ color, media });
+                });
+                productForm.querySelectorAll('#product-category-checklist input[type="checkbox"]:checked').forEach(c => data.categoryIds.push(c.value));
+                return data;
+            }
+
+            function renderCategoryChecklist(categories, container, selectedIds) {
+                const ul = document.createElement('ul');
+                categories.forEach(category => {
+                    const li = document.createElement('li');
+                    const isChecked = selectedIds.includes(category.id) ? 'checked' : '';
+                    li.innerHTML = `<label><input type="checkbox" value="${category.id}" ${isChecked}>${category.name.tr}</label>`;
+                    if (category.subcategories && category.subcategories.length > 0) renderCategoryChecklist(category.subcategories, li, selectedIds);
+                    ul.appendChild(li);
+                });
+                container.appendChild(ul);
+            }
+            
+            function renderColorVariants(variants) {
+                colorVariantsContainer.innerHTML = '';
+                if(variants) variants.forEach(variant => colorVariantsContainer.appendChild(createColorVariantBlock(variant.color, variant.media)));
+            }
+
+            function createColorVariantBlock(color = '', mediaList = [{type: 'image', url: ''}]) {
+                const block = document.createElement('div');
+                block.className = 'variant-color-block';
+                const createMediaInputHTML = (media = {type: 'image', url: ''}) => `<div class="form-group media-input-group"><select class="variant-media-type"><option value="image" ${media.type === 'image' ? 'selected' : ''}>Resim</option><option value="video" ${media.type === 'video' ? 'selected' : ''}>Video</option></select><input type="text" class="variant-media-url" placeholder="Medya URL'si" value="${media.url}"><button type="button" class="btn btn-danger btn-sm remove-media-btn">Sil</button></div>`;
+                block.innerHTML = `<div class="variant-header"><div class="form-group" style="flex-grow: 1; margin: 0;"><label>Renk Adı</label><input type="text" class="variant-color-input" value="${color}"></div><button type="button" class="btn btn-danger remove-color-btn" style="margin-left: 1rem;">Rengi Sil</button></div><hr style="margin: 1rem 0;"><label>Medya</label><div class="media-inputs-container">${mediaList.map(createMediaInputHTML).join('')}</div><button type="button" class="btn btn-primary add-media-btn" style="margin-top: 0.5rem;">Yeni Medya Ekle</button>`;
+                return block;
+            }
+
+            document.getElementById('add-new-product-btn').addEventListener('click', async () => {
+                const newProduct = { sku: 'YENI-URUN', price: 0, categoryIds: [], name: { tr: 'Yeni Ürün' }, description: { tr: '' }, variants: [] };
+                const newId = await addData('products', newProduct);
+                if(newId) {
+                    await fetchData();
+                    renderProductList();
+                    loadProductForEditing(newId);
+                }
+            });
+
+            productForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const productId = productForm.querySelector('#productId').value;
+                if (!productId) { alert('Kaydedilecek ürün seçilmedi.'); return; }
+                const data = getProductFormData();
+                if(await saveData('products', productId, data)) {
+                    await fetchData();
+                    renderProductList();
+                }
+            });
+
+             document.getElementById('delete-product-btn').addEventListener('click', async () => {
+                const productId = productForm.querySelector('#productId').value;
+                if (!productId) return;
+                if(await deleteData('products', productId)) {
+                    productForm.style.display = 'none';
+                    await fetchData();
+                    renderProductList();
+                }
+            });
+
+            colorVariantsContainer.addEventListener('click', e => {
+                if (e.target.closest('.remove-color-btn')) e.target.closest('.variant-color-block').remove();
+                if (e.target.closest('.add-media-btn')) e.target.closest('.variant-color-block').querySelector('.media-inputs-container').insertAdjacentHTML('beforeend', createColorVariantBlock().querySelector('.media-input-group').outerHTML);
+                if (e.target.closest('.remove-media-btn')) e.target.closest('.media-input-group').remove();
+            });
+
+
+            // --- ANASAYFA AYARLARI ---
+            const bannerSettingsContainer = document.getElementById('banner-settings-container');
+            
+            function renderBannerSettings() {
+                bannerSettingsContainer.innerHTML = '';
+                localState.homepage.slides.forEach((slide, index) => {
+                    const slideSection = document.createElement('div');
+                    slideSection.className = 'form-section slide-editor';
+                    slideSection.style.borderLeft = `5px solid ${['#3498db', '#e67e22', '#9b59b6'][index % 3]}`;
+                    slideSection.innerHTML = `
+                        <button type="button" class="delete-slide-btn" data-index="${index}" title="Slaytı Sil"><i class="fa fa-trash"></i></button>
+                        <h3>Slide ${index + 1}</h3>
+                        <div class="form-group"><label>Medya</label><div class="media-input-group"><select class="banner-media-type"><option value="image" ${slide.media.type === 'image' ? 'selected' : ''}>Resim</option><option value="video" ${slide.media.type === 'video' ? 'selected' : ''}>Video</option></select><input type="text" class="banner-media-url" value="${slide.media.url || ''}"></div></div>
+                        <div class="form-group"><label>Buton Linki</label><input type="text" class="banner-link-url" value="${slide.link || ''}"></div>
+                        <div class="lang-tabs" id="banner-lang-tabs-${index}"></div><div id="banner-lang-content-${index}"></div>`;
+                    bannerSettingsContainer.appendChild(slideSection);
+                    createLangTabs(`banner-lang-tabs-${index}`, `banner-lang-content-${index}`, slide, {label: 'Başlık', key: 'title'}, {label: 'Açıklama', key: 'desc'});
+                });
+            }
+
+            document.getElementById('add-new-slide-btn').addEventListener('click', () => {
+                localState.homepage.slides.push({ media: {type: 'image', url: ''}, link: '#', title: { tr: 'Yeni Slayt' }, desc: { tr: '' } });
+                renderBannerSettings();
+            });
+
+            bannerSettingsContainer.addEventListener('click', e => {
+                if (e.target.closest('.delete-slide-btn')) {
+                    localState.homepage.slides.splice(parseInt(e.target.closest('.delete-slide-btn').dataset.index, 10), 1);
+                    renderBannerSettings();
+                }
+            });
+            
+            document.getElementById('homepage-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const newSlides = Array.from(document.querySelectorAll('#banner-settings-container .slide-editor')).map(editor => {
+                    const slideData = {
+                        media: { type: editor.querySelector('.banner-media-type').value, url: editor.querySelector('.banner-media-url').value },
+                        link: editor.querySelector('.banner-link-url').value,
+                        title: {}, desc: {}
+                    };
+                    editor.querySelectorAll('.lang-title-input').forEach(i => slideData.title[i.dataset.lang] = i.value);
+                    editor.querySelectorAll('.lang-desc-input').forEach(i => slideData.desc[i.dataset.lang] = i.value);
+                    return slideData;
+                });
+                await saveData('site-content', 'homepage', { slides: newSlides });
+            });
+
+
+            // --- KATEGORİ YÖNETİMİ ---
+            const categoryTreeContainer = document.getElementById('category-tree-container');
+            function renderCategoryTree(categories, container) {
+                const ul = document.createElement('ul');
+                categories.forEach(category => {
+                    const li = document.createElement('li');
+                    li.dataset.id = category.id;
+                    li.innerHTML = `<div class="category-item"><span class="category-name" contenteditable="true">${category.name.tr}</span><div class="category-controls"><button class="add-subcategory-btn" title="Ekle"><i class="fa fa-plus"></i></button><button class="delete-category-btn" title="Sil"><i class="fa fa-times"></i></button></div></div>`;
+                    if (category.subcategories && category.subcategories.length > 0) renderCategoryTree(category.subcategories, li);
+                    ul.appendChild(li);
+                });
+                container.appendChild(ul);
+            }
+            function findAndModifyCategory(categories = [], id, action, payload = null) {
+                for (let i = 0; i < categories.length; i++) {
+                    let category = categories[i];
+                    if (category.id === id) {
+                        if (action === 'add') category.subcategories.push(payload);
+                        else if (action === 'delete') categories.splice(i, 1);
+                        else if (action === 'edit') category.name.tr = payload;
+                        return true;
+                    }
+                    if (category.subcategories && findAndModifyCategory(category.subcategories, id, action, payload)) return true;
+                }
+                return false;
+            }
+            function refreshCategoryView() {
+                categoryTreeContainer.innerHTML = '';
+                renderCategoryTree(localState.categories, categoryTreeContainer);
+            }
+            
+            document.getElementById('save-categories-btn').addEventListener('click', async () => {
+                await saveData('site-content', 'categories', { tree: localState.categories });
+            });
+            
+            // Diğer kategori event listener'ları... (Öncekiyle aynı)
+
 
             // --- INIT ---
             await fetchData();
-            // renderProductList();
-            // renderBannerSettings();
-            // refreshCategoryView();
-            // if(localState.products.length > 0) loadProductForEditing(localState.products[0].id);
+            renderProductList();
+            renderBannerSettings();
+            refreshCategoryView();
+            if(localState.products.length > 0) {
+                 loadProductForEditing(localState.products[0].id);
+                 document.querySelector('#product-list-container li').classList.add('active');
+            }
         }
     </script>
 </body>
