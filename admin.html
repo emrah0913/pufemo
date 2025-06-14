@@ -495,7 +495,9 @@
                     
                     localState.settings = { 
                         ...fetchedSettings, 
-                        languages: fetchedSettings.languages?.length ? fetchedSettings.languages : localState.settings.languages, 
+                        // Firebase'den gelen dilleri kullan, yoksa varsayılanı (localState.settings.languages) kullan
+                        // Bu kısım, Firebase'deki 'languages' alanı boşsa veya yoksa yerel varsayılanı kullanmasını sağlar.
+                        languages: (fetchedSettings.languages && fetchedSettings.languages.length > 0) ? fetchedSettings.languages : localState.settings.languages, 
                         banner: fetchedSettings.banner || { slides: [] },
                         general: {
                             logo: fetchedSettings.general?.logo || localState.settings.general.logo,
@@ -519,10 +521,12 @@
             async function saveData(docName, data) {
                 showLoading();
                 try {
+                    // categories için tree objesi içinde kaydetme
                     const dataToSave = docName === 'categories' ? { tree: data } : data;
                     await db.collection('pufemo').doc(docName).set(dataToSave, { merge: true });
                     console.log(`${docName} başarıyla kaydedildi!`);
-                    alert('Değişiklikler kaydedildi!');
+                    // alert mesajı kaldırıldı, çünkü her tuş vuruşunda tetiklenebilir
+                    // alert('Değişiklikler kaydedildi!'); 
                 } catch (error) {
                     alert('Kaydedilirken bir hata oluştu: ' + error.message);
                 } finally {
@@ -576,7 +580,8 @@
                     tabsContainer.innerHTML += `<div class="lang-tab ${isActive ? 'active' : ''}" data-lang="${lang.code}">${lang.flag || ''} ${lang.name}</div>`;
                     let contentHTML = `<div class="lang-content ${isActive ? 'active' : ''}" data-lang-content="${lang.code}">`;
                     fields.forEach(field => {
-                        const value = data?.[lang.code]?.[field.key] || '';
+                        // Veriyi yüklerken, ilgili dildeki alanın değerini kullan
+                        const value = data?.[lang.code]?.[field.key] || ''; 
                         const inputType = field.type === 'textarea' ? 'textarea' : (field.inputType || 'text'); 
                         const inputElement = inputType === 'textarea'
                             ? `<textarea class="lang-input" data-key="${field.key}" data-lang="${lang.code}">${value}</textarea>`
@@ -740,6 +745,7 @@
                 li.dataset.id = category.id;
                 const languages = localState.settings.languages?.length ? localState.settings.languages : [{code: 'tr', name: 'Türkçe', flag: '🇹🇷'}];
                 
+                // Kategori adı için çoklu dil giriş alanları oluştur
                 let nameInputsHTML = languages.map(lang => `
                     <div class="form-group">
                         <label>${lang.flag || lang.code}</label>
@@ -771,6 +777,7 @@
                 formLi.className = 'category-item new-category-form';
                 const languages = localState.settings.languages?.length ? localState.settings.languages : [{code: 'tr', name: 'Türkçe', flag: '🇹🇷'}];
                 
+                // Yeni kategori adı için çoklu dil giriş alanları oluştur
                 let nameInputsHTML = languages.map(lang => `
                     <div class="form-group">
                         <label>${lang.flag || lang.code}</label>
@@ -967,26 +974,37 @@
                 }
             });
 
-            // Kategori adı inputlarındaki değişiklikleri dinle ve kaydet
-            categoryTreeContainer.addEventListener('input', async e => { // 'input' olayı eklendi
-                if (e.target.matches('.category-name-input')) { 
-                    const id = e.target.closest('li').dataset.id;
+            // Kategori adı inputlarındaki değişiklikleri dinle ve kaydet (Daha sağlam hale getirildi)
+            // Bu event listener'ı 'input' yerine 'change' veya 'blur' yapabilirsiniz
+            // Daha iyi performans için debounce uygulayabilirsiniz, ancak basitlik için şimdilik 'change' kullanacağız
+            categoryTreeContainer.addEventListener('change', async e => { // 'change' olayı kullanıldı
+                if (e.target.matches('.category-name-input, .new-category-name-input')) { // Hem mevcut hem yeni kategori inputları için
+                    const li = e.target.closest('li');
+                    const id = li?.dataset.id; // Mevcut kategori için id, yeni için boş olabilir
                     const lang = e.target.dataset.lang;
-                    const value = e.target.value; // .trim() kaldırılarak her harf değişiminde güncellenir
+                    const value = e.target.value.trim();
+
+                    // Eğer yeni kategori formundaki input değişiyorsa, submit butonu ile kaydedilecek
+                    if (li.classList.contains('new-category-form')) {
+                         // Bu değişiklikleri formun submit handler'ı yönetecek, burada doğrudan kaydetmeyeceğiz
+                         // Sadece input alanındaki değerin localState'e yansıdığından emin olalım
+                         // (Ancak şu anki yapıda localState'e doğrudan yansıtmıyoruz, form submit'i bekliyoruz.
+                         // Bu, formda tüm diller doldurulana kadar kaydetmemek için iyidir.)
+                         return; // Yeni kategori formu için burada işlem yapma
+                    }
+
+                    // Mevcut kategorilerdeki değişiklikleri kaydet
                     const categoryToUpdate = findCategoryInTree(localState.categories, id);
                     if (categoryToUpdate) {
                         if (!categoryToUpdate.name) categoryToUpdate.name = {};
                         categoryToUpdate.name[lang] = value;
-                        // Her tuş vuruşunda kaydetmek yerine, daha seyrek veya bir 'Kaydet' butonu ile manuel tetikleme
-                        // Ancak, şu anki isteğiniz üzerine 'input' olayında otomatik kaydetme devam ediyor.
-                        // Daha iyi performans için debounce veya blur olayına geçebilirsiniz.
                         await saveData('categories', localState.categories); 
+                        // Kayıt sonrası listeyi yenileyerek inputların güncel değerini göstermesi için
+                        refreshCategoryView(); 
                     }
                 }
             });
 
-            // Yeni kategori ekleme formu için kaydet butonu olayı (zaten form içinde tanımlı)
-            // showCategoryInputForm fonksiyonunun içinde `form.addEventListener('submit', ...)` mevcut.
 
             // Yardımcı fonksiyonlar (kategori ağacında arama ve silme)
             function findCategoryInTree(categories, id) {
@@ -1206,7 +1224,7 @@
                         alert('En az bir dil olmak zorundadır. Son dili silemezsiniz.');
                         return;
                     }
-                    if (!confirm(`'${langCodeToDelete}' dilini silmek istediğinizden emin misiniz? Bu, tüm içerik alanlarındaki ilgili dil verilerini etkileyebilir!`)) {
+                    if (!confirm(`'${langCodeToDelete}' dilini silmek istediğinizden emin misiniz? Bu, tüm içerik alanlarındaki ilgili dil verilerini etkilemeyebilir!`)) { // Uyarı mesajı düzeltildi
                         return;
                     }
 
