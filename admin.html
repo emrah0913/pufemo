@@ -41,6 +41,20 @@
         .form-group label { display: block; font-weight: 500; margin-bottom: 0.5rem; }
         .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 5px; font-size: 1rem; }
         .form-group textarea { min-height: 120px; resize: vertical; }
+        /* Yeni checkbox stilini ekledik */
+        .form-group input[type="checkbox"] {
+            width: auto; /* Checkbox'ın genişliğini otomatik yapar */
+            margin-right: 10px; /* Label ile arasında boşluk bırakır */
+        }
+        .form-group.checkbox-group {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+        .form-group.checkbox-group label {
+            margin-bottom: 0;
+        }
+
         .lang-tabs { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 1rem; }
         .lang-tab { padding: 8px 15px; background: #eee; border: 1px solid var(--border-color); border-bottom: none; border-radius: 5px 5px 0 0; cursor: pointer; }
         .lang-tab.active { background: var(--form-bg-color); font-weight: 600; }
@@ -105,7 +119,15 @@
                                 <h2>Temel Bilgiler</h2>
                                 <input type="hidden" id="productId">
                                 <div class="form-group"><label for="productSKU">Ürün Kodu (SKU)</label><input type="text" id="productSKU" required></div>
-                                <div class="form-group"><label for="productPrice">Taban Fiyat (₺)</label><input type="number" id="productPrice" step="any" required></div>
+                                
+                                <div class="form-group"><label for="productPrice">Orijinal Fiyat (₺)</label><input type="number" id="productPrice" step="any" required></div>
+                                
+                                <div class="form-group"><label for="productDiscountedPrice">İndirimli Fiyat (₺) (Opsiyonel)</label><input type="number" id="productDiscountedPrice" step="any"></div>
+
+                                <div class="form-group checkbox-group">
+                                    <input type="checkbox" id="productFreeShipping">
+                                    <label for="productFreeShipping">Ücretsiz Kargo</label>
+                                </div>
                             </section>
                             <section class="form-section">
                                 <h2>Ürün Kategorisi</h2>
@@ -216,7 +238,7 @@
                     console.log(`${docName} başarıyla kaydedildi!`);
                     alert('Değişiklikler kaydedildi!');
                 } catch (error) {
-                    	alert('Kaydedilirken bir hata oluştu: ' + error.message);
+                    alert('Kaydedilirken bir hata oluştu: ' + error.message);
                 } finally {
                     hideLoading();
                 }
@@ -301,6 +323,11 @@
                 productForm.querySelector('#productSKU').value = product.sku || '';
                 productForm.querySelector('#productPrice').value = product.price || 0;
                 
+                // İndirimli fiyatı yükle
+                productForm.querySelector('#productDiscountedPrice').value = product.discountedPrice || ''; 
+                // Ücretsiz kargo durumunu yükle
+                productForm.querySelector('#productFreeShipping').checked = product.isFreeShipping || false;
+
                 const categoryChecklist = document.getElementById('product-category-checklist');
                 categoryChecklist.innerHTML = '';
                 const renderChecks = (categories, container, selectedIds) => {
@@ -363,7 +390,6 @@
                 categoryTreeContainer.appendChild(mainUl);
             }
             
-            // KOD GÜNCELLENDİ
             function createCategoryNode(category) {
                 const li = document.createElement('li');
                 li.dataset.id = category.id;
@@ -378,7 +404,6 @@
                 return li;
             }
 
-            // KOD GÜNCELLENDİ
             function showCategoryInputForm(container, parentCategoryArray) {
                 if (container.querySelector('.new-category-form')) return;
                 const formLi = document.createElement('li');
@@ -405,9 +430,64 @@
             // === 6. OLAY DİNLEYİCİLER (EVENT LISTENERS) ===
             document.querySelector('.sidebar-nav').addEventListener('click', e => { const navItem = e.target.closest('.nav-item'); if (!navItem) return; document.querySelectorAll('.sidebar-nav .nav-item').forEach(item => item.classList.remove('active')); navItem.classList.add('active'); const pageId = navItem.dataset.page; document.querySelectorAll('.page').forEach(page => page.classList.toggle('active', false)); document.getElementById(pageId)?.classList.add('active'); });
             
-            document.getElementById('add-new-product-btn').addEventListener('click', () => { document.querySelectorAll('#product-list-container li').forEach(item => item.classList.remove('active')); loadProductForEditing({ id: '', sku: `YENI-URUN-${Date.now().toString().slice(-6)}`, price: 0, categories: [], content: {}, variants: [] }); });
+            document.getElementById('add-new-product-btn').addEventListener('click', () => { 
+                document.querySelectorAll('#product-list-container li').forEach(item => item.classList.remove('active')); 
+                loadProductForEditing({ 
+                    id: '', 
+                    sku: `YENI-URUN-${Date.now().toString().slice(-6)}`, 
+                    price: 0, 
+                    discountedPrice: null, // Yeni ürün eklerken başlangıçta indirimli fiyat yok
+                    isFreeShipping: false, // Yeni ürün eklerken başlangıçta ücretsiz kargo yok
+                    categories: [], 
+                    content: {}, 
+                    variants: [] 
+                }); 
+            });
             productListContainer.addEventListener('click', e => { const li = e.target.closest('li'); if (li) { document.querySelectorAll('#product-list-container li').forEach(item => item.classList.remove('active')); li.classList.add('active'); loadProductForEditing(li.dataset.id); } });
-            productForm.addEventListener('submit', async e => { e.preventDefault(); const id = productForm.querySelector('#productId').value; const productData = { sku: productForm.querySelector('#productSKU').value, price: parseFloat(productForm.querySelector('#productPrice').value) || 0, categories: Array.from(document.querySelectorAll('#product-category-checklist input:checked')).map(cb => cb.value), content: {}, variants: [] }; productForm.querySelectorAll('.lang-content').forEach(cont => { const lang = cont.dataset.langContent; productData.content[lang] = { name: cont.querySelector('[data-key="name"]').value, description: cont.querySelector('[data-key="description"]').value }; }); document.querySelectorAll('#color-variants-container .variant-color-block').forEach(block => { const variant = { colorName: block.querySelector('.variant-color-input').value, media: [] }; block.querySelectorAll('.media-input-group').forEach(mediaEl => { const urlInput = mediaEl.querySelector('.variant-media-url'); if (urlInput.value.trim()) variant.media.push({ type: mediaEl.querySelector('.variant-media-type').value, url: urlInput.value.trim() }); }); if (variant.colorName.trim()) productData.variants.push(variant); }); const savedId = await saveProduct(productData, id); if (savedId) { await fetchData(); renderProductList(); document.querySelector(`#product-list-container li[data-id="${savedId}"]`)?.classList.add('active'); loadProductForEditing(savedId); } });
+            
+            // Ürün kaydetme (submit) olay dinleyicisi güncellendi
+            productForm.addEventListener('submit', async e => { 
+                e.preventDefault(); 
+                const id = productForm.querySelector('#productId').value; 
+                
+                const productData = { 
+                    sku: productForm.querySelector('#productSKU').value, 
+                    price: parseFloat(productForm.querySelector('#productPrice').value) || 0,
+                    // Yeni eklenen alanları al
+                    discountedPrice: parseFloat(productForm.querySelector('#productDiscountedPrice').value) || null, // Eğer boşsa null kaydet
+                    isFreeShipping: productForm.querySelector('#productFreeShipping').checked, // Checkbox değerini al
+                    categories: Array.from(document.querySelectorAll('#product-category-checklist input:checked')).map(cb => cb.value), 
+                    content: {}, 
+                    variants: [] 
+                }; 
+                
+                productForm.querySelectorAll('.lang-content').forEach(cont => { 
+                    const lang = cont.dataset.langContent; 
+                    productData.content[lang] = { 
+                        name: cont.querySelector('[data-key="name"]').value, 
+                        description: cont.querySelector('[data-key="description"]').value 
+                    }; 
+                }); 
+                
+                document.querySelectorAll('#color-variants-container .variant-color-block').forEach(block => { 
+                    const variant = { colorName: block.querySelector('.variant-color-input').value, media: [] }; 
+                    block.querySelectorAll('.media-input-group').forEach(mediaEl => { 
+                        const urlInput = mediaEl.querySelector('.variant-media-url'); 
+                        if (urlInput.value.trim()) 
+                            variant.media.push({ type: mediaEl.querySelector('.variant-media-type').value, url: urlInput.value.trim() }); 
+                    }); 
+                    if (variant.colorName.trim()) productData.variants.push(variant); 
+                }); 
+                
+                const savedId = await saveProduct(productData, id); 
+                if (savedId) { 
+                    await fetchData(); 
+                    renderProductList(); 
+                    document.querySelector(`#product-list-container li[data-id="${savedId}"]`)?.classList.add('active'); 
+                    loadProductForEditing(savedId); 
+                } 
+            });
+
             document.getElementById('delete-product-btn').addEventListener('click', async () => { const id = productForm.querySelector('#productId').value; if (await deleteProduct(id)) { productForm.style.display = 'none'; await fetchData(); renderProductList(); } });
             productForm.addEventListener('click', e => { const target = e.target; if (target.id === 'add-color-variant-btn') document.getElementById('color-variants-container').appendChild(createColorVariantBlock()); else if (target.matches('.remove-color-btn, .remove-color-btn *')) target.closest('.variant-color-block').remove(); else if (target.matches('.add-media-btn, .add-media-btn *')) target.closest('.variant-color-block').querySelector('.media-inputs-container').insertAdjacentHTML('beforeend', createMediaInputHTML()); else if (target.matches('.remove-media-btn, .remove-media-btn *')) target.closest('.media-input-group').remove(); else if (target.classList.contains('lang-tab')) { const langCode = target.dataset.lang; const formSection = target.closest('.form-section'); formSection.querySelectorAll('.lang-tab, .lang-content').forEach(el => el.classList.remove('active')); target.classList.add('active'); formSection.querySelector(`.lang-content[data-lang-content="${langCode}"]`).classList.add('active'); }});
             homepageForm.addEventListener('submit', e => { e.preventDefault(); const newSlidesData = []; document.querySelectorAll('#banner-settings-container .form-section').forEach(section => { const slide = { image_url: section.querySelector('.banner-input[data-key="image_url"]').value, link_url: section.querySelector('.banner-input[data-key="link_url"]').value, content: {} }; section.querySelectorAll('.lang-content').forEach(cont => { const lang = cont.dataset.langContent; slide.content[lang] = { title: cont.querySelector('[data-key="title"]').value, subtitle: cont.querySelector('[data-key="subtitle"]').value, button_text: cont.querySelector('[data-key="button_text"]').value }; }); newSlidesData.push(slide); }); localState.settings.banner = { slides: newSlidesData }; saveData('settings', localState.settings); });
