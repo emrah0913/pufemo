@@ -45,22 +45,68 @@
         .category-nav ul { list-style: none; display: flex; justify-content: center; gap: 2.5rem; flex-wrap: wrap; }
         .category-nav a { color: var(--light-text-color); font-weight: 500; padding: 5px 10px; border-radius: 5px; transition: background-color 0.3s ease; }
         .category-nav a:hover { background-color: rgba(255,255,255,0.1); }
-        .hero-banner { position: relative; width: 100%; height: 500px; overflow: hidden; background-color: #ccc; }
-        .slide { position: absolute; width: 100%; height: 100%; opacity: 0; transition: opacity 1s ease-in-out; visibility: hidden; }
-        .slide video, .slide .slide-bg-image { width: 100%; height: 100%; object-fit: cover; background-size: cover; background-position: center; }
+        
+        /* BANNER ADJUSTMENTS START */
+        .hero-banner { 
+            position: relative; 
+            width: 100%; 
+            height: 500px; /* Masaüstü için sabit yükseklik */
+            overflow: hidden; 
+            background-color: #ccc; 
+        }
+        .slide { 
+            position: absolute; 
+            width: 100%; 
+            height: 100%; 
+            opacity: 0; 
+            transition: opacity 1s ease-in-out; 
+            visibility: hidden; 
+        }
+        /* Banner görselini kapsayıcıya sığdır ve boşlukları dolgu rengiyle doldur */
+        .slide video, .slide .slide-bg-image { 
+            width: 100%; 
+            height: 100%; 
+            object-fit: contain; /* Görselin tamamını sığdır */
+            background-color: #000; /* Boşluklar için arka plan rengi */
+            background-size: contain; /* Arka plan resmi için de sığdırma */
+            background-position: center; 
+            background-repeat: no-repeat; /* Resmin tekrarlanmasını engelle */
+        }
         .slide.active { opacity: 1; visibility: visible; }
         
-        /* SLIDE CONTENT POSITIONING ADJUSTMENT START */
         .slide-content { 
             position: absolute; 
-            top: 70%; /* Burayı %50'den %70'e çıkardık */
+            top: 70%; /* Yazı ve butonu aşağıya kaydırdık */
             left: 50%; 
-            transform: translate(-50%, -50%); /* Daha düşük bir top değeriyle birlikte bu, içeriği aşağıya kaydırır */
+            transform: translate(-50%, -50%); 
             color: white; 
             text-align: center; 
             max-width: 80%; 
+            z-index: 10; /* İçeriğin her zaman görselin üstünde olmasını sağlar */
         }
-        /* SLIDE CONTENT POSITIONING ADJUSTMENT END */
+        /* Mobil cihazlar için responsive banner ayarları */
+        @media (max-width: 768px) {
+            .hero-banner {
+                height: 300px; /* Mobil için daha düşük bir yükseklik */
+            }
+            .slide-content {
+                top: 75%; /* Mobil için içeriği biraz daha aşağıya alabiliriz */
+                font-size: 0.9em; /* Mobil yazı boyutunu küçült */
+            }
+            .slide-content h2 {
+                font-size: 1.8rem; /* Mobil başlık boyutunu küçült */
+                margin-bottom: 0.5rem;
+            }
+            .slide-content p {
+                font-size: 0.9rem; /* Mobil alt başlık boyutunu küçült */
+                margin-bottom: 1rem;
+            }
+            .btn-shop {
+                padding: 8px 15px; /* Mobil buton boyutunu küçült */
+                font-size: 0.9rem;
+            }
+        }
+        /* BANNER ADJUSTMENTS END */
 
         .slide-content h2 { font-size: 2.8rem; font-weight: 700; margin-bottom: 1rem; text-shadow: 2px 2px 8px rgba(0,0,0,0.8); }
         .slide-content p { font-size: 1.2rem; margin-bottom: 1.5rem; text-shadow: 1px 1px 6px rgba(0,0,0,0.8); }
@@ -228,7 +274,7 @@
                 'mobile_menu_title': { tr: 'Kategoriler', en: 'Categories', el: 'Κατηγορίες', ru: 'Категории' },
                 'main_section_title': { tr: 'Öne Çıkan Ürünler', en: 'Featured Products', el: 'Προτεινόμενα Προϊόντα', ru: 'Рекомендуемые товары' },
                 'footer-title-pufemo': { tr: 'PUFEMO', en: 'PUFEMO', el: 'PUFEMO', ru: 'ПУФЕМО' },
-                'footer-desc-pufemo': { tr: 'Hayallerinizdeki konforu ve estetiği evinize taşıyoruz.', en: 'We bring the comfort and aesthetics of your dreams to your home.', el: 'Φέρνουμε την άνεση και την αισθητική των ονείρων σας στο σπίτι σας.', ru: 'Мы приносим комфорт και αισθητική των ονείρων σας στο σπίτι σας.' },
+                'footer-desc-pufemo': { tr: 'Hayallerinizdeki konforu ve estetiği evinize taşıyoruz.', en: 'We bring the comfort and aesthetics of your dreams to your home.', el: 'Φέρνουμε την άνεση και την αισθητική των ονείρων σας στο σπίτι σας.', ru: 'Мы приносим комфорт и эстетику вашей мечты в ваш дом.' },
                 'footer-title-fast-links': { tr: 'Hızlı Bağlantılar', en: 'Quick Links', el: 'Γρήγοροι Σύνδεσμοι', ru: 'Быстрые ссылки' },
                 'footer-link-about': { tr: 'Hakkımızda', en: 'About Us', el: 'Σχετικά με εμάς', ru: 'О нас' },
                 'footer-link-contact': { tr: 'İletişim', en: 'Contact', el: 'Επικοινωνία', ru: 'Контакт' },
@@ -325,8 +371,10 @@
                     const defaultButtonText = staticTranslations['default_button_text']?.[currentLang] || staticTranslations['default_button_text']?.['tr'];
                     const buttonText = content.button_text || defaultButtonText;
                     if(slideData.image_url?.includes('.mp4')) {
+                        // Video için object-fit: contain zaten mevcut CSS'de ayarlı
                         slideEl.innerHTML = `<video src="${slideData.image_url}" autoplay muted loop playsinline></video>`;
                     } else {
+                        // Resim için de object-fit: contain ve arka plan rengi ayarlı
                         slideEl.innerHTML = `<div class="slide-bg-image" style="background-image: url('${slideData.image_url || ''}')"></div>`;
                     }
                     slideEl.innerHTML += `<div class="slide-content"><h2>${content.title || ''}</h2><p>${content.subtitle || ''}</p><a href="${slideData.link_url || '#'}" class="btn-shop">${buttonText}</a></div>`;
