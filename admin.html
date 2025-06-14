@@ -247,6 +247,11 @@
             font-weight: 500;
             color: var(--text-color);
         }
+
+        /* Yeni Ülke Ekle formu */
+        #new-country-pricing-form-container .form-group {
+            margin-bottom: 1rem;
+        }
     </style>
 </head>
 <body>
@@ -461,6 +466,8 @@
                             Bu alana gireceğiniz yüzde değeri, Baz Fiyatın üzerine eklenecek veya çıkarılacaktır. <br>
                             Pozitif değer için **10**, negatif değer için **-5** giriniz.
                         </p>
+                        <div id="new-country-pricing-form-container" style="margin-bottom: 1.5rem;">
+                            </div>
                         <div id="country-pricing-list-container">
                             </div>
                     </section>
@@ -499,10 +506,8 @@
                         { code: 'en', name: 'English', flag: '🇬🇧' },
                         { code: 'ru', name: 'Русский', flag: '🇷🇺' } 
                     ], 
-                    countryPricing: { // Yeni: Ülkelere göre fiyatlandırma ayarları objesi
-                        // Bu obje Firebase'den çekildiğinde doldurulacak.
-                        // Varsayılan olarak boş başlatılabilir veya ilk yüklemede languages'tan türetilebilir.
-                        // Örneğin: "tr": { name: "Türkiye", flag: "🇹🇷", adjustment: 0 }
+                    countryPricing: { // Ülkelere göre fiyatlandırma ayarları için varsayılanlar (Firebase'den çekilecek)
+                        // Örn: "tr": { name: "Türkiye", flag: "🇹🇷", adjustment: 0 },
                     },
                     banner: { slides: [] },
                     general: { 
@@ -527,7 +532,6 @@
             const homepageForm = document.getElementById('homepage-form');
             const bannerSettingsContainer = document.getElementById('banner-settings-container');
             const categoryTreeContainer = document.getElementById('category-tree-container');
-            // priceInputContainer artık ürün formunda kullanılmıyor, kaldırıldı
 
             const generalSettingsForm = document.getElementById('general-settings-form');
             const logoIconPicker = document.getElementById('logoIconPicker');
@@ -545,6 +549,7 @@
             const countryPricingForm = document.getElementById('country-pricing-form');
             const countryPricingListContainer = document.getElementById('country-pricing-list-container');
             const addCountryPricingBtn = document.getElementById('add-new-country-pricing-btn');
+            const newCountryPricingFormContainer = document.getElementById('new-country-pricing-form-container');
 
 
             const fontAwesomeIcons = [
@@ -577,8 +582,7 @@
                     localState.settings = { 
                         ...fetchedSettings, 
                         languages: (fetchedSettings.languages && fetchedSettings.languages.length > 0) ? fetchedSettings.languages : localState.settings.languages, 
-                        // Firebase'den countryPricing'i çek, yoksa varsayılan boş obje kullan.
-                        // Yeni bir dile varsayılan adjustment ekleme mantığı aşağıda renderCountryPricingList'te olacak.
+                        // countryPricing'i doğrudan Firebase'den çek, yoksa boş obje olarak başlat
                         countryPricing: fetchedSettings.countryPricing || {}, 
                         banner: fetchedSettings.banner || { slides: [] },
                         general: {
@@ -590,22 +594,8 @@
                         }
                     };
                     
-                    // `languages` listesine göre `countryPricing`'i güncelleme ve varsayılanları ayarlama
-                    // Bu adım, her zaman `languages` listesini ana referans alarak `countryPricing`'i doldurur.
-                    // Firebase'den gelen `countryPricing`'deki mevcut `adjustment` değerlerini korur.
-                    const updatedCountryPricing = {};
-                    localState.settings.languages.forEach(lang => {
-                        updatedCountryPricing[lang.code] = {
-                            name: lang.name,
-                            flag: lang.flag,
-                            // Mevcut adjustment değerini al, yoksa 0 (sıfır) varsayılanını ata
-                            adjustment: localState.settings.countryPricing[lang.code]?.adjustment !== undefined 
-                                        ? localState.settings.countryPricing[lang.code].adjustment 
-                                        : 0 
-                        };
-                    });
-                    localState.settings.countryPricing = updatedCountryPricing;
-
+                    // Dil ve ülke fiyatlandırma bağımsızlığı için artık burada countryPricing'i languages'tan türetmiyoruz.
+                    // Sadece varolan veriyi yüklüyoruz.
 
                     if (!localState.settings.general.logo.type) {
                         localState.settings.general.logo.type = 'text_icon'; 
@@ -726,9 +716,6 @@
                 // Baz Fiyat Girişleri
                 productForm.querySelector('#basePriceTL').value = product.basePriceTL !== undefined ? product.basePriceTL : '';
                 productForm.querySelector('#baseDiscountedPriceTL').value = product.baseDiscountedPriceTL !== undefined ? product.baseDiscountedPriceTL : '';
-                
-                // Ülkeye göre yüzdesel ayar inputları artık ürün sayfasında değil.
-                // Bu kısım kaldırıldı.
                 
                 productForm.querySelector('#productFreeShipping').checked = product.isFreeShipping || false;
                 productForm.querySelector('#productIsInShowcase').checked = product.isInShowcase || false;
@@ -940,8 +927,8 @@
                 loadProductForEditing({ 
                     id: '', 
                     sku: `YENI-URUN-${Date.now().toString().slice(-6)}`, 
-                    basePriceTL: 0, // Yeni: Baz fiyat varsayılanı
-                    baseDiscountedPriceTL: null, // Yeni: Baz indirimli fiyat varsayılanı
+                    basePriceTL: 0, 
+                    baseDiscountedPriceTL: null, 
                     isFreeShipping: false, 
                     isInShowcase: false, 
                     categories: [], 
@@ -1272,8 +1259,9 @@
                     newLanguageFormContainer.innerHTML = ''; 
                     renderLanguageList(); 
                     renderBannerSettings(); 
-                    // Ülke fiyatlandırma listesini de güncelle (yeni dil/ülke eklendiğinde)
-                    renderCountryPricingList(); // Yeni eklenen dil için fiyat ayarı gözükmeli
+                    // Dil eklenince ülke fiyatlandırma listesini de güncelle (yeni dil/ülke eklendiğinde)
+                    // NOT: Bu artık manuel ülke ekleme olduğu için renderCountryPricingList() çağırmaya gerek yok,
+                    // çünkü diller countryPricing'i otomatik güncellemiyor.
                     const currentProductId = productForm.querySelector('#productId').value;
                     if (currentProductId) {
                         loadProductForEditing(currentProductId); 
@@ -1351,7 +1339,7 @@
                         alert('En az bir dil olmak zorundadır. Son dili silemezsiniz.');
                         return;
                     }
-                    if (!confirm(`'${langCodeToDelete}' dilini silmek istediğinizden emin misiniz? Bu, tüm içerik alanlarındaki ilgili dil verilerini etkileyebilir!`)) { 
+                    if (!confirm(`'${langCodeToDelete}' dilini silmek istediğinizden emin misiniz? Bu, tüm içerik alanlarındaki ilgili dil verilerini etkilemeyebilir!`)) { 
                         return;
                     }
 
@@ -1359,8 +1347,11 @@
                     await saveData('settings', { languages: localState.settings.languages });
                     renderLanguageList(); 
                     renderBannerSettings(); 
-                    // Dil silinince ülke fiyatlandırma listesini de güncelle
-                    renderCountryPricingList(); // Silinen dil için fiyat ayarı da kalkmalı
+                    // Dil silinince ülke fiyatlandırma listesini güncelleyebiliriz ancak bu, artık bağımsız olduğu için zorunlu değil.
+                    // Yine de temizlik açısından renderCountryPricingList() çağırılabilir, ancak silinen dilin fiyat ayarı manuel olarak kaldırılmalı.
+                    // Şimdilik silinen dildeki fiyat ayarlaması countryPricing'de kalacak, eğer manuel olarak silinmezse.
+                    // Bu senaryoda manuel silme butonu koyacağız.
+
                     const currentProductId = productForm.querySelector('#productId').value;
                     if (currentProductId) {
                         loadProductForEditing(currentProductId); 
@@ -1376,17 +1367,15 @@
             });
 
             // --- YENİ: ÜLKELERE GÖRE FİYATLANDIRMA YÖNETİMİ ---
-
+            // Yüzdesel ayarlamaları göstermek için
             function renderCountryPricingList() {
                 countryPricingListContainer.innerHTML = '';
-                // localState.settings.languages'tan ülkeleri alıp localState.settings.countryPricing objesindeki ayarlarıyla birleştir
-                // Bu sayede dil listesinde olan her ülke için fiyatlandırma ayarı görebiliriz.
                 const countriesToRender = Object.values(localState.settings.countryPricing).sort((a,b) => a.name.localeCompare(b.name));
 
                 countriesToRender.forEach(country => {
                     const countryItem = document.createElement('div');
                     countryItem.className = 'country-pricing-item';
-                    countryItem.dataset.code = country.code; // code.toUpperCase() kullanıldı Firebase'de de büyük harf tutmak mantıklı
+                    countryItem.dataset.code = country.code; // code.toUpperCase()
                     countryItem.innerHTML = `
                         <span class="country-name-code">${country.flag || ''} ${country.name} (${country.code.toUpperCase()})</span>
                         <div class="price-adjustment-input-group">
@@ -1395,22 +1384,84 @@
                             <span>%</span>
                         </div>
                         <div class="country-controls">
-                            </div>
+                            <button type="button" class="btn btn-danger delete-country-pricing-btn" title="Ülkeyi Sil" data-country-code="${country.code}"><i class="fa-solid fa-trash"></i></button>
+                        </div>
                     `;
                     countryPricingListContainer.appendChild(countryItem);
                 });
                 
-                // Eğer hiç dil/ülke yoksa veya varsayılanlar ayarlanmamışsa, bir placeholder göster
                 if (countriesToRender.length === 0) {
-                    countryPricingListContainer.innerHTML = '<p>Lütfen önce "Site Genel Ayarları" sayfasındaki "Desteklenen Diller" bölümünden dil ekleyin. Eklediğiniz diller burada ülke olarak görünecektir.</p>';
+                    countryPricingListContainer.innerHTML = '<p>Henüz tanımlı bir ülke fiyatlandırması yok. Yeni bir ülke eklemek için yukarıdaki "Yeni Ülke Ekle" butonunu kullanın.</p>';
                 }
             }
             
-            // "Yeni Ülke Ekle" butonu aslında yeni dil ekleme butonuna yönlendirme yapıyor
+            // "Yeni Ülke Ekle" butonu formu gösterme
             addCountryPricingBtn.addEventListener('click', () => {
-                alert('Yeni ülke eklemek için lütfen "Site Genel Ayarları" sayfasındaki "Desteklenen Diller" bölümünden yeni bir dil ekleyiniz. Eklediğiniz her dil, burada yeni bir ülke fiyatlandırma seçeneği olarak görünecektir.');
-                document.querySelector('.sidebar-nav li[data-page="general-settings"]').click(); // Genel ayarlar sayfasına yönlendir
+                showNewCountryPricingForm();
             });
+
+            // Yeni Ülke Fiyatlandırma Formu Gösterme
+            function showNewCountryPricingForm() {
+                if (newCountryPricingFormContainer.querySelector('form')) return; // Zaten form varsa tekrar gösterme
+
+                const form = document.createElement('form');
+                form.innerHTML = `
+                    <div class="form-group">
+                        <label for="newCountryCode">Ülke Kodu (Örn: TR, US, CY)</label>
+                        <input type="text" id="newCountryCode" maxlength="2" required style="text-transform: uppercase;">
+                    </div>
+                    <div class="form-group">
+                        <label for="newCountryName">Ülke Adı (Örn: Türkiye, Cyprus)</label>
+                        <input type="text" id="newCountryName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="newCountryFlag">Bayrak Emojisi (Örn: 🇹🇷, 🇬🇧)</label>
+                        <input type="text" id="newCountryFlag" maxlength="2">
+                    </div>
+                    <div class="form-group">
+                        <label for="newCountryAdjustment">Yüzdesel Ayarlama (%)</label>
+                        <input type="number" id="newCountryAdjustment" value="0">
+                        <span>%</span>
+                    </div>
+                    <div class="form-actions" style="text-align: right;">
+                        <button type="button" class="btn btn-danger btn-sm cancel-new-country-pricing-btn">İptal</button>
+                        <button type="submit" class="btn btn-success btn-sm">Ülkeyi Ekle</button>
+                    </div>
+                `;
+                newCountryPricingFormContainer.appendChild(form);
+                form.querySelector('#newCountryCode').focus();
+
+                form.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const code = form.querySelector('#newCountryCode').value.trim().toUpperCase(); // Kodu her zaman büyük harf kaydet
+                    const name = form.querySelector('#newCountryName').value.trim();
+                    const flag = form.querySelector('#newCountryFlag').value.trim();
+                    const adjustment = parseFloat(form.querySelector('#newCountryAdjustment').value) || 0;
+
+                    if (!name || !code) {
+                        alert('Ülke adı ve kodu boş bırakılamaz.');
+                        return;
+                    }
+                    if (code.length !== 2) {
+                        alert('Ülke kodu 2 karakterli olmalıdır (örn: TR, US, CY).');
+                        return;
+                    }
+                    if (localState.settings.countryPricing[code.toLowerCase()]) { // Firebase'e küçük harf olarak kaydedildiği için kontrolü de küçük harf yap
+                        alert('Bu ülke kodu zaten mevcut!');
+                        return;
+                    }
+
+                    // localState'i güncelle ve Firebase'e kaydet
+                    localState.settings.countryPricing[code.toLowerCase()] = { name, flag, adjustment }; // Firebase'e küçük harf olarak kaydet
+                    await saveData('settings', { countryPricing: localState.settings.countryPricing });
+                    newCountryPricingFormContainer.innerHTML = ''; // Formu gizle
+                    renderCountryPricingList(); // Listeyi yenile
+                });
+
+                form.querySelector('.cancel-new-country-pricing-btn').addEventListener('click', () => {
+                    newCountryPricingFormContainer.innerHTML = ''; // Formu gizle
+                });
+            }
 
             // Ülke fiyatlandırma ayarlarını kaydetme
             countryPricingForm.addEventListener('submit', async (e) => {
@@ -1418,18 +1469,30 @@
                 const newCountryPricingSettings = {};
                 document.querySelectorAll('.country-adjustment-input').forEach(input => {
                     const countryCode = input.dataset.countryCode; // Büyük/küçük harf duyarlılığına dikkat
-                    const relatedLang = localState.settings.languages.find(l => l.code === countryCode.toLowerCase()); // Dil nesnesini bul
-                    
-                    if (relatedLang) { // İlgili dil hala mevcutsa kaydet
-                        newCountryPricingSettings[countryCode.toLowerCase()] = { // Firebase'e küçük harf olarak kaydet
-                            name: relatedLang.name,
-                            flag: relatedLang.flag,
-                            adjustment: parseFloat(input.value) || 0
-                        };
-                    }
+                    // countryPricing'den ilgili ülkenin adını ve bayrağını al, yoksa varsayılanı kullan
+                    const existingCountryData = localState.settings.countryPricing[countryCode.toLowerCase()] || {};
+
+                    newCountryPricingSettings[countryCode.toLowerCase()] = { // Firebase'e küçük harf olarak kaydet
+                        name: existingCountryData.name || countryCode,
+                        flag: existingCountryData.flag || '',
+                        adjustment: parseFloat(input.value) || 0
+                    };
                 });
                 localState.settings.countryPricing = newCountryPricingSettings; // localState'i güncelle
                 await saveData('settings', { countryPricing: newCountryPricingSettings }); // Firebase'e kaydet
+            });
+
+            // Ülke silme butonu dinleyicisi
+            countryPricingListContainer.addEventListener('click', async (e) => {
+                const deleteBtn = e.target.closest('.delete-country-pricing-btn');
+                if (deleteBtn) {
+                    const countryCodeToDelete = deleteBtn.dataset.countryCode;
+                    if (confirm(`'${countryCodeToDelete}' ülkesi fiyatlandırmasını silmek istediğinizden emin misiniz?`)) {
+                        delete localState.settings.countryPricing[countryCodeToDelete.toLowerCase()]; // localState'ten sil
+                        await saveData('settings', { countryPricing: localState.settings.countryPricing }); // Firebase'e kaydet
+                        renderCountryPricingList(); // Listeyi yenile
+                    }
+                }
             });
 
 
