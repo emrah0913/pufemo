@@ -380,6 +380,12 @@
                             <label for="promoBarScrollSpeed">Kayma Hızı (saniye, ne kadar küçük o kadar hızlı)</label>
                             <input type="number" id="promoBarScrollSpeed" min="5" max="60" step="1" value="20">
                         </div>
+
+                        <div class="form-group checkbox-group" style="margin-top: 1.5rem;">
+                            <input type="checkbox" id="promoBarEnabled">
+                            <label for="promoBarEnabled">Promosyon Bandını Aktif Et</label>
+                        </div>
+                        
                         <h3 style="margin-top:1.5rem;">Promosyon Yazısı (Dile Göre)</h3>
                         <div class="lang-tabs" id="promo-text-lang-tabs"></div>
                         <div id="promo-text-lang-content"></div>
@@ -445,7 +451,14 @@
                     banner: { slides: [] },
                     general: { 
                         logo: { type: 'text_icon', text: 'PUFEMO', icon: 'fa-solid fa-couch', iconColor: '#e74c3c', textColor: '#2c3e50', imageUrl: '', imageWidth: 150, imageHeight: 40 },
-                        promoBar: { bgColor: '#e74c3c', textColor: '#ffffff', fontSize: '0.95rem', scrollSpeed: '20s', text: {} }
+                        promoBar: { 
+                            bgColor: '#e74c3c', 
+                            textColor: '#ffffff', 
+                            fontSize: '0.95rem', 
+                            scrollSpeed: '20s', 
+                            text: {},
+                            enabled: true // Yeni: Kayan yazı başlangıçta aktif olsun
+                        }
                     }
                 }, 
                 categories: [], 
@@ -506,7 +519,10 @@
                         banner: fetchedSettings.banner || { slides: [] },
                         general: {
                             logo: fetchedSettings.general?.logo || localState.settings.general.logo,
-                            promoBar: fetchedSettings.general?.promoBar || localState.settings.general.promoBar
+                            promoBar: { // Kayan yazı ayarlarını burada birleştiriyoruz
+                                ...(fetchedSettings.general?.promoBar || localState.settings.general.promoBar),
+                                enabled: fetchedSettings.general?.promoBar?.enabled !== undefined ? fetchedSettings.general.promoBar.enabled : true // Yeni: enabled alanı için varsayılan true
+                            }
                         }
                     };
                     
@@ -530,8 +546,7 @@
                     const dataToSave = docName === 'categories' ? { tree: data } : data;
                     await db.collection('pufemo').doc(docName).set(dataToSave, { merge: true });
                     console.log(`${docName} başarıyla kaydedildi!`);
-                    // alert mesajı kaldırıldı, çünkü her tuş vuruşunda tetiklenebilir
-                    // alert('Değişiklikler kaydedildi!'); 
+                    alert('Değişiklikler kaydedildi!'); // Artık genel bir alert mesajı verilebilir.
                 } catch (error) {
                     alert('Kaydedilirken bir hata oluştu: ' + error.message);
                 } finally {
@@ -967,8 +982,7 @@
                 updateLocalCategoriesFromDOM(localState.categories, categoryTreeContainer.querySelector('ul'));
 
                 await saveData('categories', localState.categories);
-                alert('Kategoriler başarıyla kaydedildi!');
-                refreshCategoryView(); // Kayıt sonrası görünümü yenile
+                // refreshCategoryView(); // Kategori kaydetmeden sonra view'i yenilemeye gerek yok çünkü kullanıcı aynı sayfada kalacak.
             });
 
             // Bu event listener artık tüm kategori input değişikliklerini ve buton tıklamalarını tek bir yerden yönetecek
@@ -997,13 +1011,11 @@
                 }
             });
 
-            // Kategori adı inputlarındaki değişiklikleri dinle ve kaydet (Daha sağlam hale getirildi)
-            // Bu event listener'ı 'input' yerine 'change' veya 'blur' yapabilirsiniz
-            // Daha iyi performans için debounce uygulayabilirsiniz, ancak basitlik için şimdilik 'change' kullanacağız
-            categoryTreeContainer.addEventListener('change', async e => { // 'change' olayı kullanıldı
-                if (e.target.matches('.category-name-input')) { // Sadece mevcut kategori inputları için
+            // Kategori adı inputlarındaki değişiklikleri dinle ve kaydet
+            categoryTreeContainer.addEventListener('change', async e => { 
+                if (e.target.matches('.category-name-input')) { 
                     const li = e.target.closest('li');
-                    const id = li?.dataset.id; // Mevcut kategori için id
+                    const id = li?.dataset.id; 
                     const lang = e.target.dataset.lang;
                     const value = e.target.value.trim();
 
@@ -1011,11 +1023,9 @@
                     if (categoryToUpdate) {
                         if (!categoryToUpdate.name) categoryToUpdate.name = {};
                         categoryToUpdate.name[lang] = value;
-                        // Buradaki saveData'yı kaldırdık, çünkü artık toplu kaydı "Kategorileri Kaydet" butonu yapacak.
-                        // Yalnızca localState'i güncelliyoruz.
-                        // Eğer her tuş vuruşunda kaydetmek istiyorsanız bu satırı aktif bırakın, ancak tavsiye edilmez.
-                        // await saveData('categories', localState.categories);
-                        // refreshCategoryView(); // Kayıt sonrası listeyi yenileyerek inputların güncel değerini göstermesi için
+                        // Burada direkt kaydetme işlemi yapmıyoruz,
+                        // "Kategorileri Kaydet" butonuna basıldığında toplu kaydetme yapılacak.
+                        // Bu değişiklik localState'e yansıdı ve butona basılınca kaydedilecek.
                     }
                 }
             });
@@ -1048,7 +1058,7 @@
             function updateLocalCategoriesFromDOM(categoriesArray, ulElement) {
                 if (!ulElement) return;
 
-                Array.from(ulElement.children).forEach(li => {
+                Array.from(ulElement.querySelectorAll('.category-item')).forEach(li => { // .category-item elemanlarını döngüye al
                     const categoryId = li.dataset.id;
                     const category = findCategoryInTree(categoriesArray, categoryId);
 
@@ -1060,7 +1070,7 @@
                         });
                         // Çocuk kategorileri de güncelle
                         const subUl = li.querySelector('ul');
-                        if (subUl) {
+                        if (subUl) { // Sadece ul varsa alt kategorileri güncelle
                             updateLocalCategoriesFromDOM(category.children, subUl);
                         }
                     }
@@ -1085,7 +1095,7 @@
                 const generalSettings = localState.settings.general || {};
 
                 // Logo Ayarları
-                logoTypeSelect.value = generalSettings.logo?.type || 'text_icon';
+                document.getElementById('logoType').value = generalSettings.logo?.type || 'text_icon';
                 toggleLogoOptions(); 
 
                 document.getElementById('logoText').value = generalSettings.logo?.text || 'PUFEMO';
@@ -1110,6 +1120,9 @@
                 document.getElementById('promoBarTextColor').value = generalSettings.promoBar?.textColor || '#ffffff';
                 document.getElementById('promoBarFontSize').value = parseFloat(generalSettings.promoBar?.fontSize) || 15;
                 document.getElementById('promoBarScrollSpeed').value = parseFloat(generalSettings.promoBar?.scrollSpeed) || 20;
+                // Yeni: promoBarEnabled checkbox'ının değerini ayarla
+                document.getElementById('promoBarEnabled').checked = generalSettings.promoBar?.enabled !== undefined ? generalSettings.promoBar.enabled : true;
+
 
                 createLangTabs(
                     document.getElementById('promo-text-lang-tabs'),
@@ -1186,7 +1199,7 @@
                     await saveData('settings', { languages: localState.settings.languages });
                     newLanguageFormContainer.innerHTML = ''; 
                     renderLanguageList(); 
-                    renderBannerSettings();
+                    renderBannerSettings(); // Dil eklenince banner ayarlarını da yenile ki yeni dil sekmeleri oluşsun
                     const currentProductId = productForm.querySelector('#productId').value;
                     if (currentProductId) {
                         loadProductForEditing(currentProductId); 
@@ -1217,7 +1230,8 @@
                         textColor: document.getElementById('promoBarTextColor').value,
                         fontSize: `${document.getElementById('promoBarFontSize').value}px`, 
                         scrollSpeed: `${document.getElementById('promoBarScrollSpeed').value}s`,
-                        text: {}
+                        text: {},
+                        enabled: document.getElementById('promoBarEnabled').checked // Yeni: Checkbox değerini al
                     }
                 };
 
@@ -1270,7 +1284,7 @@
                     localState.settings.languages = localState.settings.languages.filter(lang => lang.code !== langCodeToDelete);
                     await saveData('settings', { languages: localState.settings.languages });
                     renderLanguageList(); 
-                    renderBannerSettings();
+                    renderBannerSettings(); // Dil değişince banner ayarlarını da yenile ki yeni dil sekmeleri oluşsun
                     const currentProductId = productForm.querySelector('#productId').value;
                     if (currentProductId) {
                         loadProductForEditing(currentProductId); 
