@@ -159,7 +159,6 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
 
     <script type="module">
-        // --- FIREBASE CONFIG ---
         const firebaseConfig = {
             apiKey: "AIzaSyDYkzZzNXB22U4oEXxOoPh-puwuE8kz0g4",
             authDomain: "pufemo-com.firebaseapp.com",
@@ -356,7 +355,7 @@
                 });
             }
             
-            // === 5. KATEGORİ YÖNETİMİ ===
+            // === 5. KATEGORİ YÖNETİMİ (YENİ VE İYİLEŞTİRİLMİŞ) ===
             function refreshCategoryView() {
                 categoryTreeContainer.innerHTML = '';
                 const mainUl = document.createElement('ul');
@@ -385,6 +384,7 @@
                 formLi.innerHTML = `<form style="width: 100%;"><div class="category-name-inputs">${nameInputsHTML}</div><div class="form-actions" style="margin-top: 1rem;"><button type="button" class="btn btn-danger btn-sm cancel-new-category">İptal</button><button type="submit" class="btn btn-success btn-sm">Kaydet ✅</button></div></form>`;
                 container.prepend(formLi);
                 formLi.querySelector('input').focus();
+                
                 formLi.querySelector('form').addEventListener('submit', async (e) => {
                     e.preventDefault();
                     const newCategory = { id: generateUniqueId(), name: {}, children: [] };
@@ -399,52 +399,18 @@
             }
 
             // === 6. OLAY DİNLEYİCİLER (EVENT LISTENERS) ===
-            document.querySelector('.sidebar-nav').addEventListener('click', e => {
-                const navItem = e.target.closest('.nav-item');
-                if (!navItem) return;
-                document.querySelectorAll('.sidebar-nav .nav-item').forEach(item => item.classList.remove('active'));
-                navItem.classList.add('active');
-                const pageId = navItem.dataset.page;
-                document.querySelectorAll('.page').forEach(page => page.classList.toggle('active', false));
-                document.getElementById(pageId)?.classList.add('active');
-            });
+            document.querySelector('.sidebar-nav').addEventListener('click', e => { const navItem = e.target.closest('.nav-item'); if (!navItem) return; document.querySelectorAll('.sidebar-nav .nav-item').forEach(item => item.classList.remove('active')); navItem.classList.add('active'); const pageId = navItem.dataset.page; document.querySelectorAll('.page').forEach(page => page.classList.toggle('active', false)); document.getElementById(pageId)?.classList.add('active'); });
             
-            // --- Ürün Sayfası Olayları ---
-            document.getElementById('add-new-product-btn').addEventListener('click', () => {
-                document.querySelectorAll('#product-list-container li').forEach(item => item.classList.remove('active'));
-                loadProductForEditing({ id: '', sku: `YENI-URUN-${Date.now().toString().slice(-6)}`, price: 0, categories: [], content: {}, variants: [] });
-            });
+            document.getElementById('add-new-product-btn').addEventListener('click', () => { document.querySelectorAll('#product-list-container li').forEach(item => item.classList.remove('active')); loadProductForEditing({ id: '', sku: `YENI-URUN-${Date.now().toString().slice(-6)}`, price: 0, categories: [], content: {}, variants: [] }); });
             productListContainer.addEventListener('click', e => { const li = e.target.closest('li'); if (li) { document.querySelectorAll('#product-list-container li').forEach(item => item.classList.remove('active')); li.classList.add('active'); loadProductForEditing(li.dataset.id); } });
-            productForm.addEventListener('submit', async e => {
-                e.preventDefault();
-                const id = productForm.querySelector('#productId').value;
-                const productData = { sku: productForm.querySelector('#productSKU').value, price: parseFloat(productForm.querySelector('#productPrice').value) || 0, categories: Array.from(document.querySelectorAll('#product-category-checklist input:checked')).map(cb => cb.value), content: {}, variants: [] };
-                productForm.querySelectorAll('.lang-content').forEach(cont => { const lang = cont.dataset.langContent; productData.content[lang] = { name: cont.querySelector('[data-key="name"]').value, description: cont.querySelector('[data-key="description"]').value }; });
-                document.querySelectorAll('#color-variants-container .variant-color-block').forEach(block => {
-                    const variant = { colorName: block.querySelector('.variant-color-input').value, media: [] };
-                    block.querySelectorAll('.media-input-group').forEach(mediaEl => {
-                        const urlInput = mediaEl.querySelector('.variant-media-url');
-                        if (urlInput.value.trim()) variant.media.push({ type: mediaEl.querySelector('.variant-media-type').value, url: urlInput.value.trim() });
-                    });
-                    if (variant.colorName.trim()) productData.variants.push(variant);
-                });
-                const savedId = await saveProduct(productData, id);
-                if (savedId) {
-                   await fetchData();
-                   renderProductList();
-                   document.querySelector(`#product-list-container li[data-id="${savedId}"]`)?.classList.add('active');
-                   loadProductForEditing(savedId); 
-                }
-            });
+            productForm.addEventListener('submit', async e => { e.preventDefault(); const id = productForm.querySelector('#productId').value; const productData = { sku: productForm.querySelector('#productSKU').value, price: parseFloat(productForm.querySelector('#productPrice').value) || 0, categories: Array.from(document.querySelectorAll('#product-category-checklist input:checked')).map(cb => cb.value), content: {}, variants: [] }; productForm.querySelectorAll('.lang-content').forEach(cont => { const lang = cont.dataset.langContent; productData.content[lang] = { name: cont.querySelector('[data-key="name"]').value, description: cont.querySelector('[data-key="description"]').value }; }); document.querySelectorAll('#color-variants-container .variant-color-block').forEach(block => { const variant = { colorName: block.querySelector('.variant-color-input').value, media: [] }; block.querySelectorAll('.media-input-group').forEach(mediaEl => { const urlInput = mediaEl.querySelector('.variant-media-url'); if (urlInput.value.trim()) variant.media.push({ type: mediaEl.querySelector('.variant-media-type').value, url: urlInput.value.trim() }); }); if (variant.colorName.trim()) productData.variants.push(variant); }); const savedId = await saveProduct(productData, id); if (savedId) { await fetchData(); renderProductList(); document.querySelector(`#product-list-container li[data-id="${savedId}"]`)?.classList.add('active'); loadProductForEditing(savedId); } });
             document.getElementById('delete-product-btn').addEventListener('click', async () => { const id = productForm.querySelector('#productId').value; if (await deleteProduct(id)) { productForm.style.display = 'none'; await fetchData(); renderProductList(); } });
             productForm.addEventListener('click', e => { const target = e.target; if (target.id === 'add-color-variant-btn') document.getElementById('color-variants-container').appendChild(createColorVariantBlock()); else if (target.matches('.remove-color-btn, .remove-color-btn *')) target.closest('.variant-color-block').remove(); else if (target.matches('.add-media-btn, .add-media-btn *')) target.closest('.variant-color-block').querySelector('.media-inputs-container').insertAdjacentHTML('beforeend', createMediaInputHTML()); else if (target.matches('.remove-media-btn, .remove-media-btn *')) target.closest('.media-input-group').remove(); else if (target.classList.contains('lang-tab')) { const langCode = target.dataset.lang; const formSection = target.closest('.form-section'); formSection.querySelectorAll('.lang-tab, .lang-content').forEach(el => el.classList.remove('active')); target.classList.add('active'); formSection.querySelector(`.lang-content[data-lang-content="${langCode}"]`).classList.add('active'); }});
-            
-            // --- Anasayfa Olayları ---
             homepageForm.addEventListener('submit', e => { e.preventDefault(); const newSlidesData = []; document.querySelectorAll('#banner-settings-container .form-section').forEach(section => { const slide = { image_url: section.querySelector('.banner-input[data-key="image_url"]').value, link_url: section.querySelector('.banner-input[data-key="link_url"]').value, content: {} }; section.querySelectorAll('.lang-content').forEach(cont => { const lang = cont.dataset.langContent; slide.content[lang] = { title: cont.querySelector('[data-key="title"]').value, subtitle: cont.querySelector('[data-key="subtitle"]').value, button_text: cont.querySelector('[data-key="button_text"]').value }; }); newSlidesData.push(slide); }); localState.settings.banner = { slides: newSlidesData }; saveData('settings', localState.settings); });
             document.getElementById('add-new-slide-btn').addEventListener('click', () => { const newSlide = { image_url: '', link_url: '', content: {} }; (localState.settings.languages || []).forEach(lang => { newSlide.content[lang.code] = { title: '', subtitle: '', button_text: '' }; }); if (!localState.settings.banner) localState.settings.banner = { slides: [] }; localState.settings.banner.slides.push(newSlide); renderBannerSettings(); });
             bannerSettingsContainer.addEventListener('click', (e) => { if (e.target.closest('.delete-slide-btn')) { const index = e.target.closest('.form-section').dataset.index; localState.settings.banner.slides.splice(index, 1); renderBannerSettings(); } });
             
-            // --- Kategori Olayları ---
+            // --- YENİ KATEGORİ OLAYLARI ---
             document.getElementById('add-main-category-btn').addEventListener('click', () => { showCategoryInputForm(categoryTreeContainer.querySelector('ul'), localState.categories); });
             categoryTreeContainer.addEventListener('click', e => { const btn = e.target.closest('button'); if (!btn) return; const li = btn.closest('li[data-id]'); const id = li?.dataset.id; const findCategory = (cats, catId) => { for (const cat of cats) { if (cat.id === catId) return cat; if (cat.children) { const found = findCategory(cat.children, catId); if (found) return found; } } return null; }; const findAndRemove = (cats, catId) => { for (let i = 0; i < cats.length; i++) { if(cats[i].id === catId) { cats.splice(i, 1); return true; } if(cats[i].children && findAndRemove(cats[i].children, catId)) return true; } return false; }; if (btn.matches('.add-subcategory-btn, .add-subcategory-btn *')) { const parentCategory = findCategory(localState.categories, id); if (parentCategory) { if (!parentCategory.children) parentCategory.children = []; let subList = li.querySelector('ul'); if(!subList) { subList = document.createElement('ul'); li.appendChild(subList); } showCategoryInputForm(subList, parentCategory.children); } } else if (btn.matches('.delete-category-btn, .delete-category-btn *')) { if (confirm('Bu kategoriyi ve tüm alt kategorilerini silmek istediğinizden emin misiniz?')) { findAndRemove(localState.categories, id); saveData('categories', localState.categories).then(refreshCategoryView); } } });
             categoryTreeContainer.addEventListener('change', e => { if(e.target.matches('.category-name-input')) { const id = e.target.closest('li[data-id]').dataset.id; const lang = e.target.dataset.lang; const findAndUpdate = (cats, catId) => { for(const cat of cats) { if(cat.id === catId) { if(!cat.name) cat.name={}; cat.name[lang] = e.target.value; return true; } if(cat.children && findAndUpdate(cat.children, catId)) return true; } return false; }; if (findAndUpdate(localState.categories, id)) { saveData('categories', localState.categories); } } });
@@ -462,6 +428,7 @@
                     document.getElementById('add-new-product-btn').click();
                 }
             }
+            
             init();
         }
     </script>
