@@ -53,6 +53,15 @@
             text-decoration: none;
             color: inherit;
         }
+        
+        .loading-overlay { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(255,255,255,0.95); z-index: 10000; 
+            display: flex; justify-content: center; align-items: center; 
+            font-size: 1.5rem; transition: opacity 0.5s ease; flex-direction: column; 
+        }
+        .loading-overlay.hidden { opacity: 0; pointer-events: none; }
+
 
         /* --- HEADER (ÜST BÖLÜM) --- */
         .main-header {
@@ -152,11 +161,16 @@
             position: absolute;
             width: 100%;
             height: 100%;
-            background-size: cover;
-            background-position: center;
             opacity: 0;
             transition: opacity 1s ease-in-out;
             visibility: hidden;
+        }
+         .slide video, .slide .slide-bg-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            background-size: cover;
+            background-position: center;
         }
 
         .slide.active {
@@ -331,7 +345,7 @@
             display: inline-block;
         }
         
-        .footer-section ul { list-style: none; }
+        .footer-section ul { list-style: none; padding: 0;}
         .footer-section a:hover { color: var(--secondary-color); }
         
         .footer-bottom {
@@ -344,6 +358,10 @@
     </style>
 </head>
 <body>
+    <div id="loading-overlay" class="loading-overlay">
+        <i class="fa-solid fa-couch fa-bounce" style="font-size: 3rem;"></i>
+        <p style="margin-top: 1.5rem;">PUFEMO Yükleniyor...</p>
+    </div>
 
     <!-- ======================= HEADER ======================= -->
     <header class="main-header">
@@ -353,16 +371,10 @@
             </a>
             <div class="header-controls">
                 <select id="language-selector" class="control-select">
-                    <option value="tr">🇹🇷 Türkçe</option>
-                    <option value="en">🇬🇧 English</option>
-                    <option value="el">🇬🇷 Ελληνικά</option>
-                    <option value="ru">🇷🇺 Русский</option>
+                    <!-- Dinamik olarak yüklenecek -->
                 </select>
                 <select id="currency-selector" class="control-select">
-                    <option value="TRY">₺ TRY</option>
-                    <option value="USD">$ USD</option>
-                    <option value="EUR">€ EUR</option>
-                    <option value="GBP">£ GBP</option>
+                    <!-- Dinamik olarak yüklenecek -->
                 </select>
                 <a href="cart.html" class="cart-icon">
                     <i class="fa-solid fa-cart-shopping"></i>
@@ -375,267 +387,218 @@
     <!-- ======================= NAVİGASYON ======================= -->
     <nav class="category-nav">
         <div class="container">
-            <ul>
-                <li><a href="#koltuklar" data-lang-key="nav_koltuklar">Koltuklar</a></li>
-                <li><a href="#puflar" data-lang-key="nav_puflar">Puflar</a></li>
-                <li><a href="#berjerler" data-lang-key="nav_berjerler">Berjerler</a></li>
-                <li><a href="#kose-takimlari" data-lang-key="nav_kose_takimlari">Köşe Takımları</a></li>
-                <li><a href="#aksesuarlar" data-lang-key="nav_aksesuarlar">Aksesuarlar</a></li>
+            <ul id="category-menu-container">
+                <!-- Kategoriler dinamik olarak yüklenecek -->
             </ul>
         </div>
     </nav>
 
     <!-- ======================= HERO BANNER ======================= -->
-    <section class="hero-banner">
-        <div class="slide active" style="background-image: url('https://placehold.co/1600x600/5C6BC0/FFFFFF?text=Modern+Sofas');">
-            <div class="slide-content">
-                <h2 data-lang-key="slide1_title">Yeni Sezon Koltuk Takımları</h2>
-                <p data-lang-key="slide1_desc">Evinize modern bir dokunuş katacak en yeni tasarımlar.</p>
-                <a href="#koltuklar" class="btn-shop" data-lang-key="shop_now">Şimdi Alışveriş Yap</a>
-            </div>
-        </div>
-        <div class="slide" style="background-image: url('https://placehold.co/1600x600/8D6E63/FFFFFF?text=Comfortable+Sectionals');">
-            <div class="slide-content">
-                <h2 data-lang-key="slide2_title">Maksimum Konfor, Şık Tasarım</h2>
-                <p data-lang-key="slide2_desc">Geniş aileler ve misafirler için ideal köşe takımları.</p>
-                <a href="#kose-takimlari" class="btn-shop" data-lang-key="shop_now">Şimdi Alışveriş Yap</a>
-            </div>
-        </div>
-        <div class="slide" style="background-image: url('https://placehold.co/1600x600/F06292/FFFFFF?text=Colorful+Poufs');">
-            <div class="slide-content">
-                <h2 data-lang-key="slide3_title">Evinize Renk Katın</h2>
-                <p data-lang-key="slide3_desc">Her odaya neşe ve fonksiyonellik katacak puflar.</p>
-                <a href="#puflar" class="btn-shop" data-lang-key="shop_now">Şimdi Alışveriş Yap</a>
-            </div>
-        </div>
+    <section class="hero-banner" id="hero-banner-container">
+        <!-- Slaytlar dinamik olarak yüklenecek -->
         <div class="slide-nav"></div>
     </section>
 
     <!-- ======================= ANA İÇERİK ======================= -->
     <main class="container">
-        <section id="koltuklar" class="section featured-products">
-            <h1 class="section-title" data-lang-key="section_title_featured">Öne Çıkan Ürünler</h1>
-            <div class="product-grid">
-                <div class="product-card">
-                    <a href="product.html">
-                       <img src="https://placehold.co/400x300/CCCCCC/FFFFFF?text=Pufemo+Relax" alt="Pufemo Relax Koltuk" class="product-image">
-                    </a>
-                    <div class="product-info">
-                        <div class="product-info-top">
-                           <h3 class="product-name" data-lang-key="product_name_relax">Pufemo Relax Koltuk</h3>
-                           <p class="product-description" data-lang-key="product_desc_relax">Konfor ve şıklığı bir araya getiren modern tasarım.</p>
-                        </div>
-                        <div class="product-price" data-price-id="relax"></div>
-                    </div>
-                </div>
-                <div class="product-card">
-                    <a href="product.html">
-                       <img src="https://placehold.co/400x300/3498DB/FFFFFF?text=Loft+Retro" alt="Loft Retro Koltuk" class="product-image">
-                    </a>
-                    <div class="product-info">
-                         <div class="product-info-top">
-                           <h3 class="product-name" data-lang-key="product_name_loft">Loft Retro Koltuk</h3>
-                           <p class="product-description" data-lang-key="product_desc_loft">Geçmişin zarafetini günümüzün konforuyla buluşturun.</p>
-                        </div>
-                        <div class="product-price" data-price-id="loft"></div>
-                    </div>
-                </div>
+        <section id="main-product-section" class="section featured-products">
+            <h1 class="section-title" id="main-section-title">Öne Çıkan Ürünler</h1>
+            <div class="product-grid" id="product-grid-container">
+                <!-- Ürünler dinamik olarak yüklenecek -->
             </div>
         </section>
         
-        <!-- Diğer kategoriler için benzer section'lar buraya eklenebilir -->
-        <section id="puflar" class="section"></section>
-        <section id="berjerler" class="section"></section>
-        <section id="kose-takimlari" class="section"></section>
-        <section id="aksesuarlar" class="section"></section>
+        <div id="dynamic-product-sections"></div>
+
     </main>
 
     <!-- ======================= FOOTER ======================= -->
     <footer class="main-footer">
-         <div class="container">
+        <div class="container">
             <div class="footer-content">
-                <div class="footer-section">
-                    <h4>PUFEMO</h4>
-                    <p data-lang-key="footer_about">Hayallerinizdeki konforu ve estetiği evinize taşıyoruz.</p>
-                </div>
-                <div class="footer-section">
-                    <h4 data-lang-key="footer_links_title">Hızlı Bağlantılar</h4>
-                    <ul>
-                        <li><a href="#" data-lang-key="footer_link_about">Hakkımızda</a></li>
-                        <li><a href="#" data-lang-key="footer_link_contact">İletişim</a></li>
-                        <li><a href="#" data-lang-key="footer_link_privacy">Gizlilik Politikası</a></li>
-                    </ul>
-                </div>
-                 <div class="footer-section">
-                    <h4 data-lang-key="footer_social_title">Bizi Takip Edin</h4>
-                    <ul>
-                        <li><a href="#">Facebook</a></li>
-                        <li><a href="#">Instagram</a></li>
-                        <li><a href="#">Pinterest</a></li>
-                    </ul>
-                </div>
+                <div class="footer-section"><h4>PUFEMO</h4><p>Hayallerinizdeki konforu ve estetiği evinize taşıyoruz.</p></div>
+                <div class="footer-section"><h4>Hızlı Bağlantılar</h4><ul><li><a href="#">Hakkımızda</a></li><li><a href="#">İletişim</a></li><li><a href="#">Gizlilik Politikası</a></li></ul></div>
+                <div class="footer-section"><h4>Bizi Takip Edin</h4><ul><li><a href="#">Facebook</a></li><li><a href="#">Instagram</a></li><li><a href="#">Pinterest</a></li></ul></div>
             </div>
-            <div class="footer-bottom">
-                &copy; 2025 PUFEMO.COM | <span data-lang-key="footer_rights">Tüm Hakları Saklıdır.</span>
-            </div>
+            <div class="footer-bottom">&copy; 2025 PUFEMO.COM | Tüm Hakları Saklıdır.</div>
         </div>
     </footer>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // --- DATA ---
-            const translations = {
-                tr: {
-                    nav_koltuklar: "Koltuklar", nav_puflar: "Puflar", nav_berjerler: "Berjerler", nav_kose_takimlari: "Köşe Takımları", nav_aksesuarlar: "Aksesuarlar",
-                    slide1_title: "Yeni Sezon Koltuk Takımları", slide1_desc: "Evinize modern bir dokunuş katacak en yeni tasarımlar.",
-                    slide2_title: "Maksimum Konfor, Şık Tasarım", slide2_desc: "Geniş aileler ve misafirler için ideal köşe takımları.",
-                    slide3_title: "Evinize Renk Katın", slide3_desc: "Her odaya neşe ve fonksiyonellik katacak puflar.",
-                    shop_now: "Şimdi Alışveriş Yap", section_title_featured: "Öne Çıkan Ürünler",
-                    product_name_relax: "Pufemo Relax Koltuk", product_desc_relax: "Konfor ve şıklığı bir araya getiren modern tasarım.",
-                    product_name_loft: "Loft Retro Koltuk", product_desc_loft: "Geçmişin zarafetini günümüzün konforuyla buluşturun.",
-                    footer_about: "Hayallerinizdeki konforu ve estetiği evinize taşıyoruz.",
-                    footer_links_title: "Hızlı Bağlantılar", footer_link_about: "Hakkımızda", footer_link_contact: "İletişim", footer_link_privacy: "Gizlilik Politikası",
-                    footer_social_title: "Bizi Takip Edin", footer_rights: "Tüm Hakları Saklıdır."
-                },
-                en: {
-                    nav_koltuklar: "Sofas", nav_puflar: "Poufs", nav_berjerler: "Armchairs", nav_kose_takimlari: "Sectionals", nav_aksesuarlar: "Accessories",
-                    slide1_title: "New Season Sofa Sets", slide1_desc: "The newest designs to add a modern touch to your home.",
-                    slide2_title: "Maximum Comfort, Elegant Design", slide2_desc: "Ideal sectional sofas for large families and guests.",
-                    slide3_title: "Add Color to Your Home", slide3_desc: "Poufs that will add joy and functionality to any room.",
-                    shop_now: "Shop Now", section_title_featured: "Featured Products",
-                    product_name_relax: "Pufemo Relax Sofa", product_desc_relax: "A modern design that combines comfort and elegance.",
-                    product_name_loft: "Loft Retro Sofa", product_desc_loft: "Combine the elegance of the past with modern comfort.",
-                    footer_about: "We bring the comfort and aesthetics of your dreams to your home.",
-                    footer_links_title: "Quick Links", footer_link_about: "About Us", footer_link_contact: "Contact", footer_link_privacy: "Privacy Policy",
-                    footer_social_title: "Follow Us", footer_rights: "All Rights Reserved."
-                },
-                el: {
-                    nav_koltuklar: "Καναπέδες", nav_puflar: "Πουφ", nav_berjerler: "Πολυθρόνες", nav_kose_takimlari: "Γωνιακοί Καναπέδες", nav_aksesuarlar: "Αξεσουάρ",
-                    slide1_title: "Σετ Καναπέδων Νέας Σεζόν", slide1_desc: "Τα νεότερα σχέδια για να δώσετε μια μοντέρνα πινελιά στο σπίτι σας.",
-                    slide2_title: "Μέγιστη Άνεση, Κομψός Σχεδιασμός", slide2_desc: "Ιδανικοί γωνιακοί καναπέδες για μεγάλες οικογένειες και καλεσμένους.",
-                    slide3_title: "Προσθέστε Χρώμα στο Σπίτι σας", slide3_desc: "Πουφ που θα προσθέσουν χαρά και λειτουργικότητα σε κάθε δωμάτιο.",
-                    shop_now: "Αγοράστε Τώρα", section_title_featured: "Προτεινόμενα Προϊόντα",
-                    product_name_relax: "Καναπές Pufemo Relax", product_desc_relax: "Ένα μοντέρνο σχέδιο που συνδυάζει άνεση και κομψότητα.",
-                    product_name_loft: "Καναπές Loft Retro", product_desc_loft: "Συνδυάστε την κομψότητα του παρελθόντος με τη σύγχρονη άνεση.",
-                    footer_about: "Φέρνουμε την άνεση και την αισθητική των ονείρων σας στο σπίτι σας.",
-                    footer_links_title: "Γρήγοροι Σύνδεσμοι", footer_link_about: "Σχετικά με εμάς", footer_link_contact: "Επικοινωνία", footer_link_privacy: "Πολιτική Απορρήτου",
-                    footer_social_title: "Ακολουθήστε μας", footer_rights: "Με επιφύλαξη παντός δικαιώματος."
-                },
-                ru: {
-                    nav_koltuklar: "Диваны", nav_puflar: "Пуфы", nav_berjerler: "Кресла", nav_kose_takimlari: "Угловые диваны", nav_aksesuarlar: "Аксессуары",
-                    slide1_title: "Комплекты диванов нового сезона", slide1_desc: "Новейшие дизайны, чтобы добавить современный штрих в ваш дом.",
-                    slide2_title: "Максимальный комфорт, элегантный дизайн", slide2_desc: "Идеальные угловые диваны для больших семей и гостей.",
-                    slide3_title: "Добавьте цвета в ваш дом", slide3_desc: "Пуфы, которые добавят радости и функциональности в любую комнату.",
-                    shop_now: "Купить сейчас", section_title_featured: "Рекомендуемые товары",
-                    product_name_relax: "Диван Pufemo Relax", product_desc_relax: "Современный дизайн, сочетающий комфорт и элегантность.",
-                    product_name_loft: "Диван Loft Retro", product_desc_loft: "Сочетайте элегантность прошлого с современным комфортом.",
-                    footer_about: "Мы приносим комфорт и эстетику вашей мечты в ваш дом.",
-                    footer_links_title: "Быстрые ссылки", footer_link_about: "О нас", footer_link_contact: "Контакты", footer_link_privacy: "Политика конфиденциальности",
-                    footer_social_title: "Следите за нами", footer_rights: "Все права защищены."
-                }
-            };
+    <!-- Firebase SDK'ları -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
 
-            const productPrices = {
-                relax: 12499,
-                loft: 14999
-            };
+    <script type="module">
+        // --- FIREBASE CONFIGURATION ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyDYkzZzNXB22U4oEXxOoPh-puwuE8kz0g4",
+            authDomain: "pufemo-com.firebaseapp.com",
+            projectId: "pufemo-com",
+            storageBucket: "pufemo-com.appspot.com",
+            messagingSenderId: "983352837227",
+            appId: "1:983352837227:web:defaa8dae215776e2e1d2e",
+            measurementId: "G-RH8XHC7P91"
+        };
+        
+        let db;
+        try {
+            firebase.initializeApp(firebaseConfig);
+            db = firebase.firestore();
+        } catch (e) {
+            console.error("Firebase başlatma hatası!", e);
+            document.getElementById('loading-overlay').innerHTML = 'Hata: Firebase bağlantısı kurulamadı.';
+        }
 
-            const exchangeRates = {
-                TRY: 1,
-                USD: 0.030,
-                EUR: 0.028,
-                GBP: 0.024
-            };
-
-            const currencySymbols = {
-                TRY: '₺', USD: '$', EUR: '€', GBP: '£'
-            };
-
-            // --- SELECTORS ---
+        if (db) {
+            const loadingOverlay = document.getElementById('loading-overlay');
             const languageSelector = document.getElementById('language-selector');
             const currencySelector = document.getElementById('currency-selector');
+
+            let siteData = { languages: [], currencies: {} };
+            let currentLang = 'tr';
+            let currentCurrency = 'TRY';
             
-            // --- FUNCTIONS ---
-            function updateLanguage(lang) {
-                document.querySelectorAll('[data-lang-key]').forEach(el => {
-                    const key = el.dataset.langKey;
-                    el.textContent = translations[lang][key] || el.textContent;
-                });
-                document.documentElement.lang = lang;
-            }
-
-            function updateCurrency(currency) {
-                const rate = exchangeRates[currency];
-                const symbol = currencySymbols[currency];
-                
-                document.querySelectorAll('[data-price-id]').forEach(el => {
-                    const priceId = el.dataset.priceId;
-                    const basePrice = productPrices[priceId];
-                    const convertedPrice = basePrice * rate;
-
-                    let formattedPrice;
-                    if (currency === 'TRY') {
-                        formattedPrice = `${new Intl.NumberFormat('tr-TR').format(convertedPrice.toFixed(0))} ${symbol}`;
-                    } else {
-                        formattedPrice = `${symbol} ${new Intl.NumberFormat('en-US').format(convertedPrice.toFixed(2))}`;
-                    }
-                    el.textContent = formattedPrice;
-                });
-            }
-
-            // --- SLIDER LOGIC ---
-            const slides = document.querySelectorAll('.slide');
-            const navContainer = document.querySelector('.slide-nav');
-            let currentSlide = 0;
-            let slideInterval;
-
-            if (slides.length > 0) {
-                 slides.forEach((slide, index) => {
-                    const dot = document.createElement('div');
-                    dot.classList.add('nav-dot');
-                    if (index === 0) dot.classList.add('active');
-                    dot.addEventListener('click', () => {
-                        setSlide(index);
-                        resetInterval();
+            const fetchData = async () => {
+                try {
+                    const productsSnap = await db.collection('products').get();
+                    siteData.products = productsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    
+                    const siteContentSnap = await db.collection('site-content').get();
+                    siteContentSnap.forEach(doc => {
+                        siteData[doc.id] = doc.data();
                     });
+                } catch (e) {
+                    console.error("Veri okuma hatası: ", e);
+                    loadingOverlay.innerHTML = 'Veritabanı okuma hatası. Lütfen Firebase kurallarınızı kontrol edin.';
+                }
+            };
+            
+            const renderAll = () => {
+                renderCategories();
+                renderBanner();
+                renderProducts();
+            };
+
+            const renderCategories = () => {
+                const container = document.getElementById('category-menu-container');
+                if (!container || !siteData.categories?.tree) return;
+                container.innerHTML = '';
+                siteData.categories.tree.forEach(cat => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `<a href="#category-${cat.id}">${cat.name[currentLang] || cat.name.tr}</a>`;
+                    container.appendChild(li);
+                });
+            };
+
+            const renderBanner = () => {
+                const bannerContainer = document.getElementById('hero-banner-container');
+                if (!bannerContainer || !siteData.homepage?.slides) return;
+                const slideNav = bannerContainer.querySelector('.slide-nav');
+                bannerContainer.innerHTML = ''; 
+                
+                siteData.homepage.slides.forEach((slideData, index) => {
+                    const slideEl = document.createElement('div');
+                    slideEl.className = 'slide' + (index === 0 ? ' active' : '');
+                    if(slideData.media?.type === 'video') {
+                        slideEl.innerHTML = `<video src="${slideData.media.url}" autoplay muted loop playsinline></video>`;
+                    } else {
+                        slideEl.innerHTML = `<div class="slide-bg-image" style="background-image: url('${slideData.media?.url || ''}')"></div>`;
+                    }
+                    slideEl.innerHTML += `<div class="slide-content"><h2>${slideData.title[currentLang] || slideData.title.tr}</h2><p>${slideData.desc[currentLang] || slideData.desc.tr}</p><a href="${slideData.link}" class="btn-shop">Şimdi Alışveriş Yap</a></div>`;
+                    bannerContainer.appendChild(slideEl);
+                });
+                bannerContainer.appendChild(slideNav);
+                startSlider();
+            };
+            
+            const renderProducts = () => {
+                 const container = document.getElementById('product-grid-container');
+                 if (!container || !siteData.products) return;
+                 container.innerHTML = '';
+                 siteData.products.forEach(product => {
+                     const card = document.createElement('div');
+                     card.className = 'product-card';
+                     const firstImage = product.variants?.[0]?.media?.[0]?.url || 'https://placehold.co/400x300/ccc/fff?text=Resim+Yok';
+                     card.innerHTML = `
+                        <a href="product.html?id=${product.id}">
+                           <img src="${firstImage}" alt="${product.name[currentLang] || product.name.tr}" class="product-image">
+                        </a>
+                        <div class="product-info">
+                            <div class="product-info-top">
+                               <h3 class="product-name">${product.name[currentLang] || product.name.tr}</h3>
+                               <p class="product-description">${product.description?.[currentLang] || product.description?.tr || ''}</p>
+                            </div>
+                            <div class="product-price">${formatPrice(product.price)}</div>
+                        </div>`;
+                     container.appendChild(card);
+                 });
+            };
+
+            const startSlider = () => {
+                const slides = document.querySelectorAll('.slide');
+                const navContainer = document.querySelector('.slide-nav');
+                navContainer.innerHTML = '';
+                if (slides.length <= 1) return;
+                slides.forEach((_, index) => {
+                    const dot = document.createElement('div');
+                    dot.className = 'nav-dot' + (index === 0 ? ' active' : '');
+                    dot.dataset.index = index;
                     navContainer.appendChild(dot);
                 });
-
-                const dots = document.querySelectorAll('.nav-dot');
-
+                const dots = navContainer.querySelectorAll('.nav-dot');
+                let currentSlide = 0;
+                let slideInterval = setInterval(nextSlide, 5000);
                 function setSlide(index) {
-                    slides.forEach(slide => slide.classList.remove('active'));
-                    dots.forEach(dot => dot.classList.remove('active'));
-
-                    slides[index].classList.add('active');
-                    dots[index].classList.add('active');
+                    slides.forEach((s, i) => s.classList.toggle('active', i === index));
+                    dots.forEach((d, i) => d.classList.toggle('active', i === index));
                     currentSlide = index;
                 }
+                function nextSlide() { setSlide((currentSlide + 1) % slides.length); }
+                dots.forEach(dot => dot.addEventListener('click', () => { setSlide(parseInt(dot.dataset.index)); clearInterval(slideInterval); slideInterval = setInterval(nextSlide, 5000); }));
+            };
+            
+            const formatPrice = (price) => {
+                 const rates = siteData.settings?.exchangeRates || { TRY: 1, USD: 0.03, EUR: 0.028, GBP: 0.024 };
+                 const symbols = siteData.settings?.currencySymbols || { TRY: '₺', USD: '$', EUR: '€', GBP: '£' };
+                 const rate = rates[currentCurrency] || 1;
+                 const symbol = symbols[currentCurrency] || '₺';
+                 const convertedPrice = (price || 0) * rate;
 
-                function nextSlide() {
-                    currentSlide = (currentSlide + 1) % slides.length;
-                    setSlide(currentSlide);
-                }
+                 if (currentCurrency === 'TRY') {
+                    return `${new Intl.NumberFormat('tr-TR').format(convertedPrice.toFixed(0))} ${symbol}`;
+                 }
+                 return `${symbol} ${new Intl.NumberFormat('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}).format(convertedPrice)}`;
+            };
+
+            const setupControls = () => {
+                const langs = siteData.settings?.languages || [{code: 'tr', name: 'Türkçe', flag: '🇹🇷'}, {code: 'en', name: 'English', flag: '🇬🇧'}, {code: 'el', name: 'Ελληνικά', flag: '🇬🇷'}, {code: 'ru', name: 'Русский', flag: '🇷🇺'}];
+                const currencies = siteData.settings?.currencySymbols || { TRY: '₺', USD: '$', EUR: '€', GBP: '£' };
+
+                languageSelector.innerHTML = langs.map(l => `<option value="${l.code}">${l.flag || ''} ${l.name}</option>`).join('');
+                currencySelector.innerHTML = Object.keys(currencies).map(c => `<option value="${c}">${currencies[c]} ${c}</option>`).join('');
                 
-                function startInterval() {
-                    slideInterval = setInterval(nextSlide, 5000);
-                }
+                languageSelector.value = currentLang;
+                currencySelector.value = currentCurrency;
 
-                function resetInterval() {
-                    clearInterval(slideInterval);
-                    startInterval();
-                }
-                startInterval();
-            }
+                languageSelector.addEventListener('change', (e) => {
+                    currentLang = e.target.value;
+                    renderAll();
+                });
+                currencySelector.addEventListener('change', (e) => {
+                    currentCurrency = e.target.value;
+                    renderAll();
+                });
+            };
 
-            // --- EVENT LISTENERS AND INITIAL CALL ---
-            languageSelector.addEventListener('change', (e) => updateLanguage(e.target.value));
-            currencySelector.addEventListener('change', (e) => updateCurrency(e.target.value));
+            const init = async () => {
+                await fetchData();
+                setupControls();
+                renderAll();
+                loadingOverlay.classList.add('hidden');
+            };
 
-            // Initial page setup
-            updateLanguage(languageSelector.value);
-            updateCurrency(currencySelector.value);
-        });
+            init();
+        }
     </script>
 </body>
 </html>
