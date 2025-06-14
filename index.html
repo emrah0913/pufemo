@@ -169,8 +169,14 @@
             object-fit: contain; 
         }
         
-        .product-info { padding: 1.5rem; flex-grow: 1; display: flex; flex-direction: column; }
-        .product-info-top { flex-grow: 1; }
+        .product-info { 
+            padding: 1.5rem; 
+            flex-grow: 1; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: space-between; /* İçeriği dikeyde yaymak için */
+        }
+        .product-info-top { flex-grow: 1; } /* Ürün adı ve açıklamasının olduğu kısım */
         .product-name { font-size: 1.3rem; font-weight: 600; margin-bottom: 0.5rem; }
         .product-description { font-size: 0.9rem; margin-bottom: 1rem; color: #7f8c8d; }
         
@@ -192,10 +198,12 @@
             color: var(--secondary-color);
         }
 
+        /* Ücretsiz kargo etiketi pozisyonu - EN ALTTA */
         .free-shipping-tag {
             position: absolute;
-            top: 15px;
-            left: 15px;
+            bottom: 15px; /* Alt boşluk */
+            left: 50%; /* Yatayda ortala */
+            transform: translateX(-50%); /* Kendi genişliğinin yarısı kadar sola kaydırarak tam ortala */
             background-color: #27ae60; 
             color: var(--light-text-color);
             padding: 5px 10px;
@@ -204,6 +212,7 @@
             font-weight: 600;
             z-index: 10;
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            white-space: nowrap; /* Metnin tek satırda kalmasını sağlar */
         }
 
         .main-footer { background-color: var(--primary-color); color: var(--light-text-color); padding: 3rem 0; margin-top: 3rem; }
@@ -243,6 +252,7 @@
 
                 .product-card {
                     height: auto; /* Yüksekliği içeriğine göre ayarla */
+                    padding-bottom: 45px; /* Etiket için yeterli boşluk bırak */
                 }
 
                 .product-image-link {
@@ -258,19 +268,26 @@
 
                 .product-name {
                     font-size: 1rem; /* Başlık font boyutunu küçült */
+                    height: 2.4em; /* Yaklaşık 2 satır */
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: normal;
                 }
 
                 .product-description {
-                    font-size: 0.8rem; /* Açıklama font boyutunu küçült */
-                    height: 3.2em; /* Yaklaşık 3 satır için sabit yükseklik (isteğe bağlı) */
-                    overflow: hidden; /* Fazla metni gizle */
-                    text-overflow: ellipsis; /* Fazla metin için üç nokta göster */
-                    white-space: normal; /* Metnin normal akışını koru */
+                    display: none; /* Mobil görünümde açıklamayı tamamen gizle */
+                    /* Alternatif olarak, eğer göstermek isterseniz: */
+                    /* font-size: 0.75rem; */
+                    /* height: 1.2em; /* Yaklaşık 1 satır */
+                    /* overflow: hidden; */
+                    /* text-overflow: ellipsis; */
+                    /* white-space: nowrap; */
                 }
 
                 .price-container {
                     flex-direction: column; /* Fiyatları alt alta al */
                     align-items: flex-start;
+                    margin-top: 0.5rem; /* Fiyatların konumunu ayarla */
                 }
 
                 .discounted-price {
@@ -292,10 +309,9 @@
                 }
                 .product-name {
                     font-size: 0.9rem;
+                    height: 2.2em; /* Küçük ekranlarda başlık için 2 satır */
                 }
-                .product-description {
-                    font-size: 0.75rem;
-                }
+                /* product-description zaten display: none; olduğundan burada ek ayar gerekmeyebilir */
             }
         }
     </style>
@@ -413,7 +429,7 @@
                     const [settingsDoc, categoriesDoc, productsSnap] = await Promise.all([
                         db.collection('pufemo').doc('settings').get(),
                         db.collection('pufemo').doc('categories').get(),
-                        db.collection('pufemo-products').get() // Bu satır düzeltildi!
+                        db.collection('pufemo-products').get() 
                     ]);
                     siteData.settings = settingsDoc.exists ? settingsDoc.data() : { exchangeRates: { TRY: 1 }, currencySymbols: { TRY: '₺'} };
                     siteData.categories = categoriesDoc.exists ? categoriesDoc.data() : {};
@@ -534,9 +550,8 @@
                         ? `<div class="free-shipping-tag">${staticTranslations['free_shipping_text'][currentLang] || staticTranslations['free_shipping_text']['tr']}</div>`
                         : '';
 
-
                     card.innerHTML = `
-                        ${freeShippingTag} <a href="product.html?id=${product.id}" class="product-image-link">
+                        <a href="product.html?id=${product.id}" class="product-image-link">
                             <img src="${firstImage}" alt="${name}" class="product-image">
                         </a>
                         <div class="product-info">
@@ -544,7 +559,9 @@
                                 <h3 class="product-name"><a href="product.html?id=${product.id}">${name}</a></h3>
                                 <p class="product-description">${description.substring(0, 100)}...</p>
                             </div>
-                            ${priceHTML} </div>`;
+                            ${priceHTML} 
+                        </div>
+                        ${freeShippingTag}`; /* Ücretsiz kargo etiketini buraya taşıdık */
                     container.appendChild(card);
                 });
             };
