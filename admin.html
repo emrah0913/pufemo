@@ -136,12 +136,37 @@
             background-color: #e0e7eb;
             border-color: var(--primary-color);
         }
-        /* Logo tipi seçimi için show/hide class'ları */
         .logo-type-option {
             display: none;
         }
         .logo-type-option.active {
             display: block;
+        }
+        /* Dil Listesi */
+        .language-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background-color: #fff;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            padding: 10px 15px;
+            margin-bottom: 10px;
+        }
+        .language-item .lang-name-flag {
+            font-weight: 500;
+            flex-grow: 1;
+        }
+        .language-item .lang-controls button {
+            background: none;
+            border: none;
+            color: var(--danger-color);
+            cursor: pointer;
+            font-size: 1.2rem;
+            margin-left: 10px;
+        }
+        .language-item .lang-controls button:hover {
+            color: var(--primary-color); /* Hover rengini ayarla */
         }
     </style>
 </head>
@@ -307,8 +332,19 @@
                         <div class="lang-tabs" id="promo-text-lang-tabs"></div>
                         <div id="promo-text-lang-content"></div>
                     </section>
+                    
+                    <section class="form-section">
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; margin-bottom: 1.5rem;">
+                            <h2>Desteklenen Diller</h2>
+                            <button type="button" id="add-new-language-btn" class="btn btn-primary">Yeni Dil Ekle</button>
+                        </div>
+                        <div id="language-list-container">
+                            </div>
+                        <div id="new-language-form-container">
+                            </div>
+                    </section>
 
-                    <div class="form-actions"><button type="submit" class="btn btn-success">Genel Ayarları Kaydet</button></div>
+                    <div class="form-actions"><button type="submit" class="btn btn-success">Genel Ayarlar Kaydet</button></div>
                 </form>
             </div>
 
@@ -346,9 +382,12 @@
             // === 1. GLOBAL STATE VE DOM ELEMENTLERİ ===
             let localState = { 
                 settings: { 
-                    languages: [], 
+                    languages: [ // Varsayılan diller
+                        { code: 'tr', name: 'Türkçe', flag: '🇹🇷' },
+                        { code: 'en', name: 'English', flag: '🇬🇧' }
+                    ], 
                     banner: { slides: [] },
-                    general: { // Yeni genel ayarlar objesi
+                    general: { 
                         logo: { type: 'text_icon', text: 'PUFEMO', icon: 'fa-solid fa-couch', iconColor: '#e74c3c', textColor: '#2c3e50', imageUrl: '', imageWidth: 150, imageHeight: 40 },
                         promoBar: { bgColor: '#e74c3c', textColor: '#ffffff', fontSize: '0.95rem', scrollSpeed: '20s', text: {} }
                     }
@@ -364,15 +403,18 @@
             const bannerSettingsContainer = document.getElementById('banner-settings-container');
             const categoryTreeContainer = document.getElementById('category-tree-container');
 
-            // Yeni DOM elementleri
             const generalSettingsForm = document.getElementById('general-settings-form');
             const logoIconPicker = document.getElementById('logoIconPicker');
             const logoTypeSelect = document.getElementById('logoType');
             const textIconLogoOptions = document.getElementById('text-icon-logo-options');
             const imageLogoOptions = document.getElementById('image-logo-options');
 
+            // Yeni DOM elementleri
+            const languageListContainer = document.getElementById('language-list-container');
+            const newLanguageFormContainer = document.getElementById('new-language-form-container');
+            const addLanguageBtn = document.getElementById('add-new-language-btn');
 
-            // FontAwesome ikonları listesi (örnek, genişletebilirsiniz)
+
             const fontAwesomeIcons = [
                 "fa-solid fa-couch", "fa-solid fa-chair", "fa-solid fa-bed", "fa-solid fa-lamp", 
                 "fa-solid fa-door-closed", "fa-solid fa-table", "fa-solid fa-bath", "fa-solid fa-couch",
@@ -397,18 +439,22 @@
                         db.collection('pufemo').doc('categories').get(),
                         db.collection('pufemo-products').get() 
                     ]);
-                    // Eğer general ayarları yoksa varsayılan değerleri kullan
+                    
                     const fetchedSettings = settingsDoc.exists ? settingsDoc.data() : {};
+                    
+                    // Fetched settings'ten veya localState'deki varsayılanlardan language listesini al
                     localState.settings = { 
                         ...fetchedSettings, 
-                        languages: fetchedSettings.languages || [],
+                        // languages'ı Firebase'den al veya localState'in varsayılanını kullan
+                        languages: fetchedSettings.languages?.length ? fetchedSettings.languages : localState.settings.languages, 
                         banner: fetchedSettings.banner || { slides: [] },
                         general: {
                             logo: fetchedSettings.general?.logo || localState.settings.general.logo,
                             promoBar: fetchedSettings.general?.promoBar || localState.settings.general.promoBar
                         }
                     };
-                    // Ensure logo type is set if not present in fetched data
+                    
+                    // Logo tipi yoksa varsayılanı ata
                     if (!localState.settings.general.logo.type) {
                         localState.settings.general.logo.type = 'text_icon'; 
                     }
@@ -475,6 +521,7 @@
                 if(!tabsContainer || !contentContainer) return;
                 tabsContainer.innerHTML = '';
                 contentContainer.innerHTML = '';
+                // Dilleri localState.settings.languages'dan al
                 const languages = localState.settings.languages?.length ? localState.settings.languages : [{code: 'tr', name: 'Türkçe', flag: '🇹🇷'}];
                 
                 languages.forEach((lang, index) => {
@@ -483,7 +530,7 @@
                     let contentHTML = `<div class="lang-content ${isActive ? 'active' : ''}" data-lang-content="${lang.code}">`;
                     fields.forEach(field => {
                         const value = data?.[lang.code]?.[field.key] || '';
-                        const inputType = field.type === 'textarea' ? 'textarea' : (field.inputType || 'text'); // inputType'ı da dikkate al
+                        const inputType = field.type === 'textarea' ? 'textarea' : (field.inputType || 'text'); 
                         const inputElement = inputType === 'textarea'
                             ? `<textarea class="lang-input" data-key="${field.key}" data-lang="${lang.code}">${value}</textarea>`
                             : `<input type="${inputType}" class="lang-input" data-key="${field.key}" data-lang="${lang.code}" value="${value}">`;
@@ -811,7 +858,7 @@
             });
             bannerSettingsContainer.addEventListener('click', (e) => { if (e.target.closest('.delete-slide-btn')) { const index = e.target.closest('.form-section').dataset.index; localState.settings.banner.slides.splice(index, 1); renderBannerSettings(); } });
             
-            // --- YENİ KATEGORİ OLAYLARI ---
+            // --- KATEGORİ YÖNETİMİ OLAYLARI ---
             document.getElementById('add-main-category-btn').addEventListener('click', () => { showCategoryInputForm(categoryTreeContainer.querySelector('ul'), localState.categories); });
             categoryTreeContainer.addEventListener('click', e => { const btn = e.target.closest('button'); if (!btn) return; const li = btn.closest('li[data-id]'); const id = li?.dataset.id; const findCategory = (cats, catId) => { for (const cat of cats) { if (cat.id === catId) return cat; if (cat.children) { const found = findCategory(cat.children, catId); if (found) return found; } } return null; }; const findAndRemove = (cats, catId) => { for (let i = 0; i < cats.length; i++) { if(cats[i].id === catId) { cats.splice(i, 1); return true; } if(cats[i].children && findAndRemove(cats[i].children, catId)) return true; } return false; }; if (btn.matches('.add-subcategory-btn, .add-subcategory-btn *')) { const parentCategory = findCategory(localState.categories, id); if (parentCategory) { if (!parentCategory.children) parentCategory.children = []; let subList = li.querySelector('ul'); if(!subList) { subList = document.createElement('ul'); li.appendChild(subList); } showCategoryInputForm(subList, parentCategory.children); } } else if (btn.matches('.delete-category-btn, .delete-category-btn *')) { if (confirm('Bu kategoriyi ve tüm alt kategorilerini silmek istediğinizden emin misiniz?')) { findAndRemove(localState.categories, id); saveData('categories', localState.categories).then(refreshCategoryView); } } });
             categoryTreeContainer.addEventListener('change', e => { if(e.target.matches('.category-name-input')) { const id = e.target.closest('li[data-id]').dataset.id; const lang = e.target.dataset.lang; const findAndUpdate = (cats, catId) => { for(const cat of cats) { if(cat.id === catId) { if(!cat.name) cat.name={}; cat.name[lang] = e.target.value; return true; } if(cat.children && findAndUpdate(cat.children, catId)) return true; } return false; }; if (findAndUpdate(localState.categories, id)) { saveData('categories', localState.categories); } } });
@@ -834,7 +881,7 @@
 
                 // Logo Ayarları
                 logoTypeSelect.value = generalSettings.logo?.type || 'text_icon';
-                toggleLogoOptions(); // Seçime göre ilgili alanı göster/gizle
+                toggleLogoOptions(); 
 
                 document.getElementById('logoText').value = generalSettings.logo?.text || 'PUFEMO';
                 document.getElementById('logoIcon').value = generalSettings.logo?.icon || 'fa-solid fa-couch';
@@ -845,7 +892,6 @@
                 document.getElementById('logoImageWidth').value = generalSettings.logo?.imageWidth || 150;
                 document.getElementById('logoImageHeight').value = generalSettings.logo?.imageHeight || 40;
 
-                // İkon seçiciyi doldur
                 logoIconPicker.innerHTML = '';
                 fontAwesomeIcons.forEach(iconClass => {
                     const iconItem = document.createElement('span');
@@ -867,6 +913,86 @@
                     generalSettings.promoBar?.text || {},
                     [{ label: 'Promosyon Yazısı', key: 'text' }]
                 );
+
+                // Desteklenen Diller Ayarları
+                renderLanguageList();
+            }
+
+            // YENİ: Dilleri Listeleme ve Yönetme Fonksiyonları
+            function renderLanguageList() {
+                languageListContainer.innerHTML = '';
+                // localState.settings.languages'ı kontrol et ve varsa kullan, yoksa boş array ile başla
+                (localState.settings.languages || []).forEach(lang => {
+                    const langItem = document.createElement('div');
+                    langItem.className = 'language-item';
+                    langItem.dataset.code = lang.code; // Silme için kodu sakla
+                    langItem.innerHTML = `
+                        <span class="lang-name-flag">${lang.flag || ''} ${lang.name} (${lang.code})</span>
+                        <div class="lang-controls">
+                            <button type="button" class="delete-language-btn" title="Dili Sil"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    `;
+                    languageListContainer.appendChild(langItem);
+                });
+            }
+
+            function showNewLanguageForm() {
+                if (newLanguageFormContainer.querySelector('form')) return; // Zaten form açıksa tekrar açma
+
+                const form = document.createElement('form');
+                form.innerHTML = `
+                    <div class="form-group">
+                        <label for="newLangName">Dil Adı (Örn: English)</label>
+                        <input type="text" id="newLangName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="newLangCode">Dil Kodu (Örn: en)</label>
+                        <input type="text" id="newLangCode" maxlength="2" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="newLangFlag">Bayrak Emoji (Örn: 🇬🇧)</label>
+                        <input type="text" id="newLangFlag" maxlength="2">
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-danger cancel-new-language-btn">İptal</button>
+                        <button type="submit" class="btn btn-success">Dili Ekle</button>
+                    </div>
+                `;
+                newLanguageFormContainer.appendChild(form);
+                form.querySelector('#newLangName').focus();
+
+                form.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const name = form.querySelector('#newLangName').value.trim();
+                    const code = form.querySelector('#newLangCode').value.trim().toLowerCase();
+                    const flag = form.querySelector('#newLangFlag').value.trim();
+
+                    if (!name || !code) {
+                        alert('Dil adı ve kodu boş bırakılamaz.');
+                        return;
+                    }
+                    if (localState.settings.languages.some(lang => lang.code === code)) {
+                        alert('Bu dil kodu zaten mevcut!');
+                        return;
+                    }
+                    if (code.length !== 2) {
+                        alert('Dil kodu 2 karakterli olmalıdır (örn: en, tr, el).');
+                        return;
+                    }
+
+                    localState.settings.languages.push({ name, code, flag });
+                    await saveData('settings', localState.settings);
+                    newLanguageFormContainer.innerHTML = ''; // Formu temizle
+                    renderLanguageList(); // Dil listesini yeniden render et
+                    // Tüm formları yeniden render et ki yeni dil sekmesi görünsün
+                    renderBannerSettings();
+                    loadProductForEditing(productForm.querySelector('#productId').value); // Mevcut ürünü yeniden yükle
+                    renderGeneralSettings(); // Genel ayarları yeniden yükle (promo text vb. için)
+                });
+
+                form.querySelector('.cancel-new-language-btn').addEventListener('click', () => {
+                    newLanguageFormContainer.innerHTML = '';
+                });
             }
 
             generalSettingsForm.addEventListener('submit', async (e) => {
@@ -874,7 +1000,7 @@
                 const selectedLogoType = logoTypeSelect.value;
                 const newGeneralSettings = {
                     logo: {
-                        type: selectedLogoType // Logo tipini kaydet
+                        type: selectedLogoType 
                     },
                     promoBar: {
                         bgColor: document.getElementById('promoBarBgColor').value,
@@ -890,7 +1016,7 @@
                     newGeneralSettings.logo.icon = document.getElementById('logoIcon').value.trim();
                     newGeneralSettings.logo.iconColor = document.getElementById('logoIconColor').value;
                     newGeneralSettings.logo.textColor = document.getElementById('logoTextColor').value;
-                } else { // image type
+                } else { 
                     newGeneralSettings.logo.imageUrl = document.getElementById('logoImageUrl').value.trim();
                     newGeneralSettings.logo.imageWidth = parseInt(document.getElementById('logoImageWidth').value) || 0;
                     newGeneralSettings.logo.imageHeight = parseInt(document.getElementById('logoImageHeight').value) || 0;
@@ -902,10 +1028,10 @@
                 });
 
                 localState.settings.general = newGeneralSettings;
-                await saveData('settings', localState.settings);
+                // Sadece general ayarlarını kaydet, diller ayrı kaydedildi
+                await saveData('settings', { general: newGeneralSettings });
             });
 
-            // Logo tipi seçimi değiştiğinde
             logoTypeSelect.addEventListener('change', toggleLogoOptions);
 
             logoIconPicker.addEventListener('click', (e) => {
@@ -917,6 +1043,32 @@
                 }
             });
 
+            // YENİ: Dil Ekle/Sil Olay Dinleyicileri
+            addLanguageBtn.addEventListener('click', showNewLanguageForm);
+            languageListContainer.addEventListener('click', async (e) => {
+                const deleteBtn = e.target.closest('.delete-language-btn');
+                if (deleteBtn) {
+                    const langItem = deleteBtn.closest('.language-item');
+                    const langCodeToDelete = langItem.dataset.code;
+
+                    if (localState.settings.languages.length <= 1) {
+                        alert('En az bir dil olmak zorundadır. Son dili silemezsiniz.');
+                        return;
+                    }
+                    if (!confirm(`'${langCodeToDelete}' dilini silmek istediğinizden emin misiniz? Bu, tüm içerik alanlarındaki ilgili dil verilerini etkileyebilir!`)) {
+                        return;
+                    }
+
+                    localState.settings.languages = localState.settings.languages.filter(lang => lang.code !== langCodeToDelete);
+                    await saveData('settings', { languages: localState.settings.languages });
+                    renderLanguageList(); // Dil listesini yeniden render et
+                    // Tüm formları yeniden render et ki dil sekmeleri güncellensin
+                    renderBannerSettings();
+                    loadProductForEditing(productForm.querySelector('#productId').value); // Mevcut ürünü yeniden yükle
+                    renderGeneralSettings(); // Genel ayarları yeniden yükle (promo text vb. için)
+                }
+            });
+
 
             // === 7. BAŞLANGIÇ FONKSİYONU ===
             async function init() {
@@ -925,6 +1077,12 @@
                 renderBannerSettings(); 
                 refreshCategoryView();
                 renderGeneralSettings(); 
+                
+                if (localState.products.length > 0) {
+                    document.querySelector('#product-list-container li:first-child')?.click();
+                } else {
+                    document.getElementById('add-new-product-btn').click();
+                }
             }
             
             init();
