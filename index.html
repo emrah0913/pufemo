@@ -124,11 +124,28 @@
     <footer class="main-footer">
         <div class="container">
             <div class="footer-content">
-                <div class="footer-section"><h4>PUFEMO</h4><p>Hayallerinizdeki konforu ve estetiği evinize taşıyoruz.</p></div>
-                <div class="footer-section"><h4>Hızlı Bağlantılar</h4><ul><li><a href="#">Hakkımızda</a></li><li><a href="#">İletişim</a></li><li><a href="#">Gizlilik Politikası</a></li></ul></div>
-                <div class="footer-section"><h4>Bizi Takip Edin</h4><ul><li><a href="#">Facebook</a></li><li><a href="#">Instagram</a></li><li><a href="#">Pinterest</a></li></ul></div>
+                <div class="footer-section">
+                    <h4 id="footer-title-pufemo">PUFEMO</h4>
+                    <p id="footer-desc-pufemo">Hayallerinizdeki konforu ve estetiği evinize taşıyoruz.</p>
+                </div>
+                <div class="footer-section">
+                    <h4 id="footer-title-fast-links">Hızlı Bağlantılar</h4>
+                    <ul>
+                        <li><a href="#" id="footer-link-about">Hakkımızda</a></li>
+                        <li><a href="#" id="footer-link-contact">İletişim</a></li>
+                        <li><a href="#" id="footer-link-privacy">Gizlilik Politikası</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4 id="footer-title-follow-us">Bizi Takip Edin</h4>
+                    <ul>
+                        <li><a href="#">Facebook</a></li>
+                        <li><a href="#">Instagram</a></li>
+                        <li><a href="#">Pinterest</a></li>
+                    </ul>
+                </div>
             </div>
-            <div class="footer-bottom">&copy; 2025 PUFEMO.COM | Tüm Hakları Saklıdır.</div>
+            <div class="footer-bottom" id="footer-copyright">&copy; 2025 PUFEMO.COM | Tüm Hakları Saklıdır.</div>
         </div>
     </footer>
 
@@ -136,8 +153,6 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
 
     <script type="module">
-        // Bu bölümdeki JavaScript kodunda herhangi bir değişiklik gerekmemektedir.
-        // Öncekiyle aynı şekilde çalışmaya devam edecektir.
         const firebaseConfig = {
             apiKey: "AIzaSyDYkzZzNXB22U4oEXxOoPh-puwuE8kz0g4",
             authDomain: "pufemo-com.firebaseapp.com",
@@ -154,9 +169,35 @@
         } catch (e) { console.error("Firebase başlatma hatası!", e); }
 
         if (db) {
+            // --- YENİ EKLENDİ: STATİK METİN ÇEVİRİLERİ ---
+            const staticTranslations = {
+                'loading_text': { tr: 'PUFEMO Yükleniyor...', en: 'Loading PUFEMO...', el: 'Φόρτωση PUFEMO...', ru: 'Загрузка PUFEMO...' },
+                'mobile_menu_title': { tr: 'Kategoriler', en: 'Categories', el: 'Κατηγορίες', ru: 'Категории' },
+                'main_section_title': { tr: 'Öne Çıkan Ürünler', en: 'Featured Products', el: 'Προτεινόμενα Προϊόντα', ru: 'Рекомендуемые товары' },
+                'footer-title-pufemo': { tr: 'PUFEMO', en: 'PUFEMO', el: 'PUFEMO', ru: 'ПУФЕМО' },
+                'footer-desc-pufemo': { tr: 'Hayallerinizdeki konforu ve estetiği evinize taşıyoruz.', en: 'We bring the comfort and aesthetics of your dreams to your home.', el: 'Φέρνουμε την άνεση και την αισθητική των ονείρων σας στο σπίτι σας.', ru: 'Мы приносим комфорт и эстетику вашей мечты в ваш дом.' },
+                'footer-title-fast-links': { tr: 'Hızlı Bağlantılar', en: 'Quick Links', el: 'Γρήγοροι Σύνδεσμοι', ru: 'Быстрые ссылки' },
+                'footer-link-about': { tr: 'Hakkımızda', en: 'About Us', el: 'Σχετικά με εμάς', ru: 'О нас' },
+                'footer-link-contact': { tr: 'İletişim', en: 'Contact', el: 'Επικοινωνία', ru: 'Контакт' },
+                'footer-link-privacy': { tr: 'Gizlilik Politikası', en: 'Privacy Policy', el: 'Πολιτική Απορρήτου', ru: 'Политика конфиденциальности' },
+                'footer-title-follow-us': { tr: 'Bizi Takip Edin', en: 'Follow Us', el: 'Ακολουθήστε μας', ru: 'Следите за нами' },
+                'footer-copyright': { tr: '&copy; 2025 PUFEMO.COM | Tüm Hakları Saklıdır.', en: '&copy; 2025 PUFEMO.COM | All Rights Reserved.', el: '&copy; 2025 PUFEMO.COM | Με την επιφύλαξη παντός δικαιώματος.', ru: '&copy; 2025 PUFEMO.COM | Все права защищены.' },
+                'default_button_text': { tr: 'Alışverişe Başla', en: 'Shop Now', el: 'Αγοράστε τώρα', ru: 'Купить сейчас' }
+            };
+
+            // --- DEĞİŞİKLİK: DESTEKLENEN DİLLER BURADA TANIMLANDI ---
+            const supportedLanguages = [
+                { code: 'tr', name: 'Türkçe', flag: '🇹🇷' },
+                { code: 'en', name: 'English', flag: '🇬🇧' },
+                { code: 'el', name: 'Ελληνικά', flag: '🇬🇷' },
+                { code: 'ru', name: 'Русский', flag: '🇷🇺' }
+            ];
+
             const loadingOverlay = document.getElementById('loading-overlay');
             let siteData = { settings: {}, categories: {}, products: [] };
-            let currentLang = 'tr';
+
+            // --- DEĞİŞİKLİK: DİL SEÇİMİ TARAYICI HAFIZASINDAN OKUNUYOR ---
+            let currentLang = localStorage.getItem('pufemo-language') || 'tr'; 
             let currentCurrency = 'TRY';
 
             const fetchData = async () => {
@@ -173,9 +214,30 @@
             };
             
             const renderAll = () => {
+                // --- YENİ EKLENDİ: Statik metinleri render etme fonksiyonu çağrılıyor ---
+                renderStaticText();
                 renderCategories();
                 renderBanner();
                 renderProducts();
+            };
+
+            // --- YENİ FONKSİYON: STATİK METİNLERİ RENDER EDER ---
+            const renderStaticText = () => {
+                document.documentElement.lang = currentLang; // HTML lang attribute'ünü güncelle
+                
+                // Helper function
+                const translate = (key) => staticTranslations[key]?.[currentLang] || staticTranslations[key]?.['tr'];
+
+                document.querySelector('#loading-overlay p').textContent = translate('loading_text');
+                document.getElementById('main-section-title').textContent = translate('main_section_title');
+                document.getElementById('footer-title-pufemo').textContent = translate('footer-title-pufemo');
+                document.getElementById('footer-desc-pufemo').textContent = translate('footer-desc-pufemo');
+                document.getElementById('footer-title-fast-links').textContent = translate('footer-title-fast-links');
+                document.getElementById('footer-link-about').textContent = translate('footer-link-about');
+                document.getElementById('footer-link-contact').textContent = translate('footer-link-contact');
+                document.getElementById('footer-link-privacy').textContent = translate('footer-link-privacy');
+                document.getElementById('footer-title-follow-us').textContent = translate('footer-title-follow-us');
+                document.getElementById('footer-copyright').innerHTML = translate('footer-copyright');
             };
 
             const renderCategories = () => {
@@ -186,7 +248,8 @@
                 desktopContainer.innerHTML = '';
                 mobileContainer.innerHTML = '';
 
-                mobileContainer.innerHTML += `<div class="mobile-nav-header">Kategoriler</div>`;
+                const mobileMenuTitle = staticTranslations['mobile_menu_title']?.[currentLang] || staticTranslations['mobile_menu_title']?.['tr'];
+                mobileContainer.innerHTML += `<div class="mobile-nav-header">${mobileMenuTitle}</div>`;
                 
                 const createMenu = (categories) => {
                     const ul = document.createElement('ul');
@@ -217,7 +280,8 @@
                     const slideEl = document.createElement('div');
                     slideEl.className = 'slide' + (index === 0 ? ' active' : '');
                     const content = slideData.content[currentLang] || slideData.content.tr || {};
-                    const buttonText = content.button_text || "Alışverişe Başla";
+                    const defaultButtonText = staticTranslations['default_button_text']?.[currentLang] || staticTranslations['default_button_text']?.['tr'];
+                    const buttonText = content.button_text || defaultButtonText;
                     if(slideData.image_url?.includes('.mp4')) {
                         slideEl.innerHTML = `<video src="${slideData.image_url}" autoplay muted loop playsinline></video>`;
                     } else {
@@ -231,29 +295,29 @@
             };
             
             const renderProducts = () => {
-                 const container = document.getElementById('product-grid-container');
-                 if (!container || !siteData.products) return;
-                 container.innerHTML = '';
-                 siteData.products.forEach(product => {
-                     const card = document.createElement('div');
-                     card.className = 'product-card';
-                     const firstImage = product.variants?.[0]?.media?.[0]?.url || 'https://placehold.co/400x300/ccc/fff?text=Resim+Yok';
-                     const name = product.content?.[currentLang]?.name || product.content?.tr?.name || 'İsimsiz Ürün';
-                     const description = product.content?.[currentLang]?.description || product.content?.tr?.description || '';
-                     
-                     card.innerHTML = `
-                         <a href="product.html?id=${product.id}" class="product-image-link">
-                             <img src="${firstImage}" alt="${name}" class="product-image">
-                         </a>
-                         <div class="product-info">
-                             <div class="product-info-top">
-                                 <h3 class="product-name"><a href="product.html?id=${product.id}">${name}</a></h3>
-                                 <p class="product-description">${description.substring(0, 100)}...</p>
-                             </div>
-                             <div class="product-price">${formatPrice(product.price)}</div>
-                         </div>`;
-                     container.appendChild(card);
-                 });
+                const container = document.getElementById('product-grid-container');
+                if (!container || !siteData.products) return;
+                container.innerHTML = '';
+                siteData.products.forEach(product => {
+                    const card = document.createElement('div');
+                    card.className = 'product-card';
+                    const firstImage = product.variants?.[0]?.media?.[0]?.url || 'https://placehold.co/400x300/ccc/fff?text=Resim+Yok';
+                    const name = product.content?.[currentLang]?.name || product.content?.tr?.name || 'İsimsiz Ürün';
+                    const description = product.content?.[currentLang]?.description || product.content?.tr?.description || '';
+                    
+                    card.innerHTML = `
+                        <a href="product.html?id=${product.id}" class="product-image-link">
+                            <img src="${firstImage}" alt="${name}" class="product-image">
+                        </a>
+                        <div class="product-info">
+                            <div class="product-info-top">
+                                <h3 class="product-name"><a href="product.html?id=${product.id}">${name}</a></h3>
+                                <p class="product-description">${description.substring(0, 100)}...</p>
+                            </div>
+                            <div class="product-price">${formatPrice(product.price)}</div>
+                        </div>`;
+                    container.appendChild(card);
+                });
             };
 
             const startSlider = () => {
@@ -276,43 +340,48 @@
             };
             
             const formatPrice = (price) => {
-                 const rates = siteData.settings?.exchangeRates || { TRY: 1 };
-                 const symbols = siteData.settings?.currencySymbols || { TRY: '₺' };
-                 const rate = rates[currentCurrency] || 1;
-                 const symbol = symbols[currentCurrency] || '₺';
-                 const convertedPrice = (price || 0) * rate;
-                 if (currentCurrency === 'TRY') return `${new Intl.NumberFormat('tr-TR').format(convertedPrice.toFixed(0))} ${symbol}`;
-                 return `${symbol} ${new Intl.NumberFormat('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}).format(convertedPrice)}`;
+                const rates = siteData.settings?.exchangeRates || { TRY: 1 };
+                const symbols = siteData.settings?.currencySymbols || { TRY: '₺' };
+                const rate = rates[currentCurrency] || 1;
+                const symbol = symbols[currentCurrency] || '₺';
+                const convertedPrice = (price || 0) * rate;
+                if (currentCurrency === 'TRY') return `${new Intl.NumberFormat('tr-TR').format(convertedPrice.toFixed(0))} ${symbol}`;
+                return `${symbol} ${new Intl.NumberFormat('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}).format(convertedPrice)}`;
             };
             
             const setupControls = () => {
-                 const languageSelector = document.getElementById('language-selector');
-                 const currencySelector = document.getElementById('currency-selector');
-                 const hamburgerBtn = document.getElementById('hamburger-menu-btn');
-                 const mobileNav = document.getElementById('mobile-nav');
-                 const mobileNavOverlay = document.getElementById('mobile-nav-overlay');
+                const languageSelector = document.getElementById('language-selector');
+                const currencySelector = document.getElementById('currency-selector');
+                const hamburgerBtn = document.getElementById('hamburger-menu-btn');
+                const mobileNav = document.getElementById('mobile-nav');
+                const mobileNavOverlay = document.getElementById('mobile-nav-overlay');
 
-                 const langs = siteData.settings?.languages || [{code: 'tr', name: 'Türkçe', flag: '🇹🇷'}];
-                 const currencies = siteData.settings?.currencySymbols || { TRY: '₺' };
+                // --- DEĞİŞİKLİK: Diller artık admin paneli yerine yukarıda tanımlanan sabit listeden geliyor ---
+                const currencies = siteData.settings?.currencySymbols || { TRY: '₺' };
 
-                 languageSelector.innerHTML = langs.map(l => `<option value="${l.code}">${l.flag || ''} ${l.name}</option>`).join('');
-                 currencySelector.innerHTML = Object.keys(currencies).map(c => `<option value="${c}">${currencies[c]} ${c}</option>`).join('');
-                 languageSelector.value = currentLang;
-                 currencySelector.value = currentCurrency;
+                languageSelector.innerHTML = supportedLanguages.map(l => `<option value="${l.code}">${l.flag || ''} ${l.name}</option>`).join('');
+                currencySelector.innerHTML = Object.keys(currencies).map(c => `<option value="${c}">${currencies[c]} ${c}</option>`).join('');
+                
+                languageSelector.value = currentLang;
+                currencySelector.value = currentCurrency;
 
-                 languageSelector.addEventListener('change', (e) => { currentLang = e.target.value; renderAll(); });
-                 currencySelector.addEventListener('change', (e) => { currentCurrency = e.target.value; renderAll(); });
-                 
-                 const toggleMenu = () => { 
+                languageSelector.addEventListener('change', (e) => { 
+                    currentLang = e.target.value;
+                    // --- DEĞİŞİKLİK: Seçim tarayıcı hafızasına kaydediliyor ---
+                    localStorage.setItem('pufemo-language', currentLang);
+                    renderAll(); 
+                });
+                currencySelector.addEventListener('change', (e) => { currentCurrency = e.target.value; renderAll(); });
+                
+                const toggleMenu = () => { 
                     hamburgerBtn.classList.toggle('open'); 
                     mobileNav.classList.toggle('open'); 
                     mobileNavOverlay.classList.toggle('open');
-                    // Hamburger açıldığında butonun rengini değiştirmek için header'a da class ekleyebiliriz
                     document.querySelector('.main-header').classList.toggle('mobile-menu-open');
                 };
-                 hamburgerBtn.addEventListener('click', toggleMenu);
-                 mobileNavOverlay.addEventListener('click', toggleMenu);
-                 mobileNav.addEventListener('click', (e) => { if (e.target.tagName === 'A') toggleMenu(); });
+                hamburgerBtn.addEventListener('click', toggleMenu);
+                mobileNavOverlay.addEventListener('click', toggleMenu);
+                mobileNav.addEventListener('click', (e) => { if (e.target.tagName === 'A') toggleMenu(); });
             };
 
             const init = async () => {
