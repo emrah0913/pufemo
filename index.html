@@ -442,7 +442,7 @@
                 'loading_text': { tr: 'PUFEMO Yükleniyor...', en: 'Loading PUFEMO...', el: 'Φόρτωση PUFEMO...', ru: 'Загрузка PUFEMO...' },
                 'mobile_menu_title': { tr: 'Kategoriler', en: 'Categories', el: 'Κατηγορίες', ru: 'Категории' },
                 'main_section_title': { tr: 'Öne Çıkan Ürünler', en: 'Featured Products', el: 'Προτεινόμενα Προϊόντα', ru: 'Рекомендуемые товары' },
-                'footer-title-pufemo': { tr: 'PUFEMO', en: 'PUFEMO', el: 'PUFEMO', ru: 'ПУΦΕΜΟ' },
+                'footer-title-pufemo': { tr: 'PUFEMO', en: 'PUFEMO', el: 'PUFEMO', ru: 'ПУФΕΜΟ' },
                 'footer-desc-pufemo': { tr: 'Hayallerinizdeki konforu ve estetiği evinize taşıyoruz.', en: 'We bring the comfort and aesthetics of your dreams to your home.', el: 'Φέρνουμε την άνεση και την αισθητική των ονείρων σας στο σπίτι σας.', ru: 'Мы приносим комфорт και αισθητική των ονείρων σας στο σπίτι σας.' },
                 'footer-title-fast-links': { tr: 'Hızlı Bağlantılar', en: 'Quick Links', el: 'Γρήγοροι Σύνδεσμοι', ru: 'Быстрые ссылки' },
                 'footer-link-about': { tr: 'Hakkımızda', en: 'About Us', el: 'Σχετικά με εμάς', ru: 'О нас' },
@@ -473,7 +473,8 @@
                     const [settingsDoc, categoriesDoc, productsSnap] = await Promise.all([
                         db.collection('pufemo').doc('settings').get(),
                         db.collection('pufemo').doc('categories').get(),
-                        db.collection('pufemo-products').get() 
+                        // BURASI GÜNCELLENDİ: Sadece isInShowcase: true olan ürünleri çek
+                        db.collection('pufemo-products').where('isInShowcase', '==', true).get() 
                     ]);
                     siteData.settings = settingsDoc.exists ? settingsDoc.data() : { exchangeRates: { TRY: 1 }, currencySymbols: { TRY: '₺'} };
                     siteData.categories = categoriesDoc.exists ? categoriesDoc.data() : {};
@@ -530,7 +531,7 @@
                 mobileContainer.appendChild(createMenu(siteData.categories.tree));
             };
 
-            // renderBanner fonksiyonu GÜNCELLENDİ
+            // renderBanner fonksiyonu GÜNCEL HALİ
             const renderBanner = () => {
                 const bannerContainer = document.getElementById('hero-banner-container');
                 if (!bannerContainer || !siteData.settings?.banner?.slides) return;
@@ -543,7 +544,6 @@
                     const defaultButtonText = staticTranslations['default_button_text']?.[currentLang] || staticTranslations['default_button_text']?.['tr'];
                     const buttonText = content.button_text || defaultButtonText;
                     
-                    // Firebase'den stil verilerini al, yoksa varsayılan boş bir obje kullan
                     const slideStyle = slideData.style || {}; 
 
                     if(slideData.image_url?.includes('.mp4')) {
@@ -552,26 +552,22 @@
                         slideEl.innerHTML = `<div class="slide-bg-image" style="background-image: url('${slideData.image_url || ''}')"></div>`;
                     }
                     
-                    // Başlık için stil uygulama
                     const titleStyle = `
                         ${slideStyle.title_color ? `color: ${slideStyle.title_color};` : ''}
                         ${slideStyle.title_font_size ? `font-size: ${slideStyle.title_font_size};` : ''}
                     `;
                     
-                    // Alt başlık için stil uygulama
                     const subtitleStyle = `
                         ${slideStyle.subtitle_color ? `color: ${slideStyle.subtitle_color};` : ''}
                         ${slideStyle.subtitle_font_size ? `font-size: ${slideStyle.subtitle_font_size};` : ''}
                     `;
 
-                    // Buton için stil uygulama
                     const buttonInlineStyle = `
                         ${slideStyle.button_bg_color ? `background-color: ${slideStyle.button_bg_color};` : ''}
                         ${slideStyle.button_text_color ? `color: ${slideStyle.button_text_color};` : ''}
                         ${slideStyle.button_border_radius ? `border-radius: ${slideStyle.button_border_radius};` : ''}
                         ${slideStyle.button_padding ? `padding: ${slideStyle.button_padding};` : ''}
                     `;
-
 
                     slideEl.innerHTML += `
                         <div class="slide-content">
@@ -603,7 +599,10 @@
                     return `${symbol} ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(convertedPrice)}`;
                 };
 
-                siteData.products.forEach(product => {
+                // Sadece vitrinde gösterilecek ürünleri filtrele
+                const productsToShow = siteData.products.filter(product => product.isInShowcase === true);
+
+                productsToShow.forEach(product => { // Filtrelenmiş ürünleri kullan
                     const card = document.createElement('div');
                     card.className = 'product-card';
                     const firstImage = product.variants?.[0]?.media?.[0]?.url || 'https://placehold.co/400x300/ccc/fff?text=Resim+Yok';
