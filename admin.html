@@ -72,56 +72,56 @@
             padding: 10px 15px; 
             margin-bottom: 10px; 
             display: flex; 
-            flex-direction: column; /* İçeriği dikey sırala (adı ve kontroller ayrı satırlarda) */
+            flex-direction: column; 
             flex-wrap: wrap; 
         }
         .category-name-inputs { 
             display: flex; 
             flex-wrap: wrap; 
-            gap: 15px; /* Inputlar arası boşluk */
+            gap: 15px; 
             flex-grow: 1;
-            margin-bottom: 10px; /* Alttaki kontrol butonları ile arasında boşluk bırakır */
+            margin-bottom: 10px; 
         }
         .category-name-inputs .form-group { 
-            margin-bottom: 0; /* İç form-group'ların kendi margin-bottom'unu sıfırla */
-            flex: 1; /* Esnekliği koru */
-            min-width: 120px; /* Minimum genişlik ver */
+            margin-bottom: 0; 
+            flex: 1; 
+            min-width: 120px; 
         }
         .category-name-inputs .form-group label { 
             font-size: 0.8em; 
-            color: #666; /* Etiket rengi */
-            text-align: center; /* Etiketi ortala */
-            margin-bottom: 2px; /* Etiket ile input arasına boşluk */
+            color: #666; 
+            text-align: center; 
+            margin-bottom: 2px; 
         }
         .category-name-inputs .form-group input {
-            padding: 8px; /* Input paddingini düşür */
-            font-size: 0.9rem; /* Input font boyutunu düşür */
+            padding: 8px; 
+            font-size: 0.9rem; 
         }
         .category-controls { 
             display: flex; 
-            align-self: flex-end; /* Sağ alta hizala */
-            gap: 5px; /* Butonlar arası boşluk */
-            margin-top: 5px; /* Üstteki inputlar ile arasında boşluk */
+            align-self: flex-end; 
+            gap: 5px; 
+            margin-top: 5px; 
         }
         .category-controls button { 
             background: none; 
             border: none; 
-            font-size: 1rem; /* Buton ikon boyutunu küçült */
+            font-size: 1rem; 
             cursor: pointer; 
-            margin-left: 0; /* Varsayılan marginleri sıfırla */
-            width: 25px; /* Buton boyutunu küçült */
+            margin-left: 0; 
+            width: 25px; 
             height: 25px; 
             line-height: 25px; 
             border-radius: 50%; 
-            color: var(--primary-color); /* Varsayılan ikon rengi */
+            color: var(--primary-color); 
             transition: background-color 0.3s, color 0.3s;
         }
         .category-controls button:hover { 
             background-color: #f0f0f0; 
-            color: var(--secondary-color); /* Hover rengini ayarla */
+            color: var(--secondary-color); 
         }
         .category-controls .delete-category-btn {
-            color: var(--danger-color); /* Sil butonu özel rengi */
+            color: var(--danger-color); 
         }
 
         .category-checklist-container label { font-weight: normal; display: flex; align-items: center; }
@@ -281,7 +281,7 @@
                                 <div id="product-category-checklist" class="category-checklist-container"></div>
                             </section>
                             <section class="form-section">
-                                <h2>Ürün Açıklamaları (Dile Gööre)</h2>
+                                <h2>Ürün Açıklamaları (Dile Göre)</h2>
                                 <div class="lang-tabs" id="product-lang-tabs-container"></div>
                                 <div id="product-lang-content-container"></div>
                             </section>
@@ -740,7 +740,6 @@
                 li.dataset.id = category.id;
                 const languages = localState.settings.languages?.length ? localState.settings.languages : [{code: 'tr', name: 'Türkçe', flag: '🇹🇷'}];
                 
-                // Kategori adı için çoklu dil giriş alanları oluştur
                 let nameInputsHTML = languages.map(lang => `
                     <div class="form-group">
                         <label>${lang.flag || lang.code}</label>
@@ -772,7 +771,6 @@
                 formLi.className = 'category-item new-category-form';
                 const languages = localState.settings.languages?.length ? localState.settings.languages : [{code: 'tr', name: 'Türkçe', flag: '🇹🇷'}];
                 
-                // Yeni kategori adı için çoklu dil giriş alanları oluştur
                 let nameInputsHTML = languages.map(lang => `
                     <div class="form-group">
                         <label>${lang.flag || lang.code}</label>
@@ -804,7 +802,7 @@
                     if (!hasName) { alert('Lütfen en az bir dilde kategori adı girin.'); return; }
                     parentCategoryArray.push(newCategory);
                     await saveData('categories', localState.categories);
-                    refreshCategoryView();
+                    refreshCategoryView(); // Kategori kaydedildikten sonra listeyi yenile
                 });
                 formLi.querySelector('.cancel-new-category').addEventListener('click', () => { formLi.remove(); });
             }
@@ -942,15 +940,14 @@
             });
             bannerSettingsContainer.addEventListener('click', (e) => { if (e.target.closest('.delete-slide-btn')) { const index = e.target.closest('.form-section').dataset.index; localState.settings.banner.slides.splice(index, 1); renderBannerSettings(); } });
             
-            // --- KATEGORİ YÖNETİMİ OLAYLARI GÜNCELLENDİ (Çoklu Dil Desteği) ---
-            document.getElementById('add-main-category-btn').addEventListener('click', () => { showCategoryInputForm(categoryTreeContainer.querySelector('ul'), localState.categories); });
+            // --- KATEGORİ YÖNETİMİ OLAYLARI GÜNCELLEMESİ ---
+            // Bu event listener artık tüm kategori input değişikliklerini ve buton tıklamalarını tek bir yerden yönetecek
             categoryTreeContainer.addEventListener('click', async e => { 
                 const btn = e.target.closest('button'); 
-                if (!btn) return; 
-                const li = btn.closest('li'); 
+                const li = e.target.closest('li'); 
+                const id = li?.dataset.id; // li varsa id'sini al
 
-                if (btn.matches('.add-subcategory-btn, .add-subcategory-btn *')) {
-                    const id = li?.dataset.id;
+                if (btn && btn.matches('.add-subcategory-btn, .add-subcategory-btn *')) {
                     const parentCategory = findCategoryInTree(localState.categories, id);
                     if (parentCategory) {
                         if (!parentCategory.children) parentCategory.children = [];
@@ -961,25 +958,35 @@
                         }
                         showCategoryInputForm(subList, parentCategory.children);
                     }
-                } else if (btn.matches('.delete-category-btn, .delete-category-btn *')) {
-                    const id = li?.dataset.id;
+                } else if (btn && btn.matches('.delete-category-btn, .delete-category-btn *')) {
                     if (confirm('Bu kategoriyi ve tüm alt kategorilerini silmek istediğinizden emin misiniz?')) { 
                         findAndRemoveCategory(localState.categories, id); 
                         await saveData('categories', localState.categories); 
                         refreshCategoryView();
                     } 
-                } else if (e.target.matches('.category-name-input')) { 
+                }
+            });
+
+            // Kategori adı inputlarındaki değişiklikleri dinle ve kaydet
+            categoryTreeContainer.addEventListener('input', async e => { // 'input' olayı eklendi
+                if (e.target.matches('.category-name-input')) { 
                     const id = e.target.closest('li').dataset.id;
                     const lang = e.target.dataset.lang;
-                    const value = e.target.value.trim();
+                    const value = e.target.value; // .trim() kaldırılarak her harf değişiminde güncellenir
                     const categoryToUpdate = findCategoryInTree(localState.categories, id);
                     if (categoryToUpdate) {
                         if (!categoryToUpdate.name) categoryToUpdate.name = {};
                         categoryToUpdate.name[lang] = value;
+                        // Her tuş vuruşunda kaydetmek yerine, daha seyrek veya bir 'Kaydet' butonu ile manuel tetikleme
+                        // Ancak, şu anki isteğiniz üzerine 'input' olayında otomatik kaydetme devam ediyor.
+                        // Daha iyi performans için debounce veya blur olayına geçebilirsiniz.
                         await saveData('categories', localState.categories); 
                     }
                 }
             });
+
+            // Yeni kategori ekleme formu için kaydet butonu olayı (zaten form içinde tanımlı)
+            // showCategoryInputForm fonksiyonunun içinde `form.addEventListener('submit', ...)` mevcut.
 
             // Yardımcı fonksiyonlar (kategori ağacında arama ve silme)
             function findCategoryInTree(categories, id) {
@@ -1123,12 +1130,10 @@
                     newLanguageFormContainer.innerHTML = ''; 
                     renderLanguageList(); 
                     renderBannerSettings();
-                    // Ürün formu mevcutsa yeniden yükle
                     const currentProductId = productForm.querySelector('#productId').value;
                     if (currentProductId) {
                         loadProductForEditing(currentProductId); 
                     } else {
-                        // Yeni ürün formu açıksa, dil sekmelerini güncelle
                         const productLangTabsContainer = productForm.querySelector('#product-lang-tabs-container');
                         const productLangContentContainer = productForm.querySelector('#product-lang-content-container');
                         if (productLangTabsContainer && productLangContentContainer && productForm.style.display !== 'none') {
