@@ -49,7 +49,19 @@
         .slide { position: absolute; width: 100%; height: 100%; opacity: 0; transition: opacity 1s ease-in-out; visibility: hidden; }
         .slide video, .slide .slide-bg-image { width: 100%; height: 100%; object-fit: cover; background-size: cover; background-position: center; }
         .slide.active { opacity: 1; visibility: visible; }
-        .slide-content { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; text-align: center; max-width: 80%; }
+        
+        /* SLIDE CONTENT POSITIONING ADJUSTMENT START */
+        .slide-content { 
+            position: absolute; 
+            top: 70%; /* Burayı %50'den %70'e çıkardık */
+            left: 50%; 
+            transform: translate(-50%, -50%); /* Daha düşük bir top değeriyle birlikte bu, içeriği aşağıya kaydırır */
+            color: white; 
+            text-align: center; 
+            max-width: 80%; 
+        }
+        /* SLIDE CONTENT POSITIONING ADJUSTMENT END */
+
         .slide-content h2 { font-size: 2.8rem; font-weight: 700; margin-bottom: 1rem; text-shadow: 2px 2px 8px rgba(0,0,0,0.8); }
         .slide-content p { font-size: 1.2rem; margin-bottom: 1.5rem; text-shadow: 1px 1px 6px rgba(0,0,0,0.8); }
         .btn-shop { background-color: var(--secondary-color); color: var(--light-text-color); padding: 12px 25px; border-radius: 5px; font-size: 1.1rem; font-weight: 600; text-transform: uppercase; transition: background-color 0.3s ease; display: inline-block; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
@@ -216,7 +228,7 @@
                 'mobile_menu_title': { tr: 'Kategoriler', en: 'Categories', el: 'Κατηγορίες', ru: 'Категории' },
                 'main_section_title': { tr: 'Öne Çıkan Ürünler', en: 'Featured Products', el: 'Προτεινόμενα Προϊόντα', ru: 'Рекомендуемые товары' },
                 'footer-title-pufemo': { tr: 'PUFEMO', en: 'PUFEMO', el: 'PUFEMO', ru: 'ПУФЕМО' },
-                'footer-desc-pufemo': { tr: 'Hayallerinizdeki konforu ve estetiği evinize taşıyoruz.', en: 'We bring the comfort and aesthetics of your dreams to your home.', el: 'Φέρνουμε την άνεση και την αισθητική των ονείρων σας στο σπίτι σας.', ru: 'Мы приносим комфорт и эстетику вашей мечты в ваш дом.' },
+                'footer-desc-pufemo': { tr: 'Hayallerinizdeki konforu ve estetiği evinize taşıyoruz.', en: 'We bring the comfort and aesthetics of your dreams to your home.', el: 'Φέρνουμε την άνεση και την αισθητική των ονείρων σας στο σπίτι σας.', ru: 'Мы приносим комфорт και αισθητική των ονείρων σας στο σπίτι σας.' },
                 'footer-title-fast-links': { tr: 'Hızlı Bağlantılar', en: 'Quick Links', el: 'Γρήγοροι Σύνδεσμοι', ru: 'Быстрые ссылки' },
                 'footer-link-about': { tr: 'Hakkımızda', en: 'About Us', el: 'Σχετικά με εμάς', ru: 'О нас' },
                 'footer-link-contact': { tr: 'İletişim', en: 'Contact', el: 'Επικοινωνία', ru: 'Контакт' },
@@ -224,7 +236,7 @@
                 'footer-title-follow-us': { tr: 'Bizi Takip Edin', en: 'Follow Us', el: 'Ακολουθήστε μας', ru: 'Следите за нами' },
                 'footer-copyright': { tr: '&copy; 2025 PUFEMO.COM | Tüm Hakları Saklıdır.', en: '&copy; 2025 PUFEMO.COM | All Rights Reserved.', el: '&copy; 2025 PUFEMO.COM | Με την επιφύλαξη παντός δικαιώματος.', ru: '&copy; 2025 PUFEMO.COM | Все права защищены.' },
                 'default_button_text': { tr: 'Alışverişe Başla', en: 'Shop Now', el: 'Αγοράστε τώρα', ru: 'Купить сейчас' },
-                'free_shipping_text': { tr: 'Ücretsiz Kargo', en: 'Free Shipping', el: 'Δωρεάν Αποστολή', ru: 'Бесплатная доставка' } // Yeni eklenen çeviri
+                'free_shipping_text': { tr: 'Ücretsiz Kargo', en: 'Free Shipping', el: 'Δωρεάν Αποστολή', ru: 'Бесплатная доставка' }
             };
 
             const supportedLanguages = [
@@ -329,7 +341,7 @@
                 if (!container || !siteData.products) return;
                 container.innerHTML = '';
 
-                // Fiyatı biçimlendirme yardımcı fonksiyonu (fiyatta değişiklik yok, sadece gösterim)
+                // Fiyatı biçimlendirme yardımcı fonksiyonu
                 const formatPriceDisplay = (price) => {
                     const rates = siteData.settings?.exchangeRates || { TRY: 1 };
                     const symbols = siteData.settings?.currencySymbols || { TRY: '₺' };
@@ -352,7 +364,8 @@
 
                     // Fiyat gösterimi için HTML oluşturma
                     let priceHTML = '';
-                    if (product.discountedPrice && product.discountedPrice < product.price) {
+                    // product.discountedPrice değerinin bir sayı olup olmadığını ve product.price'dan küçük olup olmadığını kontrol edin
+                    if (product.discountedPrice !== null && typeof product.discountedPrice === 'number' && product.discountedPrice < product.price) {
                         // İndirimli fiyat varsa, orijinal fiyat üstü çizili, indirimli fiyat belirgin
                         priceHTML = `
                             <div class="price-container">
@@ -361,7 +374,7 @@
                             </div>
                         `;
                     } else {
-                        // İndirimli fiyat yoksa veya eşitse, sadece orijinal fiyatı göster
+                        // İndirimli fiyat yoksa veya orijinal fiyattan büyük/eşitse, sadece orijinal fiyatı göster
                         priceHTML = `<div class="price-container"><span class="discounted-price">${formatPriceDisplay(product.price)}</span></div>`;
                     }
 
@@ -404,10 +417,7 @@
                 dots.forEach(dot => dot.addEventListener('click', () => { setSlide(parseInt(dot.dataset.index)); clearInterval(slideInterval); slideInterval = setInterval(nextSlide, 5000); }));
             };
             
-            // NOTE: formatPrice fonksiyonu artık kullanılmıyor, yerine renderProducts içinde formatPriceDisplay kullanılıyor
-            // ve indirimli fiyat ile orijinal fiyat ayrımı renderProducts içinde yapılıyor.
-            // Bu fonksiyonu istersen silebiliriz ya da sadece genel bir fiyat biçimlendirme olarak tutabiliriz.
-            // Şu anki durumda artık product-card renderında direct kullanılmıyor.
+            // formatPrice fonksiyonu artık kullanılmıyor, yerine renderProducts içinde formatPriceDisplay kullanılıyor
             const formatPrice = (basePrice) => {
                 const rates = siteData.settings?.exchangeRates || { TRY: 1 };
                 const symbols = siteData.settings?.currencySymbols || { TRY: '₺' };
