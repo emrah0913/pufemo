@@ -96,19 +96,19 @@
             margin-bottom: 0.8rem;
         }
         .style-settings-group .form-group input[type="color"] {
-            width: 80px; /* Renk seçicinin genişliğini ayarla */
-            height: 40px; /* Renk seçicinin yüksekliğini ayarla */
+            width: 80px; 
+            height: 40px; 
             padding: 0;
             border: none;
             cursor: pointer;
         }
         .style-settings-group .form-group input[type="text"].size-input {
-            width: calc(100% - 90px); /* Renk seçici yanındaki input için alan bırak */
+            width: calc(100% - 90px); 
             display: inline-block;
             vertical-align: middle;
             margin-left: 5px;
         }
-        .style-settings-group .form-group label span { /* Ekstra bilgi tooltip gibi */
+        .style-settings-group .form-group label span { 
             font-size: 0.75rem;
             color: #777;
             margin-left: 5px;
@@ -163,13 +163,17 @@
                                     <input type="checkbox" id="productFreeShipping">
                                     <label for="productFreeShipping">Ücretsiz Kargo</label>
                                 </div>
+                                <div class="form-group checkbox-group">
+                                    <input type="checkbox" id="productIsInShowcase">
+                                    <label for="productIsInShowcase">Vitrinde Göster</label>
+                                </div>
                             </section>
                             <section class="form-section">
                                 <h2>Ürün Kategorisi</h2>
                                 <div id="product-category-checklist" class="category-checklist-container"></div>
                             </section>
                             <section class="form-section">
-                                <h2>Ürün Açıklamaları (Dile Göre)</h2>
+                                <h2>Ürün Açıklamaları (Dile Gööre)</h2>
                                 <div class="lang-tabs" id="product-lang-tabs-container"></div>
                                 <div id="product-lang-content-container"></div>
                             </section>
@@ -360,6 +364,8 @@
                 
                 productForm.querySelector('#productDiscountedPrice').value = product.discountedPrice || ''; 
                 productForm.querySelector('#productFreeShipping').checked = product.isFreeShipping || false;
+                // YENİ: Vitrinde Göster onay kutusunun durumunu yükle
+                productForm.querySelector('#productIsInShowcase').checked = product.isInShowcase || false;
 
                 const categoryChecklist = document.getElementById('product-category-checklist');
                 categoryChecklist.innerHTML = '';
@@ -521,6 +527,7 @@
                     price: 0, 
                     discountedPrice: null, 
                     isFreeShipping: false, 
+                    isInShowcase: false, // Yeni ürün eklerken varsayılan olarak vitrinde gösterme
                     categories: [], 
                     content: {}, 
                     variants: [] 
@@ -537,6 +544,7 @@
                     price: parseFloat(productForm.querySelector('#productPrice').value) || 0,
                     discountedPrice: parseFloat(productForm.querySelector('#productDiscountedPrice').value) || null, 
                     isFreeShipping: productForm.querySelector('#productFreeShipping').checked, 
+                    isInShowcase: productForm.querySelector('#productIsInShowcase').checked, // Vitrinde göster checkbox değerini al
                     categories: Array.from(document.querySelectorAll('#product-category-checklist input:checked')).map(cb => cb.value), 
                     content: {}, 
                     variants: [] 
@@ -581,10 +589,9 @@
                         image_url: section.querySelector('.banner-input[data-key="image_url"]').value, 
                         link_url: section.querySelector('.banner-input[data-key="link_url"]').value, 
                         content: {},
-                        style: {} // Stil verileri için yeni obje
+                        style: {} 
                     }; 
                     
-                    // İçerik (başlık, alt başlık, buton metni) verilerini topla
                     section.querySelectorAll('.lang-content').forEach(cont => { 
                         const lang = cont.dataset.langContent; 
                         slide.content[lang] = { 
@@ -594,9 +601,8 @@
                         }; 
                     }); 
 
-                    // Stil verilerini topla
                     section.querySelectorAll('.banner-style-input').forEach(input => {
-                        if (input.value.trim()) { // Sadece dolu olan değerleri kaydet
+                        if (input.value.trim()) { 
                             slide.style[input.dataset.styleKey] = input.value.trim();
                         }
                     });
@@ -612,7 +618,7 @@
                     image_url: '', 
                     link_url: '', 
                     content: {},
-                    style: { // Yeni slayt eklerken varsayılan stil objesi ekle
+                    style: { 
                         title_color: '#FFFFFF',
                         title_font_size: '2.8rem',
                         subtitle_color: '#FFFFFF',
@@ -641,7 +647,7 @@
             async function init() {
                 await fetchData();
                 renderProductList();
-                renderBannerSettings(); // Banner ayarlarını yükle ve render et
+                renderBannerSettings(); 
                 refreshCategoryView();
                 
                 if (localState.products.length > 0) {
