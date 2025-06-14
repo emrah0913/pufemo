@@ -216,7 +216,7 @@
                     console.log(`${docName} başarıyla kaydedildi!`);
                     alert('Değişiklikler kaydedildi!');
                 } catch (error) {
-                     alert('Kaydedilirken bir hata oluştu: ' + error.message);
+                    	alert('Kaydedilirken bir hata oluştu: ' + error.message);
                 } finally {
                     hideLoading();
                 }
@@ -243,18 +243,18 @@
             }
             
             async function deleteProduct(id) {
-                 if (!id || !confirm('Bu ürünü kalıcı olarak silmek istediğinizden emin misiniz?')) return false;
-                 showLoading();
-                 try {
+                if (!id || !confirm('Bu ürünü kalıcı olarak silmek istediğinizden emin misiniz?')) return false;
+                showLoading();
+                try {
                     await db.collection('pufemo-products').doc(id).delete();
                     alert('Ürün silindi.');
                     return true;
-                 } catch(error) {
+                } catch(error) {
                     alert('Ürün silinirken hata: ' + error.message);
                     return false;
-                 } finally {
+                } finally {
                     hideLoading();
-                 }
+                }
             }
             
             function createLangTabs(tabsContainer, contentContainer, data, fields) {
@@ -363,10 +363,12 @@
                 categoryTreeContainer.appendChild(mainUl);
             }
             
+            // KOD GÜNCELLENDİ
             function createCategoryNode(category) {
                 const li = document.createElement('li');
                 li.dataset.id = category.id;
-                let nameInputsHTML = (localState.settings.languages || []).map(lang => `<div class="form-group"><label>${lang.flag}</label><input type="text" class="category-name-input" data-lang="${lang.code}" value="${category.name?.[lang.code] || ''}"></div>`).join('');
+                const languages = localState.settings.languages?.length ? localState.settings.languages : [{code: 'tr', name: 'Türkçe', flag: '🇹🇷'}];
+                let nameInputsHTML = languages.map(lang => `<div class="form-group"><label>${lang.flag || lang.code}</label><input type="text" class="category-name-input" data-lang="${lang.code}" value="${category.name?.[lang.code] || ''}"></div>`).join('');
                 li.innerHTML = `<div class="category-item"><div class="category-name-inputs">${nameInputsHTML}</div><div class="category-controls"><button class="add-subcategory-btn" title="Alt Kategori Ekle"><i class="fa-solid fa-plus"></i></button><button class="delete-category-btn" title="Kategoriyi Sil"><i class="fa-solid fa-trash"></i></button></div></div>`;
                 const subcategoriesUl = document.createElement('ul');
                 if (category.children?.length > 0) {
@@ -376,11 +378,13 @@
                 return li;
             }
 
+            // KOD GÜNCELLENDİ
             function showCategoryInputForm(container, parentCategoryArray) {
                 if (container.querySelector('.new-category-form')) return;
                 const formLi = document.createElement('li');
                 formLi.className = 'category-item new-category-form';
-                let nameInputsHTML = (localState.settings.languages || []).map(lang => `<div class="form-group"><label>${lang.flag}</label><input type="text" class="new-category-name-input" data-lang="${lang.code}" placeholder="${lang.name} Adı" required></div>`).join('');
+                const languages = localState.settings.languages?.length ? localState.settings.languages : [{code: 'tr', name: 'Türkçe', flag: '🇹🇷'}];
+                let nameInputsHTML = languages.map(lang => `<div class="form-group"><label>${lang.flag || lang.code}</label><input type="text" class="new-category-name-input" data-lang="${lang.code}" placeholder="${lang.name} Adı" required></div>`).join('');
                 formLi.innerHTML = `<form style="width: 100%;"><div class="category-name-inputs">${nameInputsHTML}</div><div class="form-actions" style="margin-top: 1rem;"><button type="button" class="btn btn-danger btn-sm cancel-new-category">İptal</button><button type="submit" class="btn btn-success btn-sm">Kaydet ✅</button></div></form>`;
                 container.prepend(formLi);
                 formLi.querySelector('input').focus();
