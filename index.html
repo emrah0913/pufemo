@@ -262,7 +262,7 @@
         .footer-section a:hover { color: var(--secondary-color); }
         .footer-bottom { text-align: center; margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.2); font-size: 0.9rem; }
         
-        /* Ülke Seçim Popup Stillleri */
+        /* Ülke Seçim Popup Stilleri */
         .country-selection-overlay {
             position: fixed;
             top: 0;
@@ -472,7 +472,7 @@
     <div id="country-selection-overlay" class="country-selection-overlay">
         <div class="country-selection-popup">
             <button class="close-button" id="close-country-popup">&times;</button>
-            <h3>Which country are you from?</h3>
+            <h3>Please select your country to get localized prices and content:</h3>
             <select id="country-selector"></select>
             <button id="confirm-country-selection">Continue</button>
         </div>
@@ -486,7 +486,7 @@
         <div class="container">
             <button class="hamburger-menu" id="hamburger-menu-btn" aria-label="Menüyü aç/kapat"><span></span><span></span><span></span></button>
             <div class="header-controls">
-                <select id="language-selector" class="control-select"></select>
+                <select id="country-changer" class="control-select"></select> <select id="language-selector" class="control-select"></select>
                 <select id="currency-selector" class="control-select"></select>
                 <a href="cart.html" class="cart-icon"><i class="fa-solid fa-cart-shopping"></i><span class="cart-badge">0</span></a>
             </div>
@@ -585,81 +585,29 @@
                     }
                 }, 
                 categories: {}, 
-                products: [] 
+                products: [],
+                countries: [] // YENİ EKLENDİ
             };
 
             let currentLang = localStorage.getItem('pufemo-language') || 'tr'; 
             let currentCurrency = localStorage.getItem('pufemo-currency') || 'TRY';
 
-            // Popup elementlerini al
+            // Ülke seçim popup elementlerini al
             const countrySelectionOverlay = document.getElementById('country-selection-overlay');
             const countrySelector = document.getElementById('country-selector');
             const confirmCountrySelectionBtn = document.getElementById('confirm-country-selection');
             const closeCountryPopupBtn = document.getElementById('close-country-popup');
 
-            // Desteklenen ülkeler listesi (örnek: Türkiye dışındaki ülkeler için İngilizce varsayılan dil)
-            const supportedCountries = [
-                { code: 'TR', name: 'Turkey', currency: 'TRY', language: 'tr' },
-                { code: 'US', name: 'United States', currency: 'USD', language: 'en' },
-                { code: 'GR', name: 'Greece', currency: 'EUR', language: 'el' },
-                { code: 'RU', name: 'Russia', currency: 'RUB', language: 'ru' },
-                { code: 'DE', name: 'Germany', currency: 'EUR', language: 'en' },
-                { code: 'FR', name: 'France', currency: 'EUR', language: 'en' },
-                { code: 'GB', name: 'United Kingdom', currency: 'GBP', language: 'en' },
-                { code: 'CY', name: 'Cyprus', currency: 'EUR', language: 'en' } 
-            ];
-
-            // Ülke seçim popup'ını gösteren fonksiyon
-            const showCountrySelectionPopup = () => {
-                // Kullanıcı daha önce seçim yapmışsa popup'ı gösterme
-                if (localStorage.getItem('pufemo-country-selected')) {
-                    return;
-                }
-
-                countrySelector.innerHTML = ''; // Select içeriğini temizle
-                supportedCountries.forEach(country => {
-                    const option = document.createElement('option');
-                    option.value = country.code;
-                    option.textContent = country.name;
-                    countrySelector.appendChild(option);
-                });
-
-                countrySelectionOverlay.classList.add('show'); // Popup'ı görünür yap
-            };
-
-            // Ülke seçimi yapıldığında çağrılacak fonksiyon
-            const handleCountrySelection = () => {
-                const selectedCountryCode = countrySelector.value;
-                const selectedCountry = supportedCountries.find(country => country.code === selectedCountryCode);
-
-                if (selectedCountry) {
-                    currentLang = selectedCountry.language;
-                    currentCurrency = selectedCountry.currency;
-                    localStorage.setItem('pufemo-language', currentLang); // Yerel depolamaya kaydet
-                    localStorage.setItem('pufemo-currency', currentCurrency); // Yerel depolamaya kaydet
-                    localStorage.setItem('pufemo-country-selected', 'true'); // Kullanıcının seçim yaptığını işaretle
-                    countrySelectionOverlay.classList.remove('show'); // Popup'ı gizle
-                    renderAll(); // Dil ve para birimi değiştiği için sayfayı yeniden render et
-                }
-            };
-
-            // Butonlara event listener ekle
-            confirmCountrySelectionBtn.addEventListener('click', handleCountrySelection);
-            closeCountryPopupBtn.addEventListener('click', () => {
-                localStorage.setItem('pufemo-country-selected', 'true'); // Popup kapatıldığında da seçilmiş say
-                countrySelectionOverlay.classList.remove('show');
-            });
-
-
             const fetchData = async () => {
                 try {
-                    const [settingsDoc, categoriesDoc, productsSnap] = await Promise.all([
+                    const [settingsDoc, categoriesDoc, productsSnap, countriesDoc] = await Promise.all([ 
                         db.collection('pufemo').doc('settings').get(),
                         db.collection('pufemo').doc('categories').get(),
-                        db.collection('pufemo-products').where('isInShowcase', '==', true).get() 
+                        db.collection('pufemo-products').where('isInShowcase', '==', true).get(),
+                        db.collection('pufemo').doc('countries').get() // YENİ: Ülke verilerini çek
                     ]);
                     const fetchedSettings = settingsDoc.exists ? settingsDoc.data() : {};
-                    // siteData.settings.general'ı Firebase'den gelen verilerle ve varsayılanlarla birleştir
+                    
                     siteData.settings = { 
                         ...fetchedSettings, 
                         languages: fetchedSettings.languages || [],
@@ -680,6 +628,7 @@
                     };
                     siteData.categories = categoriesDoc.exists ? categoriesDoc.data() : {};
                     siteData.products = productsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    siteData.countries = countriesDoc.exists ? countriesDoc.data().list : []; // YENİ: Ülke listesini siteData'ya ata
                 } catch (e) { console.error("Veri okuma hatası: ", e); }
             };
             
@@ -688,14 +637,13 @@
                 renderCategories();
                 renderBanner();
                 renderProducts();
-                renderGeneralSiteElements(); // Yeni fonksiyon çağrısı
+                renderGeneralSiteElements(); 
             };
 
             const renderStaticText = () => {
                 document.documentElement.lang = currentLang;
                 const translate = (key) => staticTranslations[key]?.[currentLang] || staticTranslations[key]?.['tr'];
                 document.querySelector('#loading-overlay p').textContent = translate('loading_text');
-                // Promosyon metni artık renderGeneralSiteElements() içinde çekiliyor
                 document.getElementById('main-section-title').textContent = translate('main_section_title');
                 document.getElementById('footer-title-pufemo').textContent = translate('footer-title-pufemo');
                 document.getElementById('footer-desc-pufemo').textContent = translate('footer-desc-pufemo');
@@ -707,27 +655,22 @@
                 document.getElementById('footer-copyright').innerHTML = translate('footer-copyright');
             };
 
-            // Yeni fonksiyon: Genel site elementlerini render et
             const renderGeneralSiteElements = () => {
                 const generalSettings = siteData.settings.general || {};
                 const logoLink = document.getElementById('main-logo-link');
 
                 if (logoLink) {
-                    // Önceki içeriği temizle
                     logoLink.innerHTML = ''; 
 
                     if (generalSettings.logo?.type === 'image' && generalSettings.logo.imageUrl) {
-                        // Resim logo kullanılıyorsa
                         const img = document.createElement('img');
                         img.src = generalSettings.logo.imageUrl;
                         img.alt = generalSettings.logo.text || 'PUFEMO Logo';
                         if (generalSettings.logo.imageWidth) img.style.width = `${generalSettings.logo.imageWidth}px`;
                         if (generalSettings.logo.imageHeight) img.style.height = `${generalSettings.logo.imageHeight}px`;
                         logoLink.appendChild(img);
-                        // Resim logo kullanıldığında, a etiketinin renk stilini temizle (sadece ikona veya metne uygulanıyor)
                         logoLink.style.color = ''; 
                     } else {
-                        // Metin ve İkon logo kullanılıyorsa (varsayılan)
                         const icon = document.createElement('i');
                         icon.className = generalSettings.logo?.icon || 'fa-solid fa-couch';
                         icon.style.color = generalSettings.logo?.iconColor || 'var(--secondary-color)';
@@ -739,7 +682,6 @@
                     }
                 }
 
-                // Promosyon Bandı Ayarları
                 const promoBar = document.querySelector('.promo-bar');
                 const promoTextContent = document.getElementById('promo-text-content');
                 if (promoBar && promoTextContent) {
@@ -748,7 +690,6 @@
                     promoBar.style.fontSize = generalSettings.promoBar?.fontSize || '0.95rem';
 
                     const scrollSpeed = generalSettings.promoBar?.scrollSpeed || '20s';
-                    // Dinamik animasyon süresi için CSS değişkenini güncelle veya inline stil kullan
                     promoTextContent.style.animationDuration = scrollSpeed;
                     
                     const promoText = generalSettings.promoBar?.text?.[currentLang] || generalSettings.promoBar?.text?.tr || staticTranslations['free_shipping_promo'][currentLang] || staticTranslations['free_shipping_promo']['tr'];
@@ -782,7 +723,6 @@
                 mobileContainer.appendChild(createMenu(siteData.categories.tree));
             };
 
-            // renderBanner fonksiyonu GÜNCEL HALİ
             const renderBanner = () => {
                 const bannerContainer = document.getElementById('hero-banner-container');
                 if (!bannerContainer || !siteData.settings?.banner?.slides) return;
@@ -919,12 +859,66 @@
                 return `${symbol} ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(convertedPrice)}`;
             };
             
+            // showCountrySelectionPopup fonksiyonu
+            const showCountrySelectionPopup = () => {
+                // Kullanıcı daha önce seçim yapmışsa veya ülke verileri yüklenmediyse popup'ı gösterme
+                if (localStorage.getItem('pufemo-country-selected') || siteData.countries.length === 0) {
+                    return;
+                }
+
+                countrySelector.innerHTML = ''; // Select içeriğini temizle
+                siteData.countries.forEach(country => {
+                    const option = document.createElement('option');
+                    option.value = country.code;
+                    // Ülke adını mevcut dile göre (currentLang) veya İngilizce (en) olarak göster
+                    option.textContent = country.name[currentLang] || country.name.en; 
+                    countrySelector.appendChild(option);
+                });
+
+                // Tarayıcının coğrafi konum bilgisi varsa otomatik seçmeye çalış (isteğe bağlı ve ek API gerektirir)
+                // Şimdilik sadece mevcut dil/para birimine göre seçimi ön ayarla
+                const currentCountryBasedOnLangCurr = siteData.countries.find(c => c.language === currentLang && c.currency === currentCurrency);
+                if (currentCountryBasedOnLangCurr) {
+                    countrySelector.value = currentCountryBasedOnLangCurr.code;
+                } else if (siteData.countries.length > 0) {
+                    // Eğer mevcut dil/para birimine uygun bir ülke yoksa, ilk ülkeyi varsayılan seç
+                    countrySelector.value = siteData.countries[0].code;
+                }
+
+                countrySelectionOverlay.classList.add('show'); // Popup'ı görünür yap
+            };
+
+            // handleCountrySelection fonksiyonu
+            const handleCountrySelection = () => {
+                const selectedCountryCode = countrySelector.value;
+                const selectedCountry = siteData.countries.find(country => country.code === selectedCountryCode);
+
+                if (selectedCountry) {
+                    currentLang = selectedCountry.language;
+                    currentCurrency = selectedCountry.currency;
+                    localStorage.setItem('pufemo-language', currentLang); // Yerel depolamaya kaydet
+                    localStorage.setItem('pufemo-currency', currentCurrency); // Yerel depolamaya kaydet
+                    localStorage.setItem('pufemo-country-selected', 'true'); // Kullanıcının seçim yaptığını işaretle
+                    countrySelectionOverlay.classList.remove('show'); // Popup'ı gizle
+                    renderAll(); // Sayfayı yeniden render et
+                }
+            };
+
+            // Butonlara event listener ekle
+            confirmCountrySelectionBtn.addEventListener('click', handleCountrySelection);
+            closeCountryPopupBtn.addEventListener('click', () => {
+                localStorage.setItem('pufemo-country-selected', 'true'); // Popup kapatıldığında da seçilmiş say
+                countrySelectionOverlay.classList.remove('show');
+            });
+
+
             const setupControls = () => {
                 const languageSelector = document.getElementById('language-selector');
                 const currencySelector = document.getElementById('currency-selector');
                 const hamburgerBtn = document.getElementById('hamburger-menu-btn');
                 const mobileNav = document.getElementById('mobile-nav');
                 const mobileNavOverlay = document.getElementById('mobile-nav-overlay');
+                const countryChanger = document.getElementById('country-changer'); // Ülke değiştiriciyi al
 
                 const currencies = siteData.settings?.currencySymbols || { TRY: '₺', USD: '$', EUR: '€', GBP: '£' };
 
@@ -933,6 +927,36 @@
                 
                 languageSelector.value = currentLang;
                 currencySelector.value = currentCurrency;
+
+                // Ana sayfadaki ülke değiştiriciyi doldur ve olay dinleyicisini ekle
+                if (countryChanger) {
+                    countryChanger.innerHTML = '';
+                    siteData.countries.forEach(country => {
+                        const option = document.createElement('option');
+                        option.value = country.code;
+                        option.textContent = country.name[currentLang] || country.name.en; 
+                        countryChanger.appendChild(option);
+                    });
+                    
+                    const currentCountryBasedOnLangCurr = siteData.countries.find(c => c.language === currentLang && c.currency === currentCurrency);
+                    if (currentCountryBasedOnLangCurr) {
+                        countryChanger.value = currentCountryBasedOnLangCurr.code;
+                    } else if (siteData.countries.length > 0) {
+                        countryChanger.value = siteData.countries[0].code; 
+                    }
+
+                    countryChanger.addEventListener('change', (e) => {
+                        const selectedCountryCode = e.target.value;
+                        const selectedCountry = siteData.countries.find(country => country.code === selectedCountryCode);
+                        if (selectedCountry) {
+                            currentLang = selectedCountry.language;
+                            currentCurrency = selectedCountry.currency;
+                            localStorage.setItem('pufemo-language', currentLang);
+                            localStorage.setItem('pufemo-currency', currentCurrency);
+                            renderAll(); 
+                        }
+                    });
+                }
 
                 languageSelector.addEventListener('change', (e) => { 
                     currentLang = e.target.value;
