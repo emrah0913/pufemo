@@ -285,7 +285,8 @@
                 <ul>
                     <li class="nav-item active" data-page="product-management"><span class="nav-item-name">Ürünler</span></li>
                     <li class="nav-item" data-page="category-management"><span class="nav-item-name">Kategoriler</span></li>
-                    <li class="nav-item" data-page="country-pricing-management"><span class="nav-item-name">Ülkelere Göre Fiyatlandırma</span></li> </ul>
+                    <li class="nav-item" data-page="country-pricing-management"><span class="nav-item-name">Ülkelere Göre Fiyatlandırma</span></li> 
+                </ul>
             </nav>
         </aside>
 
@@ -451,6 +452,16 @@
                             </div>
                     </section>
 
+                    <section class="form-section">
+                        <h2>Para Birimi Sembolleri</h2>
+                        <p style="font-size: 0.9em; color: #777; margin-bottom: 1rem;">
+                            Bu alanda tanımladığınız semboller, "Ülkelere Göre Fiyatlandırma" bölümünde seçim yaparken görünür olacaktır.
+                        </p>
+                        <div id="currency-symbol-list-container"></div>
+                        <div id="new-currency-symbol-form-container"></div>
+                        <button type="button" id="add-new-currency-symbol-btn" class="btn btn-primary" style="margin-top: 1rem;">Yeni Para Birimi Sembolü Ekle</button>
+                    </section>
+
                     <div class="form-actions"><button type="submit" class="btn btn-success">Genel Ayarlar Kaydet</button></div>
                 </form>
             </div>
@@ -518,10 +529,8 @@
                         { code: 'en', name: 'English', flag: '🇬🇧' },
                         { code: 'ru', name: 'Русский', flag: '🇷🇺' } 
                     ], 
-                    countryPricing: { // Ülkelere göre fiyatlandırma ayarları objesi için varsayılanlar
-                        // Eğer Firebase'de yoksa, bu varsayılan değerlerle başlatılacak.
-                        "tr": { name: "Türkiye", flag: "🇹🇷", adjustment: 0, defaultLanguage: 'tr', currencySymbol: '₺' },
-                    },
+                    countryPricing: {}, // Admin panelinden yönetilecek
+                    currencySymbols: { "TRY": "₺", "USD": "$", "EUR": "€", "GBP": "£" }, // Admin panelinden yönetilecek
                     banner: { slides: [] },
                     general: { 
                         logo: { type: 'text_icon', text: 'PUFEMO', icon: 'fa-solid fa-couch', iconColor: '#e74c3c', textColor: '#2c3e50', imageUrl: '', imageWidth: 150, imageHeight: 40 },
@@ -556,6 +565,11 @@
             const newLanguageFormContainer = document.getElementById('new-language-form-container');
             const addLanguageBtn = document.getElementById('add-new-language-btn');
 
+            const currencySymbolListContainer = document.getElementById('currency-symbol-list-container');
+            const newCurrencySymbolFormContainer = document.getElementById('new-currency-symbol-form-container');
+            const addCurrencySymbolBtn = document.getElementById('add-new-currency-symbol-btn');
+
+
             const saveCategoriesBtn = document.getElementById('save-categories-btn');
 
             // Yeni Ülke Fiyatlandırma Sayfası DOM Elementleri
@@ -574,9 +588,6 @@
                 "fa-solid fa-percent", "fa-solid fa-dollar-sign", "fa-solid fa-euro-sign", "fa-solid fa-yen-sign",
                 "fa-solid fa-rupee-sign", "fa-solid fa-basket-shopping", "fa-solid fa-cart-shopping", "fa-solid fa-bag-shopping"
             ];
-
-            // Ortak Para Birimi Sembolleri listesi (Örn: admin panelinde seçim için)
-            const commonCurrencySymbols = ['₺', '$', '€', '£', '₽', '¥']; // TL, Dolar, Euro, Pound, Ruble, Yen
 
             // === 2. ÇEKİRDEK FONKSİYONLAR ===
             const showLoading = () => loadingOverlay.classList.remove('hidden');
@@ -597,10 +608,9 @@
                     localState.settings = { 
                         ...fetchedSettings, 
                         languages: (fetchedSettings.languages && fetchedSettings.languages.length > 0) ? fetchedSettings.languages : localState.settings.languages, 
-                        // Firebase'den countryPricing'i çek. Eğer yoksa veya boşsa, varsayılan TR ayarını kullan.
-                        countryPricing: (fetchedSettings.countryPricing && Object.keys(fetchedSettings.countryPricing).length > 0) 
-                                        ? fetchedSettings.countryPricing 
-                                        : { "tr": { name: "Türkiye", flag: "🇹🇷", adjustment: 0, defaultLanguage: 'tr', currencySymbol: '₺' } },
+                        // Firebase'den countryPricing'i çek. Eğer yoksa, varsayılan boş obje kullan.
+                        countryPricing: fetchedSettings.countryPricing || {},
+                        currencySymbols: fetchedSettings.currencySymbols || localState.settings.currencySymbols, // Firebase'den çek
                         banner: fetchedSettings.banner || { slides: [] },
                         general: {
                             logo: fetchedSettings.general?.logo || localState.settings.general.logo,
@@ -936,7 +946,7 @@
                     // Eğer ürün formu açıksa ve ürün ID'si varsa, o ürünü yeniden yükle
                     const currentProductId = productForm.querySelector('#productId').value;
                     if (productForm.style.display !== 'none' && currentProductId) {
-                         loadProductForEditing(currentProductId);
+                            loadProductForEditing(currentProductId);
                     } else if (localState.products.length > 0) {
                         // Eğer ürün listesi doluysa ilk ürünü otomatik yükle (veya hiçbir şey yükleme)
                         document.querySelector('#product-list-container li:first-child')?.click();
@@ -1105,8 +1115,6 @@
                     const index = parseInt(e.target.closest('.form-section').dataset.index); 
                     if (!isNaN(index) && localState.settings.banner.slides.length > index) {
                         localState.settings.banner.slides.splice(index, 1); 
-                        // Kayıt işlemini burada da tetikleyebiliriz, veya sadece "Anasayfa Ayarlarını Kaydet"e bırakabiliriz.
-                        // Şimdilik sadece render ediyoruz, kaydetme submit ile olacak.
                         renderBannerSettings(); 
                     }
                 } 
@@ -1122,7 +1130,7 @@
             saveCategoriesBtn.addEventListener('click', async () => {
                 updateLocalCategoriesFromDOM(localState.categories, categoryTreeContainer.querySelector('ul'));
                 await saveData('categories', localState.categories);
-                refreshCategoryView(); // Kayıt sonrası görünümü yenile
+                refreshCategoryView(); 
             });
 
             categoryTreeContainer.addEventListener('click', async e => { 
@@ -1161,8 +1169,6 @@
                     if (categoryToUpdate) {
                         if (!categoryToUpdate.name) categoryToUpdate.name = {};
                         categoryToUpdate.name[lang] = value;
-                        // Burada doğrudan kaydetme yok, "Kaydet" butonuna basılınca toplu kayıt var
-                        // Ancak inputtaki değişiklik anında localState'e yansıdığı için sorun olmaz.
                     }
                 }
             });
@@ -1267,6 +1273,8 @@
 
                 // Desteklenen Diller Ayarları
                 renderLanguageList();
+                // Para Birimi Sembolleri Ayarları
+                renderCurrencySymbolList();
             }
 
             function renderLanguageList() {
@@ -1280,7 +1288,7 @@
                         <div class="lang-controls">
                             <button type="button" class="delete-language-btn" title="Dili Sil"><i class="fa-solid fa-trash"></i></button>
                         </div>
-                    `;
+                        `;
                     languageListContainer.appendChild(langItem);
                 });
             }
@@ -1341,12 +1349,80 @@
                         createLangTabs(productLangTabsContainer, productLangContentContainer, {}, [{ label: 'Ürün Adı', key: 'name' }, { label: 'Açıklama', key: 'description', type: 'textarea' }]);
                     }
                     renderGeneralSettings(); 
+                    // Ülke fiyatlandırma default dil seçeneklerini güncelle
+                    renderCountryPricingList();
                 });
 
                 form.querySelector('.cancel-new-language-btn').addEventListener('click', () => {
                     newLanguageFormContainer.innerHTML = '';
                 });
             }
+
+            function renderCurrencySymbolList() {
+                currencySymbolListContainer.innerHTML = '';
+                const sortedSymbols = Object.keys(localState.settings.currencySymbols).sort();
+                sortedSymbols.forEach(code => {
+                    const symbol = localState.settings.currencySymbols[code];
+                    const symbolItem = document.createElement('div');
+                    symbolItem.className = 'language-item'; // language-item stilini kullanabiliriz
+                    symbolItem.dataset.code = code;
+                    symbolItem.innerHTML = `
+                        <span class="lang-name-flag">${code} (${symbol})</span>
+                        <div class="lang-controls">
+                            <button type="button" class="delete-currency-symbol-btn" title="Sembolü Sil" data-code="${code}"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    `;
+                    currencySymbolListContainer.appendChild(symbolItem);
+                });
+            }
+
+            function showNewCurrencySymbolForm() {
+                if (newCurrencySymbolFormContainer.querySelector('form')) return;
+
+                const form = document.createElement('form');
+                form.innerHTML = `
+                    <div class="form-group">
+                        <label for="newCurrencyCode">Para Birimi Kodu (Örn: GBP, JPY)</label>
+                        <input type="text" id="newCurrencyCode" maxlength="3" required style="text-transform: uppercase;">
+                    </div>
+                    <div class="form-group">
+                        <label for="newCurrencySymbol">Sembol (Örn: £, ¥)</label>
+                        <input type="text" id="newCurrencySymbol" maxlength="5" required>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-danger cancel-new-currency-symbol-btn">İptal</button>
+                        <button type="submit" class="btn btn-success">Sembol Ekle</button>
+                    </div>
+                `;
+                newCurrencySymbolFormContainer.appendChild(form);
+                form.querySelector('#newCurrencyCode').focus();
+
+                form.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const code = form.querySelector('#newCurrencyCode').value.trim().toUpperCase();
+                    const symbol = form.querySelector('#newCurrencySymbol').value.trim();
+
+                    if (!code || !symbol) {
+                        alert('Para birimi kodu ve sembolü boş bırakılamaz.');
+                        return;
+                    }
+                    if (localState.settings.currencySymbols[code]) {
+                        alert('Bu para birimi kodu zaten mevcut!');
+                        return;
+                    }
+
+                    localState.settings.currencySymbols[code] = symbol;
+                    await saveData('settings', { currencySymbols: localState.settings.currencySymbols });
+                    newCurrencySymbolFormContainer.innerHTML = '';
+                    renderCurrencySymbolList();
+                    renderCountryPricingList(); // Ülke fiyatlandırma para birimi seçeneklerini güncelle
+                });
+
+                form.querySelector('.cancel-new-currency-symbol-btn').addEventListener('click', () => {
+                    newCurrencySymbolFormContainer.innerHTML = '';
+                });
+            }
+
 
             generalSettingsForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
@@ -1383,7 +1459,7 @@
 
                 localState.settings.general = newGeneralSettings;
                 await saveData('settings', { general: newGeneralSettings });
-                renderGeneralSettings(); // Kayıt sonrası formları yeniden render et
+                renderGeneralSettings(); 
             });
 
             logoTypeSelect.addEventListener('change', toggleLogoOptions);
@@ -1423,11 +1499,27 @@
                         createLangTabs(productLangTabsContainer, productLangContentContainer, {}, [{ label: 'Ürün Adı', key: 'name' }, { label: 'Açıklama', key: 'description', type: 'textarea' }]);
                     }
                     renderGeneralSettings(); 
+                    renderCountryPricingList(); // Ülke fiyatlandırma varsayılan dil seçeneklerini güncelle
                 }
             });
 
+            addCurrencySymbolBtn.addEventListener('click', showNewCurrencySymbolForm);
+            currencySymbolListContainer.addEventListener('click', async (e) => {
+                const deleteBtn = e.target.closest('.delete-currency-symbol-btn');
+                if (deleteBtn) {
+                    const codeToDelete = deleteBtn.dataset.code;
+                    if (confirm(`'${codeToDelete}' para birimi sembolünü silmek istediğinizden emin misiniz?`)) {
+                        delete localState.settings.currencySymbols[codeToDelete];
+                        await saveData('settings', { currencySymbols: localState.settings.currencySymbols });
+                        renderCurrencySymbolList();
+                        renderCountryPricingList(); // Ülke fiyatlandırma para birimi seçeneklerini güncelle
+                    }
+                }
+            });
+
+
             // --- YENİ: ÜLKELERE GÖRE FİYATLANDIRMA YÖNETİMİ ---
-            // Yüzdesel ayarlamaları göstermek için
+            
             function renderCountryPricingList() {
                 newCountryPricingFormContainer.innerHTML = ''; // Yeni ülke ekleme formunu gizle
                 countryPricingListContainer.innerHTML = '';
@@ -1438,12 +1530,11 @@
                         code: codeKey.toUpperCase(), // Kodu büyük harf olarak objeye ekle (ekranda göstermek için)
                         ...countryData // Diğer tüm özellikleri (name, flag, adjustment, defaultLanguage, currencySymbol) yay
                     }))
-                    .sort((a,b) => a.name.localeCompare(b.name)); // İsme göre sırala
+                    .sort((a,b) => (a.name || '').localeCompare(b.name || '')); // İsme göre sırala
 
                 countriesToRender.forEach(country => {
                     const countryItem = document.createElement('div');
                     countryItem.className = 'country-pricing-item';
-                    // dataset.code'a da büyük harf kodu verelim, tutarlılık için
                     countryItem.dataset.code = country.code; 
                     countryItem.innerHTML = `
                         <span class="country-details">${country.flag || ''} ${country.name} (${country.code})</span>
@@ -1463,10 +1554,10 @@
                             <div class="form-group" style="margin-bottom: 0; min-width: 80px;">
                                 <label for="currencySymbol_${country.code}" style="font-size: 0.8em; margin-bottom: 2px;">Para Birimi</label>
                                 <select id="currencySymbol_${country.code}" class="country-adjustment-input" data-country-code="${country.code}" data-field="currencySymbol">
-                                    ${commonCurrencySymbols.map(symbol => 
-                                        `<option value="${symbol}" ${symbol === country.currencySymbol ? 'selected' : ''}>${symbol}</option>`
-                                    ).join('')}
-                                    ${!commonCurrencySymbols.includes(country.currencySymbol) && country.currencySymbol ? `<option value="${country.currencySymbol}" selected>${country.currencySymbol}</option>` : ''}
+                                    ${Object.keys(localState.settings.currencySymbols).map(code => {
+                                        const symbol = localState.settings.currencySymbols[code];
+                                        return `<option value="${symbol}" ${symbol === country.currencySymbol ? 'selected' : ''}>${code} (${symbol})</option>`;
+                                    }).join('')}
                                 </select>
                             </div>
                         </div>
@@ -1520,9 +1611,10 @@
                     <div class="form-group">
                         <label for="newCountryCurrencySymbol">Para Birimi Sembolü</label>
                         <select id="newCountryCurrencySymbol" required>
-                            ${commonCurrencySymbols.map(symbol => 
-                                `<option value="${symbol}">${symbol}</option>`
-                            ).join('')}
+                            ${Object.keys(localState.settings.currencySymbols).map(code => {
+                                const symbol = localState.settings.currencySymbols[code];
+                                return `<option value="${symbol}">${code} (${symbol})</option>`;
+                            }).join('')}
                         </select>
                     </div>
 
@@ -1605,7 +1697,7 @@
             countryPricingListContainer.addEventListener('click', async (e) => {
                 const deleteBtn = e.target.closest('.delete-country-pricing-btn');
                 if (deleteBtn) {
-                    const countryCodeToDelete = deleteBtn.dataset.countryCode; // HTML'de büyük harf olabilir, Firebase'e küçük olarak gidiyor
+                    const countryCodeToDelete = deleteBtn.dataset.code; // HTML'de büyük harf olabilir, Firebase'e küçük olarak gidiyor
                     if (confirm(`'${localState.settings.countryPricing[countryCodeToDelete.toLowerCase()]?.name}' (${countryCodeToDelete.toUpperCase()}) ülkesi fiyatlandırmasını silmek istediğinizden emin misiniz?`)) {
                         delete localState.settings.countryPricing[countryCodeToDelete.toLowerCase()]; // localState'ten sil
                         await saveData('settings', { countryPricing: localState.settings.countryPricing }); // Firebase'e kaydet
