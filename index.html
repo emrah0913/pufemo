@@ -173,7 +173,7 @@
         .hamburger-menu.open span { background-color: var(--light-text-color); }
         .hamburger-menu.open span:nth-child(1) { transform: translateY(11px) rotate(45deg); }
         .hamburger-menu.open span:nth-child(2) { opacity: 0; }
-        .hamburger-menu.open span:nth-child(3) { transform: translateY(-11px) rotate(-11px); } /* Burayı -11px rotate(-45deg) olarak düzelttim */
+        .hamburger-menu.open span:nth-child(3) { transform: translateY(-11px) rotate(-45deg); } /* Düzeltilmiş kısım */
         .mobile-nav { position: fixed; top: 0; left: -100%; width: 300px; height: 100vh; background-color: var(--primary-color); color: var(--light-text-color); z-index: 1002; transition: left 0.4s ease-in-out; box-shadow: 5px 0 15px rgba(0,0,0,0.2); overflow-y: auto; padding: 1.5rem; }
         .mobile-nav.open { left: 0; }
         .mobile-nav-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); z-index: 1001; opacity: 0; visibility: hidden; transition: opacity 0.4s ease, visibility 0.4s ease; }
@@ -352,7 +352,8 @@
             border-radius: 5px; 
             font-size: 0.9rem; 
             cursor: pointer;
-            margin-top: 15px; /* Üstteki metinle arasına boşluk */
+            margin-top: 10px; /* Üstteki metinle arasına boşluk */
+            color: var(--primary-color); /* Footer text rengiyle çakışmaması için */
         }
         
         @media (max-width: 992px) {
@@ -562,7 +563,7 @@
             db = firebase.firestore();
         } catch (e) { console.error("Firebase başlatma hatası!", e); }
 
-        if (db) {
+        if (db) { // init() çağrısı bu bloğun içine taşındı
             const staticTranslations = {
                 'loading_text': { tr: 'PUFEMO Yükleniyor...', en: 'Loading PUFEMO...', el: 'Φόρτωση PUFEMO...', ru: 'Загрузка PUFEMO...' },
                 'mobile_menu_title': { tr: 'Kategoriler', en: 'Categories', el: 'Κατηγορίες', ru: 'Категории' },
@@ -786,6 +787,12 @@
                         currentCurrencySymbol = defaultTrCountry.currencySymbol;
                         currentCurrencyDisplay.textContent = currentCurrencySymbol;
                         document.documentElement.lang = defaultTrCountry.defaultLanguage;
+                    } else {
+                        // Hiç TR ayarı da yoksa, placeholder göster
+                        currentCountryDisplay.textContent = 'N/A';
+                        currentLanguageDisplay.textContent = 'N/A';
+                        currentCurrencyDisplay.textContent = 'N/A';
+                        document.documentElement.lang = 'en'; // Default olarak İngilizce yap
                     }
                 }
             };
@@ -955,14 +962,16 @@
                 showLoadingOverlay(); // Yükleniyor ekranını göster
                 await fetchData(); // Firebase'den tüm verileri çek
 
-                // Ülke seçim modalındaki select box'ı doldur (her zaman doldur ki tekrar gösterildiğinde hazır olsun)
-                initialCountrySelect.innerHTML = Object.entries(siteData.settings.countryPricing)
-                    .sort(([, a], [, b]) => a.name.localeCompare(b.name)) // Ülke adına göre sırala
-                    .map(([code, data]) => `<option value="${code.toUpperCase()}" data-lang="${data.defaultLanguage}" data-currency="${data.currencySymbol}">${data.flag} ${data.name}</option>`)
-                    .join('');
+                // Ülke seçim modalındaki ve footer'daki select box'ları doldur
+                // Bu listeyi Firebase'den çekilen countryPricing objesinden oluşturuyoruz
+                const countryOptionsHtml = Object.entries(siteData.settings.countryPricing)
+                    .sort(([, a], [, b]) => a.name.localeCompare(b.name)) 
+                    .map(([code, data]) => 
+                        `<option value="${code.toUpperCase()}" data-lang="${data.defaultLanguage}" data-currency="${data.currencySymbol}">${data.flag} ${data.name}</option>`
+                    ).join('');
                 
-                // Footer'daki ülke seçiciyi doldur
-                footerCountrySelector.innerHTML = initialCountrySelect.innerHTML; // Modaldaki seçenekleri direkt kopyala
+                initialCountrySelect.innerHTML = countryOptionsHtml;
+                footerCountrySelector.innerHTML = countryOptionsHtml;
 
                 // Eğer localStorage'da ülke yoksa VEYA Firebase'de o ülke ayarı bulunmuyorsa modalı göster
                 if (!currentCountryCode || !siteData.settings.countryPricing[currentCountryCode.toLowerCase()]) {
@@ -974,13 +983,12 @@
                     if (selectedCountrySetting) {
                         currentLanguage = selectedCountrySetting.defaultLanguage;
                         currentCurrencySymbol = selectedCountrySetting.currencySymbol;
-                        // localstorage'a dil ve para birimini de kaydedelim, bu varsayılanları sağlar
-                        localStorage.setItem('pufemo-language', currentLanguage);
+                        localStorage.setItem('pufemo-language', currentLanguage); // Dili de kaydet
                     }
                 }
                 
                 // Select box'ların değerini mevcut seçili ülkeye ayarla
-                initialCountrySelect.value = currentCountryCode || ''; // Eğer null ise boş string yap
+                initialCountrySelect.value = currentCountryCode || ''; 
                 footerCountrySelector.value = currentCountryCode || '';
 
                 // Tüm UI elementlerini render et ve güncel verilerle doldur
@@ -1009,8 +1017,7 @@
                 if (newCountryCode) {
                     localStorage.setItem('pufemo-country', newCountryCode);
                     localStorage.setItem('pufemo-language', newDefaultLanguage);
-                    // Para birimi sembolünü direkt kullanıyoruz, kaydetmeye gerek yok.
-
+                    
                     currentCountryCode = newCountryCode;
                     currentLanguage = newDefaultLanguage;
                     currentCurrencySymbol = newCurrencySymbol;
@@ -1054,9 +1061,8 @@
                 }
             });
 
-
             // Sayfa yüklendiğinde init fonksiyonunu çağır
-            init();
+            init(); // Bu çağrı artık if(db) bloğunun içinde olduğu için hata çözüldü
         }
     </script>
 </body>
