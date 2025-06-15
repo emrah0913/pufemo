@@ -353,11 +353,28 @@
             color: #333;
         }
 
-        /* En alt kısımdaki select için ek stil */
+        /* En alt kısımdaki select ve buton için ek stil */
+        #country-changer-wrapper {
+            text-align: center; /* İçindeki öğeleri ortalamak için */
+            padding: 2rem 0; /* Üstten ve alttan boşluk */
+        }
         #country-changer {
-            margin: 2rem auto; /* Üstten ve alttan boşluk, yatayda ortala */
+            margin: 0 auto 1rem auto; /* Üstten ve alttan boşluk, yatayda ortala */
             display: block; /* Yeni satıra geçmesini ve margin:auto ile ortalanmasını sağla */
             max-width: 300px; /* Genişliğini sınırla */
+        }
+        #change-country-button {
+            background-color: var(--primary-color);
+            color: var(--light-text-color);
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        #change-country-button:hover {
+            background-color: #34495e; /* Biraz daha koyu */
         }
 
 
@@ -511,7 +528,11 @@
         <div id="dynamic-product-sections"></div>
     </main>
     
-    <select id="country-changer" class="control-select"></select>
+    <div id="country-changer-wrapper" class="container">
+        <label for="country-changer">Change Country:</label>
+        <select id="country-changer" class="control-select"></select>
+        <button id="change-country-button">Change Country</button>
+    </div>
     
     <footer class="main-footer">
         <div class="container">
@@ -597,7 +618,7 @@
                 }, 
                 categories: {}, 
                 products: [],
-                countries: [] // YENİ EKLENDİ
+                countries: [] 
             };
 
             let currentLang = localStorage.getItem('pufemo-language') || 'tr'; 
@@ -608,6 +629,7 @@
             const countrySelector = document.getElementById('country-selector');
             const confirmCountrySelectionBtn = document.getElementById('confirm-country-selection');
             const closeCountryPopupBtn = document.getElementById('close-country-popup');
+            const changeCountryButton = document.getElementById('change-country-button'); // YENİ BUTON TANIMLAMASI
 
             const fetchData = async () => {
                 try {
@@ -615,7 +637,7 @@
                         db.collection('pufemo').doc('settings').get(),
                         db.collection('pufemo').doc('categories').get(),
                         db.collection('pufemo-products').where('isInShowcase', '==', true).get(),
-                        db.collection('pufemo').doc('countries').get() // YENİ: Ülke verilerini çek
+                        db.collection('pufemo').doc('countries').get() 
                     ]);
                     const fetchedSettings = settingsDoc.exists ? settingsDoc.data() : {};
                     
@@ -639,7 +661,7 @@
                     };
                     siteData.categories = categoriesDoc.exists ? categoriesDoc.data() : {};
                     siteData.products = productsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    siteData.countries = countriesDoc.exists ? countriesDoc.data().list : []; // YENİ: Ülke listesini siteData'ya ata
+                    siteData.countries = countriesDoc.exists ? countriesDoc.data().list : []; 
                 } catch (e) { console.error("Veri okuma hatası: ", e); }
             };
             
@@ -873,7 +895,9 @@
             // showCountrySelectionPopup fonksiyonu
             const showCountrySelectionPopup = () => {
                 // Kullanıcı daha önce seçim yapmışsa veya ülke verileri yüklenmediyse popup'ı gösterme
-                if (localStorage.getItem('pufemo-country-selected') || siteData.countries.length === 0) {
+                // Bu fonksiyonu manuel çağrılarda da kullanabilmek için 'pufemo-country-selected' kontrolünü kaldırıyoruz.
+                // Eğer tekrar görünmesini istemiyorsak, çağrıdan önce kontrol etmeliyiz.
+                if (siteData.countries.length === 0) {
                     return;
                 }
 
@@ -912,6 +936,11 @@
                     localStorage.setItem('pufemo-country-selected', 'true'); // Kullanıcının seçim yaptığını işaretle
                     countrySelectionOverlay.classList.remove('show'); // Popup'ı gizle
                     renderAll(); // Sayfayı yeniden render et
+                    // Ana sayfadaki ülke seçiciyi de güncelle
+                    const countryChanger = document.getElementById('country-changer');
+                    if (countryChanger) {
+                        countryChanger.value = selectedCountryCode;
+                    }
                 }
             };
 
@@ -921,6 +950,14 @@
                 localStorage.setItem('pufemo-country-selected', 'true'); // Popup kapatıldığında da seçilmiş say
                 countrySelectionOverlay.classList.remove('show');
             });
+
+            // YENİ BUTON İÇİN EVENT LISTENER
+            if (changeCountryButton) {
+                changeCountryButton.addEventListener('click', () => {
+                    localStorage.removeItem('pufemo-country-selected'); // Seçim bilgisini sıfırla ki popup tekrar görünsün
+                    showCountrySelectionPopup(); // Popup'ı tekrar göster
+                });
+            }
 
 
             const setupControls = () => {
@@ -964,6 +1001,8 @@
                             currentCurrency = selectedCountry.currency;
                             localStorage.setItem('pufemo-language', currentLang);
                             localStorage.setItem('pufemo-currency', currentCurrency);
+                            // Ülke değiştirici ile yapıldığında ilk giriş popup flag'ini sıfırlama
+                            localStorage.removeItem('pufemo-country-selected'); 
                             renderAll(); 
                         }
                     });
@@ -997,7 +1036,10 @@
                 setupControls();
                 renderAll();
                 loadingOverlay.classList.add('hidden');
-                showCountrySelectionPopup(); // Ülke seçim popup'ını göster
+                // Kullanıcı daha önce bir ülke seçimi yapmadıysa popup'ı göster
+                if (!localStorage.getItem('pufemo-country-selected')) {
+                    showCountrySelectionPopup(); 
+                }
             };
             init();
         }
