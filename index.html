@@ -592,9 +592,10 @@
             const promoTextContent = document.getElementById('promo-text-content');
             const mainLogoLink = document.getElementById('main-logo-link');
             const productsContainer = document.getElementById('product-grid-container');
-            // const currentLanguageDisplay = document.getElementById('current-language-display'); // Kaldırıldı
-            // const currentCurrencyDisplay = document.getElementById('current-currency-display'); // Kaldırıldı
-            // const currentCountryDisplay = document.getElementById('current-country-display'); // Kaldırıldı
+            // Header'dan kaldırılan göstergeler için DOM referansları
+            // const currentLanguageDisplay = document.getElementById('current-language-display'); 
+            // const currentCurrencyDisplay = document.getElementById('current-currency-display');
+            // const currentCountryDisplay = document.getElementById('current-country-display');
             
             const countrySelectionModal = document.getElementById('country-selection-modal');
             const initialCountrySelect = document.getElementById('initial-country-select');
@@ -641,7 +642,8 @@
                         db.collection('pufemo-products').where('isInShowcase', '==', true).get() 
                     ]);
                     
-                    const fetchedSettings = settingsDoc.exists ? fetchedSettings.data() : {};
+                    // Düzeltme: fetchedSettings.data() olmalıydı
+                    const fetchedSettings = settingsDoc.exists ? settingsDoc.data() : {};
                     
                     siteData.settings = { 
                         ...fetchedSettings, 
@@ -653,7 +655,9 @@
                         general: { 
                             logo: fetchedSettings.general?.logo || siteData.settings.general.logo,
                             promoBar: { 
-                                ...(fetchedSettings.general?.promoBar || siteData.settings.general.promoBar),
+                                // Düzeltme: text objesinin her zaman tanımlı olmasını sağla
+                                ...(fetchedSettings.general?.promoBar || {text: {}}), // varsayılan bir obje ver
+                                text: fetchedSettings.general?.promoBar?.text || {}, // text objesi yoksa boş obje olarak başlat
                                 enabled: fetchedSettings.general?.promoBar?.enabled !== undefined ? fetchedSettings.general.promoBar.enabled : true 
                             }
                         }
@@ -675,7 +679,7 @@
 
             // Fiyatı, ürünün baz fiyatı ve ülkeye özel yüzdesel ayarlama ile hesaplar
             function calculateProductPrice(product, countryCode) {
-                // countryCode her zaman geçerli bir string olmalı
+                // countryCode her zaman geçerli bir string olmalı, init içinde garanti edildi.
                 const countrySetting = siteData.settings.countryPricing?.[countryCode.toLowerCase()]; 
                 const basePrice = product.basePriceTL || 0;
                 const baseDiscountedPrice = product.baseDiscountedPriceTL;
@@ -812,37 +816,24 @@
                         promoTextContent.textContent = promoText;
                     }
                 }
-
-                // Header'dan kaldırılan Dil, Para Birimi ve Ülke göstergelerinin DOM referansları da kaldırıldığı için
-                // bu kısım artık mevcut değil. Sadece `document.documentElement.lang` güncelleniyor.
-                const selectedCountryDetail = siteData.settings.countryPricing?.[currentCountryCode.toLowerCase()];
-                if (selectedCountryDetail) {
-                    // currentCountryDisplay.textContent = `${selectedCountryDetail.flag || ''} ${selectedCountryDetail.name}`; // Kaldırıldı
-                    // currentLanguageDisplay.textContent = siteData.settings.languages.find(l => l.code === currentLanguage)?.name || currentLanguage.toUpperCase(); // Kaldırıldı
-                    // currentCurrencyDisplay.textContent = currentCurrencySymbol; // Kaldırıldı
-                    document.documentElement.lang = currentLanguage; // Sadece HTML'in dilini ayarlar
-                } else {
-                    const defaultTrCountry = siteData.settings.countryPricing?.['tr']; 
-                    if (defaultTrCountry) {
-                        // currentCountryDisplay.textContent = `${defaultTrCountry.flag || ''} ${defaultTrCountry.name}`; // Kaldırıldı
-                        // currentLanguageDisplay.textContent = siteData.settings.languages.find(l => l.code === defaultTrCountry.defaultLanguage)?.name || defaultTrCountry.defaultLanguage.toUpperCase(); // Kaldırıldı
-                        // currentCurrencyDisplay.textContent = defaultTrCountry.currencySymbol; // Kaldırıldı
-                        document.documentElement.lang = defaultTrCountry.defaultLanguage;
-                    } else {
-                        // currentCountryDisplay.textContent = 'N/A'; // Kaldırıldı
-                        // currentLanguageDisplay.textContent = 'N/A'; // Kaldırıldı
-                        // currentCurrencyDisplay.textContent = 'N/A'; // Kaldırıldı
-                        document.documentElement.lang = 'en'; 
-                    }
-                }
                 
-                // Dil ve Para Birimi seçicileri artık footer'da ve modal'da dolduruluyor.
-                // populateLanguageAndCurrencySelectors(); // Bu fonksiyon artık çağrılmayacak, çünkü dil ve para birimi seçicileri kaldırıldı.
-                                                         // Eğer footer'daki seçicileri kastediyorsanız, onlar zaten init içinde dolduruluyor.
+                // HTML'in dil niteliğini günceller
+                document.documentElement.lang = currentLanguage; 
+                
+                // populateLanguageAndCurrencySelectors() çağrısı artık burada yapılmıyor, init içinde bir kez yapılıyor.
             }
 
-            // populateLanguageAndCurrencySelectors fonksiyonu artık kullanılmadığı için kaldırıldı.
-            // Eğer isterseniz footer'daki selectbox'ları doldurma mantığı init içinde kaldı.
+            // Dil ve Para Birimi Seçicilerini Doldurma Fonksiyonu
+            function populateLanguageAndCurrencySelectors() {
+                // Dil seçici için HTML'de id="language-selector" elementi kaldırıldığı için burası artık geçerli değil.
+                // Eğer tekrar eklerseniz bu kodu geri alabilirsiniz.
+
+                // Para birimi seçici için HTML'de id="currency-selector" elementi kaldırıldığı için burası da geçerli değil.
+                // Eğer tekrar eklerseniz bu kodu geri alabilirsiniz.
+                
+                // Footer'daki ülke seçici zaten init içinde dolduruluyor ve güncelleniyor.
+            }
+
 
             // Kategori Menüsünü render et
             function renderCategories() {
@@ -1015,7 +1006,6 @@
                 // --- currentLanguage ve currentCurrencySymbol'ü ayarla ---
                 const selectedCountrySetting = siteData.settings.countryPricing[currentCountryCode.toLowerCase()];
                 if (selectedCountrySetting) {
-                    // Kullanıcının daha önceki dil/para birimi tercihini koru, yoksa ülkenin varsayılanını kullan
                     currentLanguage = localStorage.getItem('pufemo-language') || selectedCountrySetting.defaultLanguage; 
                     currentCurrencySymbol = localStorage.getItem('pufemo-currency') || selectedCountrySetting.currencySymbol; 
                     localStorage.setItem('pufemo-language', currentLanguage); 
@@ -1038,11 +1028,9 @@
                 initialCountrySelect.innerHTML = countryOptionsHtml;
                 footerCountrySelector.innerHTML = countryOptionsHtml;
 
-                // Select box'ların değerini mevcut seçili ülkeye ve dile/para birimine ayarla
+                // Select box'ların değerini mevcut seçili ülkeye ayarla
                 initialCountrySelect.value = currentCountryCode; 
                 footerCountrySelector.value = currentCountryCode;
-                // languageSelector.value = currentLanguage; // Kaldırıldı
-                // currencySelector.value = currentCurrencySymbol; // Kaldırıldı
                 
                 // Ülke seçim modalını göster/gizle
                 if (!localStorage.getItem('pufemo-country')) { 
@@ -1073,8 +1061,6 @@
                 if (newCountryCode) {
                     localStorage.setItem('pufemo-country', newCountryCode);
                     
-                    // Kullanıcının dil ve para birimi tercihi artık ülkenin varsayılanı oluyor,
-                    // çünkü menüde manuel seçici yok.
                     currentCountryCode = newCountryCode;
                     currentLanguage = newDefaultLanguage;
                     currentCurrencySymbol = newCurrencySymbol;
@@ -1082,14 +1068,12 @@
                     localStorage.setItem('pufemo-currency', currentCurrencySymbol);
 
                     countrySelectionModal.classList.add('hidden'); 
-                    renderGeneralSiteElements(); // Bu, logo, promosyon bandı vb. günceller
-                    renderCategories(); // Kategorileri günceller
-                    renderBanner(); // Banner metinlerini günceller
-                    renderProducts(); // Ürün fiyatlarını günceller
+                    renderGeneralSiteElements(); 
+                    renderCategories(); 
+                    renderBanner(); 
+                    renderProducts(); 
 
-                    // Footer'daki seçicinin de değerini güncelle
                     footerCountrySelector.value = newCountryCode;
-                    // Dil ve para birimi selectbox'ları kaldırıldığı için güncellemelerine gerek yok.
                 } else {
                     alert('Lütfen bir ülke seçin.');
                 }
@@ -1106,24 +1090,20 @@
                     localStorage.setItem('pufemo-country', newCountryCode);
                     
                     currentCountryCode = newCountryCode;
-                    currentLanguage = newDefaultLanguage; // Ülkenin varsayılan dilini al
-                    currentCurrencySymbol = newCurrencySymbol; // Ülkenin varsayılan para birimini al
+                    currentLanguage = newDefaultLanguage; 
+                    currentCurrencySymbol = newCurrencySymbol; 
 
                     localStorage.setItem('pufemo-language', currentLanguage); 
                     localStorage.setItem('pufemo-currency', currentCurrencySymbol); 
 
-                    renderGeneralSiteElements(); // Bu, logo, promosyon bandı vb. günceller
-                    renderCategories(); // Kategorileri günceller
-                    renderBanner(); // Banner metinlerini günceller
-                    renderProducts(); // Ürün fiyatlarını günceller
+                    renderGeneralSiteElements(); 
+                    renderCategories(); 
+                    renderBanner(); 
+                    renderProducts(); 
                     
-                    // Modaldaki seçicinin de değerini güncelle (eğer modal açık olsaydı)
                     initialCountrySelect.value = newCountryCode;
                 }
             });
-
-            // Header'daki dil ve para birimi selectbox'ları kaldırıldığı için
-            // bunların change event listener'ları da artık gerekli değil.
 
             // Sayfa yüklendiğinde init fonksiyonunu çağır
             init(); 
