@@ -615,18 +615,16 @@
             let currentCountryCode = localStorage.getItem('pufemo-country') || null; 
             let currentCurrencySymbol = '₺'; 
 
-            let slideIntervalInstance; // Slider intervalini tutmak için
+            let slideIntervalInstance; 
 
             // --- CORE ASYNC FUNCTIONS ---
-            // Bu fonksiyonlar şimdi if(db) bloğunun en üstünde tanımlanıyor.
-            // Bu, 'init' fonksiyonu tarafından çağrıldıklarında kesinlikle erişilebilir olmalarını sağlar.
 
             const showLoadingOverlay = () => { loadingOverlay.classList.remove('hidden'); };
             const hideLoadingOverlay = () => { loadingOverlay.classList.add('hidden'); };
 
             async function fetchData() {
-                console.log("fetchData called."); // Log for debugging
-                showLoadingOverlay(); // Yükleniyor ekranını göster
+                console.log("fetchData called."); 
+                showLoadingOverlay(); 
                 try {
                     const [settingsDoc, categoriesDoc, productsSnap] = await Promise.all([
                         db.collection('pufemo').doc('settings').get(),
@@ -638,7 +636,7 @@
                     
                     siteData.settings = { 
                         ...fetchedSettings, 
-                        languages: (fetchedSettings.languages && fetchedSettings.languages.length > 0) ? fetchedSettings.languages : staticTranslations.supportedLanguages || [{ code: 'tr', name: 'Türkçe', flag: '🇹🇷' }], // Fallback to a default if admin settings are empty
+                        languages: (fetchedSettings.languages && fetchedSettings.languages.length > 0) ? fetchedSettings.languages : [{ code: 'tr', name: 'Türkçe', flag: '🇹🇷' }], 
                         countryPricing: (fetchedSettings.countryPricing && Object.keys(fetchedSettings.countryPricing).length > 0) 
                                         ? fetchedSettings.countryPricing 
                                         : { "tr": { name: "Türkiye", flag: "🇹🇷", adjustment: 0, defaultLanguage: 'tr', currencySymbol: '₺' } },
@@ -654,7 +652,7 @@
                     siteData.categories = categoriesDoc.exists ? categoriesDoc.data() : { tree: [] };
                     siteData.products = productsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-                    console.log("fetchData completed. Site Data:", siteData); // Log for debugging
+                    console.log("fetchData completed. Site Data:", siteData);
                 } catch (error) {
                     console.error("Veri çekilirken hata:", error);
                     productsContainer.innerHTML = '<p>Ürünler yüklenirken bir hata oluştu.</p>';
@@ -668,6 +666,7 @@
 
             // Fiyatı, ürünün baz fiyatı ve ülkeye özel yüzdesel ayarlama ile hesaplar
             function calculateProductPrice(product, countryCode) {
+                // countryCode her zaman geçerli bir string olmalı, null olmamalıdır.
                 const countrySetting = siteData.settings.countryPricing?.[countryCode.toLowerCase()]; 
                 const basePrice = product.basePriceTL || 0;
                 const baseDiscountedPrice = product.baseDiscountedPriceTL;
@@ -809,13 +808,11 @@
                 const selectedCountryDetail = siteData.settings.countryPricing?.[currentCountryCode.toLowerCase()];
                 if (selectedCountryDetail) {
                     currentCountryDisplay.textContent = `${selectedCountryDetail.flag || ''} ${selectedCountryDetail.name}`;
-                    // currentLanguageDisplay için, siteData.settings.languages listesinden uygun adı bul.
                     currentLanguageDisplay.textContent = siteData.settings.languages.find(l => l.code === currentLanguage)?.name || currentLanguage.toUpperCase();
-                    currentCurrencySymbol = selectedCountryDetail.currencySymbol; // currentCurrencySymbol'ü ülke ayarından al
+                    currentCurrencySymbol = selectedCountryDetail.currencySymbol; 
                     currentCurrencyDisplay.textContent = currentCurrencySymbol;
-                    document.documentElement.lang = currentLanguage; // HTML lang niteliğini de güncelle
+                    document.documentElement.lang = currentLanguage; 
                 } else {
-                    // Eğer seçili ülke ayarı bulunamazsa, varsayılan TR ayarlarını göster (eğer varsa)
                     const defaultTrCountry = siteData.settings.countryPricing?.['tr'];
                     if (defaultTrCountry) {
                         currentCountryDisplay.textContent = `${defaultTrCountry.flag || ''} ${defaultTrCountry.name}`;
@@ -824,11 +821,10 @@
                         currentCurrencyDisplay.textContent = currentCurrencySymbol;
                         document.documentElement.lang = defaultTrCountry.defaultLanguage;
                     } else {
-                        // Hiç ülke ayarı yoksa, genel placeholderlar göster
                         currentCountryDisplay.textContent = 'N/A';
                         currentLanguageDisplay.textContent = 'N/A';
                         currentCurrencyDisplay.textContent = 'N/A';
-                        document.documentElement.lang = 'en'; // Default olarak İngilizce yap
+                        document.documentElement.lang = 'en'; 
                     }
                 }
             }
@@ -849,7 +845,7 @@
                     const ul = document.createElement('ul');
                     categories.forEach(cat => {
                         const li = document.createElement('li');
-                        const categoryName = cat.name?.[currentLanguage] || cat.name?.tr || cat.id; // Kategori adını geçerli dile göre al
+                        const categoryName = cat.name?.[currentLanguage] || cat.name?.tr || cat.id; 
                         li.innerHTML = `<a href="#">${categoryName}</a>`;
                         if (cat.children && cat.children.length > 0) li.appendChild(createMenu(cat.children));
                         ul.appendChild(li);
@@ -859,7 +855,7 @@
 
                 siteData.categories.tree.forEach(cat => {
                     const li = document.createElement('li');
-                    const categoryName = cat.name?.[currentLanguage] || cat.name?.tr || cat.id; // Kategori adını geçerli dile göre al
+                    const categoryName = cat.name?.[currentLanguage] || cat.name?.tr || cat.id; 
                     li.innerHTML = `<a href="#">${categoryName}</a>`;
                     desktopContainer.appendChild(li);
                 });
@@ -869,18 +865,16 @@
             // Banner'ı render et
             function renderBanner() {
                 const bannerContainer = document.getElementById('hero-banner-container');
-                const slideNav = bannerContainer.querySelector('.slide-nav'); // Nav dot container'ı
+                const slideNav = bannerContainer.querySelector('.slide-nav'); 
                 if (!bannerContainer || !siteData.settings?.banner?.slides) return;
                 
-                // Önceki slaytları ve dot'ları temizle
                 bannerContainer.querySelectorAll('.slide').forEach(s => s.remove());
-                if (slideNav) slideNav.innerHTML = ''; // Slayt navigasyon dotlarını temizle
+                if (slideNav) slideNav.innerHTML = ''; 
 
                 siteData.settings.banner.slides.forEach((slideData, index) => {
                     const slideEl = document.createElement('div');
                     slideEl.className = 'slide' + (index === 0 ? ' active' : '');
                     
-                    // Slayt içeriğini geçerli dile göre al
                     const content = slideData.content[currentLanguage] || slideData.content.tr || {};
                     const defaultButtonText = staticTranslations['default_button_text']?.[currentLanguage] || staticTranslations['default_button_text']?.['tr'];
                     const buttonText = content.button_text || defaultButtonText;
@@ -916,13 +910,13 @@
                             <p style="${subtitleStyle}">${content.subtitle || ''}</p>
                             <a href="${slideData.link_url || '#'}" class="btn-shop" style="${buttonInlineStyle}">${buttonText}</a>
                         </div>`;
-                    bannerContainer.prepend(slideEl); // Slaytları en başa ekle
+                    bannerContainer.prepend(slideEl); 
                 });
-                bannerContainer.appendChild(slideNav); // Nav dot container'ı sona ekle
+                bannerContainer.appendChild(slideNav); 
                 startSlider();
             }
             
-            let currentSlideIndex = 0; // Slider'ın o anki slaytını tutmak için
+            let currentSlideIndex = 0; 
             function startSlider() {
                 if (slideIntervalInstance) clearInterval(slideIntervalInstance);
 
@@ -954,9 +948,9 @@
                     setSlide((currentSlideIndex + 1) % slides.length); 
                 };
 
-                setSlide(0); // Başlangıçta ilk slaytı aktif et
+                setSlide(0); 
 
-                slideIntervalInstance = setInterval(nextSlide, 5000); // Otomatik geçişi başlat
+                slideIntervalInstance = setInterval(nextSlide, 5000); 
 
                 dots.forEach(dot => dot.addEventListener('click', () => { 
                     setSlide(parseInt(dot.dataset.index)); 
@@ -989,12 +983,37 @@
 
             // Sayfa yüklendiğinde çalışacak ana fonksiyon
             async function init() {
-                console.log("init function called."); // Log for debugging
-                showLoadingOverlay(); // Yükleniyor ekranını göster
-                await fetchData(); // Firebase'den tüm verileri çek (Line 956 in the old code)
+                console.log("init function called.");
+                showLoadingOverlay();
+                await fetchData(); 
+
+                // --- currentCountryCode'u her zaman geçerli bir string olarak ayarla ---
+                let effectiveCountryCode = localStorage.getItem('pufemo-country');
+                
+                // Eğer localStorage'dan gelen ülke kodu geçersizse veya admin panelinde tanımlı değilse
+                if (!effectiveCountryCode || !siteData.settings.countryPricing[effectiveCountryCode.toLowerCase()]) {
+                    // Varsayılan olarak "tr" (Türkiye) kullan
+                    effectiveCountryCode = 'TR'; 
+                    localStorage.setItem('pufemo-country', effectiveCountryCode);
+                    console.log("No valid country found in localStorage or admin settings. Defaulting to TR.");
+                }
+                currentCountryCode = effectiveCountryCode; // Global değişkeni güncelle
+
+                // --- currentLanguage ve currentCurrencySymbol'ü ayarla ---
+                const selectedCountrySetting = siteData.settings.countryPricing[currentCountryCode.toLowerCase()];
+                if (selectedCountrySetting) {
+                    currentLanguage = selectedCountrySetting.defaultLanguage;
+                    currentCurrencySymbol = selectedCountrySetting.currencySymbol;
+                    localStorage.setItem('pufemo-language', currentLanguage); // Dili de localStorage'a kaydet
+                } else {
+                    // Eğer seçilen ülke ayarları bulunamazsa (ki bu durumda TR'ye dönmeliydik), varsayılan olarak TR'yi kullan
+                    currentLanguage = 'tr';
+                    currentCurrencySymbol = '₺';
+                    localStorage.setItem('pufemo-language', currentLanguage);
+                    console.warn(`Country setting for ${currentCountryCode} not found. Falling back to TR defaults for language and currency.`);
+                }
 
                 // Ülke seçim modalındaki ve footer'daki select box'ları doldur
-                // Bu listeyi Firebase'den çekilen countryPricing objesinden oluşturuyoruz
                 const countryOptionsHtml = Object.entries(siteData.settings.countryPricing)
                     .sort(([, a], [, b]) => a.name.localeCompare(b.name)) 
                     .map(([code, data]) => 
@@ -1004,40 +1023,34 @@
                 initialCountrySelect.innerHTML = countryOptionsHtml;
                 footerCountrySelector.innerHTML = countryOptionsHtml;
 
-                // Eğer localStorage'da ülke yoksa VEYA Firebase'de o ülke ayarı bulunmuyorsa modalı göster
-                if (!currentCountryCode || !siteData.settings.countryPricing[currentCountryCode.toLowerCase()]) {
-                    countrySelectionModal.classList.remove('hidden'); // Modalı göster
+                // Select box'ların değerini mevcut seçili ülkeye ayarla
+                initialCountrySelect.value = currentCountryCode; 
+                footerCountrySelector.value = currentCountryCode;
+
+                // Ülke seçim modalını göster/gizle
+                // Sadece localStorage'da pufemo-country yoksa (yani ilk defa geliyorsa) göster
+                if (!localStorage.getItem('pufemo-country')) { 
+                    countrySelectionModal.classList.remove('hidden'); 
                 } else {
-                    countrySelectionModal.classList.add('hidden'); // Modalı gizle
-                    // localstorage'dan gelen ülke koduna göre dil ve para birimini ayarla
-                    const selectedCountrySetting = siteData.settings.countryPricing[currentCountryCode.toLowerCase()];
-                    if (selectedCountrySetting) {
-                        currentLanguage = selectedCountrySetting.defaultLanguage;
-                        currentCurrencySymbol = selectedCountrySetting.currencySymbol;
-                        localStorage.setItem('pufemo-language', currentLanguage); // Dili de kaydet
-                    }
+                    countrySelectionModal.classList.add('hidden'); 
                 }
                 
-                // Select box'ların değerini mevcut seçili ülkeye ayarla
-                initialCountrySelect.value = currentCountryCode || ''; 
-                footerCountrySelector.value = currentCountryCode || '';
-
                 // Tüm UI elementlerini render et ve güncel verilerle doldur
-                renderGeneralSiteElements(); // Logo, promosyon bandı, dil/para birimi göstergeleri
-                renderCategories(); // Kategoriler
-                renderBanner(); // Banner
-                renderProducts(); // Ürünler
-                setupMobileNav(); // Mobil menüyü kur
+                renderGeneralSiteElements();
+                renderCategories();
+                renderBanner();
+                renderProducts();
+                setupMobileNav();
 
-                hideLoadingOverlay(); // Yükleniyor ekranını gizle
+                hideLoadingOverlay();
             }
 
-            // --- EVENT LISTENERS ---
+            // --- Event Listeners ---
 
             // Ülke seçimi modalını kaydet butonu
             saveCountrySelectionBtn.addEventListener('click', () => {
                 const selectedOption = initialCountrySelect.options[initialCountrySelect.selectedIndex];
-                const newCountryCode = selectedOption.value; // Büyük harf olarak gelir (TR, US vb.)
+                const newCountryCode = selectedOption.value; 
                 const newDefaultLanguage = selectedOption.dataset.lang;
                 const newCurrencySymbol = selectedOption.dataset.currency;
 
@@ -1049,7 +1062,7 @@
                     currentLanguage = newDefaultLanguage;
                     currentCurrencySymbol = newCurrencySymbol;
 
-                    countrySelectionModal.classList.add('hidden'); // Modalı gizle
+                    countrySelectionModal.classList.add('hidden'); 
                     // Tüm UI'ı yeni seçilen ülke/dil/para birimine göre yeniden render et
                     renderGeneralSiteElements();
                     renderCategories();
@@ -1089,7 +1102,7 @@
             });
 
             // Sayfa yüklendiğinde init fonksiyonunu çağır
-            init(); // Bu çağrı artık if(db) bloğunun içinde ve tüm bağımlılıklar yukarıda tanımlandı
+            init(); 
         }
     </script>
 </body>
