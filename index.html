@@ -380,6 +380,19 @@
             transform: translateY(-2px);
         }
 
+        /* Yeni: Görsel bayrak için stil */
+        .flag-icon {
+            display: inline-block;
+            width: 20px; /* Bayrak genişliği */
+            height: 15px; /* Bayrak yüksekliği */
+            background-size: cover;
+            background-position: center;
+            margin-right: 5px;
+            vertical-align: middle;
+            border: 1px solid #eee; /* İsteğe bağlı: Küçük bir çerçeve */
+            box-shadow: 0 0 2px rgba(0,0,0,0.1);
+        }
+
         @media (max-width: 992px) {
             .category-nav { display: none; }
             .hamburger-menu { display: flex; } 
@@ -614,13 +627,23 @@
         } catch (e) { console.error("Firebase başlatma hatası!", e); }
 
         if (db) {
-            function countryCodeToEmoji(code) {
-                if (!code || code.length !== 2) {
-                    return ''; 
+            // Bayrak görseli veya emoji döndüren yardımcı fonksiyon
+            function getFlagHTML(countryCode, flagData) {
+                // Eğer Firebase'den gelen 'flagData' bir URL ise görsel kullan
+                if (flagData && flagData.startsWith('http')) {
+                    return `<span class="flag-icon" style="background-image: url('${flagData}');"></span>`;
                 }
-                return code.toUpperCase().split('').map(char => 
-                    String.fromCodePoint(char.charCodeAt(0) + 127397)
-                ).join('');
+                // KK için özel görsel URL'sini kullan (admin panelinden URL gelmediyse veya özel durumsa)
+                if (countryCode === 'KK') { 
+                    return `<span class="flag-icon" style="background-image: url('https://w7.pngwing.com/pngs/47/885/png-transparent-flag-of-turkey-flag-of-cyprus-flag-of-northern-cyprus-turk-miscellaneous-flag-logo.png');"></span>`; 
+                }
+                // Normal ISO kodları için emoji kullan
+                if (countryCode && countryCode.length === 2) {
+                    return countryCode.toUpperCase().split('').map(char => 
+                        String.fromCodePoint(char.charCodeAt(0) + 127397)
+                    ).join('');
+                }
+                return ''; // Geçersiz kod ise boş döndür
             }
 
             const staticTranslations = {
@@ -688,14 +711,13 @@
 
                     const availableCountries = Object.keys(siteData.settings.countryPricing);
                     
-                    // fetch sırasında varsayılan veya kaydedilmiş ülkeyi ayarla
                     if (localStorage.getItem('pufemo-country') && availableCountries.includes(localStorage.getItem('pufemo-country'))) {
                         currentCountryCode = localStorage.getItem('pufemo-country');
                     } else if (availableCountries.length > 0) {
-                        currentCountryCode = availableCountries[0]; // Firebase'deki ilk ülkeyi varsayılan yap
+                        currentCountryCode = availableCountries[0]; 
                         localStorage.setItem('pufemo-country', currentCountryCode);
                     } else {
-                        currentCountryCode = 'US'; // Firebase'de hiç ülke yoksa sabit bir varsayılan ata
+                        currentCountryCode = 'US'; 
                         localStorage.setItem('pufemo-country', currentCountryCode); 
                     }
 
@@ -1033,7 +1055,7 @@
                 const mobileNavOverlay = document.getElementById('mobile-nav-overlay');
 
                 const languagesFromDB = siteData.settings.languages || [];
-                languageSelector.innerHTML = languagesFromDB.map(l => `<option value="${l.code}">${countryCodeToEmoji(l.flag)} ${l.name}</option>`).join('');
+                languageSelector.innerHTML = languagesFromDB.map(l => `<option value="${l.code}">${getFlagHTML(l.flag, null)} ${l.name}</option>`).join(''); // L.flag doğrudan emoji kodu ise, getFlagHTML onu işler
                 if (languagesFromDB.length > 0) {
                     languageSelector.value = currentLang;
                     languageSelector.style.display = 'block';
@@ -1057,7 +1079,8 @@
                 const countries = siteData.settings.countryPricing || {};
                 const countryOptionsHtml = Object.entries(countries).map(([code, data]) => {
                     const countryName = data.name?.[currentLang] || data.name?.['tr'] || code.toUpperCase();
-                    return `<option value="${code}">${countryCodeToEmoji(data.flag)} ${countryName}</option>`; 
+                    // getFlagHTML fonksiyonunu Firebase'den gelen 'data.flag' bilgisini de aktararak çağırıyoruz.
+                    return `<option value="${code}">${getFlagHTML(code, data.flag)} ${countryName}</option>`; 
                 }).join('');
 
                 if (Object.keys(countries).length > 0) {
@@ -1113,15 +1136,12 @@
                 loadingOverlay.classList.remove('hidden');
                 await fetchData(); 
 
-                // Yeni Mantık: Her zaman pop-up'ı göster.
-                // Eğer Firebase'den ülke verisi varsa pop-up'ı hazırla ve göster.
                 const availableCountries = Object.keys(siteData.settings.countryPricing);
                 if (availableCountries.length > 0) {
                     renderStaticText(); 
                     setupControls(); 
                     welcomeModalOverlay.classList.add('active'); 
                 } else {
-                    // Firebase'de hiç ülke yoksa, pop-up'ı göstermeye gerek yok, ana içeriği yükle
                     renderAll(); 
                 }
                 loadingOverlay.classList.add('hidden'); 
