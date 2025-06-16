@@ -540,40 +540,31 @@
 
             const fetchData = async () => {
                 try {
-                    const [settingsDoc, categoriesDoc, productsSnap, countryPricingDoc] = await Promise.all([ 
+                    // *** BURADA KOD GÜNCELLENDİ: countryPricing ayrı bir belge olarak değil, settings belgesinden alınıyor ***
+                    const [settingsDoc, categoriesDoc, productsSnap] = await Promise.all([ 
                         db.collection('pufemo').doc('settings').get(),
                         db.collection('pufemo').doc('categories').get(),
-                        db.collection('pufemo-products').where('isInShowcase', '==', true).get(), 
-                        db.collection('pufemo').doc('countryPricing').get() 
+                        db.collection('pufemo-products').where('isInShowcase', '==', true).get()
                     ]);
 
                     const fetchedSettings = settingsDoc.exists ? settingsDoc.data() : {};
-                    const fetchedCountryPricing = countryPricingDoc.exists ? countryPricingDoc.data() : {};
                     
                     siteData.settings = { 
                         ...fetchedSettings, 
                         languages: fetchedSettings.languages || [],
                         banner: fetchedSettings.banner || { slides: [] },
-                        general: {
-                            logo: {
-                                type: fetchedSettings.general?.logo?.type || siteData.settings.general.logo.type,
-                                text: fetchedSettings.general?.logo?.text || siteData.settings.general.logo.text,
-                                icon: fetchedSettings.general?.logo?.icon || siteData.settings.general.logo.icon,
-                                iconColor: fetchedSettings.general?.logo?.iconColor || siteData.settings.general.logo.iconColor,
-                                textColor: fetchedSettings.general?.logo?.textColor || siteData.settings.general.logo.textColor,
-                                imageUrl: fetchedSettings.general?.logo?.imageUrl || siteData.settings.general.logo.imageUrl,
-                                imageWidth: fetchedSettings.general?.logo?.imageWidth || siteData.settings.general.logo.imageWidth,
-                                imageHeight: fetchedSettings.general?.logo?.imageHeight || siteData.settings.general.logo.imageHeight
-                            },
+                        general: { // Ensure defaults for general if not in Firebase
+                            logo: fetchedSettings.general?.logo || siteData.settings.general.logo,
                             promoBar: fetchedSettings.general?.promoBar || siteData.settings.general.promoBar
                         },
-                        countryPricing: fetchedCountryPricing 
+                        // *** countryPricing şimdi doğrudan fetchedSettings içinden alınıyor ***
+                        countryPricing: fetchedSettings.countryPricing || {} 
                     };
                     siteData.categories = categoriesDoc.exists ? categoriesDoc.data() : {};
                     siteData.products = productsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-                    if (!localStorage.getItem('pufemo-country') && Object.keys(fetchedCountryPricing).length > 0) {
-                        currentCountryCode = Object.keys(fetchedCountryPricing)[0]; 
+                    if (!localStorage.getItem('pufemo-country') && Object.keys(siteData.settings.countryPricing).length > 0) { // Artık fetchedCountryPricing yok, doğrudan siteData.settings.countryPricing kullanıyoruz
+                        currentCountryCode = Object.keys(siteData.settings.countryPricing)[0]; 
                         localStorage.setItem('pufemo-country', currentCountryCode);
                     }
                     if (siteData.settings.countryPricing[currentCountryCode]) {
@@ -877,6 +868,7 @@
                     countrySelector.style.display = ''; 
                     document.getElementById('country-selector-label').style.display = ''; 
                 } else {
+                    // Eğer countryPricing boşsa veya yoksa, seçiciyi gizle
                     countrySelector.style.display = 'none';
                     document.getElementById('country-selector-label').style.display = 'none';
                 }
@@ -949,7 +941,7 @@
                 setupControls();
                 renderAll();
                 loadingOverlay.classList.add('hidden');
-                console.log('Site Data:', siteData); // BU SATIR EKLENDİ
+                console.log('Site Data:', siteData); // Debugging için eklendi
             };
             init();
         }
