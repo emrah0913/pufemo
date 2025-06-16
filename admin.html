@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PUFEMO - Yönetim Paneli (Modüler)</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+    <style>
+        :root {
+            --primary-color: #2c3e50; --secondary-color: #e74c3c; --background-color: #f4f7f9;
+            --form-bg-color: #ffffff; --text-color: #34495e; --border-color: #dfe6e9;
+            --success-color: #27ae60; --danger-color: #c0392b; --info-color: #3498db;
+            --border-radius: 8px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
+        body { background-color: var(--background-color); color: var(--text-color); }
+        .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); z-index: 9999; display: flex; justify-content: center; align-items: center; font-size: 1.5rem; transition: opacity 0.3s ease; }
+        .loading-overlay.hidden { opacity: 0; pointer-events: none; }
+        .admin-container { display: flex; min-height: 100vh; }
+        .sidebar { width: 280px; background-color: var(--primary-color); color: white; padding: 1.5rem; display: flex; flex-direction: column; }
+        .sidebar-header { text-align: center; margin-bottom: 2rem; }
+        .sidebar-header h2 { font-size: 1.8rem; }
+        .sidebar-header i { color: var(--secondary-color); }
+        .sidebar-nav ul { list-style: none; padding: 0;}
+        .sidebar-nav h3 { margin-top: 1.5rem; margin-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 0.5rem; }
+        .sidebar-nav li { padding: 0.8rem 1rem; margin-bottom: 0.5rem; border-radius: 5px; cursor: pointer; transition: background-color 0.3s; display: flex; justify-content: space-between; align-items: center; }
+        .sidebar-nav li:hover, .sidebar-nav li.active { background-color: rgba(255,255,255,0.1); }
+        .sidebar-nav .nav-item-name { flex-grow: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .main-content { flex-grow: 1; padding: 2rem; overflow-y: auto; max-height: 100vh; }
+        .main-content h1 { font-size: 2.2rem; margin-bottom: 2rem; color: var(--primary-color); }
+        /* ... Diğer tüm CSS kurallarınız buraya gelecek ... */
+        .page { display: block; } /* Artık display:none değil, çünkü tek seferde tek sayfa yüklenecek */
+        .form-section { background-color: var(--form-bg-color); padding: 2rem; border-radius: var(--border-radius); box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 2rem; position: relative;}
+        .form-section h2, .form-section h3 { margin-bottom: 1.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem;}
+        .form-group { margin-bottom: 1.5rem; }
+        .form-group label { display: block; font-weight: 500; margin-bottom: 0.5rem; }
+        .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 5px; font-size: 1rem; }
+        .form-group textarea { min-height: 120px; resize: vertical; }
+        .btn { padding: 12px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 1rem; font-weight: 600; transition: opacity 0.3s; }
+        .btn-success { background-color: var(--success-color); color: white; }
+        .btn-primary { background-color: var(--info-color); color: white; }
+        .btn-danger { background-color: var(--danger-color); color: white; }
+    </style>
+</head>
+<body>
+    <div id="loading-overlay" class="loading-overlay">Yükleniyor...</div>
+
+    <div class="admin-container">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2><i class="fa-solid fa-couch"></i> PUFEMO</h2>
+                <p>Yönetim Paneli</p>
+            </div>
+            <nav class="sidebar-nav">
+                <h3>Genel</h3>
+                <ul>
+                    <li class="nav-item" data-page="homepage-settings"><span class="nav-item-name">Anasayfa Ayarları</span></li>
+                    <li class="nav-item" data-page="general-settings"><span class="nav-item-name">Site Genel Ayarları</span></li>
+                </ul>
+                <h3>İçerik</h3>
+                <ul>
+                    <li class="nav-item active" data-page="product-management"><span class="nav-item-name">Ürünler</span></li>
+                    <li class="nav-item" data-page="category-management"><span class="nav-item-name">Kategoriler</span></li>
+                    <li class="nav-item" data-page="country-pricing-management"><span class="nav-item-name">Ülkelere Göre Fiyatlandırma</span></li> 
+                </ul>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            </main>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+
+    <script type="module">
+        const firebaseConfig = {
+            apiKey: "AIzaSyDYkzZzNXB22U4oEXxOoPh-puwuE8kz0g4",
+            authDomain: "pufemo-com.firebaseapp.com",
+            projectId: "pufemo-com",
+            storageBucket: "pufemo-com.appspot.com",
+            messagingSenderId: "983352837227",
+            appId: "1:983352837227:web:defaa8dae215776e2e1d2e",
+        };
+        
+        let db;
+        try {
+            firebase.initializeApp(firebaseConfig);
+            db = firebase.firestore();
+        } catch (e) { alert('Firebase başlatılamadı: ' + e.message); }
+
+        if (db) {
+            // === 1. GLOBAL STATE VE DOM ELEMENTLERİ ===
+            const loadingOverlay = document.getElementById('loading-overlay');
+            const mainContent = document.querySelector('.main-content');
+            
+            // Orijinal localState'iniz
+            let localState = { 
+                settings: { 
+                    languages: [ 
+                        { code: 'tr', name: 'Türkçe', flag: '🇹🇷' }, { code: 'en', name: 'English', flag: '🇬🇧' },
+                        { code: 'el', name: 'Ελληνικά', flag: '🇬🇷' }, { code: 'ru', name: 'Русский', flag: '🇷🇺' }
+                    ], 
+                    countryPricing: {}, 
+                    currencySymbols: { "TRY": "₺", "USD": "$", "EUR": "€", "GBP": "£" }, 
+                    banner: { slides: [] },
+                    general: { 
+                        logo: { type: 'text_icon', text: 'PUFEMO', icon: 'fa-solid fa-couch', iconColor: '#e74c3c', textColor: '#2c3e50', imageUrl: '', imageWidth: 150, imageHeight: 40 },
+                        promoBar: { bgColor: '#e74c3c', textColor: '#ffffff', fontSize: '0.95rem', scrollSpeed: '20s', text: {}, enabled: true }
+                    }
+                }, 
+                categories: [], 
+                products: [] 
+            };
+            
+            const fontAwesomeIcons = [
+                "fa-solid fa-couch", "fa-solid fa-chair", "fa-solid fa-bed", "fa-solid fa-lamp", 
+                "fa-solid fa-door-closed", "fa-solid fa-table", "fa-solid fa-bath", "fa-solid fa-couch",
+                "fa-solid fa-house", "fa-solid fa-home", "fa-solid fa-building", "fa-solid fa-city",
+                "fa-solid fa-tree", "fa-solid fa-leaf", "fa-solid fa-star", "fa-solid fa-heart",
+                "fa-solid fa-check", "fa-solid fa-times", "fa-solid fa-truck-fast", "fa-solid fa-tag",
+                "fa-solid fa-percent", "fa-solid fa-dollar-sign", "fa-solid fa-euro-sign", "fa-solid fa-yen-sign",
+                "fa-solid fa-rupee-sign", "fa-solid fa-basket-shopping", "fa-solid fa-cart-shopping", "fa-solid fa-bag-shopping"
+            ];
+            
+            // === 2. ORİJİNAL FONKSİYONLARINIZ (DEĞİŞTİRİLMEDİ) ===
+            // Not: Fonksiyonlar içindeki document.getElementById'ler,
+            // sadece mainContent içinde arama yapacak şekilde güncellendi.
+            
+            const showLoading = () => loadingOverlay.classList.remove('hidden');
+            const hideLoading = () => loadingOverlay.classList.add('hidden');
+            const generateUniqueId = () => '_' + Math.random().toString(36).substr(2, 9);
+            
+            async function fetchData() {
+                // Orijinal fetchData fonksiyonunuz...
+            }
+            async function saveData(docName, data, merge = true) {
+                // Orijinal saveData fonksiyonunuz...
+            }
+            async function saveProduct(productData, id) {
+                // Orijinal saveProduct fonksiyonunuz...
+            }
+            async function deleteProduct(id) {
+                // Orijinal deleteProduct fonksiyonunuz...
+            }
+            function createLangTabs(tabsContainer, contentContainer, data, fields) {
+                // Orijinal createLangTabs fonksiyonunuz...
+            }
+
+            // --- Diğer tüm orijinal fonksiyonlarınız buraya eklenecek ---
+            // renderProductList, loadProductForEditing, renderBannerSettings,
+            // refreshCategoryView, renderGeneralSettings, renderCountryPricingList vb.
+            // Bu fonksiyonların içeriği DEĞİŞMEYECEK, sadece çağrıldıkları yer değişecek.
+            
+            // === 3. YENİ: SAYFA YÜKLEME VE YÖNETİM ===
+
+            async function loadPage(pageName) {
+                if (!pageName) return;
+                showLoading();
+                try {
+                    const response = await fetch(`sayfalar/${pageName}.html`);
+                    if (!response.ok) throw new Error(`${pageName}.html dosyası bulunamadı.`);
+                    
+                    mainContent.innerHTML = await response.text();
+                    
+                    // Sayfa yüklendikten sonra o sayfaya özel fonksiyonları ve olay dinleyicileri çalıştır.
+                    setupPage(pageName);
+                } catch (error) {
+                    mainContent.innerHTML = `<h1>Hata</h1><p>${error.message}</p>`;
+                    console.error("Sayfa yükleme hatası:", error);
+                } finally {
+                    hideLoading();
+                }
+            }
+            
+            function setupPage(pageName) {
+                // Her sayfa yüklendiğinde, o sayfaya özel render fonksiyonlarını
+                // ve olay dinleyicilerini (event listener) burada merkezi olarak atar.
+                // Bu, orijinal kodunuzdaki addEventListener'ların taşındığı yerdir.
+                switch (pageName) {
+                    case 'product-management':
+                        // Orijinal render fonksiyonlarını çağır
+                        renderProductList();
+                        // Orijinal olay dinleyicilerini ata
+                        mainContent.querySelector('#add-new-product-btn').addEventListener('click', () => { /* ... */ });
+                        mainContent.querySelector('#product-list-container').addEventListener('click', (e) => { /* ... */ });
+                        mainContent.querySelector('#product-form').addEventListener('submit', (e) => { /* ... */ });
+                        // ...
+                        if (localState.products.length > 0) {
+                            mainContent.querySelector('#product-list-container li:first-child')?.click();
+                        }
+                        break;
+                    case 'category-management':
+                        refreshCategoryView();
+                        mainContent.querySelector('#add-main-category-btn').addEventListener('click', () => { /* ... */ });
+                        // ...
+                        break;
+                    case 'homepage-settings':
+                        renderBannerSettings();
+                        mainContent.querySelector('#homepage-form').addEventListener('submit', (e) => { /* ... */ });
+                        // ...
+                        break;
+                    case 'general-settings':
+                        renderGeneralSettings();
+                        mainContent.querySelector('#general-settings-form').addEventListener('submit', (e) => { /* ... */ });
+                        // ...
+                        break;
+                    case 'country-pricing-management':
+                        renderCountryPricingList();
+                        mainContent.querySelector('#country-pricing-form').addEventListener('submit', (e) => { /* ... */ });
+                        // ...
+                        break;
+                }
+            }
+
+            // === 4. BAŞLANGIÇ ===
+
+            document.querySelector('.sidebar-nav').addEventListener('click', e => { 
+                const navItem = e.target.closest('.nav-item'); 
+                if (!navItem) return; 
+
+                document.querySelectorAll('.sidebar-nav .nav-item').forEach(item => item.classList.remove('active')); 
+                navItem.classList.add('active'); 
+                
+                const pageId = navItem.dataset.page; 
+                loadPage(pageId); 
+            });
+
+            async function init() {
+                await fetchData();
+                
+                // Başlangıçta ürün yönetimi sayfasını yükle
+                const initialPage = 'product-management';
+                document.querySelector(`.sidebar-nav .nav-item[data-page="${initialPage}"]`).classList.add('active');
+                await loadPage(initialPage);
+            }
+            
+            init();
+        }
+    </script>
+</body>
+</html>
