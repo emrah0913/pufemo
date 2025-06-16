@@ -207,10 +207,10 @@
         }
 
         /* Quantity Selector */
-        .quantity-selector-container { /* Yeni sarmalayıcı div */
+        .quantity-selector-container { 
             margin-bottom: 1.5rem;
-            width: 100%; /* Tam genişlik */
-            max-width: 150px; /* Ekran görüntüsü uyumu için */
+            width: 100%; 
+            max-width: 150px; 
         }
         .quantity-selector-container label {
             display: block;
@@ -223,7 +223,7 @@
             align-items: center;
             border: 1px solid #ccc;
             border-radius: var(--border-radius);
-            width: 100%; /* İçindeki input ve butonlar tam genişliği kullansın */
+            width: 100%; 
         }
         .quantity-selector button {
             background-color: #f8f9fa;
@@ -233,7 +233,7 @@
             font-size: 1.2rem;
             color: var(--text-color);
             transition: background-color 0.2s ease;
-            flex-shrink: 0; /* Butonların küçülmesini engelle */
+            flex-shrink: 0; 
         }
         .quantity-selector button:hover {
             background-color: #e0e0e0;
@@ -249,7 +249,7 @@
         .quantity-selector input {
             border: none;
             text-align: center;
-            flex-grow: 1; /* Input kalan alanı doldursun */
+            flex-grow: 1; 
             font-size: 1.1rem;
             color: var(--text-color);
             padding: 8px 0;
@@ -410,15 +410,15 @@
         /* Responsive Ayarlamalar */
         @media (max-width: 992px) {
             .product-detail-card {
-                flex-direction: column; /* Dikey sıralama */
-                align-items: center; /* Ortala */
+                flex-direction: column; 
+                align-items: center; 
                 padding: 1.5rem;
                 gap: 1rem; 
             }
             .product-image-column,
             .product-info-column {
-                flex: none; /* Flex özelliklerini devre dışı bırak */
-                width: 100%; /* Tam genişlik */
+                flex: none; 
+                width: 100%; 
                 max-width: 100%;
                 padding-right: 0; 
                 padding-left: 0;
@@ -434,7 +434,7 @@
             .product-detail-description,
             .product-price-section,
             .taxes-shipping-info,
-            .quantity-selector-container, /* Yeni class adı */
+            .quantity-selector-container, 
             .product-detail-variants-container, 
             .add-to-cart-button,
             .buy-it-now-button,
@@ -451,8 +451,6 @@
             .product-price-section {
                 justify-content: center; 
             }
-            /* Mobil görünümde küçük resimler yoktu, şimdi buraya koydum (eğer isterseniz) */
-            /* Eğer hala küçük resimler olmasın derseniz bu kısmı kaldırabilirsiniz. */
             .thumbnail-images { 
                 display: flex;
                 flex-wrap: nowrap;
@@ -633,63 +631,24 @@
             return `${symbol} ${new Intl.NumberFormat(currentLang, numberFormatOptions).format(priceToFormat)}`;
         };
 
-        // Medya galerisini (büyük resim/video + küçük resimler) render eden fonksiyon
-        // Şimdi sadece ana medya displayini yönetecek ve küçük resimler ayrı bir div'e yerleşecek.
-        function renderMainMediaAndThumbnails(mediaArray, mainMediaDisplayId, thumbnailsContainerId) {
-            const mainMediaDisplay = document.getElementById(mainMediaDisplayId);
-            const thumbnailsContainer = document.getElementById(thumbnailsContainerId);
+        // Medya galerisini (büyük resim/video) render eden fonksiyon
+        // Bu fonksiyon, productData'dan tüm medya objesini (url, type) alır ve ana ekranda gösterir.
+        // Küçük resimler artık burada render edilmiyor.
+        function renderMainMediaDisplay(mediaUrl, mediaType) {
+            const mainMediaDisplay = document.getElementById('main-product-media-display');
+            if (!mainMediaDisplay) return;
 
-            if (!mainMediaDisplay) return; // Ana display yoksa çık
+            mainMediaDisplay.innerHTML = ''; // İçeriği temizle
 
-            mainMediaDisplay.innerHTML = ''; // Büyük medya alanını temizle
-            if (thumbnailsContainer) thumbnailsContainer.innerHTML = ''; // Küçük resim alanını temizle (eğer varsa)
-
-            if (!mediaArray || mediaArray.length === 0) {
-                // Medya yoksa placeholder göster
+            if (!mediaUrl) {
                 mainMediaDisplay.innerHTML = `<img src="https://placehold.co/600x400/ccc/fff?text=Resim+Yok" alt="No image" style="object-fit: contain;">`;
                 return;
             }
 
-            // İlk medyayı ana displaye yükle
-            const firstMedia = mediaArray[0];
-            if (firstMedia.url.endsWith('.mp4') || firstMedia.url.endsWith('.webm')) {
-                mainMediaDisplay.innerHTML = `<video src="${firstMedia.url}" autoplay muted loop playsinline></video>`;
+            if (mediaType === 'video') {
+                mainMediaDisplay.innerHTML = `<video src="${mediaUrl}" autoplay muted loop playsinline></video>`;
             } else {
-                mainMediaDisplay.innerHTML = `<img src="${firstMedia.url}" alt="Main product image">`;
-            }
-
-            // Küçük resimleri render et (eğer thumbnailsContainer varsa)
-            if (thumbnailsContainer && mediaArray.length > 1) { // Birden fazla medya varsa küçük resimleri göster
-                mediaArray.forEach((media, index) => {
-                    let thumbnailTag = '';
-                    if (media.url.endsWith('.mp4') || media.url.endsWith('.webm')) {
-                        // Videolar için önizleme resmi veya ikon kullanmak daha iyi olabilir
-                        thumbnailTag = `<video src="${media.url}" muted preload="metadata"></video>`;
-                    } else {
-                        thumbnailTag = `<img src="${media.url}" alt="Thumbnail ${index + 1}">`;
-                    }
-                    // data-full-url ve data-type ekledik
-                    thumbnailsContainer.innerHTML += `<div class="media-item ${index === 0 ? 'active' : ''}" data-full-url="${media.url}" data-type="${media.url.endsWith('.mp4') || media.url.endsWith('.webm') ? 'video' : 'image'}">${thumbnailTag}</div>`;
-                });
-
-                // Küçük resim/video tıklama olayları
-                document.querySelectorAll(`#${thumbnailsContainerId} .media-item`).forEach(thumbnailDiv => {
-                    thumbnailDiv.addEventListener('click', () => {
-                        const selectedUrl = thumbnailDiv.dataset.fullUrl;
-                        const selectedType = thumbnailDiv.dataset.type;
-                        
-                        mainMediaDisplay.innerHTML = ''; 
-
-                        if (selectedType === 'video') {
-                            mainMediaDisplay.innerHTML = `<video src="${selectedUrl}" autoplay muted loop playsinline></video>`;
-                        } else {
-                            mainMediaDisplay.innerHTML = `<img src="${selectedUrl}" alt="Main product image">`;
-                        }
-
-                        document.querySelectorAll(`#${thumbnailsContainerId} .media-item`).forEach(item => item.classList.remove('active'));
-                        thumbnailDiv.classList.add('active');
-                    });
-                });
+                mainMediaDisplay.innerHTML = `<img src="${mediaUrl}" alt="Main product image">`;
             }
         }
 
@@ -794,23 +753,20 @@
                                     <label>Renk Seçin:</label>
                                     <div class="variant-options" id="color-variant-options">`;
                             productData.variants.forEach((colorOption, index) => {
-                                // İlk varyant varsayılan olarak aktif olacak
                                 const isActive = index === 0 ? 'active' : '';
                                 
                                 // Varyant görselini veya rengini belirle
-                                let optionContent = '';
+                                let optionContent = colorOption.colorName; // Varsayılan olarak metin
                                 const variantMediaUrl = colorOption.media && colorOption.media.length > 0 ? colorOption.media[0].url : '';
                                 
                                 // Eğer varyantın medyası varsa ve image ise img kullan
-                                if (variantMediaUrl && (variantMediaUrl.endsWith('.jpg') || variantMediaUrl.endsWith('.png') || variantMediaUrl.endsWith('.jpeg') || variantMediaUrl.endsWith('.webp'))) {
-                                    optionContent = `<img src="${variantMediaUrl}" alt="${colorOption.colorName}">`;
+                                if (variantMediaUrl && (variantMediaUrl.endsWith('.jpg') || variantMediaUrl.endsWith('.png') || variantMediaUrl.endsWith('.jpeg') || variantMediaUrl.endsWith('.webp') || variantMediaUrl.endsWith('.gif'))) {
+                                     optionContent = `<img src="${variantMediaUrl}" alt="${colorOption.colorName}">`;
                                 } else {
-                                    // Medya yoksa veya video ise sadece metin rengi kutusu gibi
-                                    optionContent = `<div class="color-box-only" style="background-color: ${colorOption.colorName.toLowerCase()};"></div>`; // colorName'i CSS renk ismi olarak kullanıyoruz
-                                    // Eğer renk ismi bir CSS rengi değilse veya tanınmıyorsa, renk kutucuğu görünmeyebilir.
-                                    // Bu durumda colorName'i direkt metin olarak gösterilebilir veya admin panelde renk kodları saklanmalıdır.
-                                    // Şimdilik varsayıyoruz ki "krem", "mavi" gibi isimler CSS tarafından tanınacak veya görseli vardır.
-                                    // Ekran görüntüsündeki gibi metin de göstermek için: optionContent += ` ${colorOption.colorName}`;
+                                    // Medya yoksa veya video ise sadece renk kutusu (background-color olarak colorName)
+                                    // Eğer renk ismi bir CSS rengi değilse, kutu görünmez veya sadece metin gösterilir.
+                                    // Ekran görüntüsünde sadece renk kutusu var, metin yok gibi görünüyor.
+                                    optionContent = `<div class="color-box-only" style="background-color: ${colorOption.colorName.toLowerCase()};"></div>`;
                                 }
                                 
                                 // data-media'ya tüm medya dizisini string olarak sakla
@@ -825,6 +781,7 @@
                         }
                         
                         // Ek ürün bilgileri (ekran görüntüsündeki gibi)
+                        // TODO: Bu metinleri de Firebase'den dinamik olarak çekmek daha iyi olacaktır.
                         const additionalInfoHTML = `
                             <div class="additional-product-info">
                                 <ul>
@@ -887,12 +844,13 @@
                         let initialMedia = [];
                         if (productData.variants && productData.variants.length > 0) {
                             initialMedia = productData.variants[0].media || [];
-                            // İlk varyantı aktif yap
+                            // İlk varyantı aktif yap ve ana görseli yükle
                             const firstVariantOptionDiv = document.querySelector('#color-variant-options .variant-option');
                             if (firstVariantOptionDiv) {
-                                firstVariantOptionDiv.classList.add('active');
+                                firstVariantOptionDiv.classList.add('active'); // CSS için
                             }
                         } else if (productData.media && productData.media.length > 0) {
+                            // Varyant yoksa, ürünün kendi medya dizisini kullan
                             initialMedia = productData.media;
                         }
                         
@@ -912,9 +870,6 @@
                                 const mediaTypeToDisplay = mediaUrlToDisplay.endsWith('.mp4') || mediaUrlToDisplay.endsWith('.webm') ? 'video' : 'image';
                                 
                                 renderMainMediaDisplay(mediaUrlToDisplay, mediaTypeToDisplay);
-
-                                // Eğer küçük resimler de olsaydı burada renderMediaGallery'yi çağırırdık
-                                // renderMediaGallery(selectedMedia, 'main-product-media-display', 'product-thumbnails');
                             });
                         });
                         
