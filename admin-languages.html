@@ -7,21 +7,19 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet"/>
   <style>
-    body {
-      font-family: 'Inter', sans-serif;
-      background-color: #f7f7f7;
-    }
+    body { font-family: 'Inter', sans-serif; background-color: #f7f7f7; }
   </style>
 </head>
 <body class="p-6">
-  <div class="max-w-3xl mx-auto bg-white p-6 rounded shadow">
+  <div class="max-w-5xl mx-auto bg-white p-6 rounded shadow">
     <h1 class="text-2xl font-bold mb-4">🌐 Dil Ayarları</h1>
 
-    <!-- Dil Ekleme Formu -->
-    <form id="addLanguageForm" class="grid grid-cols-4 gap-4 mb-6">
-      <input id="languageCode" type="text" placeholder="Kod (tr, en...)" required class="col-span-1 border px-3 py-2 rounded">
-      <input id="languageName" type="text" placeholder="Dil Adı (Türkçe, English)" required class="col-span-1 border px-3 py-2 rounded">
+    <!-- Yeni Dil Ekleme Formu -->
+    <form id="addLanguageForm" class="grid grid-cols-5 gap-4 mb-6">
+      <input id="languageCode" type="text" placeholder="Kod (ör: tr, en)" required class="col-span-1 border px-3 py-2 rounded">
       <input id="languageFlag" type="text" placeholder="🇹🇷" required class="col-span-1 border px-3 py-2 rounded">
+      <input id="name_tr" type="text" placeholder="Adı Türkçe" class="col-span-1 border px-3 py-2 rounded">
+      <input id="name_en" type="text" placeholder="Adı İngilizce" class="col-span-1 border px-3 py-2 rounded">
       <button type="submit" class="bg-primary text-white font-semibold px-4 py-2 rounded">Ekle</button>
     </form>
 
@@ -31,7 +29,8 @@
         <tr class="bg-gray-100">
           <th class="text-left p-2">Bayrak</th>
           <th class="text-left p-2">Kod</th>
-          <th class="text-left p-2">Dil</th>
+          <th class="text-left p-2">TR</th>
+          <th class="text-left p-2">EN</th>
           <th class="text-right p-2">İşlem</th>
         </tr>
       </thead>
@@ -39,10 +38,9 @@
     </table>
   </div>
 
-  <!-- Firebase SDK -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDYkzZzNXB22U4oEXxOoPh-puwuE8kz0g4",
@@ -67,12 +65,24 @@
         tr.innerHTML = `
           <td class="p-2 text-xl">${lang.flag}</td>
           <td class="p-2">${lang.code}</td>
-          <td class="p-2">${lang.name}</td>
+          <td class="p-2"><input class="lang-edit" data-id="${docSnap.id}" data-field="name.tr" value="${lang.name?.tr || ''}" /></td>
+          <td class="p-2"><input class="lang-edit" data-id="${docSnap.id}" data-field="name.en" value="${lang.name?.en || ''}" /></td>
           <td class="p-2 text-right">
             <button onclick="deleteLanguage('${docSnap.id}')" class="text-red-600 hover:underline">Sil</button>
           </td>
         `;
         tbody.appendChild(tr);
+      });
+
+      // Event listener for editing inputs
+      document.querySelectorAll('.lang-edit').forEach(input => {
+        input.addEventListener('blur', async (e) => {
+          const id = e.target.dataset.id;
+          const field = e.target.dataset.field;
+          const value = e.target.value;
+          const ref = doc(db, "settings_languages", id);
+          await updateDoc(ref, { [field]: value });
+        });
       });
     }
 
@@ -86,12 +96,21 @@
     document.getElementById("addLanguageForm").addEventListener("submit", async (e) => {
       e.preventDefault();
       const code = document.getElementById("languageCode").value.trim();
-      const name = document.getElementById("languageName").value.trim();
       const flag = document.getElementById("languageFlag").value.trim();
+      const name_tr = document.getElementById("name_tr").value.trim();
+      const name_en = document.getElementById("name_en").value.trim();
 
-      if (!code || !name || !flag) return;
+      if (!code || !flag) return;
 
-      await addDoc(langsRef, { code, name, flag });
+      await addDoc(langsRef, {
+        code,
+        flag,
+        name: {
+          tr: name_tr,
+          en: name_en
+        }
+      });
+
       e.target.reset();
       loadLanguages();
     });
