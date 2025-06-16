@@ -9,15 +9,20 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <style>
+        /* Global CSS Variables and Resets */
         :root {
-            --primary-color: #2c3e50;
-            --secondary-color: #e74c3c;
-            --background-color: #ecf0f1;
-            --text-color: #34495e;
-            --light-text-color: #ffffff;
-            --card-bg-color: #ffffff;
-            --border-radius: 8px;
-            --box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            --primary-color: #2c3e50; /* Dark Blue/Gray */
+            --secondary-color: #e74c3c; /* Red/Orange */
+            --background-color: #f8f8f8; /* Light background */
+            --card-bg-color: #ffffff; /* White card background */
+            --text-color: #34495e; /* Dark text */
+            --light-text-color: #ffffff; /* White text for buttons/headers */
+            --subtle-text-color: #7f8c8d; /* Gray for secondary info */
+            --success-color: #27ae60; /* Green for success/shipping */
+            --border-radius-sm: 4px;
+            --border-radius-md: 8px;
+            --box-shadow-sm: 0 2px 8px rgba(0,0,0,0.05);
+            --box-shadow-md: 0 4px 15px rgba(0,0,0,0.1);
         }
         * {
             margin: 0;
@@ -42,11 +47,29 @@
             text-decoration: none;
             color: inherit;
         }
+        button {
+            border: none;
+            cursor: pointer;
+            outline: none;
+        }
+        select, input[type="number"] {
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius-sm);
+            padding: 10px;
+            font-size: 1rem;
+            color: var(--text-color);
+            background-color: #fcfcfc;
+            outline: none;
+        }
+        select:focus, input[type="number"]:focus, button:focus {
+            border-color: var(--secondary-color);
+            box-shadow: 0 0 0 2px rgba(var(--secondary-color), 0.2);
+        }
 
         /* Header Styles */
         .main-header {
             background-color: var(--card-bg-color);
-            box-shadow: var(--box-shadow);
+            box-shadow: var(--box-shadow-sm);
             padding: 0.8rem 0;
             z-index: 100;
         }
@@ -71,9 +94,12 @@
             background-color: var(--primary-color);
             color: var(--light-text-color);
             padding: 8px 15px;
-            border-radius: var(--border-radius);
+            border-radius: var(--border-radius-md);
             font-weight: 500;
             transition: background-color 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 5px;
         }
         .back-button:hover {
             background-color: #34495e;
@@ -82,178 +108,189 @@
         /* Product Detail Section */
         .product-detail-section {
             flex-grow: 1; 
-            padding: 3rem 0;
+            padding: 4rem 0; /* Daha fazla dikey boşluk */
             display: flex;
             justify-content: center; 
             align-items: flex-start; 
         }
         .product-detail-card {
             background-color: var(--card-bg-color);
-            border-radius: var(--border-radius);
-            box-shadow: var(--box-shadow);
-            padding: 2rem;
+            border-radius: var(--border-radius-md);
+            box-shadow: var(--box-shadow-md);
+            padding: 2.5rem; /* Daha fazla iç boşluk */
             width: 100%;
-            display: flex; /* Ana Flex Container */
-            flex-wrap: nowrap; /* Satır atlamayı engelle */
-            gap: 2rem; /* Sütunlar arası boşluk */
-            align-items: flex-start; /* İçerikleri üstten hizala */
+            display: flex; 
+            flex-wrap: nowrap; 
+            gap: 3rem; /* Sütunlar arası daha büyük boşluk */
+            align-items: flex-start; 
         }
 
         /* Image Column (Left) */
         .product-image-column { 
-            flex: 1; /* Kalan alanı doldur */
-            min-width: 450px; /* Minimum genişlik */
+            flex: 2; /* Daha fazla yer kaplasın (60% civarı) */
+            max-width: 60%;
             display: flex;
             flex-direction: column;
             align-items: center;
+            position: sticky; /* Sayfa kaydırıldığında görselin yapışması için */
+            top: 20px; /* Header'ın altında kalması için */
         }
         .main-media-display {
             width: 100%;
             height: auto; 
-            max-height: 550px; 
+            max-height: 600px; /* Daha büyük görsel alanı */
             display: flex; 
             justify-content: center;
             align-items: center;
-            border-radius: var(--border-radius);
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border-radius: var(--border-radius-md);
+            box-shadow: var(--box-shadow-sm);
             background-color: #f0f0f0; 
             overflow: hidden; 
+            margin-bottom: 1.5rem; /* Altındaki küçük resimlerle boşluk */
         }
         .main-media-display img,
         .main-media-display video {
             max-width: 100%;
             max-height: 100%;
             object-fit: contain; 
+            display: block; /* Altındaki boşluğu engelle */
         }
-        .thumbnail-images { /* Küçük resimler (eğer gösterilecekse) */
+        .thumbnail-images { 
             display: flex;
             gap: 10px;
-            overflow-x: auto; 
-            padding-top: 15px; /* Büyük resimle arasına boşluk */
+            overflow-x: auto; /* Yatay kaydırma */
+            padding-bottom: 5px; 
             width: 100%;
             justify-content: center; 
         }
-        .thumbnail-images img,
-        .thumbnail-images video {
-            width: 80px; 
-            height: 80px; 
-            object-fit: cover;
-            border-radius: 5px;
+        .thumbnail-images .media-item { /* Her bir küçük resim kapsayıcısı */
+            flex-shrink: 0; /* Küçülmesini engelle */
+            width: 70px; /* Küçük resim boyutu */
+            height: 70px; 
+            border-radius: var(--border-radius-sm);
+            overflow: hidden;
             cursor: pointer;
             border: 2px solid transparent;
-            transition: border-color 0.3s ease, transform 0.2s ease;
+            transition: border-color 0.3s ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #eee;
         }
-        .thumbnail-images .media-item.active img,
-        .thumbnail-images .media-item.active video,
-        .thumbnail-images .media-item:hover img,
-        .thumbnail-images .media-item:hover video {
+        .thumbnail-images .media-item img,
+        .thumbnail-images .media-item video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        .thumbnail-images .media-item.active,
+        .thumbnail-images .media-item:hover {
             border-color: var(--secondary-color);
-            transform: translateY(-2px);
         }
 
         /* Product Info Column (Right) */
         .product-info-column {
-            flex: 1; /* Kalan alanı doldur */
-            min-width: 350px; /* Minimum genişlik */
+            flex: 1; /* Kalan alanı doldur (40% civarı) */
+            min-width: 380px; /* Okunabilirlik için minimum genişlik */
             display: flex;
             flex-direction: column;
             align-items: flex-start; 
             text-align: left;
+            padding-top: 10px; /* Görselle hizala */
         }
         .product-brand {
-            font-size: 0.9rem;
-            color: #7f8c8d;
+            font-size: 0.95rem;
+            color: var(--subtle-text-color);
             text-transform: uppercase;
+            letter-spacing: 0.5px;
             margin-bottom: 0.5rem;
         }
         .product-detail-title {
-            font-size: 2.5rem;
+            font-size: 2.8rem; /* Daha büyük başlık */
             font-weight: 700;
             color: var(--primary-color);
             margin-bottom: 1rem;
             width: 100%; 
-            line-height: 1.2;
+            line-height: 1.1;
         }
         .product-price-section {
             width: 100%;
-            margin-bottom: 1rem;
+            margin-bottom: 1.5rem; /* Daha fazla boşluk */
             display: flex;
             align-items: baseline;
-            gap: 10px;
+            gap: 15px; /* Fiyatlar arası boşluk */
         }
         .product-detail-price {
-            font-size: 2rem;
+            font-size: 2.5rem; /* Daha büyük fiyat */
             font-weight: 700;
             color: var(--secondary-color);
         }
         .original-price {
-            font-size: 1.3rem;
-            color: #7f8c8d;
+            font-size: 1.5rem;
+            color: var(--subtle-text-color);
             text-decoration: line-through;
         }
         .price-sale-tag {
             background-color: var(--secondary-color);
             color: var(--light-text-color);
-            padding: 4px 8px;
-            border-radius: 5px;
-            font-size: 0.8rem;
+            padding: 5px 10px;
+            border-radius: var(--border-radius-sm);
+            font-size: 0.9rem;
             font-weight: 600;
             text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
         .taxes-shipping-info {
             font-size: 0.9rem;
-            color: #7f8c8d;
-            margin-bottom: 1.5rem;
+            color: var(--subtle-text-color);
+            margin-bottom: 2rem; /* Daha fazla boşluk */
+        }
+        .taxes-shipping-info a {
+            color: var(--secondary-color);
+            text-decoration: underline;
         }
 
         /* Quantity Selector */
         .quantity-selector-container { 
-            margin-bottom: 1.5rem;
+            margin-bottom: 2rem; /* Daha fazla boşluk */
             width: 100%; 
-            max-width: 150px; 
+            max-width: 160px; /* Genişliği ayarla */
         }
         .quantity-selector-container label {
-            display: block;
-            margin-bottom: 0.5rem;
+            font-size: 1rem;
+            margin-bottom: 0.8rem; /* Etiketle seçici arası boşluk */
             font-weight: 600;
             color: var(--primary-color);
+            display: block;
         }
         .quantity-selector {
             display: flex;
             align-items: center;
             border: 1px solid #ccc;
-            border-radius: var(--border-radius);
-            width: 100%; 
+            border-radius: var(--border-radius-sm);
+            overflow: hidden; /* Kenar yuvarlaklığı için */
         }
         .quantity-selector button {
-            background-color: #f8f9fa;
-            border: none;
-            padding: 8px 12px;
-            cursor: pointer;
-            font-size: 1.2rem;
-            color: var(--text-color);
+            background-color: #f8f8f8;
+            padding: 10px 15px; /* Daha büyük butonlar */
+            font-size: 1.4rem; /* Daha büyük ikon/metin */
+            color: var(--primary-color);
             transition: background-color 0.2s ease;
             flex-shrink: 0; 
         }
         .quantity-selector button:hover {
             background-color: #e0e0e0;
         }
-        .quantity-selector button:first-child {
-            border-top-left-radius: var(--border-radius);
-            border-bottom-left-radius: var(--border-radius);
-        }
-        .quantity-selector button:last-child {
-            border-top-right-radius: var(--border-radius);
-            border-bottom-right-radius: var(--border-radius);
-        }
         .quantity-selector input {
             border: none;
             text-align: center;
             flex-grow: 1; 
-            font-size: 1.1rem;
+            font-size: 1.2rem; /* Input font boyutu */
             color: var(--text-color);
-            padding: 8px 0;
+            padding: 10px 0;
             -moz-appearance: textfield; 
+            width: 50px; /* Gerekirse sabit genişlik */
         }
         .quantity-selector input::-webkit-outer-spin-button,
         .quantity-selector input::-webkit-inner-spin-button {
@@ -264,82 +301,84 @@
         /* Variant Options */
         .product-detail-variants-container { 
             width: 100%; 
-            margin-bottom: 1.5rem;
+            margin-bottom: 2rem; /* Daha fazla boşluk */
             text-align: left; 
         }
         .product-detail-variants-container label {
-            display: block;
-            margin-bottom: 0.5rem;
+            font-size: 1rem;
+            margin-bottom: 0.8rem; 
             font-weight: 600;
             color: var(--primary-color);
+            display: block;
         }
         .variant-options { 
             display: flex;
-            gap: 10px;
+            gap: 12px; /* Varyantlar arası boşluk */
             flex-wrap: wrap; 
         }
         .variant-option { 
             cursor: pointer;
             border: 2px solid #ccc;
-            border-radius: 5px;
-            padding: 5px;
-            transition: all 0.3s ease;
+            border-radius: var(--border-radius-sm);
+            padding: 6px; /* İç boşluk */
+            transition: all 0.2s ease;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.9rem;
+            font-size: 1rem;
             color: var(--text-color);
-            min-width: 40px; 
-            height: 40px; 
+            min-width: 50px; /* Minimum genişlik */
+            height: 50px; /* Sabit yükseklik */
             box-sizing: border-box;
-            background-color: #f8f9fa;
+            background-color: #fcfcfc;
+            position: relative; /* Seçili oku için */
         }
         .variant-option.active {
             border-color: var(--secondary-color);
-            box-shadow: 0 0 0 2px rgba(231, 76, 60, 0.2);
+            box-shadow: 0 0 0 2px rgba(var(--secondary-color), 0.2);
         }
         .variant-option:hover {
             border-color: var(--secondary-color);
-            transform: translateY(-2px);
         }
         .variant-option img { 
             max-width: 100%; 
             max-height: 100%;
             object-fit: contain; 
-            border-radius: 3px;
+            border-radius: 2px;
+            display: block;
         }
-        /* Eğer sadece renk kutusu olacaksa ve görsel yoksa */
+        /* Renk kutucuğu varyantı için */
         .variant-option.color-box-only { 
-            width: 30px;
-            height: 30px;
-            border-radius: 50%; 
+            width: 40px; /* Daha küçük kare */
+            height: 40px;
+            border-radius: 50%; /* Yuvarlak */
             padding: 0;
             flex-shrink: 0; 
-            border: 1px solid #ccc; 
+            border: 2px solid #ccc; 
         }
         .variant-option.color-box-only.active {
-            box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.5); 
+            box-shadow: 0 0 0 3px rgba(var(--secondary-color), 0.5); /* Kalın çerçeve */
+            border-color: var(--secondary-color); /* Seçili rengin border rengi */
         }
 
         .add-to-cart-button,
         .buy-it-now-button {
             background-color: var(--secondary-color);
             color: var(--light-text-color);
-            padding: 12px 25px;
-            border: none;
-            border-radius: var(--border-radius);
-            font-size: 1.1rem;
+            padding: 15px 30px; /* Daha büyük butonlar */
+            border-radius: var(--border-radius-md);
+            font-size: 1.2rem;
             font-weight: 600;
-            cursor: pointer;
-            transition: background-color 0.3s ease, transform 0.2s ease;
+            text-transform: uppercase;
             width: 100%; 
-            max-width: 300px; 
-            margin-top: 0.5rem; 
+            max-width: 400px; /* Bilgi sütunu genişliğine yakın */
+            margin-top: 0.8rem; 
+            transition: background-color 0.2s ease, transform 0.1s ease;
         }
         .add-to-cart-button:hover,
         .buy-it-now-button:hover {
             background-color: #c0392b;
-            transform: translateY(-2px);
+            transform: translateY(-1px);
         }
         .buy-it-now-button {
             background-color: var(--primary-color); 
@@ -350,37 +389,43 @@
 
         /* Free Shipping Tag */
         .free-shipping-tag-detail {
-            background-color: #27ae60;
+            background-color: var(--success-color);
             color: var(--light-text-color);
-            padding: 8px 12px;
-            border-radius: var(--border-radius);
-            font-size: 0.9rem;
+            padding: 10px 15px;
+            border-radius: var(--border-radius-md);
+            font-size: 1rem;
             font-weight: 600;
             text-align: center;
-            margin-top: 10px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+            margin-top: 15px;
+            box-shadow: var(--box-shadow-sm);
             width: 100%; 
-            max-width: 300px; 
+            max-width: 400px; 
         }
 
         /* Additional Product Info Text */
         .additional-product-info {
             width: 100%;
-            margin-top: 2rem;
+            margin-top: 3rem; /* Üstten boşluk */
             padding-top: 2rem;
             border-top: 1px solid #eee;
-            color: #555;
+            color: var(--subtle-text-color);
+            font-size: 0.95rem;
             text-align: left;
         }
+        .additional-product-info h3 {
+            font-size: 1.2rem;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
         .additional-product-info ul {
-            list-style: none;
-            padding-left: 0;
+            list-style: disc; /* Noktalı liste */
+            padding-left: 20px; /* Girinti */
         }
         .additional-product-info ul li {
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.8rem;
         }
         .additional-product-info strong {
-            color: var(--primary-color);
+            color: var(--text-color);
         }
 
         .error-message {
@@ -413,15 +458,14 @@
                 flex-direction: column; 
                 align-items: center; 
                 padding: 1.5rem;
-                gap: 1rem; 
+                gap: 1.5rem; 
             }
             .product-image-column,
             .product-info-column {
                 flex: none; 
                 width: 100%; 
                 max-width: 100%;
-                padding-right: 0; 
-                padding-left: 0;
+                padding: 0; /* Paddingleri kaldır */
             }
             .main-media-display {
                 height: 350px; 
@@ -430,8 +474,9 @@
                 align-items: center; 
                 text-align: center; 
             }
+            /* Tüm öğeler mobil ortada */
+            .product-brand,
             .product-detail-title,
-            .product-detail-description,
             .product-price-section,
             .taxes-shipping-info,
             .quantity-selector-container, 
@@ -445,56 +490,44 @@
                 margin-left: auto;
                 margin-right: auto;
             }
-            .product-info-column p {
+            .product-detail-description,
+            .additional-product-info ul {
                  text-align: center; 
+                 padding-left: 0; /* Mobil ortalama için kaldır */
+                 list-style: none; /* List style'ı kaldır */
             }
             .product-price-section {
                 justify-content: center; 
             }
             .thumbnail-images { 
-                display: flex;
-                flex-wrap: nowrap;
-                overflow-x: auto;
-                justify-content: flex-start;
+                justify-content: center; /* Küçük resimleri ortala */
                 padding: 10px 0;
-                width: 100%;
-            }
-            .thumbnail-images img,
-            .thumbnail-images video {
-                width: 60px;
-                height: 60px;
-                object-fit: cover;
-                margin-right: 10px;
-            }
-            .additional-product-info {
-                text-align: center; 
             }
         }
 
         @media (max-width: 480px) {
             .product-detail-card {
                 padding: 1rem;
-                gap: 0.5rem;
+                gap: 1rem;
             }
             .main-media-display {
                 height: 250px;
             }
-            .thumbnail-images img,
-            .thumbnail-images video {
-                width: 60px;
-                height: 60px;
+            .thumbnail-images .media-item {
+                width: 50px; /* Daha küçük */
+                height: 50px;
             }
             .product-detail-title {
-                font-size: 1.8rem;
+                font-size: 2rem;
             }
             .product-detail-description {
                 font-size: 0.9rem;
             }
             .product-price-display {
-                font-size: 1.5rem;
+                font-size: 1.8rem;
             }
             .original-price {
-                font-size: 0.9rem;
+                font-size: 1rem;
             }
             .quantity-selector {
                 width: 120px;
@@ -509,8 +542,8 @@
             }
             .add-to-cart-button,
             .buy-it-now-button {
-                padding: 10px 20px;
-                font-size: 1rem;
+                padding: 12px 20px;
+                font-size: 1.05rem;
             }
             .free-shipping-tag-detail {
                 padding: 6px 10px;
@@ -520,6 +553,16 @@
                 min-width: 35px;
                 height: 35px;
                 font-size: 0.8rem;
+            }
+            .variant-option.color-box-only {
+                width: 30px;
+                height: 30px;
+            }
+            .additional-product-info h3 {
+                font-size: 1.1rem;
+            }
+            .additional-product-info ul li {
+                font-size: 0.85rem;
             }
         }
     </style>
@@ -631,24 +674,61 @@
             return `${symbol} ${new Intl.NumberFormat(currentLang, numberFormatOptions).format(priceToFormat)}`;
         };
 
-        // Medya galerisini (büyük resim/video) render eden fonksiyon
+        // Medya galerisini (büyük resim/video + küçük resimler) render eden fonksiyon
         // Bu fonksiyon, productData'dan tüm medya objesini (url, type) alır ve ana ekranda gösterir.
         // Küçük resimler artık burada render edilmiyor.
-        function renderMainMediaDisplay(mediaUrl, mediaType) {
-            const mainMediaDisplay = document.getElementById('main-product-media-display');
+        function renderMediaGallery(mediaArray, mainMediaDisplayId, thumbnailsContainerId) {
+            const mainMediaDisplay = document.getElementById(mainMediaDisplayId);
+            const thumbnailsContainer = document.getElementById(thumbnailsContainerId); // Bu olmayabilir
+
             if (!mainMediaDisplay) return;
 
-            mainMediaDisplay.innerHTML = ''; // İçeriği temizle
+            mainMediaDisplay.innerHTML = ''; 
+            if (thumbnailsContainer) thumbnailsContainer.innerHTML = ''; 
 
-            if (!mediaUrl) {
+            if (!mediaArray || mediaArray.length === 0) {
                 mainMediaDisplay.innerHTML = `<img src="https://placehold.co/600x400/ccc/fff?text=Resim+Yok" alt="No image" style="object-fit: contain;">`;
                 return;
             }
 
-            if (mediaType === 'video') {
-                mainMediaDisplay.innerHTML = `<video src="${mediaUrl}" autoplay muted loop playsinline></video>`;
+            // İlk medyayı ana displaye yükle
+            const firstMedia = mediaArray[0];
+            if (firstMedia.url.endsWith('.mp4') || firstMedia.url.endsWith('.webm')) {
+                mainMediaDisplay.innerHTML = `<video src="${firstMedia.url}" autoplay muted loop playsinline></video>`;
             } else {
-                mainMediaDisplay.innerHTML = `<img src="${mediaUrl}" alt="Main product image">`;
+                mainMediaDisplay.innerHTML = `<img src="${firstMedia.url}" alt="Main product image">`;
+            }
+
+            // Küçük resimleri render et (eğer thumbnailsContainer varsa ve birden fazla medya varsa)
+            if (thumbnailsContainer && mediaArray.length > 1) { 
+                mediaArray.forEach((media, index) => {
+                    let thumbnailTag = '';
+                    if (media.url.endsWith('.mp4') || media.url.endsWith('.webm')) {
+                        thumbnailTag = `<video src="${media.url}" muted preload="metadata"></video>`;
+                    } else {
+                        thumbnailTag = `<img src="${media.url}" alt="Thumbnail ${index + 1}">`;
+                    }
+                    thumbnailsContainer.innerHTML += `<div class="media-item ${index === 0 ? 'active' : ''}" data-full-url="${media.url}" data-type="${media.url.endsWith('.mp4') || media.url.endsWith('.webm') ? 'video' : 'image'}">${thumbnailTag}</div>`;
+                });
+
+                // Küçük resim/video tıklama olayları
+                document.querySelectorAll(`#${thumbnailsContainerId} .media-item`).forEach(thumbnailDiv => {
+                    thumbnailDiv.addEventListener('click', () => {
+                        const selectedUrl = thumbnailDiv.dataset.fullUrl;
+                        const selectedType = thumbnailDiv.dataset.type;
+                        
+                        mainMediaDisplay.innerHTML = ''; 
+
+                        if (selectedType === 'video') {
+                            mainMediaDisplay.innerHTML = `<video src="${selectedUrl}" autoplay muted loop playsinline></video>`;
+                        } else {
+                            mainMediaDisplay.innerHTML = `<img src="${selectedUrl}" alt="Main product image">`;
+                        }
+
+                        document.querySelectorAll(`#${thumbnailsContainerId} .media-item`).forEach(item => item.classList.remove('active'));
+                        thumbnailDiv.classList.add('active');
+                    });
+                });
             }
         }
 
@@ -755,21 +835,15 @@
                             productData.variants.forEach((colorOption, index) => {
                                 const isActive = index === 0 ? 'active' : '';
                                 
-                                // Varyant görselini veya rengini belirle
-                                let optionContent = colorOption.colorName; // Varsayılan olarak metin
+                                let optionContent = colorOption.colorName; 
                                 const variantMediaUrl = colorOption.media && colorOption.media.length > 0 ? colorOption.media[0].url : '';
                                 
-                                // Eğer varyantın medyası varsa ve image ise img kullan
                                 if (variantMediaUrl && (variantMediaUrl.endsWith('.jpg') || variantMediaUrl.endsWith('.png') || variantMediaUrl.endsWith('.jpeg') || variantMediaUrl.endsWith('.webp') || variantMediaUrl.endsWith('.gif'))) {
                                      optionContent = `<img src="${variantMediaUrl}" alt="${colorOption.colorName}">`;
                                 } else {
-                                    // Medya yoksa veya video ise sadece renk kutusu (background-color olarak colorName)
-                                    // Eğer renk ismi bir CSS rengi değilse, kutu görünmez veya sadece metin gösterilir.
-                                    // Ekran görüntüsünde sadece renk kutusu var, metin yok gibi görünüyor.
-                                    optionContent = `<div class="color-box-only" style="background-color: ${colorOption.colorName.toLowerCase()};"></div>`;
+                                    optionContent = `<div class="color-box-only" style="background-color: ${colorOption.colorName.toLowerCase()};" title="${colorOption.colorName}"></div>`;
                                 }
                                 
-                                // data-media'ya tüm medya dizisini string olarak sakla
                                 variantsHTML += `
                                     <div class="variant-option ${isActive}" 
                                          data-color-name="${colorOption.colorName}" 
@@ -781,9 +855,9 @@
                         }
                         
                         // Ek ürün bilgileri (ekran görüntüsündeki gibi)
-                        // TODO: Bu metinleri de Firebase'den dinamik olarak çekmek daha iyi olacaktır.
                         const additionalInfoHTML = `
                             <div class="additional-product-info">
+                                <h3>Product Details</h3>
                                 <ul>
                                     <li><strong>No assembly required.</strong></li>
                                     <li><strong>It is shipped in rollpack,</strong> all you have to do is open the vacuum package.</li>
@@ -800,7 +874,8 @@
                                     </div>
                                 </div>
                             <div class="product-info-column">
-                                <div class="product-brand">PUFEMO</div> <h1 class="product-detail-title">${productName}</h1>
+                                <div class="product-brand">PUFEMO</div> 
+                                <h1 class="product-detail-title">${productName}</h1>
                                 <div class="product-price-section">
                                     ${priceHTML} ${saleTagHTML}
                                 </div>
@@ -815,7 +890,9 @@
                                     </div>
                                 </div>
 
-                                ${variantsHTML} <button class="add-to-cart-button">Add to cart</button>
+                                ${variantsHTML} 
+
+                                <button class="add-to-cart-button">Add to cart</button>
                                 <button class="buy-it-now-button">Buy it now</button>
                                 ${freeShippingTagHTML}
 
@@ -844,13 +921,12 @@
                         let initialMedia = [];
                         if (productData.variants && productData.variants.length > 0) {
                             initialMedia = productData.variants[0].media || [];
-                            // İlk varyantı aktif yap ve ana görseli yükle
+                            // İlk varyantı aktif yap
                             const firstVariantOptionDiv = document.querySelector('#color-variant-options .variant-option');
                             if (firstVariantOptionDiv) {
                                 firstVariantOptionDiv.classList.add('active'); // CSS için
                             }
                         } else if (productData.media && productData.media.length > 0) {
-                            // Varyant yoksa, ürünün kendi medya dizisini kullan
                             initialMedia = productData.media;
                         }
                         
