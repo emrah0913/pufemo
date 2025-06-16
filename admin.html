@@ -213,13 +213,11 @@
             }
             
             // === BÖLÜM 4: TÜM FONKSİYONLAR ===
-
             // --- Ortak Yardımcı Fonksiyonlar ---
             function createLangTabs(tabsContainer, contentContainer, data, fields) {
                 if (!tabsContainer || !contentContainer) return;
-                tabsContainer.innerHTML = '';
-                contentContainer.innerHTML = '';
-                const languages = localState.settings.languages?.length ? localState.settings.languages : [];
+                tabsContainer.innerHTML = ''; contentContainer.innerHTML = '';
+                const languages = localState.settings.languages || [];
                 languages.forEach((lang, index) => {
                     const displayName = (lang.name && (lang.name[lang.code] || lang.name['tr'])) || lang.code;
                     tabsContainer.innerHTML += `<div class="lang-tab ${index === 0 ? 'active' : ''}" data-lang="${lang.code}">${lang.flag || ''} ${displayName}</div>`;
@@ -247,6 +245,16 @@
                     }
                 }
             });
+            function findCategoryInTree(categories, id) {
+                for (const cat of categories) {
+                    if (cat.id === id) return cat;
+                    if (cat.children) {
+                        const found = findCategoryInTree(cat.children, id);
+                        if (found) return found;
+                    }
+                }
+                return null;
+            }
             
             // --- Ürünler Sayfası ---
             function setupProductListeners() {
@@ -255,7 +263,7 @@
                 if(!form) return;
                 mainContent.querySelector('#add-new-product-btn').addEventListener('click', () => { 
                     mainContent.querySelectorAll('#product-list-container li').forEach(item => item.classList.remove('active')); 
-                    loadProductForEditing({ id: '', sku: `YENI-URUN-${Date.now().toString().slice(-6)}`, content: {}, variants: [] }); 
+                    loadProductForEditing({ id: null, sku: `YENI-URUN-${Date.now().toString().slice(-6)}`, content: {}, variants: [] }); 
                 });
                 mainContent.querySelector('#product-list-container').addEventListener('click', e => {
                     const li = e.target.closest('li');
@@ -267,7 +275,7 @@
                 });
                 form.addEventListener('submit', async e => { 
                     e.preventDefault(); 
-                    const id = form.querySelector('#productId').value;
+                    const id = form.querySelector('#productId').value || null;
                     const productData = { 
                         sku: form.querySelector('#productSKU').value, 
                         basePriceTL: parseFloat(form.querySelector('#basePriceTL').value) || 0, 
@@ -290,14 +298,13 @@
                         }); 
                         if (variant.colorName.trim()) productData.variants.push(variant); 
                     });
-                    const savedId = await saveData('pufemo-products', id || generateUniqueId(), productData); 
-                    if (savedId) { 
-                        await fetchData(); 
-                        renderProductList(); 
-                        const activeLi = mainContent.querySelector(`#product-list-container li[data-id="${savedId}"]`);
-                        if(activeLi) activeLi.classList.add('active'); 
-                        loadProductForEditing(savedId); 
-                    } 
+                    const savedId = id || generateUniqueId();
+                    await saveData('pufemo-products', savedId, productData);
+                    await fetchData(); 
+                    renderProductList(); 
+                    const activeLi = mainContent.querySelector(`#product-list-container li[data-id="${savedId}"]`);
+                    if(activeLi) activeLi.classList.add('active'); 
+                    loadProductForEditing(savedId); 
                 });
                 form.querySelector('#delete-product-btn').addEventListener('click', async () => { 
                     const id = form.querySelector('#productId').value; 
@@ -310,7 +317,7 @@
                 });
                 form.addEventListener('click', e => { 
                     const target = e.target; 
-                    if (target.id === 'add-color-variant-btn') mainContent.querySelector('#color-variants-container').appendChild(createColorVariantBlock());
+                    if (target.matches('.add-color-variant-btn, .add-color-variant-btn *')) mainContent.querySelector('#color-variants-container').appendChild(createColorVariantBlock());
                     else if (target.matches('.remove-color-btn, .remove-color-btn *')) target.closest('.variant-color-block').remove();
                     else if (target.matches('.add-media-btn, .add-media-btn *')) target.closest('.variant-color-block').querySelector('.media-inputs-container').insertAdjacentHTML('beforeend', createMediaInputHTML());
                     else if (target.matches('.remove-media-btn, .remove-media-btn *')) target.closest('.media-input-group').remove();
@@ -387,22 +394,12 @@
                 const li = document.createElement('li');
                 li.dataset.id = category.id;
                 const languages = localState.settings.languages || [];
-                let nameInputsHTML = languages.map(lang => `<div class="form-group"><label>${lang.flag || lang.code}</label><input type="text" class="category-name-input" data-lang="${lang.code}" value="${category.name?.[lang.code] || ''}"></div>`).join('');
+                let nameInputsHTML = languages.map(lang => `<div class="form-group"><label>${lang.flag || ''}</label><input type="text" class="category-name-input" data-lang="${lang.code}" value="${category.name?.[lang.code] || ''}"></div>`).join('');
                 li.innerHTML = `<div class="category-item"><div class="category-name-inputs">${nameInputsHTML}</div><div class="category-controls"><button class="add-subcategory-btn" title="Alt Kategori Ekle"><i class="fa-solid fa-plus"></i></button><button class="delete-category-btn" title="Kategoriyi Sil"><i class="fa-solid fa-trash"></i></button></div></div>`;
                 const subcategoriesUl = document.createElement('ul');
                 if (category.children?.length > 0) category.children.forEach(child => subcategoriesUl.appendChild(createCategoryNode(child)));
                 li.appendChild(subcategoriesUl);
                 return li;
-            }
-            function findCategoryInTree(categories, id) {
-                for (const cat of categories) {
-                    if (cat.id === id) return cat;
-                    if (cat.children) {
-                        const found = findCategoryInTree(cat.children, id);
-                        if (found) return found;
-                    }
-                }
-                return null;
             }
             function setupCategoryListeners() {
                 const container = mainContent.querySelector('#category-tree-container');
@@ -412,8 +409,9 @@
                 addBtn.addEventListener('click', () => alert("Yeni ana kategori ekleme yakında tamamlanacak."));
                 saveBtn.addEventListener('click', async () => {
                     function updateCategoriesFromDOM(categoriesArray, ulElement) {
-                        if (!ulElement) return;
-                        Array.from(ulElement.children).forEach(li => { 
+                        if (!ulElement || !categoriesArray) return;
+                        const childElements = Array.from(ulElement.children).filter(el => el.matches('li[data-id]'));
+                        childElements.forEach(li => { 
                             const categoryId = li.dataset.id;
                             const category = findCategoryInTree(categoriesArray, categoryId);
                             if (category) {
@@ -450,7 +448,7 @@
                     }
                 });
             }
-
+            
             // --- Anasayfa Ayarları ---
             function renderBannerSettings() {
                 const container = mainContent.querySelector('#banner-settings-container');
@@ -472,10 +470,10 @@
                         <div class="lang-tabs" id="${tabsId}"></div><div id="${contentId}"></div>
                         <div class="style-settings-group">
                             <h4>Slayt Stil Ayarları</h4>
-                            <div class="form-group"><label for="title_color_${index}">Başlık Rengi & Boyutu</label><div><input type="color" class="banner-style-input" data-style-key="title_color" value="${currentStyle.title_color || '#FFFFFF'}"><input type="text" class="banner-style-input size-input" data-style-key="title_font_size" placeholder="Örn: 2.8rem" value="${currentStyle.title_font_size || ''}"></div></div>
-                            <div class="form-group"><label for="subtitle_color_${index}">Alt Başlık Rengi & Boyutu</label><div><input type="color" class="banner-style-input" data-style-key="subtitle_color" value="${currentStyle.subtitle_color || '#FFFFFF'}"><input type="text" class="banner-style-input size-input" data-style-key="subtitle_font_size" placeholder="Örn: 1.2rem" value="${currentStyle.subtitle_font_size || ''}"></div></div>
-                            <div class="form-group"><label for="button_bg_color_${index}">Buton Arka Plan Rengi</label><input type="color" class="banner-style-input" data-style-key="button_bg_color" value="${currentStyle.button_bg_color || '#e74c3c'}"></div>
-                            <div class="form-group"><label for="button_text_color_${index}">Buton Yazı Rengi</label><input type="color" class="banner-style-input" data-style-key="button_text_color" value="${currentStyle.button_text_color || '#FFFFFF'}"></div>
+                            <div class="form-group"><label>Başlık Rengi & Boyutu</label><div><input type="color" class="banner-style-input" data-style-key="title_color" value="${currentStyle.title_color || '#FFFFFF'}"><input type="text" class="banner-style-input size-input" data-style-key="title_font_size" placeholder="Örn: 2.8rem" value="${currentStyle.title_font_size || ''}"></div></div>
+                            <div class="form-group"><label>Alt Başlık Rengi & Boyutu</label><div><input type="color" class="banner-style-input" data-style-key="subtitle_color" value="${currentStyle.subtitle_color || '#FFFFFF'}"><input type="text" class="banner-style-input size-input" data-style-key="subtitle_font_size" placeholder="Örn: 1.2rem" value="${currentStyle.subtitle_font_size || ''}"></div></div>
+                            <div class="form-group"><label>Buton Arka Plan Rengi</label><input type="color" class="banner-style-input" data-style-key="button_bg_color" value="${currentStyle.button_bg_color || '#e74c3c'}"></div>
+                            <div class="form-group"><label>Buton Yazı Rengi</label><input type="color" class="banner-style-input" data-style-key="button_text_color" value="${currentStyle.button_text_color || '#FFFFFF'}"></div>
                         </div>`;
                     container.appendChild(slideSection);
                     createLangTabs(mainContent.querySelector(`#${tabsId}`), mainContent.querySelector(`#${contentId}`), slide.content || {}, [{ label: 'Başlık', key: 'title' }, { label: 'Alt Başlık', key: 'subtitle' }, { label: 'Buton Metni', key: 'button_text' }]);
@@ -571,8 +569,7 @@
             }
             function renderCurrencySymbolList() {
                 const container = mainContent.querySelector('#currency-symbol-list-container');
-                if(!container) return;
-                container.innerHTML = '';
+                if(!container) return; container.innerHTML = '';
                 Object.keys(localState.settings.currencySymbols).sort().forEach(code => container.innerHTML += `<div class="currency-item" data-code="${code}"><span class="currency-details">${code} (${localState.settings.currencySymbols[code]})</span><button type="button" class="btn btn-sm btn-danger delete-currency-btn" data-code="${code}"><i class="fa-solid fa-trash"></i></button></div>`);
             }
             function showNewCurrencySymbolForm() {
@@ -581,10 +578,8 @@
                 container.innerHTML = `<form class="form-section" style="padding:1rem"><div class="form-group"><label>Para Birimi Kodu</label><input type="text" id="newCurrencyCode" maxlength="3" required style="text-transform:uppercase"></div><div class="form-group"><label>Sembol</label><input type="text" id="newCurrencySymbol" maxlength="5" required></div><div class="form-actions"><button type="button" class="btn btn-sm btn-secondary cancel-new-currency-btn">İptal</button><button type="submit" class="btn btn-sm btn-success">Ekle</button></div></form>`;
                 const form = container.querySelector('form');
                 form.addEventListener('submit', async (e) => {
-                    e.preventDefault();
-                    const code = form.querySelector('#newCurrencyCode').value.trim().toUpperCase(); const symbol = form.querySelector('#newCurrencySymbol').value.trim();
-                    if(!code || !symbol) return alert('Kod ve sembol boş bırakılamaz.');
-                    if(localState.settings.currencySymbols[code]) return alert('Bu kod zaten mevcut.');
+                    e.preventDefault(); const code = form.querySelector('#newCurrencyCode').value.trim().toUpperCase(); const symbol = form.querySelector('#newCurrencySymbol').value.trim();
+                    if(!code || !symbol) return alert('Kod ve sembol boş bırakılamaz.'); if(localState.settings.currencySymbols[code]) return alert('Bu kod zaten mevcut.');
                     localState.settings.currencySymbols[code] = symbol;
                     await saveData('pufemo', 'settings', { settings: { currencySymbols: localState.settings.currencySymbols } });
                     container.innerHTML = ''; renderCurrencySymbolList();
@@ -595,12 +590,13 @@
                 const form = mainContent.querySelector('#general-settings-form'); if(!form) return;
                 form.addEventListener('submit', async e => {
                     e.preventDefault();
-                    const newSettings = {
+                    const settingsData = { settings: {
                         general: { logo: { type: form.querySelector('#logoType').value, text: form.querySelector('#logoText').value, icon: form.querySelector('#logoIcon').value, iconColor: form.querySelector('#logoIconColor').value, textColor: form.querySelector('#logoTextColor').value, imageUrl: form.querySelector('#logoImageUrl').value, imageWidth: form.querySelector('#logoImageWidth').value, imageHeight: form.querySelector('#logoImageHeight').value },
                             promoBar: { enabled: form.querySelector('#promoBarEnabled').checked, bgColor: form.querySelector('#promoBarBgColor').value, textColor: form.querySelector('#promoBarTextColor').value, fontSize: `${form.querySelector('#promoBarFontSize').value}px`, scrollSpeed: `${form.querySelector('#promoBarScrollSpeed').value}s`, text: {} }
-                        }, languages: localState.settings.languages, currencySymbols: localState.settings.currencySymbols };
-                    form.querySelectorAll('#promo-text-lang-content .lang-input').forEach(input => { if (!newSettings.general.promoBar.text[input.dataset.lang]) newSettings.general.promoBar.text[input.dataset.lang] = {}; newSettings.general.promoBar.text[input.dataset.lang][input.dataset.key] = input.value; });
-                    await saveData('pufemo', 'settings', { settings: newSettings });
+                        }, languages: localState.settings.languages, currencySymbols: localState.settings.currencySymbols
+                    }};
+                    form.querySelectorAll('#promo-text-lang-content .lang-input').forEach(input => { if (!settingsData.settings.general.promoBar.text[input.dataset.lang]) settingsData.settings.general.promoBar.text[input.dataset.lang] = {}; settingsData.settings.general.promoBar.text[input.dataset.lang][input.dataset.key] = input.value; });
+                    await saveData('pufemo', 'settings', settingsData);
                 });
                 form.querySelector('#logoType').addEventListener('change', toggleLogoOptions);
                 form.querySelector('#add-new-language-btn').addEventListener('click', () => showLanguageForm(null));
@@ -678,7 +674,7 @@
             // === BÖLÜM 5: BAŞLANGIÇ ===
             async function init() {
                 await fetchData();
-                const initialPage = 'product-management'; // Başlangıçta ürünler sayfası açılsın
+                const initialPage = 'product-management';
                 document.querySelector('.sidebar-nav .nav-item.active')?.classList.remove('active');
                 const navItem = document.querySelector(`.sidebar-nav .nav-item[data-page="${initialPage}"]`);
                 if (navItem) { navItem.classList.add('active'); await loadPage(initialPage); }
