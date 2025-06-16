@@ -57,9 +57,9 @@
         
         .header-top {
             display: flex;
-            justify-content: space-between; /* Kontrolleri sağa yaslamak için */
+            justify-content: space-between; 
             align-items: center;
-            padding: 0.8rem 20px; /* Kenar boşlukları ekledim */
+            padding: 0.8rem 20px; 
         }
         .main-header .container {
             display: flex;
@@ -85,7 +85,97 @@
         }
         
         .header-controls { display: flex; align-items: center; gap: 1rem; }
-        .control-select { background-color: #f8f9fa; border: 1px solid #ddd; padding: 5px; border-radius: 5px; font-size: 0.9rem; cursor: pointer; }
+        /* GENEL KONTROL SEÇİCİLERİ STİLİ (Para birimi ve Ülke Seçicisi için) */
+        .control-select {
+            background-color: #f8f9fa;
+            border: 1px solid #ddd;
+            padding: 5px;
+            border-radius: 5px;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+
+        /* --- ÖZEL DİL SEÇİCİ STİLLERİ --- */
+        .custom-language-selector {
+            position: relative;
+            display: inline-block;
+            cursor: pointer;
+            font-size: 0.9rem;
+            min-width: 110px; /* Bayrak ve dil adı için yeterli genişlik */
+            text-align: left;
+            z-index: 10; /* Diğer elementlerin üstünde kalması için */
+        }
+
+        .selected-language {
+            display: flex;
+            align-items: center;
+            padding: 5px 8px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f8f9fa;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .selected-language .flag-icon {
+            margin-right: 8px;
+            font-size: 1.2em; /* Bayrak emojileri için boyut */
+            line-height: 1; /* Satır yüksekliği tutarlılığı */
+        }
+
+        .selected-language .arrow-down {
+            margin-left: auto;
+            font-size: 0.8em;
+            color: #777;
+        }
+
+        .language-options {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            list-style: none;
+            padding: 5px 0;
+            min-width: 100%;
+            z-index: 100; /* Dropdown menünün diğer her şeyin üzerinde olması için */
+            max-height: 200px; /* Çok sayıda dil için scroll */
+            overflow-y: auto;
+        }
+
+        .language-options.open {
+            display: block;
+        }
+
+        .language-options li {
+            display: flex;
+            align-items: center;
+            padding: 8px 15px;
+            white-space: nowrap;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .language-options li:hover {
+            background-color: #f0f0f0;
+        }
+
+        .language-options li.selected {
+            background-color: var(--primary-color);
+            color: var(--light-text-color);
+        }
+
+        .language-options li .flag-icon {
+            margin-right: 8px;
+            font-size: 1.2em;
+            line-height: 1;
+        }
+        /* --- ÖZEL DİL SEÇİCİ STİLLERİ BİTİŞ --- */
+
         .cart-icon { font-size: 1.5rem; position: relative; }
         .cart-badge { position: absolute; top: -5px; right: -10px; background-color: var(--secondary-color); color: var(--light-text-color); border-radius: 50%; padding: 2px 6px; font-size: 0.7rem; font-weight: 600; }
         .hamburger-menu { display: none; cursor: pointer; width: 30px; height: 25px; flex-direction: column; justify-content: space-between; background: transparent; border: none; z-index: 1003; }
@@ -419,15 +509,15 @@
         <div class="header-top">
             <a href="index.html" class="logo" id="main-logo-link">
             </a>
-        </div>
-        <div class="container">
-            <button class="hamburger-menu" id="hamburger-menu-btn" aria-label="Menüyü aç/kapat"><span></span><span></span><span></span></button>
             <div class="header-controls">
-                <select id="language-selector" class="control-select"></select>
+                <div id="custom-language-selector-container"></div> 
                 <select id="currency-selector" class="control-select"></select>
                 <a href="cart.html" class="cart-icon"><i class="fa-solid fa-cart-shopping"></i><span class="cart-badge">0</span></a>
             </div>
         </div>
+        <div class="container">
+            <button class="hamburger-menu" id="hamburger-menu-btn" aria-label="Menüyü aç/kapat"><span></span><span></span><span></span></button>
+            </div>
     </header>
     <nav id="mobile-nav" class="mobile-nav"></nav>
     <nav class="category-nav"><div class="container"><ul id="category-menu-container"></ul></div></nav>
@@ -511,16 +601,13 @@
                 'country_selector_label': { tr: 'Ülke Seçimi:', en: 'Select Country:', el: 'Επιλέξτε Χώρα:', ru: 'Выбрать страну:' }
             };
 
-            const supportedLanguages = [
-                { code: 'tr', name: 'Türkçe', flag: '🇹🇷' },
-                { code: 'en', name: 'English', flag: '🇬🇧' },
-                { code: 'el', name: 'Ελληνικά', flag: '🇬🇷' },
-                { code: 'ru', name: 'Русский', flag: '🇷🇺' }
-            ];
-
+            // supportedLanguages artık siteData.settings.languages'tan çekileceği için buradaki sabit liste kaldırıldı.
+            // Ancak, Firebase'den gelmezse veya boşsa yedek olarak kullanılacak bir yapıya ihtiyacımız var.
+            // Bu artık global scope'ta durmayacak.
             const loadingOverlay = document.getElementById('loading-overlay');
             let siteData = { 
                 settings: { 
+                    // languages varsayılan değeri doğrudan fetchData içinde ayarlanacak
                     languages: [], 
                     banner: { slides: [] },
                     general: { 
@@ -556,8 +643,13 @@
                     
                     siteData.settings = { 
                         ...fetchedSettings, 
-                        // languages'ı Firebase'den al, yoksa varsayılan supportedLanguages listesini kullan
-                        languages: (fetchedSettings.languages && fetchedSettings.languages.length > 0) ? fetchedSettings.languages : supportedLanguages, 
+                        // Firebase'den languages yoksa veya boşsa varsayılanları kullan
+                        languages: (fetchedSettings.languages && fetchedSettings.languages.length > 0) ? fetchedSettings.languages : [
+                            { code: 'tr', name: 'Türkçe', flag: '🇹🇷' },
+                            { code: 'en', name: 'English', flag: '🇬🇧' },
+                            { code: 'el', name: 'Ελληνικά', flag: '🇬🇷' },
+                            { code: 'ru', name: 'Русский', flag: '🇷🇺' }
+                        ], 
                         banner: fetchedSettings.banner || { slides: [] },
                         general: { 
                             logo: fetchedSettings.general?.logo || siteData.settings.general.logo,
@@ -597,7 +689,9 @@
             };
             
             const renderAll = () => {
-                setupControls(); 
+                renderCustomLanguageSelector(); // YENİ: Özel dil seçiciyi render et
+                renderCurrencySelector(); // YENİ: Para birimi seçiciyi render et
+                renderCountrySelector(); // YENİ: Ülke seçiciyi render et
                 renderStaticText();
                 renderCategories();
                 renderBanner();
@@ -855,16 +949,90 @@
                 return `${symbol} ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(convertedPrice)}`;
             };
             
-            const setupControls = () => {
-                const languageSelector = document.getElementById('language-selector');
+            // --- YENİ: Özel Dil Seçiciyi Render Etme Fonksiyonu ---
+            const renderCustomLanguageSelector = () => {
+                const customLangContainer = document.getElementById('custom-language-selector-container');
+                if (!customLangContainer) return;
+
+                // Mevcut içeriği temizle
+                customLangContainer.innerHTML = '';
+
+                const languages = siteData.settings.languages || [];
+                const currentLanguageObj = languages.find(l => l.code === currentLang) || languages[0] || { code: 'tr', name: 'Türkçe', flag: '🇹🇷' };
+
+                const customSelectorHTML = `
+                    <div class="custom-language-selector">
+                        <div class="selected-language" tabindex="0" role="button" aria-haspopup="listbox" aria-expanded="false">
+                            <span class="flag-icon">${currentLanguageObj.flag || ''}</span>
+                            <span class="language-name">${currentLanguageObj.name}</span>
+                            <span class="arrow-down"><i class="fa-solid fa-chevron-down"></i></span>
+                        </div>
+                        <ul class="language-options" role="listbox">
+                            ${languages.map(lang => `
+                                <li data-lang-code="${lang.code}" class="${lang.code === currentLang ? 'selected' : ''}" role="option" aria-selected="${lang.code === currentLang}">
+                                    <span class="flag-icon">${lang.flag || ''}</span>
+                                    <span class="language-name">${lang.name}</span>
+                                </li>
+                            `).join('')}
+                        </ul>
+                    </div>
+                `;
+                customLangContainer.innerHTML = customSelectorHTML;
+
+                const customSelectorDiv = customLangContainer.querySelector('.custom-language-selector');
+                const selectedLanguageDiv = customSelectorDiv.querySelector('.selected-language');
+                const languageOptionsUl = customSelectorDiv.querySelector('.language-options');
+
+                // Seçiciyi açıp kapatma
+                selectedLanguageDiv.addEventListener('click', () => {
+                    languageOptionsUl.classList.toggle('open');
+                    selectedLanguageDiv.setAttribute('aria-expanded', languageOptionsUl.classList.contains('open'));
+                });
+
+                // Seçenek seçildiğinde
+                languageOptionsUl.addEventListener('click', (e) => {
+                    const selectedLi = e.target.closest('li');
+                    if (selectedLi) {
+                        const newLangCode = selectedLi.dataset.langCode;
+                        if (newLangCode !== currentLang) {
+                            currentLang = newLangCode;
+                            localStorage.setItem('pufemo-language', currentLang);
+                            console.log('Custom language selector changed - currentLang set to:', currentLang);
+                            renderAll(); // Tüm sayfayı yeniden render et
+                        }
+                        languageOptionsUl.classList.remove('open'); // Seçim yapıldıktan sonra kapat
+                        selectedLanguageDiv.setAttribute('aria-expanded', 'false');
+                    }
+                });
+
+                // Dışarı tıklandığında kapatma
+                document.addEventListener('click', (e) => {
+                    if (!customSelectorDiv.contains(e.target)) {
+                        languageOptionsUl.classList.remove('open');
+                        selectedLanguageDiv.setAttribute('aria-expanded', 'false');
+                    }
+                });
+            };
+
+            const renderCurrencySelector = () => {
                 const currencySelector = document.getElementById('currency-selector');
-                const countrySelector = document.getElementById('country-selector'); 
-                const hamburgerBtn = document.getElementById('hamburger-menu-btn');
-                const mobileNav = document.getElementById('mobile-nav');
-                const mobileNavOverlay = document.getElementById('mobile-nav-overlay');
-
                 const currencies = siteData.settings?.currencySymbols || { TRY: '₺', USD: '$', EUR: '€', GBP: '£' };
+                const availableCurrencies = Object.keys(siteData.settings.exchangeRates || {});
+                currencySelector.innerHTML = availableCurrencies.map(c => {
+                    const symbol = currencies[c] || c; 
+                    return `<option value="${c}">${symbol} ${c}</option>`;
+                }).join('');
+                currencySelector.value = currentCurrency;
 
+                currencySelector.addEventListener('change', (e) => { 
+                    currentCurrency = e.target.value;
+                    localStorage.setItem('pufemo-currency', currentCurrency);
+                    renderAll(); 
+                });
+            };
+
+            const renderCountrySelector = () => {
+                const countrySelector = document.getElementById('country-selector');
                 // Ülke seçiciyi doldur
                 if (siteData.settings.countryPricing && Object.keys(siteData.settings.countryPricing).length > 0) {
                     countrySelector.innerHTML = Object.entries(siteData.settings.countryPricing).map(([code, data]) => {
@@ -879,34 +1047,6 @@
                     document.getElementById('country-selector-label').style.display = 'none';
                 }
 
-                // Dil seçiciyi doldur
-                // Artık hardcoded `supportedLanguages` yerine Firebase'den gelen `siteData.settings.languages` kullanılıyor
-                languageSelector.innerHTML = (siteData.settings.languages || []).map(l => `<option value="${l.code}">${l.flag || ''} ${l.name}</option>`).join('');
-                languageSelector.value = currentLang;
-
-                // Para birimi seçiciyi doldur
-                const availableCurrencies = Object.keys(siteData.settings.exchangeRates || {});
-                currencySelector.innerHTML = availableCurrencies.map(c => {
-                    const symbol = currencies[c] || c; 
-                    return `<option value="${c}">${symbol} ${c}</option>`;
-                }).join('');
-                currencySelector.value = currentCurrency;
-
-                // Olay Dinleyicileri
-                languageSelector.addEventListener('change', (e) => { 
-                    currentLang = e.target.value;
-                    localStorage.setItem('pufemo-language', currentLang);
-                    console.log('languageSelector changed - currentLang set to:', currentLang); 
-                    renderAll(); 
-                });
-                
-                currencySelector.addEventListener('change', (e) => { 
-                    currentCurrency = e.target.value;
-                    localStorage.setItem('pufemo-currency', currentCurrency);
-                    renderAll(); 
-                });
-
-                // Yeni ülke seçici için olay dinleyici
                 countrySelector.addEventListener('change', (e) => {
                     currentCountryCode = e.target.value;
                     localStorage.setItem('pufemo-country', currentCountryCode);
@@ -932,22 +1072,11 @@
                     }
                     renderAll(); 
                 });
-                
-                const toggleMenu = () => { 
-                    hamburgerBtn.classList.toggle('open'); 
-                    mobileNav.classList.toggle('open'); 
-                    mobileNavOverlay.classList.toggle('open');
-                    document.querySelector('.main-header').classList.toggle('mobile-menu-open');
-                };
-                hamburgerBtn.addEventListener('click', toggleMenu);
-                mobileNavOverlay.addEventListener('click', toggleMenu);
-                mobileNav.addEventListener('click', (e) => { if (e.target.tagName === 'A') toggleMenu(); });
             };
 
             const init = async () => {
                 await fetchData();
-                // setupControls(); // BURADAN KALDIRILDI
-                renderAll();
+                renderAll(); // Tüm render işlemleri artık renderAll içinde
                 loadingOverlay.classList.add('hidden');
                 console.log('Site Data:', siteData); 
             };
