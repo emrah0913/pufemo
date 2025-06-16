@@ -546,7 +546,7 @@
                 if (!container) return;
                 let nameInputsHTML = localState.settings.languages.map(lang => { const langName = lang.name[lang.code] || lang.name['tr'] || lang.code; const value = isEditing ? (langToEdit.name[lang.code] || '') : ''; return `<div class="form-group"><label>İsim (${langName})</label><input type="text" class="lang-name-input" data-name-lang="${lang.code}" value="${value}"></div>`;}).join('');
                 if (!isEditing) nameInputsHTML += `<div class="form-group"><label>Yeni Dilin Kendi Adı</label><input type="text" id="newLangSelfName" required></div>`;
-                container.innerHTML = `<form class="language-edit-form"><h4>${isEditing ? 'Dili Düzenle' : 'Yeni Dil Ekle'}</h4><div class="form-group"><label>Dil Kodu</label><input type="text" id="langCode" value="${isEditing ? langToEdit.code : ''}" ${isEditing ? 'disabled' : ''} required></div><div class="form-group"><label>Bayrak Emoji</label><input type="text" id="langFlag" value="${isEditing ? langToEdit.flag : ''}"></div><hr><h5>Dil İsim Çevirileri</h5>${nameInputsHTML}<div class="form-actions"><button type="button" class="btn btn-sm btn-secondary cancel-edit-language-btn">İptal</button><button type="submit" class="btn btn-sm btn-success">${isEditing ? 'Kaydet' : 'Ekle'}</button></div></form>`;
+                container.innerHTML = `<form class="language-edit-form" data-editing-code="${isEditing ? langToEdit.code : ''}"><h4>${isEditing ? 'Dili Düzenle' : 'Yeni Dil Ekle'}</h4><div class="form-group"><label>Dil Kodu</label><input type="text" id="langCode" value="${isEditing ? langToEdit.code : ''}" ${isEditing ? 'disabled' : ''} required></div><div class="form-group"><label>Bayrak Emoji</label><input type="text" id="langFlag" value="${isEditing ? langToEdit.flag : ''}"></div><hr><h5>Dil İsim Çevirileri</h5>${nameInputsHTML}<div class="form-actions"><button type="button" class="btn btn-sm btn-secondary cancel-edit-language-btn">İptal</button><button type="submit" class="btn btn-sm btn-success">${isEditing ? 'Kaydet' : 'Ekle'}</button></div></form>`;
                 const form = container.querySelector('form');
                 if(form) form.addEventListener('submit', (e) => handleSaveLanguage(e, form, langToEdit));
                 const cancelBtn = container.querySelector('.cancel-edit-language-btn');
@@ -564,7 +564,7 @@
                 if (!isEditing) { const selfName = formElement.querySelector('#newLangSelfName').value.trim(); if(selfName) hasAtLeastOneName = true; newLangData.name[code] = selfName; }
                 if (!hasAtLeastOneName) { alert('En az bir dilde isim belirtmelisiniz.'); return; }
                 if (isEditing) { localState.settings.languages[localState.settings.languages.findIndex(l => l.code === code)] = newLangData; } else { localState.settings.languages.push(newLangData); }
-                await saveData('pufemo', 'settings', { settings: { languages: localState.settings.languages } });
+                await saveData('pufemo', 'settings', { languages: localState.settings.languages });
                 mainContent.querySelector('#new-language-form-container').innerHTML = '';
                 renderLanguageList();
             }
@@ -582,7 +582,7 @@
                     e.preventDefault(); const code = form.querySelector('#newCurrencyCode').value.trim().toUpperCase(); const symbol = form.querySelector('#newCurrencySymbol').value.trim();
                     if(!code || !symbol) return alert('Kod ve sembol boş bırakılamaz.'); if(localState.settings.currencySymbols[code]) return alert('Bu kod zaten mevcut.');
                     localState.settings.currencySymbols[code] = symbol;
-                    await saveData('pufemo', 'settings', { settings: { currencySymbols: localState.settings.currencySymbols } });
+                    await saveData('pufemo', 'settings', { currencySymbols: localState.settings.currencySymbols });
                     container.innerHTML = ''; renderCurrencySymbolList();
                 });
                 form.querySelector('.cancel-new-currency-btn').addEventListener('click', () => container.innerHTML = '');
@@ -591,23 +591,22 @@
                 const form = mainContent.querySelector('#general-settings-form'); if(!form) return;
                 form.addEventListener('submit', async e => {
                     e.preventDefault();
-                    const settingsData = { settings: {
+                    const settingsData = {
                         general: { logo: { type: form.querySelector('#logoType').value, text: form.querySelector('#logoText').value, icon: form.querySelector('#logoIcon').value, iconColor: form.querySelector('#logoIconColor').value, textColor: form.querySelector('#logoTextColor').value, imageUrl: form.querySelector('#logoImageUrl').value, imageWidth: form.querySelector('#logoImageWidth').value, imageHeight: form.querySelector('#logoImageHeight').value },
                             promoBar: { enabled: form.querySelector('#promoBarEnabled').checked, bgColor: form.querySelector('#promoBarBgColor').value, textColor: form.querySelector('#promoBarTextColor').value, fontSize: `${form.querySelector('#promoBarFontSize').value}px`, scrollSpeed: `${form.querySelector('#promoBarScrollSpeed').value}s`, text: {} }
-                        }, languages: localState.settings.languages, currencySymbols: localState.settings.currencySymbols
-                    }};
-                    form.querySelectorAll('#promo-text-lang-content .lang-input').forEach(input => { if (!settingsData.settings.general.promoBar.text[input.dataset.lang]) settingsData.settings.general.promoBar.text[input.dataset.lang] = {}; settingsData.settings.general.promoBar.text[input.dataset.lang][input.dataset.key] = input.value; });
-                    await saveData('pufemo', 'settings', settingsData);
+                        }
+                    };
+                    form.querySelectorAll('#promo-text-lang-content .lang-input').forEach(input => { if (!settingsData.general.promoBar.text[input.dataset.lang]) settingsData.general.promoBar.text[input.dataset.lang] = {}; settingsData.general.promoBar.text[input.dataset.lang][input.dataset.key] = input.value; });
+                    await saveData('pufemo', 'settings', { general: settingsData.general });
                 });
                 form.querySelector('#logoType').addEventListener('change', toggleLogoOptions);
-                form.querySelector('#add-new-language-btn').addEventListener('click', () => showLanguageForm(null));
-                form.querySelector('#add-new-currency-symbol-btn').addEventListener('click', showNewCurrencySymbolForm);
                 form.addEventListener('click', async e => {
-                    const editBtn = e.target.closest('.edit-language-btn'); if(editBtn) showLanguageForm(localState.settings.languages.find(l => l.code === editBtn.dataset.code));
-                    const deleteLangBtn = e.target.closest('.delete-language-btn');
-                    if(deleteLangBtn) { const code = deleteLangBtn.dataset.code; if(localState.settings.languages.length <= 1) return alert('En az bir dil kalmalıdır.'); if(confirm(`'${code}' dilini silmek istediğinizden emin misiniz?`)){ localState.settings.languages = localState.settings.languages.filter(l => l.code !== code); await saveData('pufemo', 'settings', { settings: { languages: localState.settings.languages } }); renderLanguageList(); }}
-                    const deleteCurrencyBtn = e.target.closest('.delete-currency-btn');
-                    if(deleteCurrencyBtn) { const code = deleteCurrencyBtn.dataset.code; if(confirm(`'${code}' para birimini silmek istediğinizden emin misiniz?`)){ delete localState.settings.currencySymbols[code]; await saveData('pufemo', 'settings', { settings: { currencySymbols: localState.settings.currencySymbols } }); renderCurrencySymbolList(); }}
+                    const target = e.target.closest('button'); if(!target) return;
+                    if(target.id === 'add-new-language-btn') return showLanguageForm(null);
+                    if(target.id === 'add-new-currency-symbol-btn') return showNewCurrencySymbolForm();
+                    if(target.matches('.edit-language-btn')) return showLanguageForm(localState.settings.languages.find(l => l.code === target.dataset.code));
+                    if(target.matches('.delete-language-btn')) { const code = target.dataset.code; if(localState.settings.languages.length <= 1) return alert('En az bir dil kalmalıdır.'); if(confirm(`'${code}' dilini silmek istediğinizden emin misiniz?`)){ localState.settings.languages = localState.settings.languages.filter(l => l.code !== code); await saveData('pufemo', 'settings', { languages: localState.settings.languages }); renderLanguageList(); }}
+                    if(target.matches('.delete-currency-btn')) { const code = target.dataset.code; if(confirm(`'${code}' para birimini silmek istediğinizden emin misiniz?`)){ delete localState.settings.currencySymbols[code]; await saveData('pufemo', 'settings', { currencySymbols: localState.settings.currencySymbols }); renderCurrencySymbolList(); }}
                 });
             }
 
@@ -638,7 +637,7 @@
                     const newCountryData = { name: {}, flag: form.querySelector('#newCountryFlag').value.trim(), adjustment: parseFloat(form.querySelector('#newCountryAdjustment').value) || 0, defaultLanguage: form.querySelector('#newCountryDefaultLanguage').value, currencySymbol: form.querySelector('#newCountryCurrencySymbol').value };
                     form.querySelectorAll('.new-country-name-input').forEach(input => newCountryData.name[input.dataset.lang] = input.value.trim());
                     localState.settings.countryPricing[code] = newCountryData;
-                    await saveData('pufemo', 'settings', { settings: { countryPricing: localState.settings.countryPricing } });
+                    await saveData('pufemo', 'settings', { countryPricing: localState.settings.countryPricing });
                     container.innerHTML = ''; renderCountryPricingList();
                 });
                 form.querySelector('.cancel-new-country-btn').addEventListener('click', () => container.innerHTML = '');
@@ -656,7 +655,7 @@
                         updatedPricing[code] = countryData;
                     });
                     localState.settings.countryPricing = updatedPricing;
-                    await saveData('pufemo', 'settings', { settings: { countryPricing: localState.settings.countryPricing } });
+                    await saveData('pufemo', 'settings', { countryPricing: localState.settings.countryPricing });
                 });
                 page.querySelector('#country-pricing-list-container').addEventListener('click', async (e) => {
                     const deleteBtn = e.target.closest('.delete-country-btn');
@@ -664,7 +663,7 @@
                         const codeToDelete = deleteBtn.dataset.code; const countryName = localState.settings.countryPricing[codeToDelete]?.name.tr || codeToDelete.toUpperCase();
                         if (confirm(`'${countryName}' ülkesini silmek istediğinizden emin misiniz?`)) {
                             delete localState.settings.countryPricing[codeToDelete];
-                            const updateData = { [`settings.countryPricing.${codeToDelete}`]: firebase.firestore.FieldValue.delete() };
+                            const updateData = { [`countryPricing.${codeToDelete}`]: firebase.firestore.FieldValue.delete() };
                             await db.collection('pufemo').doc('settings').update(updateData);
                             alert('Ülke başarıyla silindi.'); renderCountryPricingList();
                         }
