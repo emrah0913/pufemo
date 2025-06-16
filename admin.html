@@ -1564,7 +1564,7 @@
                 countriesToRender.forEach(country => {
                     const countryItem = document.createElement('div');
                     countryItem.className = 'country-pricing-item';
-                    countryItem.dataset.code = country.code; // Küçük harf kodu burada saklansın
+                    countryItem.dataset.code = country.code; 
                     
                     // Ülke adını çok dilli alana çevir
                     const countryNameInputsHTML = languages.map(lang => `
@@ -1767,12 +1767,13 @@
             countryPricingListContainer.addEventListener('click', async (e) => {
                 const deleteBtn = e.target.closest('.delete-country-pricing-btn');
                 if (deleteBtn) {
-                    const countryCodeToDelete = deleteBtn.dataset.code; // Örneğin "cy", "tr" (data-country-code'dan gelir)
+                    // dataset.code yerine getAttribute kullanıyoruz, çünkü hata data-country-code'un yokluğundan geliyor gibi görünüyor
+                    const countryCodeToDelete = deleteBtn.getAttribute('data-country-code'); 
                     
-                    // Ülke kodunun geçerli olduğundan emin ol
-                    if (!countryCodeToDelete || typeof countryCodeToDelete !== 'string') {
+                    // Ülke kodunun geçerli olduğundan emin ol (null, undefined veya boş string olmamalı)
+                    if (!countryCodeToDelete || countryCodeToDelete.trim() === '') {
                         console.error("Silme butonu geçerli bir data-country-code içermiyor:", deleteBtn);
-                        alert("Silinecek ülke bilgisi bulunamadı. Lütfen sayfayı yenileyin.");
+                        alert("Silinecek ülke kodu bulunamadı. Lütfen sayfayı yenileyin.");
                         return;
                     }
 
@@ -1782,10 +1783,8 @@
                     
                     if (countryData) {
                         if (typeof countryData.name === 'object' && countryData.name !== null) {
-                            // Adı bir map ise, Türkçe, İngilizce veya ilk mevcut dildeki adı al
                             confirmDisplayName = countryData.name.tr || countryData.name.en || countryData.name[Object.keys(countryData.name)[0]] || countryCodeToDelete.toUpperCase();
                         } else if (typeof countryData.name === 'string' && countryData.name.trim() !== '') {
-                            // Adı hala bir string ise (eski veri)
                             confirmDisplayName = countryData.name;
                         }
                     }
