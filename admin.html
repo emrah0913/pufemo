@@ -231,7 +231,6 @@
             display: flex;
             align-items: center;
             gap: 10px;
-            /* margin-left: auto; */ /* Sağa yaslamak için kullanılıyordu, artık esnek */
             min-width: 120px; /* Input + % için yer */
         }
         .price-adjustment-input-group label {
@@ -487,7 +486,7 @@
                         </div>
                         <p style="font-size: 0.9em; color: #777; margin-bottom: 1rem;">
                             Bu alana gireceğiniz yüzde değeri, Baz Fiyatın üzerine eklenecek veya çıkarılacaktır. <br>
-                            Pozitif değer için **10**, negatif değer için **-5** giriniz.
+                            Pozitif değer için <strong>10</strong>, negatif değer için <strong>-5</strong> giriniz.
                         </p>
                         <div id="new-country-pricing-form-container" style="margin-bottom: 1.5rem;">
                             </div>
@@ -505,8 +504,33 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
 
     <script type="module">
+        // ===================================================================================
+        // !!! KRİTİK GÜVENLİK UYARISI !!!
+        // ===================================================================================
+        // Bu yapılandırma bilgileri (apiKey vb.) tarayıcıda görünebilir. Bu normaldir.
+        // ANCAK, veritabanınızın güvenliği TAMAMEN Firebase > Firestore Database > Rules
+        // (Güvenlik Kuralları) bölümünde yapacağınız ayarlara bağlıdır.
+        //
+        // Kurallarınızı aşağıdaki gibi yapılandırmazsanız, HERKES veritabanınızı
+        // okuyabilir, üzerine yazabilir ve hatta SİLEBİLİR!
+        //
+        // Örnek Güvenli Kural (Sadece giriş yapmış kullanıcıların işlem yapmasına izin verir):
+        //
+        // rules_version = '2';
+        // service cloud.firestore {
+        //   match /databases/{database}/documents {
+        //     // Sadece kimliği doğrulanmış (giriş yapmış) kullanıcılar 
+        //     // pufemo ve pufemo-products koleksiyonlarına erişebilir.
+        //     match /(pufemo|pufemo-products)/{document=**} {
+        //       allow read, write: if request.auth != null;
+        //     }
+        //   }
+        // }
+        //
+        // Lütfen bu ayarları Firebase projenizde yapmayı unutmayın!
+        // ===================================================================================
         const firebaseConfig = {
-            apiKey: "AIzaSyDYkzZzNXB22U4oEXxOoPh-puwuE8kz0g4",
+            apiKey: "AIzaSyDYkzZzNXB22U4oEXxOoPh-puwuE8kz0g4", // Bu anahtarı kendi projenizin anahtarı ile değiştirin
             authDomain: "pufemo-com.firebaseapp.com",
             projectId: "pufemo-com",
             storageBucket: "pufemo-com.appspot.com",
@@ -569,7 +593,6 @@
             const newCurrencySymbolFormContainer = document.getElementById('new-currency-symbol-form-container');
             const addCurrencySymbolBtn = document.getElementById('add-new-currency-symbol-btn');
 
-
             const saveCategoriesBtn = document.getElementById('save-categories-btn');
 
             // Yeni Ülke Fiyatlandırma Sayfası DOM Elementleri
@@ -577,7 +600,6 @@
             const countryPricingListContainer = document.getElementById('country-pricing-list-container');
             const addCountryPricingBtn = document.getElementById('add-new-country-pricing-btn');
             const newCountryPricingFormContainer = document.getElementById('new-country-pricing-form-container');
-
 
             const fontAwesomeIcons = [
                 "fa-solid fa-couch", "fa-solid fa-chair", "fa-solid fa-bed", "fa-solid fa-lamp", 
@@ -605,17 +627,21 @@
                     
                     const fetchedSettings = settingsDoc.exists ? settingsDoc.data() : {};
                     
+                    // Gelen veriyi localState ile birleştirirken, boş veya tanımsız alanlar için varsayılan değerleri koru
                     localState.settings = { 
-                        ...fetchedSettings, 
+                        ...localState.settings, // Önce varsayılanları al
+                        ...fetchedSettings, // Sonra Firebase'den gelenlerle üzerine yaz
                         languages: (fetchedSettings.languages && fetchedSettings.languages.length > 0) ? fetchedSettings.languages : localState.settings.languages, 
-                        // Firebase'den countryPricing'i çek. Eğer yoksa, varsayılan boş obje kullan.
                         countryPricing: fetchedSettings.countryPricing || {},
-                        currencySymbols: fetchedSettings.currencySymbols || localState.settings.currencySymbols, // Firebase'den çek
+                        currencySymbols: fetchedSettings.currencySymbols || localState.settings.currencySymbols,
                         banner: fetchedSettings.banner || { slides: [] },
                         general: {
-                            logo: fetchedSettings.general?.logo || localState.settings.general.logo,
+                            ...localState.settings.general, // Varsayılanları al
+                            ...(fetchedSettings.general || {}), // Üzerine yaz
+                            logo: { ...localState.settings.general.logo, ...(fetchedSettings.general?.logo || {}) },
                             promoBar: { 
-                                ...(fetchedSettings.general?.promoBar || localState.settings.general.promoBar),
+                                ...localState.settings.general.promoBar,
+                                ...(fetchedSettings.general?.promoBar || {}),
                                 enabled: fetchedSettings.general?.promoBar?.enabled !== undefined ? fetchedSettings.general.promoBar.enabled : true 
                             }
                         }
@@ -628,7 +654,8 @@
                     localState.categories = categoriesDoc.exists ? categoriesDoc.data().tree || [] : [];
                     localState.products = productsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 } catch (error) {
-                    alert('Veri yüklenirken hata: ' + error.message);
+                    console.error('Veri yüklenirken hata:', error);
+                    alert('Veri yüklenirken bir hata oluştu: ' + error.message);
                 } finally {
                     hideLoading();
                 }
@@ -642,6 +669,7 @@
                     console.log(`${docName} başarıyla kaydedildi!`);
                     alert('Değişiklikler kaydedildi!'); 
                 } catch (error) {
+                    console.error('Kaydedilirken hata:', error);
                     alert('Kaydedilirken bir hata oluştu: ' + error.message);
                 } finally {
                     hideLoading();
@@ -661,6 +689,7 @@
                         return docRef.id;
                     }
                 } catch (error) {
+                    console.error('Ürün kaydedilirken hata:', error);
                     alert('Ürün kaydedilirken bir hata oluştu: ' + error.message);
                     return null;
                 } finally {
@@ -676,6 +705,7 @@
                     alert('Ürün silindi.');
                     return true;
                 } catch(error) {
+                    console.error('Ürün silinirken hata:', error);
                     alert('Ürün silinirken hata: ' + error.message);
                     return false;
                 } finally {
@@ -719,14 +749,18 @@
             // === 3. ÜRÜN YÖNETİMİ ===
             function renderProductList() {
                 productListContainer.innerHTML = '';
-                localState.products.sort((a,b) => (a.sku || '').localeCompare(b.sku || '')).forEach(product => {
-                    const li = document.createElement('li');
-                    li.dataset.id = product.id;
-                    // Ürün adını gösterirken varsayılan olarak Türkçe veya ilk mevcut dili kullan
-                    const productName = product.content?.tr?.name || product.content[Object.keys(product.content)[0]]?.name || product.sku || 'İsimsiz Ürün';
-                    li.innerHTML = `<span class="nav-item-name">${productName}</span>`;
-                    productListContainer.appendChild(li);
-                });
+                // DÜZELTME: localeCompare hatasını önlemek için `String()` eklendi.
+                localState.products
+                    .sort((a,b) => String(a.sku || '').localeCompare(String(b.sku || '')))
+                    .forEach(product => {
+                        const li = document.createElement('li');
+                        li.className = 'nav-item'; // Sidebar stili için class eklendi.
+                        li.dataset.id = product.id;
+                        // Ürün adını gösterirken varsayılan olarak Türkçe veya ilk mevcut dili kullan
+                        const productName = product.content?.tr?.name || product.content?.[Object.keys(product.content)[0]]?.name || product.sku || 'İsimsiz Ürün';
+                        li.innerHTML = `<span class="nav-item-name">${productName} (${product.sku})</span>`;
+                        productListContainer.appendChild(li);
+                    });
             }
 
             function loadProductForEditing(productOrId) {
@@ -848,7 +882,7 @@
                 });
             }
             
-            // === 5. KATEGORİ YÖNETİMİ GÜNCELLENDİ (Çoklu Dil Desteği) ===
+            // === 5. KATEGORİ YÖNETİMİ ===
             function refreshCategoryView() {
                 categoryTreeContainer.innerHTML = '';
                 const mainUl = document.createElement('ul');
@@ -861,7 +895,6 @@
                 li.dataset.id = category.id;
                 const languages = localState.settings.languages?.length ? localState.settings.languages : [{code: 'tr', name: 'Türkçe', flag: '🇹🇷'}];
                 
-                // Kategori adı için çoklu dil giriş alanları oluştur
                 let nameInputsHTML = languages.map(lang => `
                     <div class="form-group">
                         <label>${lang.flag || lang.code}</label>
@@ -887,348 +920,20 @@
                 return li;
             }
 
-            function showCategoryInputForm(container, parentCategoryArray) {
-                if (container.querySelector('.new-category-form')) return;
-                const formLi = document.createElement('li');
-                formLi.className = 'category-item new-category-form';
-                const languages = localState.settings.languages?.length ? localState.settings.languages : [{code: 'tr', name: 'Türkçe', flag: '🇹🇷'}];
+            // === 6. GENEL AYARLAR (Dil, Para Birimi vb.) ===
+
+            /** İlgili tüm arayüzleri yeniden çizen merkezi fonksiyon. Dil, para birimi gibi genel değişikliklerden sonra çağrılır. */
+            function refreshDependentUIs() {
+                // Her arayüz render fonksiyonu, en güncel `localState`'i kullanarak arayüzü yeniden oluşturur.
+                renderBannerSettings();
+                renderGeneralSettings();
+                refreshCategoryView();
+                renderCountryPricingList();
                 
-                // Yeni kategori adı için çoklu dil giriş alanları oluştur
-                let nameInputsHTML = languages.map(lang => `
-                    <div class="form-group">
-                        <label>${lang.flag || lang.code}</label>
-                        <input type="text" class="new-category-name-input" data-lang="${lang.code}" placeholder="${lang.name} Adı" required>
-                    </div>
-                `).join('');
-
-                formLi.innerHTML = `
-                    <form style="width: 100%;">
-                        <div class="category-name-inputs">
-                            ${nameInputsHTML}
-                        </div>
-                        <div class="form-actions" style="margin-top: 1rem;">
-                            <button type="button" class="btn btn-danger btn-sm cancel-new-category">İptal</button>
-                            <button type="submit" class="btn btn-success btn-sm">Kaydet ✅</button>
-                        </div>
-                    </form>`;
-                container.prepend(formLi);
-                formLi.querySelector('input').focus();
-                
-                formLi.querySelector('form').addEventListener('submit', async (e) => {
-                    e.preventDefault();
-                    const newCategory = { id: generateUniqueId(), name: {}, children: [] };
-                    let hasName = false;
-                    formLi.querySelectorAll('.new-category-name-input').forEach(input => { 
-                        if (input.value.trim()) hasName = true; 
-                        newCategory.name[input.dataset.lang] = input.value.trim(); 
-                    });
-                    if (!hasName) { alert('Lütfen en az bir dilde kategori adı girin.'); return; }
-                    parentCategoryArray.push(newCategory);
-                    await saveData('categories', localState.categories);
-                    refreshCategoryView(); // Kategori kaydedildikten sonra listeyi yenile
-                });
-                formLi.querySelector('.cancel-new-category').addEventListener('click', () => { formLi.remove(); });
-            }
-
-            // === 6. OLAY DİNLEYİCİLER (EVENT LISTENERS) ===
-            document.querySelector('.sidebar-nav').addEventListener('click', e => { 
-                const navItem = e.target.closest('.nav-item'); 
-                if (!navItem) return; 
-                document.querySelectorAll('.sidebar-nav .nav-item').forEach(item => item.classList.remove('active')); 
-                navItem.classList.add('active'); 
-                const pageId = navItem.dataset.page; 
-                document.querySelectorAll('.page').forEach(page => page.classList.toggle('active', false)); 
-                document.getElementById(pageId)?.classList.add('active'); 
-
-                // Sayfa geçişlerinde ilgili render fonksiyonlarını çağırarak verilerin yenilenmesini sağla
-                if (pageId === 'product-management') {
-                    renderProductList(); // Ürün listesini her geçişte yenile
-                    // Eğer ürün formu açıksa ve ürün ID'si varsa, o ürünü yeniden yükle
-                    const currentProductId = productForm.querySelector('#productId').value;
-                    if (productForm.style.display !== 'none' && currentProductId) {
-                            loadProductForEditing(currentProductId);
-                    } else if (localState.products.length > 0) {
-                        // Eğer ürün listesi doluysa ilk ürünü otomatik yükle (veya hiçbir şey yükleme)
-                        document.querySelector('#product-list-container li:first-child')?.click();
-                    } else {
-                        // Ürün yoksa yeni ürün ekleme formunu göster
-                        document.getElementById('add-new-product-btn').click();
-                    }
-
-                } else if (pageId === 'homepage-settings') {
-                    renderBannerSettings(); // Banner ayarlarını yenile
-                } else if (pageId === 'general-settings') {
-                    renderGeneralSettings(); // Genel ayarları yenile
-                } else if (pageId === 'category-management') {
-                    refreshCategoryView(); // Kategori görünümünü yenile
-                } else if (pageId === 'country-pricing-management') { 
-                    renderCountryPricingList(); // Ülke fiyatlandırma listesini yenile
-                }
-            });
-            
-            document.getElementById('add-new-product-btn').addEventListener('click', () => { 
-                document.querySelectorAll('#product-list-container li').forEach(item => item.classList.remove('active')); 
-                loadProductForEditing({ 
-                    id: '', 
-                    sku: `YENI-URUN-${Date.now().toString().slice(-6)}`, 
-                    basePriceTL: 0, 
-                    baseDiscountedPriceTL: null, 
-                    isFreeShipping: false, 
-                    isInShowcase: false, 
-                    categories: [], 
-                    content: {}, 
-                    variants: [] 
-                }); 
-            });
-            productListContainer.addEventListener('click', e => { const li = e.target.closest('li'); if (li) { document.querySelectorAll('#product-list-container li').forEach(item => item.classList.remove('active')); li.classList.add('active'); loadProductForEditing(li.dataset.id); } });
-            
-            productForm.addEventListener('submit', async e => { 
-                e.preventDefault(); 
-                const id = productForm.querySelector('#productId').value; 
-                
-                const productData = { 
-                    sku: productForm.querySelector('#productSKU').value, 
-                    basePriceTL: parseFloat(productForm.querySelector('#basePriceTL').value) || 0, 
-                    baseDiscountedPriceTL: parseFloat(productForm.querySelector('#baseDiscountedPriceTL').value) || null, 
-                    isFreeShipping: productForm.querySelector('#productFreeShipping').checked, 
-                    isInShowcase: productForm.querySelector('#productIsInShowcase').checked, 
-                    categories: Array.from(document.querySelectorAll('#product-category-checklist input:checked')).map(cb => cb.value), 
-                    content: {}, 
-                    variants: [] 
-                }; 
-                
-                // Ürün açıklamaları için dil tablarındaki verileri topla
-                productForm.querySelectorAll('.lang-content').forEach(cont => { 
-                    const lang = cont.dataset.langContent; 
-                    productData.content[lang] = { 
-                        name: cont.querySelector('[data-key="name"]').value, 
-                        description: cont.querySelector('[data-key="description"]').value 
-                    }; 
-                }); 
-                
-                // Renk seçenekleri ve medyayı topla
-                document.querySelectorAll('#color-variants-container .variant-color-block').forEach(block => { 
-                    const variant = { colorName: block.querySelector('.variant-color-input').value, media: [] }; 
-                    block.querySelectorAll('.media-input-group').forEach(mediaEl => { 
-                        const urlInput = mediaEl.querySelector('.variant-media-url'); 
-                        if (urlInput.value.trim()) 
-                            variant.media.push({ type: mediaEl.querySelector('.variant-media-type').value, url: urlInput.value.trim() }); 
-                    }); 
-                    if (variant.colorName.trim()) productData.variants.push(variant); 
-                }); 
-                
-                const savedId = await saveProduct(productData, id); 
-                if (savedId) { 
-                    await fetchData(); // Veriyi yeniden çek
-                    renderProductList(); // Ürün listesini yenile
-                    // Kaydedilen ürünü tekrar seç ve formunu yükle
-                    document.querySelector(`#product-list-container li[data-id="${savedId}"]`)?.classList.add('active'); 
-                    loadProductForEditing(savedId); 
-                } 
-            });
-
-            document.getElementById('delete-product-btn').addEventListener('click', async () => { 
-                const id = productForm.querySelector('#productId').value; 
-                if (await deleteProduct(id)) { 
-                    productForm.style.display = 'none'; 
-                    await fetchData(); // Veriyi yeniden çek
-                    renderProductList(); // Ürün listesini yenile
-                } 
-            });
-            productForm.addEventListener('click', e => { 
-                const target = e.target; 
-                if (target.id === 'add-color-variant-btn') {
-                    document.getElementById('color-variants-container').appendChild(createColorVariantBlock());
-                } else if (target.matches('.remove-color-btn, .remove-color-btn *')) {
-                    target.closest('.variant-color-block').remove();
-                } else if (target.matches('.add-media-btn, .add-media-btn *')) {
-                    target.closest('.variant-color-block').querySelector('.media-inputs-container').insertAdjacentHTML('beforeend', createMediaInputHTML());
-                } else if (target.matches('.remove-media-btn, .remove-media-btn *')) {
-                    target.closest('.media-input-group').remove();
-                } else if (target.classList.contains('lang-tab')) { 
-                    const langCode = target.dataset.lang; 
-                    const formSection = target.closest('.form-section'); 
-                    formSection.querySelectorAll('.lang-tab, .lang-content').forEach(el => el.classList.remove('active')); 
-                    target.classList.add('active'); 
-                    formSection.querySelector(`.lang-content[data-lang-content="${langCode}"]`).classList.add('active'); 
-                }
-            });
-            
-            homepageForm.addEventListener('submit', async e => { 
-                e.preventDefault(); 
-                const newSlidesData = []; 
-                document.querySelectorAll('#banner-settings-container .form-section').forEach(section => { 
-                    const slide = { 
-                        image_url: section.querySelector('.banner-input[data-key="image_url"]').value, 
-                        link_url: section.querySelector('.banner-input[data-key="link_url"]').value, 
-                        content: {},
-                        style: {} 
-                    }; 
-                    
-                    section.querySelectorAll('.lang-content').forEach(cont => { 
-                        const lang = cont.dataset.langContent; 
-                        slide.content[lang] = { 
-                            title: cont.querySelector('[data-key="title"]').value, 
-                            subtitle: cont.querySelector('[data-key="subtitle"]').value, 
-                            button_text: cont.querySelector('[data-key="button_text"]').value 
-                        }; 
-                    }); 
-
-                    section.querySelectorAll('.banner-style-input').forEach(input => {
-                        if (input.value.trim()) { 
-                            slide.style[input.dataset.styleKey] = input.value.trim();
-                        }
-                    });
-
-                    newSlidesData.push(slide); 
-                }); 
-                localState.settings.banner = { slides: newSlidesData }; 
-                await saveData('settings', { banner: newSlidesData }); 
-                renderBannerSettings(); // Kayıt sonrası formları yeniden render et
-            });
-
-            document.getElementById('add-new-slide-btn').addEventListener('click', () => { 
-                const newSlide = { 
-                    image_url: '', 
-                    link_url: '', 
-                    content: {},
-                    style: { 
-                        title_color: '#FFFFFF',
-                        title_font_size: '2.8rem',
-                        subtitle_color: '#FFFFFF',
-                        subtitle_font_size: '1.2rem',
-                        button_bg_color: '#e74c3c',
-                        button_text_color: '#FFFFFF',
-                        button_border_radius: '5px',
-                        button_padding: '12px 25px'
-                    } 
-                }; 
-                (localState.settings.languages || []).forEach(lang => { 
-                    newSlide.content[lang.code] = { title: '', subtitle: '', button_text: '' }; 
-                }); 
-                if (!localState.settings.banner) localState.settings.banner = { slides: [] }; 
-                localState.settings.banner.slides.push(newSlide); 
-                renderBannerSettings(); 
-            });
-            bannerSettingsContainer.addEventListener('click', (e) => { 
-                if (e.target.closest('.delete-slide-btn')) { 
-                    const index = parseInt(e.target.closest('.form-section').dataset.index); 
-                    if (!isNaN(index) && localState.settings.banner.slides.length > index) {
-                        localState.settings.banner.slides.splice(index, 1); 
-                        renderBannerSettings(); 
-                    }
-                } 
-            });
-            
-            // --- KATEGORİ YÖNETİMİ OLAYLARI GÜNCELLEMESİ ---
-            document.getElementById('add-main-category-btn').addEventListener('click', () => {
-                if (!categoryTreeContainer.querySelector('.new-category-form')) {
-                    showCategoryInputForm(categoryTreeContainer, localState.categories);
-                }
-            });
-
-            saveCategoriesBtn.addEventListener('click', async () => {
-                updateLocalCategoriesFromDOM(localState.categories, categoryTreeContainer.querySelector('ul'));
-                await saveData('categories', localState.categories);
-                refreshCategoryView(); 
-            });
-
-            categoryTreeContainer.addEventListener('click', async e => { 
-                const btn = e.target.closest('button'); 
-                const li = e.target.closest('li'); 
-                const id = li?.dataset.id; 
-
-                if (btn && btn.matches('.add-subcategory-btn, .add-subcategory-btn *')) {
-                    const parentCategory = findCategoryInTree(localState.categories, id);
-                    if (parentCategory) {
-                        if (!parentCategory.children) parentCategory.children = [];
-                        let subList = li.querySelector('ul');
-                        if(!subList) { 
-                            subList = document.createElement('ul'); 
-                            li.appendChild(subList); 
-                        }
-                        showCategoryInputForm(subList, parentCategory.children);
-                    }
-                } else if (btn && btn.matches('.delete-category-btn, .delete-category-btn *')) {
-                    if (confirm('Bu kategoriyi ve tüm alt kategorilerini silmek istediğinizden emin misiniz?')) { 
-                        findAndRemoveCategory(localState.categories, id); 
-                        await saveData('categories', localState.categories); 
-                        refreshCategoryView();
-                    } 
-                }
-            });
-
-            categoryTreeContainer.addEventListener('change', async e => { 
-                if (e.target.matches('.category-name-input')) { 
-                    const li = e.target.closest('li');
-                    const id = li?.dataset.id; 
-                    const lang = e.target.dataset.lang;
-                    const value = e.target.value.trim();
-
-                    const categoryToUpdate = findCategoryInTree(localState.categories, id);
-                    if (categoryToUpdate) {
-                        if (!categoryToUpdate.name) categoryToUpdate.name = {};
-                        categoryToUpdate.name[lang] = value;
-                    }
-                }
-            });
-
-            // Yardımcı fonksiyonlar (kategori ağacında arama ve silme)
-            function findCategoryInTree(categories, id) {
-                for (const cat of categories) {
-                    if (cat.id === id) return cat;
-                    if (cat.children) {
-                        const found = findCategoryInTree(cat.children, id);
-                        if (found) return found;
-                    }
-                }
-                return null;
-            }
-
-            function findAndRemoveCategory(categories, id) {
-                for (let i = 0; i < categories.length; i++) {
-                    if(categories[i].id === id) {
-                        categories.splice(i, 1);
-                        return true;
-                    }
-                    if(categories[i].children && findAndRemoveCategory(categories[i].children, id)) return true;
-                }
-                return false;
-            }
-
-            // Kategori adı değişikliklerini DOM'dan alıp localState'e yansıtan yardımcı fonksiyon
-            function updateLocalCategoriesFromDOM(categoriesArray, ulElement) {
-                if (!ulElement) return;
-
-                Array.from(ulElement.querySelectorAll('.category-item')).forEach(li => { 
-                    const categoryId = li.dataset.id;
-                    const category = findCategoryInTree(categoriesArray, categoryId);
-
-                    if (category) {
-                        li.querySelectorAll('.category-name-input').forEach(input => {
-                            const lang = input.dataset.lang;
-                            if (!category.name) category.name = {};
-                            category.name[lang] = input.value.trim();
-                        });
-                        const subUl = li.querySelector('ul');
-                        if (subUl) { 
-                            updateLocalCategoriesFromDOM(category.children, subUl);
-                        }
-                    }
-                });
-            }
-
-
-            // --- GENEL AYARLAR FONKSİYONLARI VE OLAY DİNLEYİCİLERİ ---
-
-            function toggleLogoOptions() {
-                const selectedType = logoTypeSelect.value;
-                if (selectedType === 'text_icon') {
-                    textIconLogoOptions.classList.add('active');
-                    imageLogoOptions.classList.remove('active');
-                } else {
-                    textIconLogoOptions.classList.remove('active');
-                    imageLogoOptions.classList.add('active');
+                // Ürün formu şu an açıksa ve bir ürün düzenleniyorsa, yeni dil seçenekleriyle formu yeniden yükle.
+                const currentProductId = productForm.querySelector('#productId').value;
+                if (productForm.style.display !== 'none' && currentProductId) {
+                    loadProductForEditing(currentProductId);
                 }
             }
 
@@ -1250,7 +955,7 @@
 
                 logoIconPicker.innerHTML = '';
                 fontAwesomeIcons.forEach(iconClass => {
-                    const iconItem = document.createElement('span');
+                    const iconItem = document.createElement('i'); // Daha semantik olması için i etiketi kullanıldı
                     iconItem.className = `icon-item ${iconClass} ${iconClass === generalSettings.logo?.icon ? 'selected' : ''}`;
                     iconItem.dataset.iconClass = iconClass;
                     logoIconPicker.appendChild(iconItem);
@@ -1263,7 +968,6 @@
                 document.getElementById('promoBarScrollSpeed').value = parseFloat(generalSettings.promoBar?.scrollSpeed) || 20;
                 document.getElementById('promoBarEnabled').checked = generalSettings.promoBar?.enabled !== undefined ? generalSettings.promoBar.enabled : true;
 
-
                 createLangTabs(
                     document.getElementById('promo-text-lang-tabs'),
                     document.getElementById('promo-text-lang-content'),
@@ -1271,10 +975,14 @@
                     [{ label: 'Promosyon Yazısı', key: 'text' }]
                 );
 
-                // Desteklenen Diller Ayarları
                 renderLanguageList();
-                // Para Birimi Sembolleri Ayarları
                 renderCurrencySymbolList();
+            }
+            
+            function toggleLogoOptions() {
+                const selectedType = logoTypeSelect.value;
+                textIconLogoOptions.classList.toggle('active', selectedType === 'text_icon');
+                imageLogoOptions.classList.toggle('active', selectedType === 'image');
             }
 
             function renderLanguageList() {
@@ -1315,6 +1023,7 @@
                         <button type="submit" class="btn btn-success">Dili Ekle</button>
                     </div>
                 `;
+                newLanguageFormContainer.innerHTML = ''; // Önce temizle
                 newLanguageFormContainer.appendChild(form);
                 form.querySelector('#newLangName').focus();
 
@@ -1324,33 +1033,14 @@
                     const code = form.querySelector('#newLangCode').value.trim().toLowerCase();
                     const flag = form.querySelector('#newLangFlag').value.trim();
 
-                    if (!name || !code) {
-                        alert('Dil adı ve kodu boş bırakılamaz.');
-                        return;
-                    }
-                    if (localState.settings.languages.some(lang => lang.code === code)) {
-                        alert('Bu dil kodu zaten mevcut!');
-                        return;
-                    }
-                    if (code.length !== 2) {
-                        alert('Dil kodu 2 karakterli olmalıdır (örn: en, tr, el).');
-                        return;
-                    }
+                    if (!name || !code) { return alert('Dil adı ve kodu boş bırakılamaz.'); }
+                    if (localState.settings.languages.some(lang => lang.code === code)) { return alert('Bu dil kodu zaten mevcut!'); }
+                    if (code.length < 2) { return alert('Dil kodu en az 2 karakterli olmalıdır (örn: en, tr, el).'); }
 
                     localState.settings.languages.push({ name, code, flag });
                     await saveData('settings', { languages: localState.settings.languages });
                     newLanguageFormContainer.innerHTML = ''; 
-                    renderLanguageList(); 
-                    renderBannerSettings(); 
-                    // Ürün formundaki dil tablarını yeniden oluştur (eğer açıksa)
-                    const productLangTabsContainer = productForm.querySelector('#product-lang-tabs-container');
-                    const productLangContentContainer = productForm.querySelector('#product-lang-content-container');
-                    if (productLangTabsContainer && productLangContentContainer && productForm.style.display !== 'none') {
-                        createLangTabs(productLangTabsContainer, productLangContentContainer, {}, [{ label: 'Ürün Adı', key: 'name' }, { label: 'Açıklama', key: 'description', type: 'textarea' }]);
-                    }
-                    renderGeneralSettings(); 
-                    // Ülke fiyatlandırma default dil seçeneklerini güncelle
-                    renderCountryPricingList();
+                    refreshDependentUIs(); // Merkezi yenileme fonksiyonunu çağır
                 });
 
                 form.querySelector('.cancel-new-language-btn').addEventListener('click', () => {
@@ -1394,6 +1084,7 @@
                         <button type="submit" class="btn btn-success">Sembol Ekle</button>
                     </div>
                 `;
+                newCurrencySymbolFormContainer.innerHTML = ''; // Önce temizle
                 newCurrencySymbolFormContainer.appendChild(form);
                 form.querySelector('#newCurrencyCode').focus();
 
@@ -1402,20 +1093,14 @@
                     const code = form.querySelector('#newCurrencyCode').value.trim().toUpperCase();
                     const symbol = form.querySelector('#newCurrencySymbol').value.trim();
 
-                    if (!code || !symbol) {
-                        alert('Para birimi kodu ve sembolü boş bırakılamaz.');
-                        return;
-                    }
-                    if (localState.settings.currencySymbols[code]) {
-                        alert('Bu para birimi kodu zaten mevcut!');
-                        return;
-                    }
+                    if (!code || !symbol) { return alert('Para birimi kodu ve sembolü boş bırakılamaz.'); }
+                    if (localState.settings.currencySymbols[code]) { return alert('Bu para birimi kodu zaten mevcut!');}
 
                     localState.settings.currencySymbols[code] = symbol;
                     await saveData('settings', { currencySymbols: localState.settings.currencySymbols });
                     newCurrencySymbolFormContainer.innerHTML = '';
                     renderCurrencySymbolList();
-                    renderCountryPricingList(); // Ülke fiyatlandırma para birimi seçeneklerini güncelle
+                    renderCountryPricingList(); // Para birimi seçeneklerini güncelle
                 });
 
                 form.querySelector('.cancel-new-currency-symbol-btn').addEventListener('click', () => {
@@ -1423,114 +1108,20 @@
                 });
             }
 
-
-            generalSettingsForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const selectedLogoType = logoTypeSelect.value;
-                const newGeneralSettings = {
-                    logo: {
-                        type: selectedLogoType 
-                    },
-                    promoBar: {
-                        bgColor: document.getElementById('promoBarBgColor').value,
-                        textColor: document.getElementById('promoBarTextColor').value,
-                        fontSize: `${document.getElementById('promoBarFontSize').value}px`, 
-                        scrollSpeed: `${document.getElementById('promoBarScrollSpeed').value}s`,
-                        text: {},
-                        enabled: document.getElementById('promoBarEnabled').checked 
-                    }
-                };
-
-                if (selectedLogoType === 'text_icon') {
-                    newGeneralSettings.logo.text = document.getElementById('logoText').value.trim();
-                    newGeneralSettings.logo.icon = document.getElementById('logoIcon').value.trim();
-                    newGeneralSettings.logo.iconColor = document.getElementById('logoIconColor').value;
-                    newGeneralSettings.logo.textColor = document.getElementById('logoTextColor').value;
-                } else { 
-                    newGeneralSettings.logo.imageUrl = document.getElementById('logoImageUrl').value.trim();
-                    newGeneralSettings.logo.imageWidth = parseInt(document.getElementById('logoImageWidth').value) || 0;
-                    newGeneralSettings.logo.imageHeight = parseInt(document.getElementById('logoImageHeight').value) || 0;
-                }
-
-                document.querySelectorAll('#promo-text-lang-content .lang-content').forEach(cont => {
-                    const lang = cont.dataset.langContent;
-                    newGeneralSettings.promoBar.text[lang] = cont.querySelector('[data-key="text"]').value.trim();
-                });
-
-                localState.settings.general = newGeneralSettings;
-                await saveData('settings', { general: newGeneralSettings });
-                renderGeneralSettings(); 
-            });
-
-            logoTypeSelect.addEventListener('change', toggleLogoOptions);
-
-            logoIconPicker.addEventListener('click', (e) => {
-                const selectedIconItem = e.target.closest('.icon-item');
-                if (selectedIconItem) {
-                    logoIconPicker.querySelectorAll('.icon-item.selected').forEach(item => item.classList.remove('selected'));
-                    selectedIconItem.classList.add('selected');
-                    document.getElementById('logoIcon').value = selectedIconItem.dataset.iconClass;
-                }
-            });
-
-            addLanguageBtn.addEventListener('click', showNewLanguageForm);
-            languageListContainer.addEventListener('click', async (e) => {
-                const deleteBtn = e.target.closest('.delete-language-btn');
-                if (deleteBtn) {
-                    const langItem = deleteBtn.closest('.language-item');
-                    const langCodeToDelete = langItem.dataset.code;
-
-                    if (localState.settings.languages.length <= 1) {
-                        alert('En az bir dil olmak zorundadır. Son dili silemezsiniz.');
-                        return;
-                    }
-                    if (!confirm(`'${langCodeToDelete}' dilini silmek istediğinizden emin misiniz? Bu, tüm içerik alanlarındaki ilgili dil verilerini etkileyebilir!`)) { 
-                        return;
-                    }
-
-                    localState.settings.languages = localState.settings.languages.filter(lang => lang.code !== langCodeToDelete);
-                    await saveData('settings', { languages: localState.settings.languages });
-                    renderLanguageList(); 
-                    renderBannerSettings(); 
-                    // Dil silindiğinde ürün formundaki dil tablarını yeniden oluştur
-                    const productLangTabsContainer = productForm.querySelector('#product-lang-tabs-container');
-                    const productLangContentContainer = productForm.querySelector('#product-lang-content-container');
-                    if (productLangTabsContainer && productLangContentContainer && productForm.style.display !== 'none') {
-                        createLangTabs(productLangTabsContainer, productLangContentContainer, {}, [{ label: 'Ürün Adı', key: 'name' }, { label: 'Açıklama', key: 'description', type: 'textarea' }]);
-                    }
-                    renderGeneralSettings(); 
-                    renderCountryPricingList(); // Ülke fiyatlandırma varsayılan dil seçeneklerini güncelle
-                }
-            });
-
-            addCurrencySymbolBtn.addEventListener('click', showNewCurrencySymbolForm);
-            currencySymbolListContainer.addEventListener('click', async (e) => {
-                const deleteBtn = e.target.closest('.delete-currency-symbol-btn');
-                if (deleteBtn) {
-                    const codeToDelete = deleteBtn.dataset.code;
-                    if (confirm(`'${codeToDelete}' para birimi sembolünü silmek istediğinizden emin misiniz?`)) {
-                        delete localState.settings.currencySymbols[codeToDelete];
-                        await saveData('settings', { currencySymbols: localState.settings.currencySymbols });
-                        renderCurrencySymbolList();
-                        renderCountryPricingList(); // Ülke fiyatlandırma para birimi seçeneklerini güncelle
-                    }
-                }
-            });
-
-
-            // --- YENİ: ÜLKELERE GÖRE FİYATLANDIRMA YÖNETİMİ ---
+            // --- 7. ÜLKELERE GÖRE FİYATLANDIRMA YÖNETİMİ ---
             
             function renderCountryPricingList() {
                 newCountryPricingFormContainer.innerHTML = ''; // Yeni ülke ekleme formunu gizle
                 countryPricingListContainer.innerHTML = '';
                 
-                // localState.settings.countryPricing objesindeki entry'leri alıp sırala (code, data)
+                // localState.settings.countryPricing objesindeki entry'leri alıp sırala
                 const countriesToRender = Object.entries(localState.settings.countryPricing)
                     .map(([codeKey, countryData]) => ({
                         code: codeKey.toUpperCase(), // Kodu büyük harf olarak objeye ekle (ekranda göstermek için)
-                        ...countryData // Diğer tüm özellikleri (name, flag, adjustment, defaultLanguage, currencySymbol) yay
+                        ...countryData
                     }))
-                    .sort((a,b) => (a.name || '').localeCompare(b.name || '')); // İsme göre sırala
+                    // DÜZELTME: localeCompare hatasını önlemek için `String()` eklendi.
+                    .sort((a,b) => String(a.name || '').localeCompare(String(b.name || ''))); // İsme göre sırala
 
                 countriesToRender.forEach(country => {
                     const countryItem = document.createElement('div');
@@ -1573,12 +1164,6 @@
                 }
             }
             
-            // "Yeni Ülke Ekle" butonu formu gösterme
-            addCountryPricingBtn.addEventListener('click', () => {
-                showNewCountryPricingForm();
-            });
-
-            // Yeni Ülke Fiyatlandırma Formu Gösterme
             function showNewCountryPricingForm() {
                 if (newCountryPricingFormContainer.querySelector('form')) return; 
 
@@ -1623,6 +1208,7 @@
                         <button type="submit" class="btn btn-success btn-sm">Ülkeyi Ekle</button>
                     </div>
                 `;
+                newCountryPricingFormContainer.innerHTML = '';
                 newCountryPricingFormContainer.appendChild(form);
                 form.querySelector('#newCountryCode').focus();
 
@@ -1636,20 +1222,10 @@
                     const defaultLanguage = form.querySelector('#newCountryDefaultLanguage').value;
                     const currencySymbol = form.querySelector('#newCountryCurrencySymbol').value;
 
-                    if (!name || !code || !defaultLanguage || !currencySymbol) {
-                        alert('Tüm alanlar boş bırakılamaz.');
-                        return;
-                    }
-                    if (code.length !== 2) {
-                        alert('Ülke kodu 2 karakterli olmalıdır (örn: TR, US, CY).');
-                        return;
-                    }
-                    if (localState.settings.countryPricing[code]) { // Küçük harf koduyla kontrol et
-                        alert('Bu ülke kodu zaten mevcut!');
-                        return;
-                    }
+                    if (!name || !code || !defaultLanguage || !currencySymbol) { return alert('Tüm zorunlu alanlar doldurulmalıdır.');}
+                    if (code.length !== 2) { return alert('Ülke kodu 2 karakterli olmalıdır (örn: tr, us, cy).'); }
+                    if (localState.settings.countryPricing[code]) { return alert('Bu ülke kodu zaten mevcut!');}
 
-                    // localState'i güncelle ve Firebase'e kaydet
                     localState.settings.countryPricing[code] = { name, flag, adjustment, defaultLanguage, currencySymbol }; 
                     await saveData('settings', { countryPricing: localState.settings.countryPricing });
                     newCountryPricingFormContainer.innerHTML = ''; // Formu gizle
@@ -1661,64 +1237,322 @@
                 });
             }
 
-            // Ülke fiyatlandırma ayarlarını kaydetme (listeyi güncelleyen genel kaydetme butonu)
+
+            // === 8. OLAY DİNLEYİCİLER (EVENT LISTENERS) ===
+            document.querySelector('.sidebar-nav').addEventListener('click', e => { 
+                const navItem = e.target.closest('.nav-item'); 
+                if (!navItem) return; 
+                document.querySelectorAll('.sidebar-nav .nav-item').forEach(item => item.classList.remove('active')); 
+                navItem.classList.add('active'); 
+                const pageId = navItem.dataset.page; 
+                document.querySelectorAll('.page').forEach(page => page.classList.toggle('active', page.id === pageId)); 
+            });
+            
+            document.getElementById('add-new-product-btn').addEventListener('click', () => { 
+                document.querySelectorAll('#product-list-container li').forEach(item => item.classList.remove('active')); 
+                loadProductForEditing({ 
+                    id: '', 
+                    sku: `YENI-URUN-${Date.now().toString().slice(-6)}`, 
+                    basePriceTL: 0, 
+                    baseDiscountedPriceTL: null, 
+                    isFreeShipping: false, 
+                    isInShowcase: false, 
+                    categories: [], 
+                    content: {}, 
+                    variants: [] 
+                }); 
+            });
+
+            productListContainer.addEventListener('click', e => { 
+                const li = e.target.closest('li.nav-item'); 
+                if (li) { 
+                    document.querySelectorAll('#product-list-container li').forEach(item => item.classList.remove('active')); 
+                    li.classList.add('active'); 
+                    loadProductForEditing(li.dataset.id); 
+                } 
+            });
+            
+            productForm.addEventListener('submit', async e => { 
+                e.preventDefault(); 
+                const id = productForm.querySelector('#productId').value;
+                const basePrice = parseFloat(productForm.querySelector('#basePriceTL').value);
+                const discountedPrice = parseFloat(productForm.querySelector('#baseDiscountedPriceTL').value);
+                
+                const productData = { 
+                    sku: productForm.querySelector('#productSKU').value, 
+                    basePriceTL: isNaN(basePrice) ? 0 : basePrice, 
+                    baseDiscountedPriceTL: isNaN(discountedPrice) ? null : discountedPrice, 
+                    isFreeShipping: productForm.querySelector('#productFreeShipping').checked, 
+                    isInShowcase: productForm.querySelector('#productIsInShowcase').checked, 
+                    categories: Array.from(document.querySelectorAll('#product-category-checklist input:checked')).map(cb => cb.value), 
+                    content: {}, 
+                    variants: [] 
+                }; 
+                
+                productForm.querySelectorAll('.lang-content').forEach(cont => { 
+                    const lang = cont.dataset.langContent; 
+                    productData.content[lang] = { 
+                        name: cont.querySelector('[data-key="name"]').value, 
+                        description: cont.querySelector('[data-key="description"]').value 
+                    }; 
+                }); 
+                
+                document.querySelectorAll('#color-variants-container .variant-color-block').forEach(block => { 
+                    const variant = { colorName: block.querySelector('.variant-color-input').value, media: [] }; 
+                    block.querySelectorAll('.media-input-group').forEach(mediaEl => { 
+                        const urlInput = mediaEl.querySelector('.variant-media-url'); 
+                        if (urlInput.value.trim()) 
+                            variant.media.push({ type: mediaEl.querySelector('.variant-media-type').value, url: urlInput.value.trim() }); 
+                    }); 
+                    if (variant.colorName.trim()) productData.variants.push(variant); 
+                }); 
+                
+                const savedId = await saveProduct(productData, id); 
+                if (savedId) { 
+                    await fetchData(); // Veriyi yeniden çek
+                    renderProductList(); // Ürün listesini yenile
+                    document.querySelector(`#product-list-container li[data-id="${savedId}"]`)?.classList.add('active'); 
+                    loadProductForEditing(savedId); 
+                } 
+            });
+
+            document.getElementById('delete-product-btn').addEventListener('click', async () => { 
+                const id = productForm.querySelector('#productId').value; 
+                if (await deleteProduct(id)) { 
+                    productForm.style.display = 'none'; 
+                    await fetchData();
+                    renderProductList();
+                } 
+            });
+
+            productForm.addEventListener('click', e => { 
+                const target = e.target; 
+                if (target.id === 'add-color-variant-btn') {
+                    document.getElementById('color-variants-container').appendChild(createColorVariantBlock());
+                } else if (target.closest('.remove-color-btn')) {
+                    target.closest('.variant-color-block').remove();
+                } else if (target.closest('.add-media-btn')) {
+                    target.closest('.variant-color-block').querySelector('.media-inputs-container').insertAdjacentHTML('beforeend', createMediaInputHTML());
+                } else if (target.closest('.remove-media-btn')) {
+                    target.closest('.media-input-group').remove();
+                }
+            });
+            
+            homepageForm.addEventListener('submit', async e => { 
+                e.preventDefault(); 
+                const newSlidesData = []; 
+                document.querySelectorAll('#banner-settings-container .form-section').forEach(section => { 
+                    const slide = { 
+                        image_url: section.querySelector('.banner-input[data-key="image_url"]').value, 
+                        link_url: section.querySelector('.banner-input[data-key="link_url"]').value, 
+                        content: {},
+                        style: {} 
+                    }; 
+                    
+                    section.querySelectorAll('.lang-content').forEach(cont => { 
+                        const lang = cont.dataset.langContent; 
+                        slide.content[lang] = { 
+                            title: cont.querySelector('[data-key="title"]').value, 
+                            subtitle: cont.querySelector('[data-key="subtitle"]').value, 
+                            button_text: cont.querySelector('[data-key="button_text"]').value 
+                        }; 
+                    }); 
+
+                    section.querySelectorAll('.banner-style-input').forEach(input => {
+                        if (input.value.trim()) { 
+                            slide.style[input.dataset.styleKey] = input.value.trim();
+                        }
+                    });
+
+                    newSlidesData.push(slide); 
+                }); 
+                localState.settings.banner = { slides: newSlidesData }; 
+                await saveData('settings', { banner: localState.settings.banner }); 
+                renderBannerSettings();
+            });
+
+            document.getElementById('add-new-slide-btn').addEventListener('click', () => { 
+                const newSlide = { 
+                    image_url: '', 
+                    link_url: '', 
+                    content: {},
+                    style: { 
+                        title_color: '#FFFFFF', title_font_size: '2.8rem',
+                        subtitle_color: '#FFFFFF', subtitle_font_size: '1.2rem',
+                        button_bg_color: '#e74c3c', button_text_color: '#FFFFFF',
+                        button_border_radius: '5px', button_padding: '12px 25px'
+                    } 
+                }; 
+                (localState.settings.languages || []).forEach(lang => { 
+                    newSlide.content[lang.code] = { title: '', subtitle: '', button_text: '' }; 
+                }); 
+                if (!localState.settings.banner) localState.settings.banner = { slides: [] }; 
+                localState.settings.banner.slides.push(newSlide); 
+                renderBannerSettings(); 
+            });
+
+            bannerSettingsContainer.addEventListener('click', (e) => { 
+                if (e.target.closest('.delete-slide-btn')) { 
+                    const index = parseInt(e.target.closest('.form-section').dataset.index, 10); 
+                    if (!isNaN(index) && localState.settings.banner.slides.length > index) {
+                        localState.settings.banner.slides.splice(index, 1); 
+                        renderBannerSettings(); 
+                    }
+                } 
+            });
+            
+            // Kategori Yönetimi Olayları
+            document.getElementById('add-main-category-btn').addEventListener('click', () => {
+                if (!categoryTreeContainer.querySelector('.new-category-form')) {
+                     // TODO: `showCategoryInputForm` henüz tanımlanmadı, eklenecek.
+                }
+            });
+            saveCategoriesBtn.addEventListener('click', async () => {
+                // TODO: `updateLocalCategoriesFromDOM` henüz tanımlanmadı, eklenecek.
+                await saveData('categories', localState.categories);
+                refreshCategoryView(); 
+            });
+            
+            // Genel Ayarlar Formu Olayları
+            generalSettingsForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const selectedLogoType = logoTypeSelect.value;
+                
+                const promoFontSize = parseInt(document.getElementById('promoBarFontSize').value, 10);
+                const promoScrollSpeed = parseInt(document.getElementById('promoBarScrollSpeed').value, 10);
+                const logoWidth = parseInt(document.getElementById('logoImageWidth').value, 10);
+                const logoHeight = parseInt(document.getElementById('logoImageHeight').value, 10);
+
+                const newGeneralSettings = {
+                    logo: { type: selectedLogoType },
+                    promoBar: {
+                        bgColor: document.getElementById('promoBarBgColor').value,
+                        textColor: document.getElementById('promoBarTextColor').value,
+                        fontSize: `${isNaN(promoFontSize) ? 15 : promoFontSize}px`, 
+                        scrollSpeed: `${isNaN(promoScrollSpeed) ? 20 : promoScrollSpeed}s`,
+                        text: {},
+                        enabled: document.getElementById('promoBarEnabled').checked 
+                    }
+                };
+
+                if (selectedLogoType === 'text_icon') {
+                    newGeneralSettings.logo.text = document.getElementById('logoText').value.trim();
+                    newGeneralSettings.logo.icon = document.getElementById('logoIcon').value.trim();
+                    newGeneralSettings.logo.iconColor = document.getElementById('logoIconColor').value;
+                    newGeneralSettings.logo.textColor = document.getElementById('logoTextColor').value;
+                } else { 
+                    newGeneralSettings.logo.imageUrl = document.getElementById('logoImageUrl').value.trim();
+                    newGeneralSettings.logo.imageWidth = isNaN(logoWidth) ? 150 : logoWidth;
+                    newGeneralSettings.logo.imageHeight = isNaN(logoHeight) ? 40 : logoHeight;
+                }
+
+                document.querySelectorAll('#promo-text-lang-content .lang-content').forEach(cont => {
+                    const lang = cont.dataset.langContent;
+                    newGeneralSettings.promoBar.text[lang] = cont.querySelector('[data-key="text"]').value.trim();
+                });
+
+                localState.settings.general = newGeneralSettings;
+                await saveData('settings', { general: newGeneralSettings });
+                renderGeneralSettings(); 
+            });
+
+            logoTypeSelect.addEventListener('change', toggleLogoOptions);
+            logoIconPicker.addEventListener('click', (e) => {
+                const selectedIconItem = e.target.closest('.icon-item');
+                if (selectedIconItem) {
+                    logoIconPicker.querySelectorAll('.icon-item.selected').forEach(item => item.classList.remove('selected'));
+                    selectedIconItem.classList.add('selected');
+                    document.getElementById('logoIcon').value = selectedIconItem.dataset.iconClass;
+                }
+            });
+
+            addLanguageBtn.addEventListener('click', showNewLanguageForm);
+            languageListContainer.addEventListener('click', async (e) => {
+                const deleteBtn = e.target.closest('.delete-language-btn');
+                if (deleteBtn) {
+                    const langItem = deleteBtn.closest('.language-item');
+                    const langCodeToDelete = langItem.dataset.code;
+
+                    if (localState.settings.languages.length <= 1) { return alert('En az bir dil olmak zorundadır. Son dili silemezsiniz.'); }
+                    if (!confirm(`'${langCodeToDelete}' dilini silmek istediğinizden emin misiniz? Bu, tüm içerik alanlarındaki ilgili dil verilerini etkileyebilir!`)) { return; }
+
+                    localState.settings.languages = localState.settings.languages.filter(lang => lang.code !== langCodeToDelete);
+                    await saveData('settings', { languages: localState.settings.languages });
+                    refreshDependentUIs();
+                }
+            });
+
+            addCurrencySymbolBtn.addEventListener('click', showNewCurrencySymbolForm);
+            currencySymbolListContainer.addEventListener('click', async (e) => {
+                const deleteBtn = e.target.closest('.delete-currency-symbol-btn');
+                if (deleteBtn) {
+                    const codeToDelete = deleteBtn.dataset.code;
+                    if (confirm(`'${codeToDelete}' para birimi sembolünü silmek istediğinizden emin misiniz?`)) {
+                        delete localState.settings.currencySymbols[codeToDelete];
+                        await saveData('settings', { currencySymbols: localState.settings.currencySymbols });
+                        renderCurrencySymbolList();
+                        renderCountryPricingList();
+                    }
+                }
+            });
+
             countryPricingForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const newCountryPricingSettings = {};
-                // Mevcut render edilmiş inputlardan verileri topla
                 document.querySelectorAll('.country-pricing-item').forEach(item => {
-                    const countryCode = item.dataset.code.toLowerCase(); // Firebase'e küçük harf olarak kaydedildiği için
-                    
-                    // İlgili ülkenin inputlarını bul
+                    const countryCode = item.dataset.code.toLowerCase(); 
                     const adjustmentInput = item.querySelector('[data-field="adjustment"]');
                     const defaultLangSelect = item.querySelector('[data-field="defaultLanguage"]');
                     const currencySymbolSelect = item.querySelector('[data-field="currencySymbol"]');
 
                     if (adjustmentInput && defaultLangSelect && currencySymbolSelect) {
-                        // Mevcut ülkenin adını ve bayrağını localState'ten al, bunlar değişmiyor
                         const existingCountryData = localState.settings.countryPricing[countryCode] || {};
+                        const adjustmentValue = parseFloat(adjustmentInput.value);
 
                         newCountryPricingSettings[countryCode] = { 
-                            name: existingCountryData.name || countryCode, // Adı ve bayrağı orijinal veriden veya varsayılan olarak al
+                            name: existingCountryData.name || countryCode,
                             flag: existingCountryData.flag || '',
-                            adjustment: parseFloat(adjustmentInput.value) || 0,
+                            adjustment: isNaN(adjustmentValue) ? 0 : adjustmentValue,
                             defaultLanguage: defaultLangSelect.value,
                             currencySymbol: currencySymbolSelect.value
                         };
                     }
                 });
-
                 localState.settings.countryPricing = newCountryPricingSettings; 
                 await saveData('settings', { countryPricing: localState.settings.countryPricing }); 
-                renderCountryPricingList(); // Kayıt sonrası listeyi yeniden render et
+                renderCountryPricingList();
             });
 
-            // Ülke silme butonu dinleyicisi
             countryPricingListContainer.addEventListener('click', async (e) => {
                 const deleteBtn = e.target.closest('.delete-country-pricing-btn');
                 if (deleteBtn) {
-                    const countryCodeToDelete = deleteBtn.dataset.code; // HTML'de büyük harf olabilir, Firebase'e küçük olarak gidiyor
-                    if (confirm(`'${localState.settings.countryPricing[countryCodeToDelete.toLowerCase()]?.name}' (${countryCodeToDelete.toUpperCase()}) ülkesi fiyatlandırmasını silmek istediğinizden emin misiniz?`)) {
-                        delete localState.settings.countryPricing[countryCodeToDelete.toLowerCase()]; // localState'ten sil
-                        await saveData('settings', { countryPricing: localState.settings.countryPricing }); // Firebase'e kaydet
-                        renderCountryPricingList(); // Listeyi yenile
+                    const countryCodeToDelete = deleteBtn.dataset.code.toLowerCase();
+                    const countryName = localState.settings.countryPricing[countryCodeToDelete]?.name || countryCodeToDelete.toUpperCase();
+                    if (confirm(`'${countryName}' ülkesi fiyatlandırmasını silmek istediğinizden emin misiniz?`)) {
+                        delete localState.settings.countryPricing[countryCodeToDelete];
+                        await saveData('settings', { countryPricing: localState.settings.countryPricing });
+                        renderCountryPricingList();
                     }
                 }
             });
 
-
-            // === 7. BAŞLANGIÇ FONKSİYONU ===
+            // === 9. BAŞLANGIÇ FONKSİYONU ===
             async function init() {
                 await fetchData();
-                // Tüm render fonksiyonlarını çağırarak başlangıçta tüm formları doğru veriyle doldur
+                
+                // Başlangıçta tüm arayüzü render et
+                refreshDependentUIs();
                 renderProductList();
-                renderBannerSettings(); 
-                refreshCategoryView();
-                renderGeneralSettings(); 
-                renderCountryPricingList(); 
                 
                 // Sayfa ilk yüklendiğinde varsayılan olarak Ürün Yönetimi aktif olsun
                 document.querySelector('.sidebar-nav .nav-item[data-page="product-management"]').click();
+
+                // Eğer ürün varsa ilk ürünü seç, yoksa yeni ürün ekleme formunu aç
+                if (localState.products.length > 0) {
+                     document.querySelector('#product-list-container li:first-child')?.click();
+                } else {
+                    document.getElementById('add-new-product-btn').click();
+                }
             }
             
             init();
