@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PUFEMO - Yönetim Paneli (Nihai Tam Sürüm)</title>
+    <title>PUFEMO - Yönetim Paneli</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -33,8 +33,10 @@
         .sidebar-nav .nav-item-name { flex-grow: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .main-content { flex-grow: 1; padding: 2rem; overflow-y: auto; max-height: 100vh; }
         .main-content h1 { font-size: 2.2rem; margin-bottom: 2rem; color: var(--primary-color); }
-        .page { display: none; }
+        .page { display: none; } /* Dynamik yüklenecek sayfalar için base stil */
         .page.active { display: block; }
+        /* Mevcut tüm form-section, form-group, btn vb. stilleri buraya eklenecek */
+        /* Genel form stilleri */
         .form-section { background-color: var(--form-bg-color); padding: 2rem; border-radius: var(--border-radius); box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 2rem; position: relative;}
         .form-section h2, .form-section h3 { margin-bottom: 1.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem;}
         .form-group { margin-bottom: 1.5rem; }
@@ -54,11 +56,14 @@
             margin-bottom: 0;
         }
 
+        /* Dil tabları ve içerikleri için genel stil */
         .lang-tabs { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 1rem; }
         .lang-tab { padding: 8px 15px; background: #eee; border: 1px solid var(--border-color); border-bottom: none; border-radius: 5px 5px 0 0; cursor: pointer; }
         .lang-tab.active { background: var(--form-bg-color); font-weight: 600; }
         .lang-content { display: none; }
         .lang-content.active { display: block; }
+
+        /* Ürün Yönetimi için özel stiller (taşınacak) */
         .variant-color-block { border: 1px solid var(--border-color); border-radius: 5px; padding: 1rem; margin-bottom: 1rem; background-color: #fafafa; }
         .variant-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
         .media-input-group { display: flex; gap: 10px; align-items: center; margin-bottom: 10px;}
@@ -1247,63 +1252,7 @@
 
 
             // --- GENEL AYARLAR FONKSİYONLARI VE OLAY DİNLEYİCİLERİ ---
-
-            function toggleLogoOptions() {
-                const selectedType = logoTypeSelect.value;
-                if (selectedType === 'text_icon') {
-                    textIconLogoOptions.classList.add('active');
-                    imageLogoOptions.classList.remove('active');
-                } else {
-                    textIconLogoOptions.classList.remove('active');
-                    imageLogoOptions.classList.add('active');
-                }
-            }
-
-            function renderGeneralSettings() {
-                const generalSettings = localState.settings.general || {};
-
-                // Logo Ayarları
-                document.getElementById('logoType').value = generalSettings.logo?.type || 'text_icon';
-                toggleLogoOptions(); 
-
-                document.getElementById('logoText').value = generalSettings.logo?.text || 'PUFEMO';
-                document.getElementById('logoIcon').value = generalSettings.logo?.icon || 'fa-solid fa-couch';
-                document.getElementById('logoIconColor').value = generalSettings.logo?.iconColor || '#e74c3c';
-                document.getElementById('logoTextColor').value = generalSettings.logo?.textColor || '#2c3e50';
-                
-                document.getElementById('logoImageUrl').value = generalSettings.logo?.imageUrl || '';
-                document.getElementById('logoImageWidth').value = parseInt(document.getElementById('logoImageWidth').value) || 0;
-                document.getElementById('logoImageHeight').value = parseInt(document.getElementById('logoImageHeight').value) || 0;
-
-                logoIconPicker.innerHTML = '';
-                fontAwesomeIcons.forEach(iconClass => {
-                    const iconItem = document.createElement('span');
-                    iconItem.className = `icon-item ${iconClass} ${iconClass === generalSettings.logo?.icon ? 'selected' : ''}`;
-                    iconItem.dataset.iconClass = iconClass;
-                    logoIconPicker.appendChild(iconItem);
-                });
-
-                // Promosyon Bandı Ayarları
-                document.getElementById('promoBarBgColor').value = generalSettings.promoBar?.bgColor || '#e74c3c';
-                document.getElementById('promoBarTextColor').value = generalSettings.promoBar?.textColor || '#ffffff';
-                document.getElementById('promoBarFontSize').value = parseFloat(generalSettings.promoBar?.fontSize) || 15;
-                document.getElementById('promoBarScrollSpeed').value = parseFloat(generalSettings.promoBar?.scrollSpeed) || 20;
-                document.getElementById('promoBarEnabled').checked = generalSettings.promoBar?.enabled !== undefined ? generalSettings.promoBar.enabled : true;
-
-
-                createLangTabs(
-                    document.getElementById('promo-text-lang-tabs'),
-                    document.getElementById('promo-text-lang-content'),
-                    generalSettings.promoBar?.text || {},
-                    [{ label: 'Promosyon Yazısı', key: 'text' }]
-                );
-
-                // Desteklenen Diller Ayarları
-                renderLanguageList();
-                // Para Birimi Sembolleri Ayarları
-                renderCurrencySymbolList();
-            }
-
+            // Bu fonksiyonlar renderGeneralSettings'ten önce tanımlanmalı
             function renderLanguageList() {
                 languageListContainer.innerHTML = '';
                 const languages = localState.settings.languages?.length ? localState.settings.languages : [{code: 'tr', name: {tr:'Türkçe', en:'Turkish'}, flag: '🇹🇷'}];
@@ -1315,6 +1264,7 @@
                     
                     const displayLangName = lang.name?.tr || lang.name?.en || lang.name || lang.code; 
                     
+                    // Dil adları için çoklu dil giriş alanları
                     const langNameInputsHTML = languages.map(inputLang => `
                         <div class="form-group" style="flex:1; min-width: 80px; margin-bottom:0;">
                             <label style="font-size: 0.75em; color: #666; margin-bottom: 2px;">${inputLang.flag || inputLang.code}</label>
@@ -1344,7 +1294,6 @@
 
                         const langToUpdate = localState.settings.languages.find(l => l.code === editedLangCode);
                         if (langToUpdate) {
-                            // Eğer name alanı henüz map değilse veya boşsa, bir map olarak başlat
                             if (!langToUpdate.name || typeof langToUpdate.name !== 'object') {
                                 langToUpdate.name = {}; 
                             }
