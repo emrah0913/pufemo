@@ -81,7 +81,7 @@
 
         /* Product Detail Section */
         .product-detail-section {
-            flex-grow: 1; /* İçeriğin dikeyde yayılmasını sağlar */
+            flex-grow: 1; 
             padding: 3rem 0;
             display: flex;
             flex-direction: column;
@@ -118,7 +118,7 @@
             color: var(--text-color);
             margin-bottom: 1.5rem;
             line-height: 1.8;
-            text-align: left; /* Açıklamayı sola hizalayabilirsiniz */
+            text-align: left; 
         }
         .product-detail-price {
             font-size: 2rem;
@@ -133,10 +133,10 @@
             margin-right: 10px;
         }
         .product-detail-variants {
-            width: 100%; /* Varyant container genişliği */
-            max-width: 400px; /* Maksimum genişlik */
+            width: 100%; 
+            max-width: 400px; 
             margin-bottom: 1.5rem;
-            text-align: left; /* Etiketi sola hizala */
+            text-align: left; 
         }
         .product-detail-variants label {
             display: block;
@@ -149,8 +149,8 @@
             border: 1px solid #ccc;
             border-radius: var(--border-radius);
             font-size: 1rem;
-            width: 100%; /* Tam genişlik */
-            box-sizing: border-box; /* Padding ve border genişliğe dahil */
+            width: 100%; 
+            box-sizing: border-box; 
             background-color: #f8f9fa;
         }
         .product-detail-variants select:focus {
@@ -185,7 +185,7 @@
             background-color: var(--primary-color);
             color: var(--light-text-color);
             padding: 2rem 0 1rem 0;
-            margin-top: auto; /* Footer'ı alta sabitler */
+            margin-top: auto; 
             text-align: center;
         }
         .footer-bottom {
@@ -266,11 +266,11 @@
                 general: { logo: {} }, 
                 countryPricing: {},
                 currencySymbols: {},
-                exchangeRates: {}
+                exchangeRates: {},
+                languages: [] // Dillerin de çekildiğinden emin olalım
             }
         };
 
-        // localStorage'dan dil, para birimi ve ülke kodunu al
         let currentLang = localStorage.getItem('pufemo-language') || 'en'; 
         let currentCurrency = localStorage.getItem('pufemo-currency') || 'USD';
         let currentCountryCode = localStorage.getItem('pufemo-country') || 'US'; 
@@ -345,23 +345,20 @@
                     const settingsDoc = await db.collection('pufemo').doc('settings').get();
                     if (settingsDoc.exists) {
                         siteData.settings = { ...siteData.settings, ...settingsDoc.data() };
-                        // currentLang, currentCurrency, currentCountryCode değerlerinin localStorage'dan geleni kullanmasını garantile
-                        // Eğer localStorage'da yoksa veya Firebase verisinde geçerli değilse, Firebase'den gelen veya varsayılan değerleri kullan
+                        
                         const storedLang = localStorage.getItem('pufemo-language');
                         const storedCurrency = localStorage.getItem('pufemo-currency');
                         const storedCountryCode = localStorage.getItem('pufemo-country');
 
-                        // Firebase'deki diller arasında storedLang var mı kontrol et (basit bir örnek)
                         const validLangs = siteData.settings.languages.map(l => l.code);
                         if (storedLang && validLangs.includes(storedLang)) {
                             currentLang = storedLang;
                         } else if (siteData.settings.countryPricing[storedCountryCode]?.defaultLanguage && validLangs.includes(siteData.settings.countryPricing[storedCountryCode].defaultLanguage)) {
                             currentLang = siteData.settings.countryPricing[storedCountryCode].defaultLanguage;
                         } else {
-                            currentLang = 'en'; // Güvenli varsayılan
+                            currentLang = 'en'; 
                         }
 
-                        // Firebase'deki para birimleri arasında storedCurrency var mı kontrol et
                         const validCurrencies = Object.keys(siteData.settings.currencySymbols || {});
                         if (storedCurrency && validCurrencies.includes(storedCurrency)) {
                             currentCurrency = storedCurrency;
@@ -371,27 +368,25 @@
                             if (codeFromSymbol) {
                                 currentCurrency = codeFromSymbol;
                             } else {
-                                currentCurrency = 'USD'; // Güvenli varsayılan
+                                currentCurrency = 'USD'; 
                             }
                         } else {
-                            currentCurrency = 'USD'; // Güvenli varsayılan
+                            currentCurrency = 'USD'; 
                         }
 
-                        // currentCountryCode'u da benzer şekilde güncelleyebiliriz, ancak zaten önceki adımda ayarlanmıştı.
-                        // Yinede son kontrol
                         const availableCountries = Object.keys(siteData.settings.countryPricing);
                         if (storedCountryCode && availableCountries.includes(storedCountryCode)) {
                              currentCountryCode = storedCountryCode;
                         } else if (availableCountries.length > 0) {
                              currentCountryCode = availableCountries[0];
                         } else {
-                             currentCountryCode = 'US'; // Eğer Firebase'de hiç ülke yoksa
+                             currentCountryCode = 'US'; 
                         }
 
                         renderGeneralSiteElements(siteData.settings.general); // Logoyu yükle
                     } else {
                         console.warn("Ayarlar belgesi bulunamadı, varsayılan logo kullanılacak.");
-                        renderGeneralSiteElements({}); // Varsayılan logo için boş obje gönder
+                        renderGeneralSiteElements({}); 
                     }
 
                     // Ürünü çek
@@ -403,9 +398,17 @@
 
                         const productName = productData.content?.[currentLang]?.name || productData.content?.tr?.name || 'İsimsiz Ürün';
                         const productDescription = productData.content?.[currentLang]?.description || productData.content?.tr?.description || 'Açıklama Yok.';
-                        const productImages = productData.variants?.[0]?.media || []; // Varsayılan olarak ilk varyantın medyası
-                        const mainImage = productImages[0]?.url || 'https://placehold.co/600x400/ccc/fff?text=Resim+Yok';
                         
+                        // Ana görseli belirleme: Varsayılan olarak ilk varyantın ilk medyası kullanılır
+                        // Eğer hiç varyant yoksa veya medyası yoksa placeholder kullan
+                        let mainImage = 'https://placehold.co/600x400/ccc/fff?text=Resim+Yok';
+                        if (productData.variants && productData.variants.length > 0 && productData.variants[0].media && productData.variants[0].media.length > 0) {
+                             mainImage = productData.variants[0].media[0].url;
+                        } else if (productData.media && productData.media.length > 0) {
+                             // Eğer ürünün doğrudan medyası varsa (varyant içermeyen ürünler için)
+                             mainImage = productData.media[0].url;
+                        }
+
                         // Fiyatları hesapla
                         const originalPrice = productData.basePriceTL;
                         const discountedPrice = productData.baseDiscountedPriceTL;
@@ -416,24 +419,20 @@
                             priceHTML = `<span class="product-detail-price">${formatPrice(originalPrice)}</span>`;
                         }
 
-                        // Varyantları oluştur
+                        // Renk varyantlarını oluştur
                         let variantsHTML = '';
+                        // productData.variants dizisi doğrudan renk seçeneklerini içeriyor
                         if (productData.variants && productData.variants.length > 0) {
-                            productData.variants.forEach(variant => {
-                                if (variant.type === 'color' && variant.options && variant.options.length > 0) {
-                                    variantsHTML += `
-                                        <div class="product-detail-variants">
-                                            <label for="color-select">${variant.name?.[currentLang] || variant.name.tr || 'Renk Seçin:'}</label>
-                                            <select id="color-select">`;
-                                    variant.options.forEach(option => {
-                                        variantsHTML += `<option value="${option.value}">${option.name?.[currentLang] || option.name.tr || option.value}</option>`;
-                                    });
-                                    variantsHTML += `</select></div>`;
-                                }
-                                // Diğer varyant tipleri (beden, malzeme vb.) buraya eklenebilir
-                                // Örneğin:
-                                // if (variant.type === 'size' && variant.options && variant.options.length > 0) { ... }
+                            // "color" varyant tipi varsayılan olarak kabul edildi
+                            variantsHTML += `
+                                <div class="product-detail-variants">
+                                    <label for="color-select">Renk Seçin:</label>
+                                    <select id="color-select">`;
+                            productData.variants.forEach(colorOption => {
+                                // colorOption.colorName doğrudan rengin adını içeriyor
+                                variantsHTML += `<option value="${colorOption.colorName}">${colorOption.colorName}</option>`;
                             });
+                            variantsHTML += `</select></div>`;
                         }
 
 
@@ -446,6 +445,25 @@
                             <button class="add-to-cart-button">Sepete Ekle</button>
                         `;
                         pageTitle.textContent = `${productName} - PUFEMO`;
+
+                        // Renk seçimi değiştiğinde ana görseli güncelle
+                        const colorSelect = document.getElementById('color-select');
+                        if (colorSelect) {
+                            colorSelect.addEventListener('change', (event) => {
+                                const selectedColorName = event.target.value;
+                                const selectedColorOption = productData.variants.find(v => v.colorName === selectedColorName);
+                                if (selectedColorOption && selectedColorOption.media && selectedColorOption.media.length > 0) {
+                                    document.querySelector('.product-detail-image').src = selectedColorOption.media[0].url;
+                                }
+                            });
+
+                            // Sayfa yüklendiğinde varsayılan olarak seçili olan varyantın görselini göster
+                            // Eğer ilk varyantın medyası varsa, ana görseli ona göre ayarlar
+                            if (productData.variants && productData.variants.length > 0 && productData.variants[0].media && productData.variants[0].media.length > 0) {
+                                document.querySelector('.product-detail-image').src = productData.variants[0].media[0].url;
+                            }
+                        }
+
 
                     } else {
                         errorMessageDiv.textContent = 'Ürün bulunamadı.';
