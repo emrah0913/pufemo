@@ -481,9 +481,9 @@
                             <button type="button" id="add-new-language-btn" class="btn btn-primary">Yeni Dil Ekle</button>
                         </div>
                         <div id="language-list-container">
-                            </div>
+                        </div>
                         <div id="new-language-form-container">
-                            </div>
+                        </div>
                     </section>
 
                     <section class="form-section">
@@ -524,14 +524,14 @@
                             Pozitif değer için **10**, negatif değer için **-5** giriniz.
                         </p>
                         <div id="new-country-pricing-form-container" style="margin-bottom: 1.5rem;">
-                            </div>
+                        </div>
                         <div id="country-pricing-list-container">
-                            </div>
+                        </div>
                     </section>
                     <div class="form-actions"><button type="submit" class="btn btn-success">Ülke Fiyatlandırmasını Kaydet</button></div>
                 </form>
             </div>
-            </main>
+        </main>
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
@@ -560,10 +560,10 @@
             let localState = { 
                 settings: { 
                     languages: [ 
-                        { code: 'tr', name: 'Türkçe', flag: '🇹🇷' },
-                        { code: 'en', name: 'English', flag: '🇬🇧' },
-                        { code: 'el', name: 'Ελληνικά', flag: '🇬🇷' }, // Yunanca eklendi
-                        { code: 'ru', name: 'Русский', flag: '🇷🇺' } // Rusça eklendi
+                        { code: 'tr', name: 'Türkçe', flag: 'TR' },
+                        { code: 'en', name: 'English', flag: 'GB' },
+                        { code: 'el', name: 'Ελληνικά', flag: 'GR' }, // Yunanca eklendi
+                        { code: 'ru', name: 'Русский', flag: 'RU' } // Rusça eklendi
                     ], 
                     countryPricing: {}, 
                     currencySymbols: { "TRY": "₺", "USD": "$", "EUR": "€", "GBP": "£" }, 
@@ -630,6 +630,21 @@
             const hideLoading = () => loadingOverlay.classList.add('hidden');
             const generateUniqueId = () => '_' + Math.random().toString(36).substr(2, 9);
             
+            /**
+             * İki harfli ülke kodunu (örn: "TR") bayrak emojisine (örn: "🇹🇷") çevirir.
+             * @param {string} code - İki harfli ISO ülke kodu.
+             * @returns {string} Bayrak emojisi.
+             */
+            function countryCodeToEmoji(code) {
+                if (!code || code.length !== 2) {
+                    return ''; // Kod yoksa veya geçersizse boş döndür
+                }
+                // Her harfi bölgesel gösterge sembolüne dönüştürür (örn: T -> 🇹)
+                return code.toUpperCase().split('').map(char => 
+                    String.fromCodePoint(char.charCodeAt(0) + 127397)
+                ).join('');
+            }
+
             async function fetchData() {
                 showLoading();
                 try {
@@ -728,7 +743,7 @@
                 
                 languages.forEach((lang, index) => {
                     const isActive = index === 0;
-                    tabsContainer.innerHTML += `<div class="lang-tab ${isActive ? 'active' : ''}" data-lang="${lang.code}">${lang.flag || ''} ${lang.name}</div>`;
+                    tabsContainer.innerHTML += `<div class="lang-tab ${isActive ? 'active' : ''}" data-lang="${lang.code}">${countryCodeToEmoji(lang.flag) || ''} ${lang.name}</div>`;
                     let contentHTML = `<div class="lang-content ${isActive ? 'active' : ''}" data-lang-content="${lang.code}">`;
                     fields.forEach(field => {
                         const value = data?.[lang.code]?.[field.key] || ''; 
@@ -895,11 +910,11 @@
             function createCategoryNode(category) {
                 const li = document.createElement('li');
                 li.dataset.id = category.id;
-                const languages = localState.settings.languages?.length ? localState.settings.languages : [{code: 'tr', name: 'Türkçe', flag: '🇹🇷'}];
+                const languages = localState.settings.languages?.length ? localState.settings.languages : [{code: 'tr', name: 'Türkçe', flag: 'TR'}];
                 
                 let nameInputsHTML = languages.map(lang => `
                     <div class="form-group">
-                        <label>${lang.flag || lang.code}</label>
+                        <label>${countryCodeToEmoji(lang.flag) || lang.code}</label>
                         <input type="text" class="category-name-input" data-lang="${lang.code}" value="${category.name?.[lang.code] || ''}">
                     </div>
                 `).join('');
@@ -926,11 +941,11 @@
                 if (container.querySelector('.new-category-form')) return;
                 const formLi = document.createElement('li');
                 formLi.className = 'category-item new-category-form';
-                const languages = localState.settings.languages?.length ? localState.settings.languages : [{code: 'tr', name: 'Türkçe', flag: '🇹🇷'}];
+                const languages = localState.settings.languages?.length ? localState.settings.languages : [{code: 'tr', name: 'Türkçe', flag: 'TR'}];
                 
                 let nameInputsHTML = languages.map(lang => `
                     <div class="form-group">
-                        <label>${lang.flag || lang.code}</label>
+                        <label>${countryCodeToEmoji(lang.flag) || lang.code}</label>
                         <input type="text" class="new-category-name-input" data-lang="${lang.code}" placeholder="${lang.name} Adı" required>
                     </div>
                 `).join('');
@@ -1309,7 +1324,7 @@
                     langItem.className = 'language-item';
                     langItem.dataset.code = lang.code; 
                     langItem.innerHTML = `
-                        <span class="lang-name-flag">${lang.flag || ''} ${lang.name} (${lang.code})</span>
+                        <span class="lang-name-flag">${countryCodeToEmoji(lang.flag)} ${lang.name} (${lang.code})</span>
                         <div class="lang-controls">
                             <button type="button" class="delete-language-btn" title="Dili Sil"><i class="fa-solid fa-trash"></i></button>
                         </div>
@@ -1332,8 +1347,8 @@
                         <input type="text" id="newLangCode" maxlength="2" required>
                     </div>
                     <div class="form-group">
-                        <label for="newLangFlag">Bayrak Emoji (Örn: 🇬🇧)</label>
-                        <input type="text" id="newLangFlag" maxlength="2">
+                        <label for="newLangFlag">Bayrak için Ülke Kodu (Örn: GB)</label>
+                        <input type="text" id="newLangFlag" maxlength="2" style="text-transform: uppercase;">
                     </div>
                     <div class="form-actions">
                         <button type="button" class="btn btn-danger cancel-new-language-btn">İptal</button>
@@ -1347,7 +1362,7 @@
                     e.preventDefault();
                     const name = form.querySelector('#newLangName').value.trim();
                     const code = form.querySelector('#newLangCode').value.trim().toLowerCase();
-                    const flag = form.querySelector('#newLangFlag').value.trim();
+                    const flag = form.querySelector('#newLangFlag').value.trim().toUpperCase();
 
                     if (!name || !code) {
                         alert('Dil adı ve kodu boş bırakılamaz.');
@@ -1546,7 +1561,7 @@
                 newCountryPricingFormContainer.innerHTML = ''; 
                 countryPricingListContainer.innerHTML = '';
                 
-                const languages = localState.settings.languages?.length ? localState.settings.languages : [{code: 'tr', name: 'Türkçe', flag: '🇹🇷'}];
+                const languages = localState.settings.languages?.length ? localState.settings.languages : [{code: 'tr', name: 'Türkçe', flag: 'TR'}];
 
                 // localState.settings.countryPricing objesindeki entry'leri alıp sırala
                 const countriesToRender = Object.entries(localState.settings.countryPricing)
@@ -1569,7 +1584,7 @@
                     // Ülke adını çok dilli alana çevir
                     const countryNameInputsHTML = languages.map(lang => `
                         <div class="form-group">
-                            <label>${lang.flag || lang.code}</label>
+                            <label>${countryCodeToEmoji(lang.flag) || lang.code}</label>
                             <input type="text" class="country-name-input" data-country-code="${country.code}" data-lang="${lang.code}" value="${country.name?.[lang.code] || ''}">
                         </div>
                     `).join('');
@@ -1577,7 +1592,7 @@
                     countryItem.innerHTML = `
                         <div class="country-name-inputs-group">
                             ${countryNameInputsHTML}
-                            <span style="font-weight: 500; font-size: 0.9em; margin-left: 10px; align-self: center; white-space: nowrap;">(${country.flag || ''} ${country.code.toUpperCase()})</span>
+                            <span style="font-weight: 500; font-size: 0.9em; margin-left: 10px; align-self: center; white-space: nowrap;">(${countryCodeToEmoji(country.flag)} ${country.code.toUpperCase()})</span>
                         </div>
                         <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; flex-grow: 1;">
                             <div class="price-adjustment-input-group">
@@ -1626,7 +1641,7 @@
                 const form = document.createElement('form');
                 
                 // Ülke adı için çoklu dil giriş alanları oluştur
-                const languages = localState.settings.languages?.length ? localState.settings.languages : [{code: 'tr', name: 'Türkçe', flag: '🇹🇷'}];
+                const languages = localState.settings.languages?.length ? localState.settings.languages : [{code: 'tr', name: 'Türkçe', flag: 'TR'}];
                 const countryNameInputsHTML = languages.map(lang => `
                     <div class="form-group">
                         <label for="newCountryName_${lang.code}">Ülke Adı (${lang.name})</label>
@@ -1636,12 +1651,13 @@
 
                 form.innerHTML = `
                     <div class="form-group">
-                        <label for="newCountryCode">Ülke Kodu (Örn: TR, US, CY)</label>
+                        <label for="newCountryCode">Ülke Kodu (Örn: CY, US, DE)</label>
                         <input type="text" id="newCountryCode" maxlength="2" required style="text-transform: uppercase;">
                     </div>
-                    ${countryNameInputsHTML} <div class="form-group">
-                        <label for="newCountryFlag">Bayrak Emojisi (Örn: 🇹🇷, 🇬🇧)</label>
-                        <input type="text" id="newCountryFlag" maxlength="2">
+                    ${countryNameInputsHTML}
+                    <div class="form-group">
+                        <label for="newCountryFlag">Bayrak için Ülke Kodu (Örn: CY, US)</label>
+                        <input type="text" id="newCountryFlag" maxlength="2" style="text-transform: uppercase;">
                     </div>
                     <div class="form-group">
                         <label for="newCountryAdjustment">Yüzdesel Ayarlama (%)</label>
@@ -1692,17 +1708,17 @@
                         return;
                     }
 
-                    const flag = form.querySelector('#newCountryFlag').value.trim();
+                    const flag = form.querySelector('#newCountryFlag').value.trim().toUpperCase();
                     const adjustment = parseFloat(form.querySelector('#newCountryAdjustment').value) || 0;
                     const defaultLanguage = form.querySelector('#newCountryDefaultLanguage').value;
                     const currencySymbol = form.querySelector('#newCountryCurrencySymbol').value;
 
-                    if (!code || !defaultLanguage || !currencySymbol) {
-                        alert('Ülke kodu, varsayılan dil ve para birimi boş bırakılamaz.');
+                    if (!code || !defaultLanguage || !currencySymbol || !flag) {
+                        alert('Ülke kodu, bayrak kodu, varsayılan dil ve para birimi boş bırakılamaz.');
                         return;
                     }
-                    if (code.length !== 2) {
-                        alert('Ülke kodu 2 karakterli olmalıdır (örn: TR, US, CY).');
+                    if (code.length !== 2 || flag.length !== 2) {
+                        alert('Ülke kodu ve bayrak kodu 2 karakterli olmalıdır (örn: TR, US, CY).');
                         return;
                     }
                     if (localState.settings.countryPricing[code]) { 
@@ -1767,10 +1783,8 @@
             countryPricingListContainer.addEventListener('click', async (e) => {
                 const deleteBtn = e.target.closest('.delete-country-pricing-btn');
                 if (deleteBtn) {
-                    // dataset.code yerine getAttribute kullanıyoruz, çünkü hata data-country-code'un yokluğundan geliyor gibi görünüyor
                     const countryCodeToDelete = deleteBtn.getAttribute('data-country-code'); 
                     
-                    // Ülke kodunun geçerli olduğundan emin ol (null, undefined veya boş string olmamalı)
                     if (!countryCodeToDelete || countryCodeToDelete.trim() === '') {
                         console.error("Silme butonu geçerli bir data-country-code içermiyor:", deleteBtn);
                         alert("Silinecek ülke kodu bulunamadı. Lütfen sayfayı yenileyin.");
