@@ -204,8 +204,8 @@
             border-radius: var(--border-radius);
             padding: 10px 15px;
             margin-bottom: 10px;
-            flex-wrap: wrap; /* Küçük ekranlarda sarmalama için */
-            gap: 10px; /* İç öğeler arasında boşluk bırakmak için */
+            flex-wrap: wrap; 
+            gap: 10px; 
         }
         .language-item .lang-name-flag, .country-pricing-item .country-details {
             font-weight: 500;
@@ -213,7 +213,42 @@
             display: flex;
             align-items: center;
             gap: 5px;
-            min-width: 150px; /* Textin taşmaması için */
+            min-width: 150px; 
+        }
+        /* Ülke isimleri için çoklu dil inputları düzenlemesi */
+        .country-name-inputs-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            flex-grow: 1;
+            min-width: 200px; /* Ülke adı inputları için minimum genişlik */
+        }
+        .country-name-inputs-group .form-group {
+            margin-bottom: 0;
+            flex: 1;
+            min-width: 80px; /* Dil inputları için yeterli genişlik */
+        }
+        .country-name-inputs-group .form-group label {
+            font-size: 0.75em;
+            color: #666;
+            margin-bottom: 2px;
+        }
+        .country-name-inputs-group .form-group input {
+            padding: 6px;
+            font-size: 0.85rem;
+        }
+        /* country-pricing-item içindeki ayarlamalar için esnek düzen */
+        .country-pricing-item > div { /* flex container'a dönüşen kısım */
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            flex-grow: 1; /* Diğer alanların yayılmasını sağlar */
+        }
+        /* Silme butonu için kontrol grubunu yeniden hizala */
+        .country-pricing-item .country-controls {
+            flex-shrink: 0; /* Küçülmesini engelle */
+            margin-left: auto; /* Sağ tarafa yasla */
         }
         .language-item .lang-controls button, .country-pricing-item .country-controls button {
             background: none;
@@ -231,13 +266,12 @@
             display: flex;
             align-items: center;
             gap: 10px;
-            /* margin-left: auto; */ /* Sağa yaslamak için kullanılıyordu, artık esnek */
-            min-width: 120px; /* Input + % için yer */
+            min-width: 120px; 
         }
         .price-adjustment-input-group label {
             font-weight: 500;
             margin-bottom: 0;
-            white-space: nowrap; /* "Ayarlama" kelimesinin tek satırda kalması için */
+            white-space: nowrap; 
         }
         .price-adjustment-input-group input[type="number"] {
             width: 80px;
@@ -522,15 +556,17 @@
 
         if (db) {
             // === 1. GLOBAL STATE VE DOM ELEMENTLERİ ===
+            // localState.settings.languages varsayılan değerleri, Firebase'den gelmezse kullanılacak
             let localState = { 
                 settings: { 
                     languages: [ 
                         { code: 'tr', name: 'Türkçe', flag: '🇹🇷' },
                         { code: 'en', name: 'English', flag: '🇬🇧' },
-                        { code: 'ru', name: 'Русский', flag: '🇷🇺' } 
+                        { code: 'el', name: 'Ελληνικά', flag: '🇬🇷' }, // Yunanca eklendi
+                        { code: 'ru', name: 'Русский', flag: '🇷🇺' } // Rusça eklendi
                     ], 
-                    countryPricing: {}, // Admin panelinden yönetilecek
-                    currencySymbols: { "TRY": "₺", "USD": "$", "EUR": "€", "GBP": "£" }, // Admin panelinden yönetilecek
+                    countryPricing: {}, 
+                    currencySymbols: { "TRY": "₺", "USD": "$", "EUR": "€", "GBP": "£" }, 
                     banner: { slides: [] },
                     general: { 
                         logo: { type: 'text_icon', text: 'PUFEMO', icon: 'fa-solid fa-couch', iconColor: '#e74c3c', textColor: '#2c3e50', imageUrl: '', imageWidth: 150, imageHeight: 40 },
@@ -607,10 +643,10 @@
                     
                     localState.settings = { 
                         ...fetchedSettings, 
+                        // Firebase'den languages yoksa veya boşsa varsayılanları kullan
                         languages: (fetchedSettings.languages && fetchedSettings.languages.length > 0) ? fetchedSettings.languages : localState.settings.languages, 
-                        // Firebase'den countryPricing'i çek. Eğer yoksa, varsayılan boş obje kullan.
                         countryPricing: fetchedSettings.countryPricing || {},
-                        currencySymbols: fetchedSettings.currencySymbols || localState.settings.currencySymbols, // Firebase'den çek
+                        currencySymbols: fetchedSettings.currencySymbols || localState.settings.currencySymbols, 
                         banner: fetchedSettings.banner || { slides: [] },
                         general: {
                             logo: fetchedSettings.general?.logo || localState.settings.general.logo,
@@ -634,11 +670,11 @@
                 }
             }
 
-            async function saveData(docName, data) {
+            async function saveData(docName, data, merge = true) { // merge parametresi eklendi, varsayılan true
                 showLoading();
                 try {
                     const dataToSave = docName === 'categories' ? { tree: data } : data;
-                    await db.collection('pufemo').doc(docName).set(dataToSave, { merge: true });
+                    await db.collection('pufemo').doc(docName).set(dataToSave, { merge: merge }); // merge parametresi kullanıldı
                     console.log(`${docName} başarıyla kaydedildi!`);
                     alert('Değişiklikler kaydedildi!'); 
                 } catch (error) {
@@ -687,6 +723,7 @@
                 if(!tabsContainer || !contentContainer) return;
                 tabsContainer.innerHTML = '';
                 contentContainer.innerHTML = '';
+                // Firebase'den gelen diller yoksa veya boşsa localState'deki varsayılanları kullan
                 const languages = localState.settings.languages?.length ? localState.settings.languages : [{code: 'tr', name: 'Türkçe', flag: '🇹🇷'}];
                 
                 languages.forEach((lang, index) => {
@@ -722,8 +759,7 @@
                 localState.products.sort((a,b) => (a.sku || '').localeCompare(b.sku || '')).forEach(product => {
                     const li = document.createElement('li');
                     li.dataset.id = product.id;
-                    // Ürün adını gösterirken varsayılan olarak Türkçe veya ilk mevcut dili kullan
-                    const productName = product.content?.tr?.name || product.content[Object.keys(product.content)[0]]?.name || product.sku || 'İsimsiz Ürün';
+                    const productName = product.content?.tr?.name || product.content?.[Object.keys(product.content)[0]]?.name || product.sku || 'İsimsiz Ürün';
                     li.innerHTML = `<span class="nav-item-name">${productName}</span>`;
                     productListContainer.appendChild(li);
                 });
@@ -848,7 +884,7 @@
                 });
             }
             
-            // === 5. KATEGORİ YÖNETİMİ GÜNCELLENDİ (Çoklu Dil Desteği) ===
+            // === 5. KATEGORİ YÖNETİMİ GÜNCEL ===
             function refreshCategoryView() {
                 categoryTreeContainer.innerHTML = '';
                 const mainUl = document.createElement('ul');
@@ -861,7 +897,6 @@
                 li.dataset.id = category.id;
                 const languages = localState.settings.languages?.length ? localState.settings.languages : [{code: 'tr', name: 'Türkçe', flag: '🇹🇷'}];
                 
-                // Kategori adı için çoklu dil giriş alanları oluştur
                 let nameInputsHTML = languages.map(lang => `
                     <div class="form-group">
                         <label>${lang.flag || lang.code}</label>
@@ -893,7 +928,6 @@
                 formLi.className = 'category-item new-category-form';
                 const languages = localState.settings.languages?.length ? localState.settings.languages : [{code: 'tr', name: 'Türkçe', flag: '🇹🇷'}];
                 
-                // Yeni kategori adı için çoklu dil giriş alanları oluştur
                 let nameInputsHTML = languages.map(lang => `
                     <div class="form-group">
                         <label>${lang.flag || lang.code}</label>
@@ -925,7 +959,7 @@
                     if (!hasName) { alert('Lütfen en az bir dilde kategori adı girin.'); return; }
                     parentCategoryArray.push(newCategory);
                     await saveData('categories', localState.categories);
-                    refreshCategoryView(); // Kategori kaydedildikten sonra listeyi yenile
+                    refreshCategoryView(); 
                 });
                 formLi.querySelector('.cancel-new-category').addEventListener('click', () => { formLi.remove(); });
             }
@@ -940,29 +974,25 @@
                 document.querySelectorAll('.page').forEach(page => page.classList.toggle('active', false)); 
                 document.getElementById(pageId)?.classList.add('active'); 
 
-                // Sayfa geçişlerinde ilgili render fonksiyonlarını çağırarak verilerin yenilenmesini sağla
                 if (pageId === 'product-management') {
-                    renderProductList(); // Ürün listesini her geçişte yenile
-                    // Eğer ürün formu açıksa ve ürün ID'si varsa, o ürünü yeniden yükle
+                    renderProductList(); 
                     const currentProductId = productForm.querySelector('#productId').value;
                     if (productForm.style.display !== 'none' && currentProductId) {
                             loadProductForEditing(currentProductId);
                     } else if (localState.products.length > 0) {
-                        // Eğer ürün listesi doluysa ilk ürünü otomatik yükle (veya hiçbir şey yükleme)
                         document.querySelector('#product-list-container li:first-child')?.click();
                     } else {
-                        // Ürün yoksa yeni ürün ekleme formunu göster
                         document.getElementById('add-new-product-btn').click();
                     }
 
                 } else if (pageId === 'homepage-settings') {
-                    renderBannerSettings(); // Banner ayarlarını yenile
+                    renderBannerSettings(); 
                 } else if (pageId === 'general-settings') {
-                    renderGeneralSettings(); // Genel ayarları yenile
+                    renderGeneralSettings(); 
                 } else if (pageId === 'category-management') {
-                    refreshCategoryView(); // Kategori görünümünü yenile
+                    refreshCategoryView(); 
                 } else if (pageId === 'country-pricing-management') { 
-                    renderCountryPricingList(); // Ülke fiyatlandırma listesini yenile
+                    renderCountryPricingList(); 
                 }
             });
             
@@ -997,7 +1027,6 @@
                     variants: [] 
                 }; 
                 
-                // Ürün açıklamaları için dil tablarındaki verileri topla
                 productForm.querySelectorAll('.lang-content').forEach(cont => { 
                     const lang = cont.dataset.langContent; 
                     productData.content[lang] = { 
@@ -1006,7 +1035,6 @@
                     }; 
                 }); 
                 
-                // Renk seçenekleri ve medyayı topla
                 document.querySelectorAll('#color-variants-container .variant-color-block').forEach(block => { 
                     const variant = { colorName: block.querySelector('.variant-color-input').value, media: [] }; 
                     block.querySelectorAll('.media-input-group').forEach(mediaEl => { 
@@ -1019,9 +1047,8 @@
                 
                 const savedId = await saveProduct(productData, id); 
                 if (savedId) { 
-                    await fetchData(); // Veriyi yeniden çek
-                    renderProductList(); // Ürün listesini yenile
-                    // Kaydedilen ürünü tekrar seç ve formunu yükle
+                    await fetchData(); 
+                    renderProductList(); 
                     document.querySelector(`#product-list-container li[data-id="${savedId}"]`)?.classList.add('active'); 
                     loadProductForEditing(savedId); 
                 } 
@@ -1031,8 +1058,8 @@
                 const id = productForm.querySelector('#productId').value; 
                 if (await deleteProduct(id)) { 
                     productForm.style.display = 'none'; 
-                    await fetchData(); // Veriyi yeniden çek
-                    renderProductList(); // Ürün listesini yenile
+                    await fetchData(); 
+                    renderProductList(); 
                 } 
             });
             productForm.addEventListener('click', e => { 
@@ -1084,7 +1111,7 @@
                 }); 
                 localState.settings.banner = { slides: newSlidesData }; 
                 await saveData('settings', { banner: newSlidesData }); 
-                renderBannerSettings(); // Kayıt sonrası formları yeniden render et
+                renderBannerSettings(); 
             });
 
             document.getElementById('add-new-slide-btn').addEventListener('click', () => { 
@@ -1173,7 +1200,6 @@
                 }
             });
 
-            // Yardımcı fonksiyonlar (kategori ağacında arama ve silme)
             function findCategoryInTree(categories, id) {
                 for (const cat of categories) {
                     if (cat.id === id) return cat;
@@ -1196,7 +1222,6 @@
                 return false;
             }
 
-            // Kategori adı değişikliklerini DOM'dan alıp localState'e yansıtan yardımcı fonksiyon
             function updateLocalCategoriesFromDOM(categoriesArray, ulElement) {
                 if (!ulElement) return;
 
@@ -1342,15 +1367,13 @@
                     newLanguageFormContainer.innerHTML = ''; 
                     renderLanguageList(); 
                     renderBannerSettings(); 
-                    // Ürün formundaki dil tablarını yeniden oluştur (eğer açıksa)
                     const productLangTabsContainer = productForm.querySelector('#product-lang-tabs-container');
                     const productLangContentContainer = productForm.querySelector('#product-lang-content-container');
                     if (productLangTabsContainer && productLangContentContainer && productForm.style.display !== 'none') {
                         createLangTabs(productLangTabsContainer, productLangContentContainer, {}, [{ label: 'Ürün Adı', key: 'name' }, { label: 'Açıklama', key: 'description', type: 'textarea' }]);
                     }
                     renderGeneralSettings(); 
-                    // Ülke fiyatlandırma default dil seçeneklerini güncelle
-                    renderCountryPricingList();
+                    renderCountryPricingList(); 
                 });
 
                 form.querySelector('.cancel-new-language-btn').addEventListener('click', () => {
@@ -1364,14 +1387,14 @@
                 sortedSymbols.forEach(code => {
                     const symbol = localState.settings.currencySymbols[code];
                     const symbolItem = document.createElement('div');
-                    symbolItem.className = 'language-item'; // language-item stilini kullanabiliriz
+                    symbolItem.className = 'language-item'; 
                     symbolItem.dataset.code = code;
                     symbolItem.innerHTML = `
                         <span class="lang-name-flag">${code} (${symbol})</span>
                         <div class="lang-controls">
                             <button type="button" class="delete-currency-symbol-btn" title="Sembolü Sil" data-code="${code}"><i class="fa-solid fa-trash"></i></button>
                         </div>
-                    `;
+                        `;
                     currencySymbolListContainer.appendChild(symbolItem);
                 });
             }
@@ -1415,7 +1438,7 @@
                     await saveData('settings', { currencySymbols: localState.settings.currencySymbols });
                     newCurrencySymbolFormContainer.innerHTML = '';
                     renderCurrencySymbolList();
-                    renderCountryPricingList(); // Ülke fiyatlandırma para birimi seçeneklerini güncelle
+                    renderCountryPricingList(); 
                 });
 
                 form.querySelector('.cancel-new-currency-symbol-btn').addEventListener('click', () => {
@@ -1492,14 +1515,13 @@
                     await saveData('settings', { languages: localState.settings.languages });
                     renderLanguageList(); 
                     renderBannerSettings(); 
-                    // Dil silindiğinde ürün formundaki dil tablarını yeniden oluştur
                     const productLangTabsContainer = productForm.querySelector('#product-lang-tabs-container');
                     const productLangContentContainer = productForm.querySelector('#product-lang-content-container');
                     if (productLangTabsContainer && productLangContentContainer && productForm.style.display !== 'none') {
                         createLangTabs(productLangTabsContainer, productLangContentContainer, {}, [{ label: 'Ürün Adı', key: 'name' }, { label: 'Açıklama', key: 'description', type: 'textarea' }]);
                     }
                     renderGeneralSettings(); 
-                    renderCountryPricingList(); // Ülke fiyatlandırma varsayılan dil seçeneklerini güncelle
+                    renderCountryPricingList(); 
                 }
             });
 
@@ -1512,33 +1534,50 @@
                         delete localState.settings.currencySymbols[codeToDelete];
                         await saveData('settings', { currencySymbols: localState.settings.currencySymbols });
                         renderCurrencySymbolList();
-                        renderCountryPricingList(); // Ülke fiyatlandırma para birimi seçeneklerini güncelle
+                        renderCountryPricingList(); 
                     }
                 }
             });
 
 
-            // --- YENİ: ÜLKELERE GÖRE FİYATLANDIRMA YÖNETİMİ ---
+            // --- YENİLENEN: ÜLKELERE GÖRE FİYATLANDIRMA YÖNETİMİ ---
             
             function renderCountryPricingList() {
-                newCountryPricingFormContainer.innerHTML = ''; // Yeni ülke ekleme formunu gizle
+                newCountryPricingFormContainer.innerHTML = ''; 
                 countryPricingListContainer.innerHTML = '';
                 
-                // localState.settings.countryPricing objesindeki entry'leri alıp sırala (code, data)
+                // localState.settings.countryPricing objesindeki entry'leri alıp sırala
                 const countriesToRender = Object.entries(localState.settings.countryPricing)
                     .map(([codeKey, countryData]) => ({
-                        code: codeKey.toUpperCase(), // Kodu büyük harf olarak objeye ekle (ekranda göstermek için)
-                        ...countryData // Diğer tüm özellikleri (name, flag, adjustment, defaultLanguage, currencySymbol) yay
+                        code: codeKey, // Küçük harf kodu firebase'den geldiği gibi kalsın
+                        ...countryData 
                     }))
-                    .sort((a,b) => (a.name || '').localeCompare(b.name || '')); // İsme göre sırala
+                    .sort((a,b) => {
+                        // Eğer name bir map ise, varsayılan dildeki (örn: Türkçe) adına göre sırala
+                        const nameA = typeof a.name === 'object' ? a.name.tr || a.name.en || a.code : a.name || a.code;
+                        const nameB = typeof b.name === 'object' ? b.name.tr || b.name.en || b.code : b.name || b.code;
+                        return nameA.localeCompare(nameB);
+                    });
 
                 countriesToRender.forEach(country => {
                     const countryItem = document.createElement('div');
                     countryItem.className = 'country-pricing-item';
-                    countryItem.dataset.code = country.code; 
+                    countryItem.dataset.code = country.code; // Küçük harf kodu burada saklansın
+                    
+                    // Ülke adını çok dilli alana çevir
+                    const countryNameInputsHTML = localState.settings.languages.map(lang => `
+                        <div class="form-group">
+                            <label>${lang.flag || lang.code}</label>
+                            <input type="text" class="country-name-input" data-country-code="${country.code}" data-lang="${lang.code}" value="${country.name?.[lang.code] || ''}">
+                        </div>
+                    `).join('');
+
                     countryItem.innerHTML = `
-                        <span class="country-details">${country.flag || ''} ${country.name} (${country.code})</span>
-                        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                        <div class="country-name-inputs-group">
+                            ${countryNameInputsHTML}
+                            <span style="font-weight: 500; font-size: 0.9em; margin-left: 10px; align-self: center; white-space: nowrap;">(${country.flag || ''} ${country.code.toUpperCase()})</span>
+                        </div>
+                        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; flex-grow: 1;">
                             <div class="price-adjustment-input-group">
                                 <label for="adjustment_${country.code}">%</label>
                                 <input type="number" id="adjustment_${country.code}" class="country-adjustment-input" data-country-code="${country.code}" data-field="adjustment" value="${country.adjustment}">
@@ -1578,21 +1617,26 @@
                 showNewCountryPricingForm();
             });
 
-            // Yeni Ülke Fiyatlandırma Formu Gösterme
+            // Yeni Ülke Fiyatlandırma Formu Gösterme (Çoklu Dil Desteği ile)
             function showNewCountryPricingForm() {
                 if (newCountryPricingFormContainer.querySelector('form')) return; 
 
                 const form = document.createElement('form');
+                
+                // Ülke adı için çoklu dil giriş alanları oluştur
+                const countryNameInputsHTML = localState.settings.languages.map(lang => `
+                    <div class="form-group">
+                        <label for="newCountryName_${lang.code}">Ülke Adı (${lang.name})</label>
+                        <input type="text" id="newCountryName_${lang.code}" class="new-country-name-input" data-lang="${lang.code}" placeholder="${lang.name} Adı" ${lang.code === 'tr' ? 'required' : ''}>
+                    </div>
+                `).join('');
+
                 form.innerHTML = `
                     <div class="form-group">
                         <label for="newCountryCode">Ülke Kodu (Örn: TR, US, CY)</label>
                         <input type="text" id="newCountryCode" maxlength="2" required style="text-transform: uppercase;">
                     </div>
-                    <div class="form-group">
-                        <label for="newCountryName">Ülke Adı (Örn: Türkiye, Cyprus)</label>
-                        <input type="text" id="newCountryName" required>
-                    </div>
-                    <div class="form-group">
+                    ${countryNameInputsHTML} <div class="form-group">
                         <label for="newCountryFlag">Bayrak Emojisi (Örn: 🇹🇷, 🇬🇧)</label>
                         <input type="text" id="newCountryFlag" maxlength="2">
                     </div>
@@ -1628,36 +1672,50 @@
 
                 form.addEventListener('submit', async (e) => {
                     e.preventDefault();
-                    // Ülke kodunu her zaman küçük harf olarak saklıyoruz, çünkü objenin anahtarı olacak.
                     const code = form.querySelector('#newCountryCode').value.trim().toLowerCase(); 
-                    const name = form.querySelector('#newCountryName').value.trim();
+                    
+                    const newCountryNameMap = {}; // Yeni: name artık bir map
+                    let hasAnyName = false;
+                    form.querySelectorAll('.new-country-name-input').forEach(input => {
+                        const langCode = input.dataset.lang;
+                        const nameValue = input.value.trim();
+                        if(nameValue) hasAnyName = true;
+                        newCountryNameMap[langCode] = nameValue;
+                    });
+
+                    // Eğer herhangi bir dilde isim girilmemişse uyarı ver
+                    if (!hasAnyName) {
+                        alert('Lütfen en az bir dilde ülke adı girin.');
+                        return;
+                    }
+
                     const flag = form.querySelector('#newCountryFlag').value.trim();
                     const adjustment = parseFloat(form.querySelector('#newCountryAdjustment').value) || 0;
                     const defaultLanguage = form.querySelector('#newCountryDefaultLanguage').value;
                     const currencySymbol = form.querySelector('#newCountryCurrencySymbol').value;
 
-                    if (!name || !code || !defaultLanguage || !currencySymbol) {
-                        alert('Tüm alanlar boş bırakılamaz.');
+                    if (!code || !defaultLanguage || !currencySymbol) {
+                        alert('Ülke kodu, varsayılan dil ve para birimi boş bırakılamaz.');
                         return;
                     }
                     if (code.length !== 2) {
                         alert('Ülke kodu 2 karakterli olmalıdır (örn: TR, US, CY).');
                         return;
                     }
-                    if (localState.settings.countryPricing[code]) { // Küçük harf koduyla kontrol et
+                    if (localState.settings.countryPricing[code]) { 
                         alert('Bu ülke kodu zaten mevcut!');
                         return;
                     }
 
                     // localState'i güncelle ve Firebase'e kaydet
-                    localState.settings.countryPricing[code] = { name, flag, adjustment, defaultLanguage, currencySymbol }; 
+                    localState.settings.countryPricing[code] = { name: newCountryNameMap, flag, adjustment, defaultLanguage, currencySymbol }; 
                     await saveData('settings', { countryPricing: localState.settings.countryPricing });
-                    newCountryPricingFormContainer.innerHTML = ''; // Formu gizle
-                    renderCountryPricingList(); // Listeyi yenile
+                    newCountryPricingFormContainer.innerHTML = ''; 
+                    renderCountryPricingList(); 
                 });
 
                 form.querySelector('.cancel-new-country-pricing-btn').addEventListener('click', () => {
-                    newCountryPricingFormContainer.innerHTML = ''; // Formu gizle
+                    newCountryPricingFormContainer.innerHTML = ''; 
                 });
             }
 
@@ -1667,20 +1725,29 @@
                 const newCountryPricingSettings = {};
                 // Mevcut render edilmiş inputlardan verileri topla
                 document.querySelectorAll('.country-pricing-item').forEach(item => {
-                    const countryCode = item.dataset.code.toLowerCase(); // Firebase'e küçük harf olarak kaydedildiği için
+                    const countryCode = item.dataset.code.toLowerCase(); 
                     
                     // İlgili ülkenin inputlarını bul
                     const adjustmentInput = item.querySelector('[data-field="adjustment"]');
                     const defaultLangSelect = item.querySelector('[data-field="defaultLanguage"]');
                     const currencySymbolSelect = item.querySelector('[data-field="currencySymbol"]');
+                    
+                    const countryNameInputs = item.querySelectorAll('.country-name-input'); // Yeni: name inputları
+                    const currentCountryNameMap = {}; // Yeni: name'i map olarak topla
+                    countryNameInputs.forEach(input => {
+                        const langCode = input.dataset.lang;
+                        const nameValue = input.value.trim();
+                        currentCountryNameMap[langCode] = nameValue;
+                    });
+
 
                     if (adjustmentInput && defaultLangSelect && currencySymbolSelect) {
-                        // Mevcut ülkenin adını ve bayrağını localState'ten al, bunlar değişmiyor
+                        // Mevcut ülkenin bayrağını localState'ten al, değişmiyor
                         const existingCountryData = localState.settings.countryPricing[countryCode] || {};
 
                         newCountryPricingSettings[countryCode] = { 
-                            name: existingCountryData.name || countryCode, // Adı ve bayrağı orijinal veriden veya varsayılan olarak al
-                            flag: existingCountryData.flag || '',
+                            name: currentCountryNameMap, // Yeni: name artık inputlardan toplanan map
+                            flag: existingCountryData.flag || '', // Bayrak olduğu gibi kalsın
                             adjustment: parseFloat(adjustmentInput.value) || 0,
                             defaultLanguage: defaultLangSelect.value,
                             currencySymbol: currencySymbolSelect.value
@@ -1690,18 +1757,37 @@
 
                 localState.settings.countryPricing = newCountryPricingSettings; 
                 await saveData('settings', { countryPricing: localState.settings.countryPricing }); 
-                renderCountryPricingList(); // Kayıt sonrası listeyi yeniden render et
+                renderCountryPricingList(); 
             });
 
             // Ülke silme butonu dinleyicisi
             countryPricingListContainer.addEventListener('click', async (e) => {
                 const deleteBtn = e.target.closest('.delete-country-pricing-btn');
                 if (deleteBtn) {
-                    const countryCodeToDelete = deleteBtn.dataset.code; // HTML'de büyük harf olabilir, Firebase'e küçük olarak gidiyor
-                    if (confirm(`'${localState.settings.countryPricing[countryCodeToDelete.toLowerCase()]?.name}' (${countryCodeToDelete.toUpperCase()}) ülkesi fiyatlandırmasını silmek istediğinizden emin misiniz?`)) {
-                        delete localState.settings.countryPricing[countryCodeToDelete.toLowerCase()]; // localState'ten sil
-                        await saveData('settings', { countryPricing: localState.settings.countryPricing }); // Firebase'e kaydet
-                        renderCountryPricingList(); // Listeyi yenile
+                    const countryCodeToDelete = deleteBtn.dataset.code; 
+                    // Silinecek ülkenin adını, varsayılan dilde al
+                    const countryDisplayName = localState.settings.countryPricing[countryCodeToDelete]?.name?.tr || 
+                                               localState.settings.countryPricing[countryCodeToDelete]?.name?.en || 
+                                               countryCodeToDelete.toUpperCase();
+
+                    if (confirm(`'${countryDisplayName}' (${countryCodeToDelete.toUpperCase()}) ülkesi fiyatlandırmasını silmek istediğinizden emin misiniz?`)) {
+                        // Firebase'de doğrudan ilgili alanı silmek için FieldValue.delete() kullanıyoruz
+                        const updateData = {};
+                        updateData[`countryPricing.${countryCodeToDelete}`] = firebase.firestore.FieldValue.delete();
+                        
+                        showLoading();
+                        try {
+                            // settings belgesini güncelleyerek sadece o ülkenin field'ını sil
+                            await db.collection('pufemo').doc('settings').update(updateData);
+                            alert('Ülke fiyatlandırması başarıyla silindi.');
+                            // Local state'ten de sil ve listeyi yenile
+                            delete localState.settings.countryPricing[countryCodeToDelete];
+                            renderCountryPricingList();
+                        } catch (error) {
+                            alert('Silme işlemi sırasında hata oluştu: ' + error.message);
+                        } finally {
+                            hideLoading();
+                        }
                     }
                 }
             });
