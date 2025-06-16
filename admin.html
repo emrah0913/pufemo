@@ -1546,6 +1546,8 @@
                 newCountryPricingFormContainer.innerHTML = ''; 
                 countryPricingListContainer.innerHTML = '';
                 
+                const languages = localState.settings.languages?.length ? localState.settings.languages : [{code: 'tr', name: 'Türkçe', flag: '🇹🇷'}];
+
                 // localState.settings.countryPricing objesindeki entry'leri alıp sırala
                 const countriesToRender = Object.entries(localState.settings.countryPricing)
                     .map(([codeKey, countryData]) => ({
@@ -1565,7 +1567,7 @@
                     countryItem.dataset.code = country.code; // Küçük harf kodu burada saklansın
                     
                     // Ülke adını çok dilli alana çevir
-                    const countryNameInputsHTML = localState.settings.languages.map(lang => `
+                    const countryNameInputsHTML = languages.map(lang => `
                         <div class="form-group">
                             <label>${lang.flag || lang.code}</label>
                             <input type="text" class="country-name-input" data-country-code="${country.code}" data-lang="${lang.code}" value="${country.name?.[lang.code] || ''}">
@@ -1624,7 +1626,8 @@
                 const form = document.createElement('form');
                 
                 // Ülke adı için çoklu dil giriş alanları oluştur
-                const countryNameInputsHTML = localState.settings.languages.map(lang => `
+                const languages = localState.settings.languages?.length ? localState.settings.languages : [{code: 'tr', name: 'Türkçe', flag: '🇹🇷'}];
+                const countryNameInputsHTML = languages.map(lang => `
                     <div class="form-group">
                         <label for="newCountryName_${lang.code}">Ülke Adı (${lang.name})</label>
                         <input type="text" id="newCountryName_${lang.code}" class="new-country-name-input" data-lang="${lang.code}" placeholder="${lang.name} Adı" ${lang.code === 'tr' ? 'required' : ''}>
@@ -1725,15 +1728,15 @@
                 const newCountryPricingSettings = {};
                 // Mevcut render edilmiş inputlardan verileri topla
                 document.querySelectorAll('.country-pricing-item').forEach(item => {
-                    const countryCode = item.dataset.code.toLowerCase(); 
+                    const countryCode = item.dataset.code; // Bu zaten küçük harf Firebase anahtarı olacak
                     
                     // İlgili ülkenin inputlarını bul
                     const adjustmentInput = item.querySelector('[data-field="adjustment"]');
                     const defaultLangSelect = item.querySelector('[data-field="defaultLanguage"]');
                     const currencySymbolSelect = item.querySelector('[data-field="currencySymbol"]');
                     
-                    const countryNameInputs = item.querySelectorAll('.country-name-input'); // Yeni: name inputları
-                    const currentCountryNameMap = {}; // Yeni: name'i map olarak topla
+                    const countryNameInputs = item.querySelectorAll('.country-name-input'); // name inputları
+                    const currentCountryNameMap = {}; // name'i map olarak topla
                     countryNameInputs.forEach(input => {
                         const langCode = input.dataset.lang;
                         const nameValue = input.value.trim();
@@ -1746,7 +1749,7 @@
                         const existingCountryData = localState.settings.countryPricing[countryCode] || {};
 
                         newCountryPricingSettings[countryCode] = { 
-                            name: currentCountryNameMap, // Yeni: name artık inputlardan toplanan map
+                            name: currentCountryNameMap, // name artık inputlardan toplanan map
                             flag: existingCountryData.flag || '', // Bayrak olduğu gibi kalsın
                             adjustment: parseFloat(adjustmentInput.value) || 0,
                             defaultLanguage: defaultLangSelect.value,
@@ -1764,24 +1767,38 @@
             countryPricingListContainer.addEventListener('click', async (e) => {
                 const deleteBtn = e.target.closest('.delete-country-pricing-btn');
                 if (deleteBtn) {
-                    const countryCodeToDelete = deleteBtn.dataset.code; 
-                    // Silinecek ülkenin adını, varsayılan dilde al
-                    const countryDisplayName = localState.settings.countryPricing[countryCodeToDelete]?.name?.tr || 
-                                               localState.settings.countryPricing[countryCodeToDelete]?.name?.en || 
-                                               countryCodeToDelete.toUpperCase();
+                    const countryCodeToDelete = deleteBtn.dataset.code; // Örneğin "cy", "tr" (data-country-code'dan gelir)
+                    
+                    // Ülke kodunun geçerli olduğundan emin ol
+                    if (!countryCodeToDelete || typeof countryCodeToDelete !== 'string') {
+                        console.error("Silme butonu geçerli bir data-country-code içermiyor:", deleteBtn);
+                        alert("Silinecek ülke bilgisi bulunamadı. Lütfen sayfayı yenileyin.");
+                        return;
+                    }
 
-                    if (confirm(`'${countryDisplayName}' (${countryCodeToDelete.toUpperCase()}) ülkesi fiyatlandırmasını silmek istediğinizden emin misiniz?`)) {
-                        // Firebase'de doğrudan ilgili alanı silmek için FieldValue.delete() kullanıyoruz
+                    const countryData = localState.settings.countryPricing[countryCodeToDelete]; // localState'ten veriyi al
+
+                    let confirmDisplayName = countryCodeToDelete.toUpperCase(); // Onay mesajı için varsayılan ad
+                    
+                    if (countryData) {
+                        if (typeof countryData.name === 'object' && countryData.name !== null) {
+                            // Adı bir map ise, Türkçe, İngilizce veya ilk mevcut dildeki adı al
+                            confirmDisplayName = countryData.name.tr || countryData.name.en || countryData.name[Object.keys(countryData.name)[0]] || countryCodeToDelete.toUpperCase();
+                        } else if (typeof countryData.name === 'string' && countryData.name.trim() !== '') {
+                            // Adı hala bir string ise (eski veri)
+                            confirmDisplayName = countryData.name;
+                        }
+                    }
+
+                    if (confirm(`'${confirmDisplayName}' (${countryCodeToDelete.toUpperCase()}) ülkesi fiyatlandırmasını silmek istediğinizden emin misiniz?`)) {
                         const updateData = {};
                         updateData[`countryPricing.${countryCodeToDelete}`] = firebase.firestore.FieldValue.delete();
                         
                         showLoading();
                         try {
-                            // settings belgesini güncelleyerek sadece o ülkenin field'ını sil
                             await db.collection('pufemo').doc('settings').update(updateData);
                             alert('Ülke fiyatlandırması başarıyla silindi.');
-                            // Local state'ten de sil ve listeyi yenile
-                            delete localState.settings.countryPricing[countryCodeToDelete];
+                            delete localState.settings.countryPricing[countryCodeToDelete]; 
                             renderCountryPricingList();
                         } catch (error) {
                             alert('Silme işlemi sırasında hata oluştu: ' + error.message);
