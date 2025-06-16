@@ -1,46 +1,13 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>PUFEMO - Dil Ayarları</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet"/>
-  <style>
-    body { font-family: 'Inter', sans-serif; background-color: #f7f7f7; }
-  </style>
-</head>
-<body class="p-6">
-  <div class="max-w-5xl mx-auto bg-white p-6 rounded shadow">
-    <h1 class="text-2xl font-bold mb-4">🌐 Dil Ayarları</h1>
-
-    <!-- Yeni Dil Ekleme Formu -->
-    <form id="addLanguageForm" class="grid grid-cols-5 gap-4 mb-6">
-      <input id="languageCode" type="text" placeholder="Kod (ör: tr, en)" required class="col-span-1 border px-3 py-2 rounded">
-      <input id="languageFlag" type="text" placeholder="🇹🇷" required class="col-span-1 border px-3 py-2 rounded">
-      <input id="name_tr" type="text" placeholder="Adı Türkçe" class="col-span-1 border px-3 py-2 rounded">
-      <input id="name_en" type="text" placeholder="Adı İngilizce" class="col-span-1 border px-3 py-2 rounded">
-      <button type="submit" class="bg-primary text-white font-semibold px-4 py-2 rounded">Ekle</button>
-    </form>
-
-    <!-- Dil Listesi -->
-    <table class="w-full table-auto border-t border-gray-200">
-      <thead>
-        <tr class="bg-gray-100">
-          <th class="text-left p-2">Bayrak</th>
-          <th class="text-left p-2">Kod</th>
-          <th class="text-left p-2">TR</th>
-          <th class="text-left p-2">EN</th>
-          <th class="text-right p-2">İşlem</th>
-        </tr>
-      </thead>
-      <tbody id="languageList"></tbody>
-    </table>
-  </div>
-
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, deleteDoc, updateDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDYkzZzNXB22U4oEXxOoPh-puwuE8kz0g4",
@@ -48,74 +15,93 @@
       projectId: "pufemo-com",
       storageBucket: "pufemo-com.firebasestorage.app",
       messagingSenderId: "983352837227",
-      appId: "1:983352837227:web:defaa8dae215776e2e1d2e"
+      appId: "1:983352837227:web:defaa8dae215776e2e1d2e",
+      measurementId: "G-RH8XHC7P91"
     };
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
-    const langsRef = collection(db, "settings_languages");
 
-    async function loadLanguages() {
-      const snapshot = await getDocs(langsRef);
-      const tbody = document.getElementById("languageList");
-      tbody.innerHTML = "";
-      snapshot.forEach(docSnap => {
-        const lang = docSnap.data();
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td class="p-2 text-xl">${lang.flag}</td>
-          <td class="p-2">${lang.code}</td>
-          <td class="p-2"><input class="lang-edit" data-id="${docSnap.id}" data-field="name.tr" value="${lang.name?.tr || ''}" /></td>
-          <td class="p-2"><input class="lang-edit" data-id="${docSnap.id}" data-field="name.en" value="${lang.name?.en || ''}" /></td>
-          <td class="p-2 text-right">
-            <button onclick="deleteLanguage('${docSnap.id}')" class="text-red-600 hover:underline">Sil</button>
-          </td>
-        `;
-        tbody.appendChild(tr);
-      });
+    const form = document.getElementById('language-form');
+    const list = document.getElementById('language-list');
 
-      // Event listener for editing inputs
-      document.querySelectorAll('.lang-edit').forEach(input => {
-        input.addEventListener('blur', async (e) => {
-          const id = e.target.dataset.id;
-          const field = e.target.dataset.field;
-          const value = e.target.value;
-          const ref = doc(db, "settings_languages", id);
-          await updateDoc(ref, { [field]: value });
-        });
-      });
-    }
-
-    window.deleteLanguage = async function(id) {
-      if (confirm("Bu dili silmek istediğinizden emin misiniz?")) {
-        await deleteDoc(doc(db, "settings_languages", id));
-        loadLanguages();
-      }
-    }
-
-    document.getElementById("addLanguageForm").addEventListener("submit", async (e) => {
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const code = document.getElementById("languageCode").value.trim();
-      const flag = document.getElementById("languageFlag").value.trim();
-      const name_tr = document.getElementById("name_tr").value.trim();
-      const name_en = document.getElementById("name_en").value.trim();
+      const code = form.code.value.trim();
+      const flag = form.flag.value.trim();
+      const nameTr = form.name_tr.value.trim();
+      const nameEn = form.name_en.value.trim();
+      if (!code || !flag || !nameTr || !nameEn) return;
 
-      if (!code || !flag) return;
-
-      await addDoc(langsRef, {
+      await addDoc(collection(db, "settings_languages"), {
         code,
         flag,
-        name: {
-          tr: name_tr,
-          en: name_en
-        }
+        name_tr: nameTr,
+        name_en: nameEn
       });
 
-      e.target.reset();
-      loadLanguages();
+      form.reset();
     });
 
-    loadLanguages();
+    onSnapshot(collection(db, "settings_languages"), (snapshot) => {
+      list.innerHTML = '';
+      snapshot.forEach(docSnap => {
+        const data = docSnap.data();
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td class="border px-4 py-2">${data.code}</td>
+          <td class="border px-4 py-2">${data.flag}</td>
+          <td class="border px-4 py-2">${data.name_tr}</td>
+          <td class="border px-4 py-2">${data.name_en}</td>
+          <td class="border px-4 py-2">
+            <button class="bg-red-500 text-white px-2 py-1 text-sm" onclick="deleteLanguage('${docSnap.id}')">Sil</button>
+          </td>
+        `;
+        list.appendChild(row);
+      });
+    });
+
+    window.deleteLanguage = async (id) => {
+      await deleteDoc(doc(db, "settings_languages", id));
+    }
   </script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+  <div class="flex">
+    <!-- Sidebar -->
+    <aside class="w-64 bg-white shadow h-screen p-4">
+      <h2 class="text-xl font-bold mb-4">Yönetim Paneli</h2>
+      <ul class="space-y-2 text-sm">
+        <li><a href="product-management.html" class="block px-4 py-2 hover:bg-gray-200 rounded">🛋 Ürünler</a></li>
+        <li><a href="category-management.html" class="block px-4 py-2 hover:bg-gray-200 rounded">📁 Kategoriler</a></li>
+        <li><a href="admin-languages.html" class="block px-4 py-2 hover:bg-gray-200 rounded">🌐 Dil Ayarları</a></li>
+      </ul>
+    </aside>
+
+    <!-- Content -->
+    <main class="flex-1 p-8">
+      <h1 class="text-2xl font-bold mb-6">🌐 Dil Ayarları</h1>
+      <form id="language-form" class="mb-6 grid grid-cols-2 md:grid-cols-4 gap-4">
+        <input type="text" name="code" placeholder="Dil Kodu (tr)" class="border p-2" required />
+        <input type="text" name="flag" placeholder="Bayrak (🇹🇷)" class="border p-2" required />
+        <input type="text" name="name_tr" placeholder="Adı (Türkçe)" class="border p-2" required />
+        <input type="text" name="name_en" placeholder="Adı (İngilizce)" class="border p-2" required />
+        <button type="submit" class="bg-blue-600 text-white py-2 px-4 col-span-2">Ekle</button>
+      </form>
+
+      <table class="table-auto w-full bg-white rounded shadow">
+        <thead>
+          <tr class="bg-gray-200">
+            <th class="px-4 py-2">Kod</th>
+            <th class="px-4 py-2">Bayrak</th>
+            <th class="px-4 py-2">Adı (TR)</th>
+            <th class="px-4 py-2">Adı (EN)</th>
+            <th class="px-4 py-2">İşlem</th>
+          </tr>
+        </thead>
+        <tbody id="language-list"></tbody>
+      </table>
+    </main>
+  </div>
 </body>
 </html>
