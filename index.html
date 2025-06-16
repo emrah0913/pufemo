@@ -821,6 +821,7 @@
                 const mobileNav = document.getElementById('mobile-nav');
                 const mobileNavOverlay = document.getElementById('mobile-nav-overlay');
 
+                // Dil menüsünü Firebase'den gelen verilere göre doldur
                 const languagesFromDB = siteData.settings.languages || [];
                 languageSelector.innerHTML = languagesFromDB.map(l => `<option value="${l.code}">${l.flag || ''} ${l.name}</option>`).join('');
                 if (languagesFromDB.length > 0) {
@@ -830,6 +831,7 @@
                     languageSelector.style.display = 'none';
                 }
                 
+                // Para birimi menüsünü doldur
                 const currencies = siteData.settings?.currencySymbols || {};
                 const availableCurrencies = Object.keys(currencies);
                 currencySelector.innerHTML = availableCurrencies.map(c => {
@@ -843,18 +845,21 @@
                     currencySelector.style.display = 'none';
                 }
                 
+                // Ülke menüsünü doldur
                 const countries = siteData.settings.countryPricing || {};
                 if (Object.keys(countries).length > 0) {
+                    // DÜZELTME: Bu satır, ülke adının yanındaki (CY), (TR) gibi kodları kaldırmak için güncellendi.
                     countrySelector.innerHTML = Object.entries(countries).map(([code, data]) => {
-                        const countryDisplayName = data.name || code.toUpperCase();
-                        return `<option value="${code}">${data.flag || ''} ${countryDisplayName}</option>`; 
+                        return `<option value="${code}">${data.flag || ''} ${data.name}</option>`; 
                     }).join('');
+
                     countrySelector.value = currentCountryCode; 
                     countrySelector.parentElement.style.display = 'block'; 
                 } else {
                     countrySelector.parentElement.style.display = 'none';
                 }
 
+                // --- Olay Dinleyicileri ---
                 languageSelector.onchange = (e) => { 
                     currentLang = e.target.value;
                     localStorage.setItem('pufemo-language', currentLang);
@@ -895,13 +900,6 @@
                 hamburgerBtn.onclick = toggleMenu;
                 mobileNavOverlay.onclick = toggleMenu;
                 mobileNav.onclick = (e) => { if (e.target.tagName === 'A') toggleMenu(); };
-            };
-
-            const init = async () => {
-                await fetchData();
-                renderAll();
-                loadingOverlay.classList.add('hidden');
-                console.log('Site Data Initialized:', siteData); 
             };
             
             init();
