@@ -1332,9 +1332,8 @@
                         <input type="text" id="newLangCode" maxlength="2" required>
                     </div>
                     <div class="form-group">
-                        <label for="newLangFlag">Bayrak Emoji (Örn: 🇬🇧)</label>
-                        <input type="text" id="newLangFlag" maxlength="2">
-                    </div>
+                        <label for="newLangFlag">Bayrak Emojisi (Örn: 🇬🇧)</label>
+                        <input type="text" id="newLangFlag" maxlength="5"> </div>
                     <div class="form-actions">
                         <button type="button" class="btn btn-danger cancel-new-language-btn">İptal</button>
                         <button type="submit" class="btn btn-success">Dili Ekle</button>
@@ -1551,11 +1550,10 @@
                 // localState.settings.countryPricing objesindeki entry'leri alıp sırala
                 const countriesToRender = Object.entries(localState.settings.countryPricing)
                     .map(([codeKey, countryData]) => ({
-                        code: codeKey, // Küçük harf kodu firebase'den geldiği gibi kalsın
+                        code: codeKey, 
                         ...countryData 
                     }))
                     .sort((a,b) => {
-                        // Eğer name bir map ise, varsayılan dildeki (örn: Türkçe) adına göre sırala
                         const nameA = typeof a.name === 'object' ? a.name.tr || a.name.en || a.code : a.name || a.code;
                         const nameB = typeof b.name === 'object' ? b.name.tr || b.name.en || b.code : b.name || b.code;
                         return nameA.localeCompare(nameB);
@@ -1566,7 +1564,6 @@
                     countryItem.className = 'country-pricing-item';
                     countryItem.dataset.code = country.code; 
                     
-                    // Ülke adını çok dilli alana çevir
                     const countryNameInputsHTML = languages.map(lang => `
                         <div class="form-group">
                             <label>${lang.flag || lang.code}</label>
@@ -1640,9 +1637,8 @@
                         <input type="text" id="newCountryCode" maxlength="2" required style="text-transform: uppercase;">
                     </div>
                     ${countryNameInputsHTML} <div class="form-group">
-                        <label for="newCountryFlag">Bayrak Emojisi (Örn: 🇹🇷, 🇬🇧)</label>
-                        <input type="text" id="newCountryFlag" maxlength="2">
-                    </div>
+                        <label for="newCountryFlag">Bayrak Emojisi (Örn: 🇬🇧)</label>
+                        <input type="text" id="newCountryFlag" maxlength="5"> </div>
                     <div class="form-group">
                         <label for="newCountryAdjustment">Yüzdesel Ayarlama (%)</label>
                         <input type="number" id="newCountryAdjustment" value="0">
@@ -1728,7 +1724,7 @@
                 const newCountryPricingSettings = {};
                 // Mevcut render edilmiş inputlardan verileri topla
                 document.querySelectorAll('.country-pricing-item').forEach(item => {
-                    const countryCode = item.dataset.code; // Bu zaten küçük harf Firebase anahtarı olacak
+                    const countryCode = item.dataset.code; 
                     
                     // İlgili ülkenin inputlarını bul
                     const adjustmentInput = item.querySelector('[data-field="adjustment"]');
@@ -1749,8 +1745,8 @@
                         const existingCountryData = localState.settings.countryPricing[countryCode] || {};
 
                         newCountryPricingSettings[countryCode] = { 
-                            name: currentCountryNameMap, // name artık inputlardan toplanan map
-                            flag: existingCountryData.flag || '', // Bayrak olduğu gibi kalsın
+                            name: currentCountryNameMap, 
+                            flag: existingCountryData.flag || '', 
                             adjustment: parseFloat(adjustmentInput.value) || 0,
                             defaultLanguage: defaultLangSelect.value,
                             currencySymbol: currencySymbolSelect.value
@@ -1767,19 +1763,17 @@
             countryPricingListContainer.addEventListener('click', async (e) => {
                 const deleteBtn = e.target.closest('.delete-country-pricing-btn');
                 if (deleteBtn) {
-                    // dataset.code yerine getAttribute kullanıyoruz, çünkü hata data-country-code'un yokluğundan geliyor gibi görünüyor
                     const countryCodeToDelete = deleteBtn.getAttribute('data-country-code'); 
                     
-                    // Ülke kodunun geçerli olduğundan emin ol (null, undefined veya boş string olmamalı)
                     if (!countryCodeToDelete || countryCodeToDelete.trim() === '') {
                         console.error("Silme butonu geçerli bir data-country-code içermiyor:", deleteBtn);
                         alert("Silinecek ülke kodu bulunamadı. Lütfen sayfayı yenileyin.");
                         return;
                     }
 
-                    const countryData = localState.settings.countryPricing[countryCodeToDelete]; // localState'ten veriyi al
+                    const countryData = localState.settings.countryPricing[countryCodeToDelete]; 
 
-                    let confirmDisplayName = countryCodeToDelete.toUpperCase(); // Onay mesajı için varsayılan ad
+                    let confirmDisplayName = countryCodeToDelete.toUpperCase(); 
                     
                     if (countryData) {
                         if (typeof countryData.name === 'object' && countryData.name !== null) {
@@ -1812,7 +1806,6 @@
             // === 7. BAŞLANGIÇ FONKSİYONU ===
             async function init() {
                 await fetchData();
-                // Tüm render fonksiyonlarını çağırarak başlangıçta tüm formları doğru veriyle doldur
                 renderProductList();
                 renderBannerSettings(); 
                 refreshCategoryView();
