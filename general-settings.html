@@ -1,83 +1,106 @@
 <!DOCTYPE html>
 <html lang="tr">
-  <!-- HEAD -->
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>PUFEMO - Genel Ayarlar</title>
-    <link rel="stylesheet" href="css/style.css" />
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
-    />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
-  </head>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Genel Ayarlar</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, collection, addDoc, deleteDoc, onSnapshot, doc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-  <body>
-    <div class="admin-container">
-      <!-- SIDEBAR -->
-      <aside class="sidebar">
-        <div class="sidebar-header">
-          <h2><i class="fa-solid fa-couch"></i> PUFEMO</h2>
-          <p>Yönetim Paneli</p>
-        </div>
-        <nav class="sidebar-nav">
-          <h3>Genel</h3>
-          <ul>
-            <li><a href="homepage-settings.html">Anasayfa Ayarları</a></li>
-            <li class="active"><a href="general-settings.html">Site Genel Ayarları</a></li>
-          </ul>
-          <h3>İçerik</h3>
-          <ul>
-            <li><a href="product-management.html">Ürünler</a></li>
-            <li><a href="category-management.html">Kategoriler</a></li>
-            <li><a href="country-pricing-management.html">Ülkelere Göre Fiyat</a></li>
-          </ul>
-        </nav>
-      </aside>
+    const firebaseConfig = {
+      apiKey: "AIzaSyDYkzZzNXB22U4oEXxOoPh-puwuE8kz0g4",
+      authDomain: "pufemo-com.firebaseapp.com",
+      projectId: "pufemo-com",
+      storageBucket: "pufemo-com.firebasestorage.app",
+      messagingSenderId: "983352837227",
+      appId: "1:983352837227:web:defaa8dae215776e2e1d2e"
+    };
 
-      <!-- MAIN -->
-      <main class="main-content">
-        <div class="page active" id="general-settings">
-          <h1>Genel Ayarlar</h1>
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
 
-          <form id="general-form">
-            <section class="form-section">
-              <div class="form-group">
-                <label for="siteTitle">Site Başlığı</label>
-                <input type="text" id="siteTitle" placeholder="PUFEMO - Modern Koltuklar" />
-              </div>
+    const form = document.getElementById('language-form');
+    const list = document.getElementById('language-list');
 
-              <div class="form-group">
-                <label for="logoUrl">Logo URL</label>
-                <input type="url" id="logoUrl" placeholder="https://..." />
-              </div>
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const code = form.code.value.trim();
+      const flag = form.flag.value.trim();
+      const nameTr = form.name_tr.value.trim();
+      const nameEn = form.name_en.value.trim();
+      if (!code || !flag || !nameTr || !nameEn) return;
+      await addDoc(collection(db, "settings_languages"), {
+        code,
+        flag,
+        name_tr: nameTr,
+        name_en: nameEn
+      });
+      form.reset();
+    });
 
-              <div class="form-group">
-                <label for="faviconUrl">Favicon URL</label>
-                <input type="url" id="faviconUrl" placeholder="https://..." />
-              </div>
+    onSnapshot(collection(db, "settings_languages"), (snapshot) => {
+      list.innerHTML = '';
+      snapshot.forEach(docSnap => {
+        const data = docSnap.data();
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td class="border px-4 py-2">${data.code}</td>
+          <td class="border px-4 py-2">${data.flag}</td>
+          <td class="border px-4 py-2">${data.name_tr}</td>
+          <td class="border px-4 py-2">${data.name_en}</td>
+          <td class="border px-4 py-2">
+            <button class="bg-red-500 text-white px-2 py-1 text-sm" onclick="deleteLanguage('${docSnap.id}')">Sil</button>
+          </td>
+        `;
+        list.appendChild(row);
+      });
+    });
 
-              <div class="form-group">
-                <label for="contactEmail">İletişim E-Posta</label>
-                <input type="email" id="contactEmail" placeholder="info@pufemo.com" />
-              </div>
+    window.deleteLanguage = async (id) => {
+      await deleteDoc(doc(db, "settings_languages", id));
+    }
+  </script>
+</head>
+<body class="bg-gray-50 text-gray-800">
+  <div class="max-w-4xl mx-auto py-10 px-4">
+    <h1 class="text-2xl font-bold mb-6">Genel Ayarlar</h1>
 
-              <div class="form-group">
-                <label for="instagramUrl">Instagram Linki</label>
-                <input type="url" id="instagramUrl" placeholder="https://instagram.com/pufemo" />
-              </div>
-
-              <div class="form-actions">
-                <button type="submit" class="btn btn-success">Kaydet</button>
-              </div>
-            </section>
-          </form>
-        </div>
-      </main>
+    <!-- Mevcut Ayarlar Formu -->
+    <div class="grid grid-cols-1 gap-4 mb-10">
+      <input type="text" class="border p-2" placeholder="Site Başlığı">
+      <input type="text" class="border p-2" placeholder="Logo URL">
+      <input type="text" class="border p-2" placeholder="Favicon URL">
+      <input type="email" class="border p-2" placeholder="İletişim E-Posta">
+      <input type="text" class="border p-2" placeholder="Instagram Linki">
+      <button class="bg-green-500 text-white px-4 py-2">Kaydet</button>
     </div>
-  </body>
+
+    <!-- Yeni Dil Ekleme -->
+    <div class="bg-white p-6 rounded shadow">
+      <h2 class="text-xl font-semibold mb-4">🌐 Dil Ayarları</h2>
+      <form id="language-form" class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <input type="text" name="code" placeholder="Kod (tr)" class="border p-2" required>
+        <input type="text" name="flag" placeholder="Bayrak (🇹🇷)" class="border p-2" required>
+        <input type="text" name="name_tr" placeholder="Adı (TR)" class="border p-2" required>
+        <input type="text" name="name_en" placeholder="Adı (EN)" class="border p-2" required>
+        <button type="submit" class="col-span-1 md:col-span-4 bg-blue-600 text-white py-2">Ekle</button>
+      </form>
+
+      <table class="table-auto w-full text-left">
+        <thead>
+          <tr class="bg-gray-100">
+            <th class="px-4 py-2">Kod</th>
+            <th class="px-4 py-2">Bayrak</th>
+            <th class="px-4 py-2">Adı (TR)</th>
+            <th class="px-4 py-2">Adı (EN)</th>
+            <th class="px-4 py-2">İşlem</th>
+          </tr>
+        </thead>
+        <tbody id="language-list"></tbody>
+      </table>
+    </div>
+  </div>
+</body>
 </html>
