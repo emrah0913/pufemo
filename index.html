@@ -259,7 +259,6 @@
         .footer-section a:hover { color: var(--secondary-color); }
         .footer-bottom { text-align: center; margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.2); font-size: 0.9rem; }
         
-        /* Yeni Ülke Seçici İçin CSS */
         .country-selector-container {
             margin-top: 3rem;
             text-align: center;
@@ -494,7 +493,6 @@
         } catch (e) { console.error("Firebase başlatma hatası!", e); }
 
         if (db) {
-            // Statik metinler için çeviri objesi. Bu obje, kod içinde sabit olan metinlerin çevirisi için kullanılır.
             const staticTranslations = {
                 'loading_text': { tr: 'PUFEMO Yükleniyor...', en: 'Loading PUFEMO...', el: 'Φόρτωση PUFEMO...', ru: 'Загрузка PUFEMO...' },
                 'mobile_menu_title': { tr: 'Kategoriler', en: 'Categories', el: 'Κατηγορίες', ru: 'Категории' },
@@ -513,64 +511,51 @@
                 'country_selector_label': { tr: 'Ülke Seçimi:', en: 'Select Country:', el: 'Επιλέξτε Χώρα:', ru: 'Выбрать страну:' }
             };
 
-            // DÜZELTME: Bu sabit kodlu (hard-coded) dil listesi kaldırıldı.
-            // Diller artık tamamen veritabanından, yani admin panelinden yönetilecek.
-            // const supportedLanguages = [ ... ]; // BU SATIR SİLİNDİ
-
             const loadingOverlay = document.getElementById('loading-overlay');
             
-            // Sitenin tüm verilerini tutacak ana obje. Başlangıçta her şey boş.
             let siteData = { 
                 settings: { 
-                    languages: [], // Veritabanından dolacak
-                    banner: { slides: [] }, // Veritabanından dolacak
-                    general: { 
-                        logo: {},
-                        promoBar: {}
-                    },
-                    countryPricing: {}, // Veritabanından dolacak
-                    currencySymbols: {}, // Veritabanından dolacak
-                    exchangeRates: {} // Veritabanından dolacak
+                    languages: [],
+                    banner: { slides: [] },
+                    general: { logo: {}, promoBar: {} },
+                    countryPricing: {},
+                    currencySymbols: {},
+                    exchangeRates: {}
                 }, 
-                categories: { tree: [] }, // Veritabanından dolacak
-                products: [] // Veritabanından dolacak
+                categories: { tree: [] },
+                products: []
             };
 
-            // Kullanıcının son seçtiği dil ve para birimini hafızadan al, yoksa varsayılan ata.
             let currentLang = localStorage.getItem('pufemo-language') || 'tr'; 
             let currentCurrency = localStorage.getItem('pufemo-currency') || 'TRY';
             let currentCountryCode = localStorage.getItem('pufemo-country') || 'cy'; 
 
             /**
+             * ÖNCEKİ `Veri okuma hatası!` hatasını düzeltmek için bu fonksiyon güncellendi.
              * Firebase'den sitenin çalışması için gerekli tüm verileri tek seferde çeker.
              */
             const fetchData = async () => {
                 try {
-                    // Ayarlar, kategoriler ve vitrin ürünlerini aynı anda çek
                     const [settingsDoc, categoriesDoc, productsSnap] = await Promise.all([ 
                         db.collection('pufemo').doc('settings').get(),
                         db.collection('pufemo').doc('categories').get(),
                         db.collection('pufemo-products').where('isInShowcase', '==', true).get()
                     ]);
 
-                    // DÜZELTME: Veritabanından gelen veriler doğrudan siteData'ya atanıyor.
-                    // Eğer veritabanında bir ayar yoksa, siteData'daki başlangıç (boş) değeri kullanılır.
-                    // Böylece kod içinde yedek veri kalmaz.
-                    if (settingsDoc.exists()) {
+                    // DÜZELTME: .exists() bir fonksiyon değil, bir özelliktir (property). Parantezler kaldırıldı.
+                    if (settingsDoc.exists) {
                         siteData.settings = { ...siteData.settings, ...settingsDoc.data() };
                     }
-                    if (categoriesDoc.exists()) {
+                    if (categoriesDoc.exists) {
                         siteData.categories = { ...siteData.categories, ...categoriesDoc.data() };
                     }
                     siteData.products = productsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-                    // Eğer kullanıcı daha önce ülke seçmemişse ve ülke listesi varsa, ilk ülkeyi varsayılan yap.
                     if (!localStorage.getItem('pufemo-country') && Object.keys(siteData.settings.countryPricing).length > 0) {
                         currentCountryCode = Object.keys(siteData.settings.countryPricing)[0]; 
                         localStorage.setItem('pufemo-country', currentCountryCode);
                     }
                     
-                    // Seçili ülkeye göre dil ve para birimini ayarla.
                     const selectedCountryData = siteData.settings.countryPricing[currentCountryCode];
                     if (selectedCountryData) {
                         currentLang = selectedCountryData.defaultLanguage || currentLang;
@@ -583,7 +568,6 @@
                             currentCurrency = currencyCodeFromSymbol || currentCurrency; 
                         }
                         
-                        // Yeni ayarları kullanıcının tarayıcısına kaydet
                         localStorage.setItem('pufemo-language', currentLang);
                         localStorage.setItem('pufemo-currency', currentCurrency);
                     }
@@ -591,16 +575,13 @@
                 } catch (e) { console.error("Veri okuma hatası!", e); } 
             };
             
-            /**
-             * Tüm arayüzü `siteData` içindeki güncel verilere göre yeniden çizer.
-             */
             const renderAll = () => {
-                setupControls(); // Kontrol elemanlarını (dil, para vb. menüleri) doldurur
-                renderStaticText(); // Sabit metinleri çevirir
-                renderCategories(); // Kategori menülerini oluşturur
-                renderBanner(); // Banner/Slider'ı oluşturur
-                renderProducts(); // Ürünleri listeler
-                renderGeneralSiteElements(); // Logo ve promosyon bandı gibi genel elemanları oluşturur
+                setupControls();
+                renderStaticText();
+                renderCategories();
+                renderBanner();
+                renderProducts();
+                renderGeneralSiteElements();
             };
 
             const renderStaticText = () => {
@@ -633,7 +614,6 @@
                         if (generalSettings.logo.imageWidth) img.style.width = `${generalSettings.logo.imageWidth}px`;
                         if (generalSettings.logo.imageHeight) img.style.height = `${generalSettings.logo.imageHeight}px`;
                         logoLink.appendChild(img);
-                        logoLink.style.color = ''; 
                     } else {
                         const icon = document.createElement('i');
                         icon.className = generalSettings.logo?.icon || 'fa-solid fa-couch';
@@ -658,7 +638,6 @@
                     
                     const promoText = generalSettings.promoBar?.text?.[currentLang] || generalSettings.promoBar?.text?.tr || '';
                     promoTextContent.textContent = promoText;
-                    // Promosyon bandı aktif değilse gizle
                     promoBar.style.display = generalSettings.promoBar?.enabled ? 'block' : 'none';
                 }
             };
@@ -671,7 +650,7 @@
                 desktopContainer.innerHTML = '';
                 mobileContainer.innerHTML = '';
                 
-                if (categories.length === 0) return; // Kategori yoksa hiçbir şey yapma
+                if (categories.length === 0) return;
 
                 const mobileMenuTitle = staticTranslations['mobile_menu_title']?.[currentLang] || staticTranslations['mobile_menu_title']?.['tr'];
                 mobileContainer.innerHTML += `<div class="mobile-nav-header">${mobileMenuTitle}</div>`;
@@ -700,12 +679,12 @@
                 const bannerContainer = document.getElementById('hero-banner-container');
                 const slides = siteData.settings?.banner?.slides || [];
 
-                bannerContainer.innerHTML = ''; // Önceki içeriği temizle
-                if (slides.length === 0) { // Banner yoksa bölümü gizle
+                bannerContainer.innerHTML = '';
+                if (slides.length === 0) {
                     bannerContainer.style.display = 'none';
                     return;
                 }
-                bannerContainer.style.display = 'block'; // Banner varsa bölümü göster
+                bannerContainer.style.display = 'block';
 
                 slides.forEach((slideData, index) => {
                     const slideEl = document.createElement('div');
@@ -747,20 +726,17 @@
                 const selectedCountryData = siteData.settings.countryPricing[currentCountryCode];
                 let priceToFormat = discountPrice !== null ? discountPrice : basePrice;
 
-                // Ülkeye göre fiyat ayarlaması yap
                 if (selectedCountryData && typeof selectedCountryData.adjustment === 'number') {
                     const adjustmentPercentage = selectedCountryData.adjustment / 100;
                     priceToFormat = priceToFormat * (1 + adjustmentPercentage);
                 }
 
-                // Döviz kuru dönüşümü (bu özellik eklenirse kullanılacak)
                 const rates = siteData.settings?.exchangeRates || {};
                 const rate = rates[currentCurrency] || 1;
                 priceToFormat = priceToFormat * rate;
 
                 const symbol = symbols[currentCurrency] || currentCurrency;
 
-                // Fiyatı formatla
                 const numberFormatOptions = currentCurrency === 'TRY' 
                     ? { maximumFractionDigits: 0 } 
                     : { minimumFractionDigits: 2, maximumFractionDigits: 2 };
@@ -845,17 +821,15 @@
                 const mobileNav = document.getElementById('mobile-nav');
                 const mobileNavOverlay = document.getElementById('mobile-nav-overlay');
 
-                // DÜZELTME: Dil menüsü artık Firebase'den gelen `siteData.settings.languages` ile dolduruluyor.
                 const languagesFromDB = siteData.settings.languages || [];
                 languageSelector.innerHTML = languagesFromDB.map(l => `<option value="${l.code}">${l.flag || ''} ${l.name}</option>`).join('');
                 if (languagesFromDB.length > 0) {
                     languageSelector.value = currentLang;
                     languageSelector.style.display = 'block';
                 } else {
-                    languageSelector.style.display = 'none'; // Dil yoksa menüyü gizle
+                    languageSelector.style.display = 'none';
                 }
                 
-                // Para birimi seçiciyi doldur
                 const currencies = siteData.settings?.currencySymbols || {};
                 const availableCurrencies = Object.keys(currencies);
                 currencySelector.innerHTML = availableCurrencies.map(c => {
@@ -869,7 +843,6 @@
                     currencySelector.style.display = 'none';
                 }
                 
-                // Ülke seçiciyi doldur
                 const countries = siteData.settings.countryPricing || {};
                 if (Object.keys(countries).length > 0) {
                     countrySelector.innerHTML = Object.entries(countries).map(([code, data]) => {
@@ -882,9 +855,6 @@
                     countrySelector.parentElement.style.display = 'none';
                 }
 
-                // --- Olay Dinleyicileri ---
-                // Tekrar tekrar eklenmemeleri için, bu fonksiyonun başında temizlenebilir veya
-                // bir kerelik ekleme mantığı kurulabilir. Şimdilik bu şekilde bırakıyoruz.
                 languageSelector.onchange = (e) => { 
                     currentLang = e.target.value;
                     localStorage.setItem('pufemo-language', currentLang);
@@ -900,7 +870,6 @@
                 countrySelector.onchange = (e) => {
                     currentCountryCode = e.target.value;
                     localStorage.setItem('pufemo-country', currentCountryCode);
-                    // Seçilen ülkeye göre dil ve para birimini otomatik güncelle ve sayfayı yeniden render et
                     const selectedCountryData = siteData.settings.countryPricing[currentCountryCode];
                     if (selectedCountryData) {
                         currentLang = selectedCountryData.defaultLanguage || currentLang;
@@ -928,12 +897,9 @@
                 mobileNav.onclick = (e) => { if (e.target.tagName === 'A') toggleMenu(); };
             };
 
-            /**
-             * Sitenin başlangıç noktası
-             */
             const init = async () => {
-                await fetchData(); // Önce tüm verileri çek
-                renderAll();       // Sonra bu verilerle tüm arayüzü oluştur
+                await fetchData();
+                renderAll();
                 loadingOverlay.classList.add('hidden');
                 console.log('Site Data Initialized:', siteData); 
             };
