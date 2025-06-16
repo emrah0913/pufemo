@@ -43,7 +43,7 @@
             color: inherit;
         }
 
-        /* Header Styles - Ana sayfadaki gibi */
+        /* Header Styles */
         .main-header {
             background-color: var(--card-bg-color);
             box-shadow: var(--box-shadow);
@@ -109,20 +109,20 @@
         .main-media-display {
             width: 100%;
             height: 450px; 
-            display: flex; /* İçindeki medya elemanını ortalamak için */
+            display: flex; 
             justify-content: center;
             align-items: center;
             border-radius: var(--border-radius);
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             margin-bottom: 15px;
             background-color: #f0f0f0; 
-            overflow: hidden; /* İçerik taşmasını engelle */
+            overflow: hidden; 
         }
         .main-media-display img,
         .main-media-display video {
             max-width: 100%;
             max-height: 100%;
-            object-fit: contain; /* Resmi/videoyu kutuya sığdır */
+            object-fit: contain; 
         }
         .thumbnail-images {
             display: flex;
@@ -185,32 +185,62 @@
             text-decoration: line-through;
             margin-right: 10px;
         }
-        .product-detail-variants {
+        .product-detail-variants-container { /* Yeni varyant alanı için yeni class */
             width: 100%; 
-            max-width: 400px; 
             margin-bottom: 1.5rem;
             text-align: left; 
         }
-        .product-detail-variants label {
+        .product-detail-variants-container label {
             display: block;
             margin-bottom: 0.5rem;
             font-weight: 600;
             color: var(--primary-color);
         }
-        .product-detail-variants select {
-            padding: 10px 15px;
-            border: 1px solid #ccc;
-            border-radius: var(--border-radius);
-            font-size: 1rem;
-            width: 100%; 
-            box-sizing: border-box; 
-            background-color: #f8f9fa;
+        .variant-options { /* Renk kutucukları için flex container */
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap; /* Küçük ekranlarda alta geçsin */
         }
-        .product-detail-variants select:focus {
+        .variant-option { /* Her bir renk kutucuğu/resim varyantı */
+            cursor: pointer;
+            border: 2px solid #ccc;
+            border-radius: 5px;
+            padding: 5px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            color: var(--text-color);
+        }
+        .variant-option.active {
             border-color: var(--secondary-color);
-            outline: none;
             box-shadow: 0 0 0 2px rgba(231, 76, 60, 0.2);
         }
+        .variant-option:hover {
+            border-color: var(--secondary-color);
+            transform: translateY(-2px);
+        }
+        .variant-option img { /* Varyant görseli (renk kutucuğu içinde olabilir) */
+            width: 30px; /* Renk kutucuğu görsel boyutu */
+            height: 30px;
+            object-fit: cover;
+            border-radius: 3px;
+            margin-right: 5px; /* Metin varsa boşluk bırak */
+        }
+        /* Eğer sadece renk kutusu olacaksa ve görsel yoksa */
+        .variant-option.color-box {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%; /* Yuvarlak renk kutucuğu */
+            padding: 0;
+            flex-shrink: 0; /* Küçülmesini engelle */
+        }
+        .variant-option.color-box.active {
+            box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.5); /* Yuvarlak kutu için çerçeve */
+        }
+
+
         .add-to-cart-button {
             background-color: var(--secondary-color);
             color: var(--light-text-color);
@@ -254,7 +284,7 @@
             width: 100%;
         }
 
-        /* Footer Styles - Ana sayfadaki gibi */
+        /* Footer Styles */
         .main-footer {
             background-color: var(--primary-color);
             color: var(--light-text-color);
@@ -296,14 +326,14 @@
             .product-detail-title,
             .product-detail-description,
             .product-price-display,
-            .product-detail-variants,
+            .product-detail-variants-container, /* Yeni class adı */
             .add-to-cart-button,
             .free-shipping-tag-detail {
                 max-width: 100%; 
-                width: 100%; /* Mobil cihazlarda tam genişlik */
+                width: 100%; 
             }
             .product-info-column p {
-                 text-align: center; /* Mobil açıklama ortada */
+                 text-align: center; 
             }
         }
 
@@ -451,69 +481,60 @@
         };
 
         // Medya galerisini (büyük resim/video + küçük resimler) render eden fonksiyon
-        function renderMediaGallery(mediaArray, containerId) {
-            const galleryContainer = document.getElementById(containerId);
-            if (!galleryContainer) return;
+        // Bu fonksiyon artık ayrı bir div içinde çalışacak
+        function renderMediaGallery(mediaArray, mainMediaDisplayId, thumbnailsContainerId) {
+            const mainMediaDisplay = document.getElementById(mainMediaDisplayId);
+            const thumbnailsContainer = document.getElementById(thumbnailsContainerId);
 
-            galleryContainer.innerHTML = ''; // İçeriği temizle
+            if (!mainMediaDisplay || !thumbnailsContainer) return;
+
+            mainMediaDisplay.innerHTML = ''; // Büyük medya alanını temizle
+            thumbnailsContainer.innerHTML = ''; // Küçük resim alanını temizle
 
             if (!mediaArray || mediaArray.length === 0) {
-                galleryContainer.innerHTML = `
-                    <div class="main-media-display">
-                        <img src="https://placehold.co/600x400/ccc/fff?text=Resim+Yok" alt="No image" style="object-fit: contain;">
-                    </div>
-                    <div class="thumbnail-images"></div>`;
+                // Medya yoksa placeholder göster
+                mainMediaDisplay.innerHTML = `<img src="https://placehold.co/600x400/ccc/fff?text=Resim+Yok" alt="No image" style="object-fit: contain;">`;
                 return;
             }
 
-            const mainMedia = mediaArray[0];
-            let mainMediaHTML = '';
-            if (mainMedia.url.endsWith('.mp4') || mainMedia.url.endsWith('.webm')) {
-                mainMediaHTML = `<video src="${mainMedia.url}" autoplay muted loop playsinline></video>`;
+            const firstMedia = mediaArray[0];
+            if (firstMedia.url.endsWith('.mp4') || firstMedia.url.endsWith('.webm')) {
+                mainMediaDisplay.innerHTML = `<video src="${firstMedia.url}" autoplay muted loop playsinline></video>`;
             } else {
-                mainMediaHTML = `<img src="${mainMedia.url}" alt="Main product image">`;
+                mainMediaDisplay.innerHTML = `<img src="${firstMedia.url}" alt="Main product image">`;
             }
 
-            let thumbnailsHTML = `<div class="thumbnail-images">`;
-            mediaArray.forEach((media, index) => {
-                let thumbnailTag = '';
-                if (media.url.endsWith('.mp4') || media.url.endsWith('.webm')) {
-                    // Videolar için önizleme resmi kullanmak daha iyi olabilir
-                    thumbnailTag = `<video src="${media.url}" muted preload="metadata"></video>`;
-                } else {
-                    thumbnailTag = `<img src="${media.url}" alt="Thumbnail ${index + 1}">`;
-                }
-                thumbnailsHTML += `<div class="media-item ${index === 0 ? 'active' : ''}" data-url="${media.url}" data-type="${media.url.endsWith('.mp4') || media.url.endsWith('.webm') ? 'video' : 'image'}">${thumbnailTag}</div>`;
-            });
-            thumbnailsHTML += `</div>`;
-
-            galleryContainer.innerHTML = `
-                <div class="main-media-display" id="main-product-media-display">
-                    ${mainMediaHTML}
-                </div>
-                ${thumbnailsHTML}
-            `;
-
-            // Küçük resim/video tıklama olayları
-            document.querySelectorAll(`#${containerId} .thumbnail-images .media-item`).forEach(thumbnailDiv => {
-                thumbnailDiv.addEventListener('click', () => {
-                    const selectedUrl = thumbnailDiv.dataset.url;
-                    const selectedType = thumbnailDiv.dataset.type;
-                    const mainMediaDisplay = document.getElementById('main-product-media-display');
-
-                    mainMediaDisplay.innerHTML = ''; // Mevcut içeriği temizle
-
-                    if (selectedType === 'video') {
-                        mainMediaDisplay.innerHTML = `<video src="${selectedUrl}" autoplay muted loop playsinline></video>`;
+            if (mediaArray.length > 0) {
+                mediaArray.forEach((media, index) => {
+                    let thumbnailTag = '';
+                    if (media.url.endsWith('.mp4') || media.url.endsWith('.webm')) {
+                        thumbnailTag = `<video src="${media.url}" muted preload="metadata"></video>`;
                     } else {
-                        mainMediaDisplay.innerHTML = `<img src="${selectedUrl}" alt="Main product image">`;
+                        thumbnailTag = `<img src="${media.url}" alt="Thumbnail ${index + 1}">`;
                     }
-
-                    // Aktif sınıfı güncelle
-                    document.querySelectorAll(`#${containerId} .thumbnail-images .media-item`).forEach(item => item.classList.remove('active'));
-                    thumbnailDiv.classList.add('active');
+                    // data-full-url ve data-type ekledik
+                    thumbnailsContainer.innerHTML += `<div class="media-item ${index === 0 ? 'active' : ''}" data-full-url="${media.url}" data-type="${media.url.endsWith('.mp4') || media.url.endsWith('.webm') ? 'video' : 'image'}">${thumbnailTag}</div>`;
                 });
-            });
+
+                // Küçük resim/video tıklama olayları
+                document.querySelectorAll(`#${thumbnailsContainerId} .media-item`).forEach(thumbnailDiv => {
+                    thumbnailDiv.addEventListener('click', () => {
+                        const selectedUrl = thumbnailDiv.dataset.fullUrl;
+                        const selectedType = thumbnailDiv.dataset.type;
+
+                        mainMediaDisplay.innerHTML = ''; 
+
+                        if (selectedType === 'video') {
+                            mainMediaDisplay.innerHTML = `<video src="${selectedUrl}" autoplay muted loop playsinline></video>`;
+                        } else {
+                            mainMediaDisplay.innerHTML = `<img src="${selectedUrl}" alt="Main product image">`;
+                        }
+
+                        document.querySelectorAll(`#${thumbnailsContainerId} .media-item`).forEach(item => item.classList.remove('active'));
+                        thumbnailDiv.classList.add('active');
+                    });
+                });
+            }
         }
 
 
@@ -527,7 +548,7 @@
             if (!productId) {
                 errorMessageDiv.textContent = 'Ürün ID bulunamadı veya geçersiz.';
                 errorMessageDiv.style.display = 'block';
-                productDetailsContainer.innerHTML = ''; 
+                productDetailsContainer.innerHTML = '<p>Ürün ID bulunamadı.</p>'; // İçeriği boşalt ve mesaj göster
                 pageTitle.textContent = 'Hata - PUFEMO';
                 return;
             }
@@ -602,28 +623,44 @@
 
                         // Ücretsiz Kargo Metni
                         const isFreeShipping = productData.isFreeShipping || false;
-                        const freeShippingText = siteData.settings.general.promoBar?.text?.[currentLang] || siteData.settings.general.promoBar?.text?.tr || 'Ücretsiz Kargo!'; // Admin'den gelen promo metni
+                        // Promo metni Firebase genel ayarlardan çekilmeli
+                        const freeShippingText = siteData.settings.general.promoBar?.text?.[currentLang] || siteData.settings.general.promoBar?.text?.tr || 'Ücretsiz Kargo!'; 
                         const freeShippingTagHTML = isFreeShipping ? `<div class="free-shipping-tag-detail">${freeShippingText}</div>` : '';
 
 
-                        // Renk varyantlarını oluşturma (Select kutusu)
+                        // Renk varyantlarını oluşturma (görsel varyantlar)
                         let variantsHTML = '';
                         // productData.variants dizisi doğrudan renk seçeneklerini içeriyor
                         if (productData.variants && productData.variants.length > 0) {
-                            variantsHTML = `
-                                <div class="product-detail-variants">
-                                    <label for="color-select">Renk Seçin:</label>
-                                    <select id="color-select">`;
-                            productData.variants.forEach(colorOption => {
-                                variantsHTML += `<option value="${colorOption.colorName}">${colorOption.colorName}</option>`;
+                            variantsHTML += `
+                                <div class="product-detail-variants-container">
+                                    <label>Renk Seçin:</label>
+                                    <div class="variant-options" id="color-variant-options">`;
+                            productData.variants.forEach((colorOption, index) => {
+                                // Varsayılan olarak ilk varyant aktif
+                                const isActive = index === 0 ? 'active' : '';
+                                // Eğer varyantın kendi görseli varsa onu kullan, yoksa boş bir kutucuk
+                                const variantThumbnail = colorOption.media && colorOption.media.length > 0 ? `<img src="${colorOption.media[0].url}" alt="${colorOption.colorName}">` : '';
+
+                                // Her varyantın medya dizisini data attribute olarak sakla
+                                variantsHTML += `
+                                    <div class="variant-option ${isActive}" 
+                                         data-color-name="${colorOption.colorName}" 
+                                         data-media='${JSON.stringify(colorOption.media || [])}'>
+                                        ${variantThumbnail} ${colorOption.colorName}
+                                    </div>`;
                             });
-                            variantsHTML += `</select></div>`;
+                            variantsHTML += `</div></div>`;
                         }
                         
                         // Ana HTML yapısını render et
                         productDetailsContainer.innerHTML = `
-                            <div class="product-image-gallery" id="product-image-gallery">
-                                </div>
+                            <div class="product-image-gallery" id="product-image-gallery-container">
+                                <div class="main-media-display" id="main-product-media-display">
+                                    </div>
+                                <div class="thumbnail-images" id="product-thumbnails">
+                                    </div>
+                            </div>
                             <div class="product-info-column">
                                 <h1 class="product-detail-title">${productName}</h1>
                                 <div style="width: 100%; margin-bottom: 1rem;">${priceHTML}</div>
@@ -643,22 +680,35 @@
                             // Eğer ürünün doğrudan medyası varsa (varyant içermeyen ürünler için)
                             initialMedia = productData.media;
                         }
-                        renderMediaGallery(initialMedia, 'product-image-gallery');
+                        renderMediaGallery(initialMedia, 'main-product-media-display', 'product-thumbnails');
 
 
-                        // Renk seçimi değiştiğinde medya galerisini güncelle
-                        const colorSelect = document.getElementById('color-select');
-                        if (colorSelect) {
-                            colorSelect.addEventListener('change', (event) => {
-                                const selectedColorName = event.target.value;
-                                const selectedColorOption = productData.variants.find(v => v.colorName === selectedColorName);
-                                if (selectedColorOption && selectedColorOption.media) {
-                                    renderMediaGallery(selectedColorOption.media, 'product-image-gallery');
-                                } else {
-                                    // Eğer seçilen varyantın medyası yoksa varsayılan placeholder'ı göster
-                                    renderMediaGallery([], 'product-image-gallery');
-                                }
+                        // Renk varyantı tıklama olayları
+                        document.querySelectorAll('#color-variant-options .variant-option').forEach(variantDiv => {
+                            variantDiv.addEventListener('click', () => {
+                                // Önce tüm varyantlardan aktif sınıfı kaldır
+                                document.querySelectorAll('#color-variant-options .variant-option').forEach(item => item.classList.remove('active'));
+                                // Tıklanan varyantı aktif yap
+                                variantDiv.classList.add('active');
+
+                                // Seçilen varyantın medyasını al ve galeriye gönder
+                                const selectedMedia = JSON.parse(variantDiv.dataset.media);
+                                renderMediaGallery(selectedMedia, 'main-product-media-display', 'product-thumbnails');
                             });
+                        });
+                        
+                        // Sayfa yüklendiğinde ilk varyantı veya ürünün genel resimlerini seçili yap
+                        // Eğer varyantlar varsa ve ilk varyantın medyası varsa, onun görsellerini yükle ve aktif yap
+                        if (productData.variants && productData.variants.length > 0) {
+                            const firstVariantOptionDiv = document.querySelector('#color-variant-options .variant-option');
+                            if (firstVariantOptionDiv) {
+                                firstVariantOptionDiv.classList.add('active'); // İlk varyantı aktif yap
+                                const firstVariantMedia = JSON.parse(firstVariantOptionDiv.dataset.media);
+                                renderMediaGallery(firstVariantMedia, 'main-product-media-display', 'product-thumbnails');
+                            }
+                        } else if (productData.media && productData.media.length > 0) {
+                            // Varyant yoksa, ürünün kendi medya galerisini göster
+                            renderMediaGallery(productData.media, 'main-product-media-display', 'product-thumbnails');
                         }
 
 
