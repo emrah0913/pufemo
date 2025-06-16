@@ -536,7 +536,7 @@
 
             let currentLang = localStorage.getItem('pufemo-language') || 'tr'; 
             let currentCurrency = localStorage.getItem('pufemo-currency') || 'TRY';
-            let currentCountryCode = localStorage.getItem('pufemo-country') || 'cy'; // Varsayılan olarak Kıbrıs'ı alıyoruz
+            let currentCountryCode = localStorage.getItem('pufemo-country') || 'cy'; 
 
             const fetchData = async () => {
                 try {
@@ -550,7 +550,6 @@
                     const fetchedSettings = settingsDoc.exists ? settingsDoc.data() : {};
                     const fetchedCountryPricing = countryPricingDoc.exists ? countryPricingDoc.data() : {};
                     
-                    // Firebase'den gelen verileri siteData'ya entegre et
                     siteData.settings = { 
                         ...fetchedSettings, 
                         languages: fetchedSettings.languages || [],
@@ -573,12 +572,10 @@
                     siteData.categories = categoriesDoc.exists ? categoriesDoc.data() : {};
                     siteData.products = productsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-                    // Eğer localStorage'da ülke kodu yoksa ve Firebase'den gelen bir varsayılan varsa, onu kullan.
                     if (!localStorage.getItem('pufemo-country') && Object.keys(fetchedCountryPricing).length > 0) {
-                        currentCountryCode = Object.keys(fetchedCountryPricing)[0]; // Firebase'deki ilk ülkeyi varsayılan al
+                        currentCountryCode = Object.keys(fetchedCountryPricing)[0]; 
                         localStorage.setItem('pufemo-country', currentCountryCode);
                     }
-                    // Seçilen ülkeye göre dil ve para birimini ayarla
                     if (siteData.settings.countryPricing[currentCountryCode]) {
                         currentLang = siteData.settings.countryPricing[currentCountryCode].defaultLanguage || currentLang;
                         
@@ -591,7 +588,7 @@
                                 currentCurrency = currencyCodeFromSymbol;
                             } else {
                                 console.warn(`Currency code not found for symbol: ${selectedCountryCurrencySymbol}. Using symbol as currency code.`);
-                                currentCurrency = selectedCountryCurrencySymbol; // Fallback: Eğer sembole karşılık gelen bir kod bulamazsak, sembolü kullan. (Burada dikkatli olunmalı, kur dönüşümünde sorun çıkarabilir)
+                                currentCurrency = selectedCountryCurrencySymbol; 
                             }
                         }
                         
@@ -952,6 +949,7 @@
                 setupControls();
                 renderAll();
                 loadingOverlay.classList.add('hidden');
+                console.log('Site Data:', siteData); // BU SATIR EKLENDİ
             };
             init();
         }
