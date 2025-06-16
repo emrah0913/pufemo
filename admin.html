@@ -39,6 +39,10 @@
         .form-group { margin-bottom: 1.5rem; }
         .form-group label { display: block; font-weight: 500; margin-bottom: 0.5rem; }
         .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 5px; font-size: 1rem; }
+        .form-group textarea { min-height: 120px; resize: vertical; }
+        .form-group input[type="checkbox"] { width: auto; margin-right: 10px; }
+        .form-group.checkbox-group { display: flex; align-items: center; margin-bottom: 1.5rem; }
+        .form-group.checkbox-group label { margin-bottom: 0; }
         .lang-tabs { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 1rem; }
         .lang-tab { padding: 8px 15px; background: #eee; border: 1px solid var(--border-color); border-bottom: none; border-radius: 5px 5px 0 0; cursor: pointer; }
         .lang-tab.active { background: var(--form-bg-color); font-weight: 600; }
@@ -51,6 +55,7 @@
         .btn-danger { background-color: var(--danger-color); color: white; }
         .btn-secondary { background-color: #bdc3c7; color: white; }
         .form-actions { margin-top: 2rem; text-align: right; display: flex; justify-content: flex-end; align-items: center; gap: 1rem; }
+        .form-actions > button[style*="float: left"] { margin-right: auto; }
         .language-item, .currency-item, .country-pricing-item { display: flex; align-items: center; justify-content: space-between; background-color: #fff; border: 1px solid var(--border-color); border-radius: var(--border-radius); padding: 10px 15px; margin-bottom: 10px; flex-wrap: wrap; gap: 10px; }
         .lang-name-flag, .currency-details { font-weight: 500; }
         .language-edit-form { background-color: #f8f9fa; border: 1px solid var(--info-color); padding: 1rem; border-radius: var(--border-radius); margin-top: 10px; }
@@ -76,6 +81,21 @@
         .category-controls button { background: none; border: none; font-size: 1rem; cursor: pointer; margin-left: 0; width: 25px; height: 25px; line-height: 25px; border-radius: 50%; color: var(--primary-color); transition: background-color 0.3s, color 0.3s; }
         .category-controls button:hover { background-color: #f0f0f0; color: var(--secondary-color); }
         .category-controls .delete-category-btn { color: var(--danger-color); }
+        .delete-slide-btn { position: absolute; top: 1rem; right: 1rem; background: none; border: none; font-size: 1.5rem; color: var(--danger-color); cursor: pointer; }
+        .style-settings-group { border: 1px dashed var(--border-color); padding: 1rem; margin-top: 1rem; border-radius: var(--border-radius); background-color: #fcfcfc; }
+        .style-settings-group h4 { margin-top: 0; margin-bottom: 1rem; color: var(--primary-color); border-bottom: none; padding-bottom: 0;}
+        .style-settings-group .form-group { margin-bottom: 0.8rem; }
+        .style-settings-group .form-group input[type="color"] { min-width: 40px; height: 40px; padding: 2px; border: none; cursor: pointer; }
+        .style-settings-group .form-group input[type="text"].size-input { width: calc(100% - 90px); display: inline-block; vertical-align: middle; margin-left: 5px; }
+        .style-settings-group .form-group label span { font-size: 0.75rem; color: #777; margin-left: 5px; }
+        .variant-color-block { border: 1px solid var(--border-color); border-radius: 5px; padding: 1rem; margin-bottom: 1rem; background-color: #fafafa; }
+        .variant-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+        .media-input-group { display: flex; gap: 10px; align-items: center; margin-bottom: 10px;}
+        .media-input-group select { width: 120px; flex-shrink: 0; }
+        .media-input-group input { flex-grow: 1; }
+        .category-checklist-container ul { list-style: none; padding-left: 20px; }
+        .category-checklist-container label { font-weight: normal; display: flex; align-items: center; }
+        .category-checklist-container input[type="checkbox"] { margin-right: 10px; width: auto; }
     </style>
 </head>
 <body>
@@ -184,9 +204,9 @@
             }
             function setupPage(pageName) {
                 switch (pageName) {
-                    case 'product-management': break;
+                    case 'product-management': setupProductListeners(); break;
                     case 'category-management': refreshCategoryView(); setupCategoryListeners(); break;
-                    case 'homepage-settings': break;
+                    case 'homepage-settings': renderBannerSettings(); setupHomepageListeners(); break;
                     case 'general-settings': renderGeneralSettings(); setupGeneralSettingsListeners(); break;
                     case 'country-pricing-management': renderCountryPricingList(); setupCountryPricingListeners(); break;
                 }
@@ -206,7 +226,11 @@
                     let contentHTML = `<div class="lang-content ${index === 0 ? 'active' : ''}" data-lang-content="${lang.code}">`;
                     fields.forEach(field => {
                         const value = data?.[lang.code]?.[field.key] || '';
-                        contentHTML += `<div class="form-group"><label>${field.label}</label><input type="text" class="lang-input" data-key="${field.key}" data-lang="${lang.code}" value="${value}"></div>`;
+                        if(field.type === 'textarea'){
+                            contentHTML += `<div class="form-group"><label>${field.label}</label><textarea class="lang-input" data-key="${field.key}" data-lang="${lang.code}">${value}</textarea></div>`;
+                        } else {
+                            contentHTML += `<div class="form-group"><label>${field.label}</label><input type="text" class="lang-input" data-key="${field.key}" data-lang="${lang.code}" value="${value}"></div>`;
+                        }
                     });
                     contentHTML += `</div>`;
                     contentContainer.innerHTML += contentHTML;
@@ -224,6 +248,132 @@
                 }
             });
             
+            // --- Ürünler Sayfası ---
+            function setupProductListeners() {
+                renderProductList();
+                const form = mainContent.querySelector('#product-form');
+                if(!form) return;
+                mainContent.querySelector('#add-new-product-btn').addEventListener('click', () => { 
+                    mainContent.querySelectorAll('#product-list-container li').forEach(item => item.classList.remove('active')); 
+                    loadProductForEditing({ id: '', sku: `YENI-URUN-${Date.now().toString().slice(-6)}`, content: {}, variants: [] }); 
+                });
+                mainContent.querySelector('#product-list-container').addEventListener('click', e => {
+                    const li = e.target.closest('li');
+                    if (li) {
+                        mainContent.querySelectorAll('#product-list-container li').forEach(item => item.classList.remove('active'));
+                        li.classList.add('active');
+                        loadProductForEditing(li.dataset.id);
+                    }
+                });
+                form.addEventListener('submit', async e => { 
+                    e.preventDefault(); 
+                    const id = form.querySelector('#productId').value;
+                    const productData = { 
+                        sku: form.querySelector('#productSKU').value, 
+                        basePriceTL: parseFloat(form.querySelector('#basePriceTL').value) || 0, 
+                        baseDiscountedPriceTL: parseFloat(form.querySelector('#baseDiscountedPriceTL').value) || null, 
+                        isFreeShipping: form.querySelector('#productFreeShipping').checked, 
+                        isInShowcase: form.querySelector('#productIsInShowcase').checked, 
+                        categories: Array.from(mainContent.querySelectorAll('#product-category-checklist input:checked')).map(cb => cb.value), 
+                        content: {}, 
+                        variants: [] 
+                    }; 
+                    mainContent.querySelectorAll('#product-lang-content-container .lang-content').forEach(cont => { 
+                        const lang = cont.dataset.langContent; 
+                        productData.content[lang] = { name: cont.querySelector('[data-key="name"]').value, description: cont.querySelector('[data-key="description"]').value }; 
+                    }); 
+                    mainContent.querySelectorAll('#color-variants-container .variant-color-block').forEach(block => { 
+                        const variant = { colorName: block.querySelector('.variant-color-input').value, media: [] }; 
+                        block.querySelectorAll('.media-input-group').forEach(mediaEl => { 
+                            const urlInput = mediaEl.querySelector('.variant-media-url'); 
+                            if (urlInput.value.trim()) variant.media.push({ type: mediaEl.querySelector('.variant-media-type').value, url: urlInput.value.trim() }); 
+                        }); 
+                        if (variant.colorName.trim()) productData.variants.push(variant); 
+                    });
+                    const savedId = await saveData('pufemo-products', id || generateUniqueId(), productData); 
+                    if (savedId) { 
+                        await fetchData(); 
+                        renderProductList(); 
+                        const activeLi = mainContent.querySelector(`#product-list-container li[data-id="${savedId}"]`);
+                        if(activeLi) activeLi.classList.add('active'); 
+                        loadProductForEditing(savedId); 
+                    } 
+                });
+                form.querySelector('#delete-product-btn').addEventListener('click', async () => { 
+                    const id = form.querySelector('#productId').value; 
+                    if (!id || !confirm('Bu ürünü kalıcı olarak silmek istediğinizden emin misiniz?')) return;
+                    await db.collection('pufemo-products').doc(id).delete();
+                    alert('Ürün silindi.');
+                    form.style.display = 'none'; 
+                    await fetchData(); 
+                    renderProductList(); 
+                });
+                form.addEventListener('click', e => { 
+                    const target = e.target; 
+                    if (target.id === 'add-color-variant-btn') mainContent.querySelector('#color-variants-container').appendChild(createColorVariantBlock());
+                    else if (target.matches('.remove-color-btn, .remove-color-btn *')) target.closest('.variant-color-block').remove();
+                    else if (target.matches('.add-media-btn, .add-media-btn *')) target.closest('.variant-color-block').querySelector('.media-inputs-container').insertAdjacentHTML('beforeend', createMediaInputHTML());
+                    else if (target.matches('.remove-media-btn, .remove-media-btn *')) target.closest('.media-input-group').remove();
+                });
+                 if (localState.products.length > 0) {
+                    mainContent.querySelector('#product-list-container li:first-child')?.click();
+                } else {
+                    mainContent.querySelector('#add-new-product-btn').click();
+                }
+            }
+            function renderProductList() {
+                const container = mainContent.querySelector('#product-list-container');
+                if (!container) return;
+                container.innerHTML = '';
+                (localState.products || []).sort((a,b) => (a.sku || '').localeCompare(b.sku || '')).forEach(product => {
+                    const li = document.createElement('li');
+                    li.dataset.id = product.id;
+                    const productName = product.content?.tr?.name || product.sku || 'İsimsiz Ürün';
+                    li.innerHTML = `<span class="nav-item-name">${productName}</span>`;
+                    container.appendChild(li);
+                });
+            }
+            function loadProductForEditing(productOrId) {
+                let product = typeof productOrId === 'string' ? (localState.products || []).find(p => p.id === productOrId) : productOrId;
+                if (!product) product = {};
+                const form = mainContent.querySelector('#product-form');
+                if (!form) return;
+                form.style.display = 'block';
+                form.reset();
+                form.querySelector('#productId').value = product.id || '';
+                form.querySelector('#productSKU').value = product.sku || '';
+                form.querySelector('#basePriceTL').value = product.basePriceTL !== undefined ? product.basePriceTL : '';
+                form.querySelector('#baseDiscountedPriceTL').value = product.baseDiscountedPriceTL !== undefined ? product.baseDiscountedPriceTL : '';
+                form.querySelector('#productFreeShipping').checked = product.isFreeShipping || false;
+                form.querySelector('#productIsInShowcase').checked = product.isInShowcase || false;
+                const categoryChecklist = mainContent.querySelector('#product-category-checklist');
+                categoryChecklist.innerHTML = '';
+                const renderChecks = (categories, container, selectedIds) => {
+                    const ul = document.createElement('ul');
+                    categories.forEach(cat => {
+                        const li = document.createElement('li');
+                        const catDisplayName = cat.name?.tr || cat.name?.en || cat.id;
+                        li.innerHTML = `<label><input type="checkbox" value="${cat.id}" ${(selectedIds || []).includes(cat.id) ? 'checked' : ''}> ${catDisplayName}</label>`;
+                        if (cat.children?.length > 0) renderChecks(cat.children, li, selectedIds);
+                        ul.appendChild(li);
+                    });
+                    container.appendChild(ul);
+                };
+                renderChecks(localState.categories || [], categoryChecklist, product.categories || []);
+                createLangTabs(form.querySelector('#product-lang-tabs-container'), form.querySelector('#product-lang-content-container'), product.content || {}, [{ label: 'Ürün Adı', key: 'name' }, { label: 'Açıklama', key: 'description', type: 'textarea' }]);
+                const colorVariantsContainer = mainContent.querySelector('#color-variants-container');
+                colorVariantsContainer.innerHTML = '';
+                (product.variants || []).forEach(variant => colorVariantsContainer.appendChild(createColorVariantBlock(variant)));
+            }
+            function createMediaInputHTML(media = { type: 'image', url: '' }) { return `<div class="media-input-group"><select class="variant-media-type"><option value="image" ${media.type === 'image' ? 'selected' : ''}>Resim</option><option value="video" ${media.type === 'video' ? 'selected' : ''}>Video</option></select><input type="text" class="variant-media-url" placeholder="Medya URL'si (jpg, webp, mp4...)" value="${media.url || ''}"><button type="button" class="btn btn-sm btn-danger remove-media-btn">Sil</button></div>`; }
+            function createColorVariantBlock(variant = { colorName: '', media: [] }) {
+                const block = document.createElement('div');
+                block.className = 'variant-color-block';
+                const mediaHtml = (variant.media || []).map(m => createMediaInputHTML(m)).join('');
+                block.innerHTML = `<div class="variant-header"><div class="form-group" style="flex-grow: 1; margin: 0;"><label>Renk Adı</label><input type="text" class="variant-color-input" value="${variant.colorName || ''}"></div><button type="button" class="btn btn-danger remove-color-btn" style="margin-left: 1rem;">Rengi Sil</button></div><hr style="margin: 1rem 0;"><label>Bu Renge Ait Medyalar</label><div class="media-inputs-container">${mediaHtml || ''}</div><button type="button" class="btn btn-primary add-media-btn" style="margin-top: 0.5rem;">Yeni Medya Alanı Ekle</button>`;
+                return block;
+            }
+
             // --- Kategori Yönetimi ---
             function refreshCategoryView() {
                 const container = mainContent.querySelector('#category-tree-container');
@@ -237,23 +387,10 @@
                 const li = document.createElement('li');
                 li.dataset.id = category.id;
                 const languages = localState.settings.languages || [];
-                let nameInputsHTML = languages.map(lang => `
-                    <div class="form-group">
-                        <label>${lang.flag || lang.code}</label>
-                        <input type="text" class="category-name-input" data-lang="${lang.code}" value="${category.name?.[lang.code] || ''}">
-                    </div>`).join('');
-                li.innerHTML = `
-                    <div class="category-item">
-                        <div class="category-name-inputs">${nameInputsHTML}</div>
-                        <div class="category-controls">
-                            <button class="add-subcategory-btn" title="Alt Kategori Ekle"><i class="fa-solid fa-plus"></i></button>
-                            <button class="delete-category-btn" title="Kategoriyi Sil"><i class="fa-solid fa-trash"></i></button>
-                        </div>
-                    </div>`;
+                let nameInputsHTML = languages.map(lang => `<div class="form-group"><label>${lang.flag || lang.code}</label><input type="text" class="category-name-input" data-lang="${lang.code}" value="${category.name?.[lang.code] || ''}"></div>`).join('');
+                li.innerHTML = `<div class="category-item"><div class="category-name-inputs">${nameInputsHTML}</div><div class="category-controls"><button class="add-subcategory-btn" title="Alt Kategori Ekle"><i class="fa-solid fa-plus"></i></button><button class="delete-category-btn" title="Kategoriyi Sil"><i class="fa-solid fa-trash"></i></button></div></div>`;
                 const subcategoriesUl = document.createElement('ul');
-                if (category.children?.length > 0) {
-                    category.children.forEach(child => subcategoriesUl.appendChild(createCategoryNode(child)));
-                }
+                if (category.children?.length > 0) category.children.forEach(child => subcategoriesUl.appendChild(createCategoryNode(child)));
                 li.appendChild(subcategoriesUl);
                 return li;
             }
@@ -271,13 +408,8 @@
                 const container = mainContent.querySelector('#category-tree-container');
                 const saveBtn = mainContent.querySelector('#save-categories-btn');
                 const addBtn = mainContent.querySelector('#add-main-category-btn');
-
                 if(!container || !saveBtn || !addBtn) return;
-                
-                addBtn.addEventListener('click', () => {
-                     // Yeni ana kategori ekleme formu mantığı buraya gelecek
-                     alert("Yeni kategori ekleme yakında eklenecek.");
-                });
+                addBtn.addEventListener('click', () => alert("Yeni ana kategori ekleme yakında tamamlanacak."));
                 saveBtn.addEventListener('click', async () => {
                     function updateCategoriesFromDOM(categoriesArray, ulElement) {
                         if (!ulElement) return;
@@ -302,15 +434,11 @@
                     if (!btn) return;
                     const li = e.target.closest('li[data-id]');
                     if(!li) return;
-                    
                     if (btn.matches('.delete-category-btn, .delete-category-btn *')) {
                          if (confirm('Bu kategoriyi ve tüm alt kategorilerini silmek istediğinizden emin misiniz?')) {
                              function removeCategory(cats, id) {
                                  const index = cats.findIndex(c => c.id === id);
-                                 if (index > -1) {
-                                     cats.splice(index, 1);
-                                     return true;
-                                 }
+                                 if (index > -1) { cats.splice(index, 1); return true; }
                                  return cats.some(c => c.children && removeCategory(c.children, id));
                              }
                              removeCategory(localState.categories, li.dataset.id);
@@ -318,12 +446,73 @@
                              refreshCategoryView();
                          }
                     } else if (btn.matches('.add-subcategory-btn, .add-subcategory-btn *')) {
-                         alert("Alt kategori ekleme yakında eklenecek.");
+                         alert("Alt kategori ekleme yakında tamamlanacak.");
                     }
                 });
             }
 
-            // --- Genel Ayarlar Fonksiyonları ---
+            // --- Anasayfa Ayarları ---
+            function renderBannerSettings() {
+                const container = mainContent.querySelector('#banner-settings-container');
+                if(!container) return;
+                container.innerHTML = '';
+                const slides = localState.settings.banner?.slides || [];
+                slides.forEach((slide, index) => {
+                    const slideSection = document.createElement('div');
+                    slideSection.className = 'form-section';
+                    slideSection.dataset.index = index;
+                    const tabsId = `banner-lang-tabs-${index}`;
+                    const contentId = `banner-lang-content-${index}`;
+                    const currentStyle = slide.style || {}; 
+                    slideSection.innerHTML = `
+                        <button type="button" class="delete-slide-btn" title="Slaytı Sil">&times;</button>
+                        <h3>Slayt ${index + 1}</h3>
+                        <div class="form-group"><label>Görsel URL</label><input type="text" class="banner-input" data-key="image_url" value="${slide.image_url || ''}"></div>
+                        <div class="form-group"><label>Link URL</label><input type="text" class="banner-input" data-key="link_url" value="${slide.link_url || ''}"></div>
+                        <div class="lang-tabs" id="${tabsId}"></div><div id="${contentId}"></div>
+                        <div class="style-settings-group">
+                            <h4>Slayt Stil Ayarları</h4>
+                            <div class="form-group"><label for="title_color_${index}">Başlık Rengi & Boyutu</label><div><input type="color" class="banner-style-input" data-style-key="title_color" value="${currentStyle.title_color || '#FFFFFF'}"><input type="text" class="banner-style-input size-input" data-style-key="title_font_size" placeholder="Örn: 2.8rem" value="${currentStyle.title_font_size || ''}"></div></div>
+                            <div class="form-group"><label for="subtitle_color_${index}">Alt Başlık Rengi & Boyutu</label><div><input type="color" class="banner-style-input" data-style-key="subtitle_color" value="${currentStyle.subtitle_color || '#FFFFFF'}"><input type="text" class="banner-style-input size-input" data-style-key="subtitle_font_size" placeholder="Örn: 1.2rem" value="${currentStyle.subtitle_font_size || ''}"></div></div>
+                            <div class="form-group"><label for="button_bg_color_${index}">Buton Arka Plan Rengi</label><input type="color" class="banner-style-input" data-style-key="button_bg_color" value="${currentStyle.button_bg_color || '#e74c3c'}"></div>
+                            <div class="form-group"><label for="button_text_color_${index}">Buton Yazı Rengi</label><input type="color" class="banner-style-input" data-style-key="button_text_color" value="${currentStyle.button_text_color || '#FFFFFF'}"></div>
+                        </div>`;
+                    container.appendChild(slideSection);
+                    createLangTabs(mainContent.querySelector(`#${tabsId}`), mainContent.querySelector(`#${contentId}`), slide.content || {}, [{ label: 'Başlık', key: 'title' }, { label: 'Alt Başlık', key: 'subtitle' }, { label: 'Buton Metni', key: 'button_text' }]);
+                });
+            }
+            function setupHomepageListeners() {
+                const form = mainContent.querySelector('#homepage-form');
+                if(!form) return;
+                form.addEventListener('submit', async e => {
+                    e.preventDefault(); 
+                    const newSlidesData = []; 
+                    mainContent.querySelectorAll('#banner-settings-container .form-section').forEach(section => { 
+                        const slide = { image_url: section.querySelector('.banner-input[data-key="image_url"]').value, link_url: section.querySelector('.banner-input[data-key="link_url"]').value, content: {}, style: {} }; 
+                        section.querySelectorAll('.lang-content').forEach(cont => { slide.content[cont.dataset.langContent] = { title: cont.querySelector('[data-key="title"]').value, subtitle: cont.querySelector('[data-key="subtitle"]').value, button_text: cont.querySelector('[data-key="button_text"]').value }; }); 
+                        section.querySelectorAll('.banner-style-input').forEach(input => { if (input.value.trim()) slide.style[input.dataset.styleKey] = input.value.trim(); });
+                        newSlidesData.push(slide); 
+                    }); 
+                    localState.settings.banner = { slides: newSlidesData }; 
+                    await saveData('pufemo', 'settings', { banner: localState.settings.banner }); 
+                });
+                mainContent.querySelector('#add-new-slide-btn').addEventListener('click', () => { 
+                    const newSlide = { image_url: '', link_url: '', content: {}, style: {} }; 
+                    (localState.settings.languages || []).forEach(lang => { newSlide.content[lang.code] = { title: '', subtitle: '', button_text: '' }; }); 
+                    if (!localState.settings.banner) localState.settings.banner = { slides: [] }; 
+                    localState.settings.banner.slides.push(newSlide); 
+                    renderBannerSettings(); 
+                });
+                mainContent.querySelector('#banner-settings-container').addEventListener('click', (e) => { 
+                    if (e.target.closest('.delete-slide-btn')) { 
+                        if(!confirm("Bu slaytı silmek istediğinizden emin misiniz?")) return;
+                        const index = parseInt(e.target.closest('.form-section').dataset.index); 
+                        if (!isNaN(index)) { localState.settings.banner.slides.splice(index, 1); renderBannerSettings(); }
+                    } 
+                });
+            }
+            
+            // --- Genel Ayarlar ---
             function renderGeneralSettings() {
                 renderLanguageList();
                 renderCurrencySymbolList();
@@ -332,21 +521,11 @@
                 if (logoTypeSelect) {
                     logoTypeSelect.value = settings.logo.type;
                     toggleLogoOptions();
-                    mainContent.querySelector('#logoText').value = settings.logo.text || '';
-                    mainContent.querySelector('#logoIcon').value = settings.logo.icon || '';
-                    mainContent.querySelector('#logoIconColor').value = settings.logo.iconColor || '#e74c3c';
-                    mainContent.querySelector('#logoTextColor').value = settings.logo.textColor || '#2c3e50';
-                    mainContent.querySelector('#logoImageUrl').value = settings.logo.imageUrl || '';
-                    mainContent.querySelector('#logoImageWidth').value = settings.logo.imageWidth || 150;
-                    mainContent.querySelector('#logoImageHeight').value = settings.logo.imageHeight || 40;
+                    mainContent.querySelector('#logoText').value = settings.logo.text || ''; mainContent.querySelector('#logoIcon').value = settings.logo.icon || ''; mainContent.querySelector('#logoIconColor').value = settings.logo.iconColor || '#e74c3c'; mainContent.querySelector('#logoTextColor').value = settings.logo.textColor || '#2c3e50'; mainContent.querySelector('#logoImageUrl').value = settings.logo.imageUrl || ''; mainContent.querySelector('#logoImageWidth').value = settings.logo.imageWidth || 150; mainContent.querySelector('#logoImageHeight').value = settings.logo.imageHeight || 40;
                 }
                 const promoBarEnabled = mainContent.querySelector('#promoBarEnabled');
                 if(promoBarEnabled) {
-                    promoBarEnabled.checked = settings.promoBar.enabled;
-                    mainContent.querySelector('#promoBarBgColor').value = settings.promoBar.bgColor || '#e74c3c';
-                    mainContent.querySelector('#promoBarTextColor').value = settings.promoBar.textColor || '#ffffff';
-                    mainContent.querySelector('#promoBarFontSize').value = parseInt(settings.promoBar.fontSize) || 15;
-                    mainContent.querySelector('#promoBarScrollSpeed').value = parseInt(settings.promoBar.scrollSpeed) || 20;
+                    promoBarEnabled.checked = settings.promoBar.enabled; mainContent.querySelector('#promoBarBgColor').value = settings.promoBar.bgColor || '#e74c3c'; mainContent.querySelector('#promoBarTextColor').value = settings.promoBar.textColor || '#ffffff'; mainContent.querySelector('#promoBarFontSize').value = parseInt(settings.promoBar.fontSize) || 15; mainContent.querySelector('#promoBarScrollSpeed').value = parseInt(settings.promoBar.scrollSpeed) || 20;
                     createLangTabs(mainContent.querySelector('#promo-text-lang-tabs'), mainContent.querySelector('#promo-text-lang-content'), settings.promoBar.text || {}, [{ label: 'Promosyon Yazısı', key: 'text' }]);
                 }
             }
@@ -357,8 +536,7 @@
             }
             function renderLanguageList() {
                 const container = mainContent.querySelector('#language-list-container');
-                if (!container) return;
-                container.innerHTML = '';
+                if (!container) return; container.innerHTML = '';
                 localState.settings.languages.forEach(lang => {
                     const displayName = lang.name[lang.code] || lang.name['tr'] || lang.code;
                     container.innerHTML += `<div class="language-item" data-container-code="${lang.code}"><span class="lang-name-flag">${lang.flag || ''} ${displayName} (${lang.code})</span><div class="language-item-controls"><button type="button" class="btn btn-sm btn-secondary edit-language-btn" data-code="${lang.code}">Düzenle</button><button type="button" class="btn btn-sm btn-danger delete-language-btn" data-code="${lang.code}">Sil</button></div></div>`;
@@ -368,11 +546,7 @@
                 const isEditing = langToEdit !== null;
                 const container = isEditing ? mainContent.querySelector(`[data-container-code="${langToEdit.code}"]`) : mainContent.querySelector('#new-language-form-container');
                 if (!container) return;
-                let nameInputsHTML = localState.settings.languages.map(lang => {
-                    const langName = lang.name[lang.code] || lang.name['tr'] || lang.code;
-                    const value = isEditing ? (langToEdit.name[lang.code] || '') : '';
-                    return `<div class="form-group"><label>İsim (${langName})</label><input type="text" class="lang-name-input" data-name-lang="${lang.code}" value="${value}"></div>`;
-                }).join('');
+                let nameInputsHTML = localState.settings.languages.map(lang => { const langName = lang.name[lang.code] || lang.name['tr'] || lang.code; const value = isEditing ? (langToEdit.name[lang.code] || '') : ''; return `<div class="form-group"><label>İsim (${langName})</label><input type="text" class="lang-name-input" data-name-lang="${lang.code}" value="${value}"></div>`;}).join('');
                 if (!isEditing) nameInputsHTML += `<div class="form-group"><label>Yeni Dilin Kendi Adı</label><input type="text" id="newLangSelfName" required></div>`;
                 container.innerHTML = `<form class="language-edit-form"><h4>${isEditing ? 'Dili Düzenle' : 'Yeni Dil Ekle'}</h4><div class="form-group"><label>Dil Kodu</label><input type="text" id="langCode" value="${isEditing ? langToEdit.code : ''}" ${isEditing ? 'disabled' : ''} required></div><div class="form-group"><label>Bayrak Emoji</label><input type="text" id="langFlag" value="${isEditing ? langToEdit.flag : ''}"></div><hr><h5>Dil İsim Çevirileri</h5>${nameInputsHTML}<div class="form-actions"><button type="button" class="btn btn-sm btn-secondary cancel-edit-language-btn">İptal</button><button type="submit" class="btn btn-sm btn-success">${isEditing ? 'Kaydet' : 'Ekle'}</button></div></form>`;
                 const form = container.querySelector('form');
@@ -387,23 +561,11 @@
                 if (!isEditing && localState.settings.languages.some(l => l.code === code)) { alert('Bu dil kodu zaten kullanılıyor!'); return; }
                 const newLangData = { code, flag: formElement.querySelector('#langFlag').value.trim(), name: {} };
                 let hasAtLeastOneName = false;
-                formElement.querySelectorAll('.lang-name-input').forEach(input => {
-                    if (input.value.trim()) hasAtLeastOneName = true;
-                    newLangData.name[input.dataset.nameLang] = input.value.trim();
-                });
-                if (!isEditing) {
-                    const selfName = formElement.querySelector('#newLangSelfName').value.trim();
-                    if(selfName) hasAtLeastOneName = true;
-                    newLangData.name[code] = selfName;
-                }
+                formElement.querySelectorAll('.lang-name-input').forEach(input => { if (input.value.trim()) hasAtLeastOneName = true; newLangData.name[input.dataset.nameLang] = input.value.trim(); });
+                if (!isEditing) { const selfName = formElement.querySelector('#newLangSelfName').value.trim(); if(selfName) hasAtLeastOneName = true; newLangData.name[code] = selfName; }
                 if (!hasAtLeastOneName) { alert('En az bir dilde isim belirtmelisiniz.'); return; }
-                if (isEditing) {
-                    const index = localState.settings.languages.findIndex(l => l.code === code);
-                    localState.settings.languages[index] = newLangData;
-                } else {
-                    localState.settings.languages.push(newLangData);
-                }
-                await saveData({ settings: { languages: localState.settings.languages } });
+                if (isEditing) { localState.settings.languages[localState.settings.languages.findIndex(l => l.code === code)] = newLangData; } else { localState.settings.languages.push(newLangData); }
+                await saveData('pufemo', 'settings', { settings: { languages: localState.settings.languages } });
                 mainContent.querySelector('#new-language-form-container').innerHTML = '';
                 renderLanguageList();
             }
@@ -411,184 +573,118 @@
                 const container = mainContent.querySelector('#currency-symbol-list-container');
                 if(!container) return;
                 container.innerHTML = '';
-                Object.keys(localState.settings.currencySymbols).sort().forEach(code => {
-                    const symbol = localState.settings.currencySymbols[code];
-                    container.innerHTML += `<div class="currency-item" data-code="${code}"><span class="currency-details">${code} (${symbol})</span><button type="button" class="btn btn-sm btn-danger delete-currency-btn" data-code="${code}"><i class="fa-solid fa-trash"></i></button></div>`;
-                });
+                Object.keys(localState.settings.currencySymbols).sort().forEach(code => container.innerHTML += `<div class="currency-item" data-code="${code}"><span class="currency-details">${code} (${localState.settings.currencySymbols[code]})</span><button type="button" class="btn btn-sm btn-danger delete-currency-btn" data-code="${code}"><i class="fa-solid fa-trash"></i></button></div>`);
             }
             function showNewCurrencySymbolForm() {
                 const container = mainContent.querySelector('#new-currency-symbol-form-container');
                 if (!container || container.querySelector('form')) return;
-                container.innerHTML = `<form class="form-section" style="padding: 1rem;"><div class="form-group"><label for="newCurrencyCode">Para Birimi Kodu (Örn: GBP)</label><input type="text" id="newCurrencyCode" maxlength="3" required style="text-transform: uppercase;"></div><div class="form-group"><label for="newCurrencySymbol">Sembol (Örn: £)</label><input type="text" id="newCurrencySymbol" maxlength="5" required></div><div class="form-actions"><button type="button" class="btn btn-sm btn-secondary cancel-new-currency-btn">İptal</button><button type="submit" class="btn btn-sm btn-success">Ekle</button></div></form>`;
+                container.innerHTML = `<form class="form-section" style="padding:1rem"><div class="form-group"><label>Para Birimi Kodu</label><input type="text" id="newCurrencyCode" maxlength="3" required style="text-transform:uppercase"></div><div class="form-group"><label>Sembol</label><input type="text" id="newCurrencySymbol" maxlength="5" required></div><div class="form-actions"><button type="button" class="btn btn-sm btn-secondary cancel-new-currency-btn">İptal</button><button type="submit" class="btn btn-sm btn-success">Ekle</button></div></form>`;
                 const form = container.querySelector('form');
                 form.addEventListener('submit', async (e) => {
                     e.preventDefault();
-                    const code = form.querySelector('#newCurrencyCode').value.trim().toUpperCase();
-                    const symbol = form.querySelector('#newCurrencySymbol').value.trim();
-                    if(!code || !symbol) { alert('Kod ve sembol boş bırakılamaz.'); return; }
-                    if(localState.settings.currencySymbols[code]) { alert('Bu kod zaten mevcut.'); return; }
+                    const code = form.querySelector('#newCurrencyCode').value.trim().toUpperCase(); const symbol = form.querySelector('#newCurrencySymbol').value.trim();
+                    if(!code || !symbol) return alert('Kod ve sembol boş bırakılamaz.');
+                    if(localState.settings.currencySymbols[code]) return alert('Bu kod zaten mevcut.');
                     localState.settings.currencySymbols[code] = symbol;
-                    await saveData({ settings: { currencySymbols: localState.settings.currencySymbols } });
-                    container.innerHTML = '';
-                    renderCurrencySymbolList();
+                    await saveData('pufemo', 'settings', { settings: { currencySymbols: localState.settings.currencySymbols } });
+                    container.innerHTML = ''; renderCurrencySymbolList();
                 });
                 form.querySelector('.cancel-new-currency-btn').addEventListener('click', () => container.innerHTML = '');
             }
             function setupGeneralSettingsListeners() {
-                const form = mainContent.querySelector('#general-settings-form');
-                if(!form) return;
+                const form = mainContent.querySelector('#general-settings-form'); if(!form) return;
                 form.addEventListener('submit', async e => {
                     e.preventDefault();
                     const newSettings = {
-                        general: {
-                            logo: { type: form.querySelector('#logoType').value, text: form.querySelector('#logoText').value, icon: form.querySelector('#logoIcon').value, iconColor: form.querySelector('#logoIconColor').value, textColor: form.querySelector('#logoTextColor').value, imageUrl: form.querySelector('#logoImageUrl').value, imageWidth: form.querySelector('#logoImageWidth').value, imageHeight: form.querySelector('#logoImageHeight').value },
+                        general: { logo: { type: form.querySelector('#logoType').value, text: form.querySelector('#logoText').value, icon: form.querySelector('#logoIcon').value, iconColor: form.querySelector('#logoIconColor').value, textColor: form.querySelector('#logoTextColor').value, imageUrl: form.querySelector('#logoImageUrl').value, imageWidth: form.querySelector('#logoImageWidth').value, imageHeight: form.querySelector('#logoImageHeight').value },
                             promoBar: { enabled: form.querySelector('#promoBarEnabled').checked, bgColor: form.querySelector('#promoBarBgColor').value, textColor: form.querySelector('#promoBarTextColor').value, fontSize: `${form.querySelector('#promoBarFontSize').value}px`, scrollSpeed: `${form.querySelector('#promoBarScrollSpeed').value}s`, text: {} }
-                        },
-                        languages: localState.settings.languages,
-                        currencySymbols: localState.settings.currencySymbols
-                    };
-                    form.querySelectorAll('#promo-text-lang-content .lang-input').forEach(input => {
-                        if (!newSettings.general.promoBar.text[input.dataset.lang]) newSettings.general.promoBar.text[input.dataset.lang] = {};
-                        newSettings.general.promoBar.text[input.dataset.lang][input.dataset.key] = input.value;
-                    });
-                    await saveData({ settings: newSettings });
+                        }, languages: localState.settings.languages, currencySymbols: localState.settings.currencySymbols };
+                    form.querySelectorAll('#promo-text-lang-content .lang-input').forEach(input => { if (!newSettings.general.promoBar.text[input.dataset.lang]) newSettings.general.promoBar.text[input.dataset.lang] = {}; newSettings.general.promoBar.text[input.dataset.lang][input.dataset.key] = input.value; });
+                    await saveData('pufemo', 'settings', { settings: newSettings });
                 });
                 form.querySelector('#logoType').addEventListener('change', toggleLogoOptions);
                 form.querySelector('#add-new-language-btn').addEventListener('click', () => showLanguageForm(null));
                 form.querySelector('#add-new-currency-symbol-btn').addEventListener('click', showNewCurrencySymbolForm);
                 form.addEventListener('click', async e => {
-                    const editBtn = e.target.closest('.edit-language-btn');
-                    if(editBtn) showLanguageForm(localState.settings.languages.find(l => l.code === editBtn.dataset.code));
-
+                    const editBtn = e.target.closest('.edit-language-btn'); if(editBtn) showLanguageForm(localState.settings.languages.find(l => l.code === editBtn.dataset.code));
                     const deleteLangBtn = e.target.closest('.delete-language-btn');
-                    if(deleteLangBtn) {
-                        const code = deleteLangBtn.dataset.code;
-                        if(localState.settings.languages.length <= 1) { alert('En az bir dil kalmalıdır.'); return; }
-                        if(confirm(`'${code}' dilini silmek istediğinizden emin misiniz?`)){
-                            localState.settings.languages = localState.settings.languages.filter(l => l.code !== code);
-                            await saveData({ settings: { languages: localState.settings.languages } });
-                            renderLanguageList();
-                        }
-                    }
+                    if(deleteLangBtn) { const code = deleteLangBtn.dataset.code; if(localState.settings.languages.length <= 1) return alert('En az bir dil kalmalıdır.'); if(confirm(`'${code}' dilini silmek istediğinizden emin misiniz?`)){ localState.settings.languages = localState.settings.languages.filter(l => l.code !== code); await saveData('pufemo', 'settings', { settings: { languages: localState.settings.languages } }); renderLanguageList(); }}
                     const deleteCurrencyBtn = e.target.closest('.delete-currency-btn');
-                    if(deleteCurrencyBtn) {
-                        const code = deleteCurrencyBtn.dataset.code;
-                        if(confirm(`'${code}' para birimini silmek istediğinizden emin misiniz?`)){
-                            delete localState.settings.currencySymbols[code];
-                            await saveData({ settings: { currencySymbols: localState.settings.currencySymbols } });
-                            renderCurrencySymbolList();
-                        }
-                    }
+                    if(deleteCurrencyBtn) { const code = deleteCurrencyBtn.dataset.code; if(confirm(`'${code}' para birimini silmek istediğinizden emin misiniz?`)){ delete localState.settings.currencySymbols[code]; await saveData('pufemo', 'settings', { settings: { currencySymbols: localState.settings.currencySymbols } }); renderCurrencySymbolList(); }}
                 });
-            };
+            }
 
-            // --- Ülke Fiyatlandırma Fonksiyonları ---
+            // --- Ülke Fiyatlandırma ---
             function renderCountryPricingList() {
-                const container = mainContent.querySelector('#country-pricing-list-container');
-                if (!container) return;
-                container.innerHTML = '';
+                const container = mainContent.querySelector('#country-pricing-list-container'); if (!container) return; container.innerHTML = '';
                 const countries = localState.settings.countryPricing || {};
                 const sortedCountryCodes = Object.keys(countries).sort((a, b) => (countries[a].name?.tr || a).localeCompare(countries[b].name?.tr || b));
-                if (sortedCountryCodes.length === 0) {
-                    container.innerHTML = '<p>Henüz tanımlı bir ülke fiyatlandırması yok.</p>';
-                    return;
-                }
+                if (sortedCountryCodes.length === 0) { container.innerHTML = '<p>Henüz tanımlı bir ülke fiyatlandırması yok.</p>'; return; }
                 sortedCountryCodes.forEach(code => {
-                    const country = countries[code];
-                    const item = document.createElement('div');
-                    item.className = 'country-pricing-item';
-                    item.dataset.code = code;
+                    const country = countries[code]; const item = document.createElement('div'); item.className = 'country-pricing-item'; item.dataset.code = code;
                     const nameInputsHTML = localState.settings.languages.map(lang => `<div class="form-group"><label>${lang.flag || ''}</label><input type="text" class="country-name-input" data-lang="${lang.code}" value="${country.name?.[lang.code] || ''}"></div>`).join('');
                     const currencyOptionsHTML = Object.keys(localState.settings.currencySymbols).map(cCode => `<option value="${localState.settings.currencySymbols[cCode]}" ${localState.settings.currencySymbols[cCode] === country.currencySymbol ? 'selected' : ''}>${cCode}</option>`).join('');
                     const languageOptionsHTML = localState.settings.languages.map(lang => `<option value="${lang.code}" ${lang.code === country.defaultLanguage ? 'selected' : ''}>${lang.name.tr || lang.name.en || lang.code}</option>`).join('');
-                    item.innerHTML = `
-                        <div class="country-name-inputs-group">${nameInputsHTML}</div>
-                        <div class="country-adjustments-group">
-                            <span>(${country.flag || ''} ${code.toUpperCase()})</span>
-                            <div class="form-group" style="margin-bottom:0;"><label style="font-size:0.8em;">Fiyat Farkı (%)</label><input type="number" data-field="adjustment" value="${country.adjustment || 0}" style="width: 80px;"></div>
-                            <div class="form-group" style="margin-bottom:0;"><label style="font-size:0.8em;">Para Birimi</label><select data-field="currencySymbol">${currencyOptionsHTML}</select></div>
-                            <div class="form-group" style="margin-bottom:0;"><label style="font-size:0.8em;">Varsayılan Dil</label><select data-field="defaultLanguage">${languageOptionsHTML}</select></div>
-                        </div>
-                        <div class="country-controls"><button type="button" class="btn btn-sm btn-danger delete-country-btn" data-code="${code}" title="Ülkeyi Sil"><i class="fa-solid fa-trash"></i></button></div>`;
+                    item.innerHTML = `<div class="country-name-inputs-group">${nameInputsHTML}</div><div class="country-adjustments-group"><span>(${country.flag || ''} ${code.toUpperCase()})</span><div class="form-group" style="margin-bottom:0;"><label style="font-size:0.8em;">Fark (%)</label><input type="number" data-field="adjustment" value="${country.adjustment || 0}" style="width:80px;"></div><div class="form-group" style="margin-bottom:0;"><label style="font-size:0.8em;">Para Birimi</label><select data-field="currencySymbol">${currencyOptionsHTML}</select></div><div class="form-group" style="margin-bottom:0;"><label style="font-size:0.8em;">Varsayılan Dil</label><select data-field="defaultLanguage">${languageOptionsHTML}</select></div></div><div class="country-controls"><button type="button" class="btn btn-sm btn-danger delete-country-btn" data-code="${code}" title="Sil"><i class="fa-solid fa-trash"></i></button></div>`;
                     container.appendChild(item);
                 });
             }
             function showNewCountryPricingForm() {
-                const container = mainContent.querySelector('#new-country-pricing-form-container');
-                if (!container || container.querySelector('form')) return;
+                const container = mainContent.querySelector('#new-country-pricing-form-container'); if (!container || container.querySelector('form')) return;
                 const nameInputsHTML = localState.settings.languages.map(lang => `<div class="form-group"><label>Ülke Adı (${lang.name.tr || lang.code})</label><input type="text" class="new-country-name-input" data-lang="${lang.code}"></div>`).join('');
-                container.innerHTML = `<form class="form-section" style="padding:1rem"><h3>Yeni Ülke Ekle</h3><div class="form-group"><label for="newCountryCode">Ülke Kodu (Örn: DE)</label><input type="text" id="newCountryCode" maxlength="2" required style="text-transform:uppercase"></div>${nameInputsHTML}<div class="form-group"><label for="newCountryFlag">Bayrak Emojisi</label><input type="text" id="newCountryFlag" maxlength="2"></div><div class="form-group"><label for="newCountryAdjustment">Fiyat Farkı (%)</label><input type="number" id="newCountryAdjustment" value="0"></div><div class="form-group"><label for="newCountryDefaultLanguage">Varsayılan Dil</label><select id="newCountryDefaultLanguage" required>${localState.settings.languages.map(lang => `<option value="${lang.code}">${lang.name.tr || lang.code}</option>`).join('')}</select></div><div class="form-group"><label for="newCountryCurrencySymbol">Para Birimi</label><select id="newCountryCurrencySymbol" required>${Object.keys(localState.settings.currencySymbols).map(code => `<option value="${localState.settings.currencySymbols[code]}">${code}</option>`).join('')}</select></div><div class="form-actions"><button type="button" class="btn btn-sm btn-secondary cancel-new-country-btn">İptal</button><button type="submit" class="btn btn-sm btn-success">Ekle</button></div></form>`;
+                container.innerHTML = `<form class="form-section" style="padding:1rem"><h3>Yeni Ülke Ekle</h3><div class="form-group"><label>Ülke Kodu (Örn: DE)</label><input type="text" id="newCountryCode" maxlength="2" required style="text-transform:uppercase"></div>${nameInputsHTML}<div class="form-group"><label>Bayrak</label><input type="text" id="newCountryFlag" maxlength="2"></div><div class="form-group"><label>Fiyat Farkı (%)</label><input type="number" id="newCountryAdjustment" value="0"></div><div class="form-group"><label>Varsayılan Dil</label><select id="newCountryDefaultLanguage" required>${localState.settings.languages.map(lang => `<option value="${lang.code}">${lang.name.tr || lang.code}</option>`).join('')}</select></div><div class="form-group"><label>Para Birimi</label><select id="newCountryCurrencySymbol" required>${Object.keys(localState.settings.currencySymbols).map(code => `<option value="${localState.settings.currencySymbols[code]}">${code}</option>`).join('')}</select></div><div class="form-actions"><button type="button" class="btn btn-sm btn-secondary cancel-new-country-btn">İptal</button><button type="submit" class="btn btn-sm btn-success">Ekle</button></div></form>`;
                 const form = container.querySelector('form');
                 form.addEventListener('submit', async (e) => {
                     e.preventDefault();
                     const code = form.querySelector('#newCountryCode').value.trim().toLowerCase();
-                    if (!code) return alert('Ülke kodu boş bırakılamaz.');
-                    if (localState.settings.countryPricing[code]) return alert('Bu ülke kodu zaten mevcut!');
-                    const newCountryData = {
-                        name: {}, flag: form.querySelector('#newCountryFlag').value.trim(),
-                        adjustment: parseFloat(form.querySelector('#newCountryAdjustment').value) || 0,
-                        defaultLanguage: form.querySelector('#newCountryDefaultLanguage').value,
-                        currencySymbol: form.querySelector('#newCountryCurrencySymbol').value
-                    };
+                    if (!code) return alert('Ülke kodu boş bırakılamaz.'); if (localState.settings.countryPricing[code]) return alert('Bu ülke kodu zaten mevcut!');
+                    const newCountryData = { name: {}, flag: form.querySelector('#newCountryFlag').value.trim(), adjustment: parseFloat(form.querySelector('#newCountryAdjustment').value) || 0, defaultLanguage: form.querySelector('#newCountryDefaultLanguage').value, currencySymbol: form.querySelector('#newCountryCurrencySymbol').value };
                     form.querySelectorAll('.new-country-name-input').forEach(input => newCountryData.name[input.dataset.lang] = input.value.trim());
                     localState.settings.countryPricing[code] = newCountryData;
-                    await saveData({ settings: { countryPricing: localState.settings.countryPricing } });
-                    container.innerHTML = '';
-                    renderCountryPricingList();
+                    await saveData('pufemo', 'settings', { settings: { countryPricing: localState.settings.countryPricing } });
+                    container.innerHTML = ''; renderCountryPricingList();
                 });
                 form.querySelector('.cancel-new-country-btn').addEventListener('click', () => container.innerHTML = '');
             }
             function setupCountryPricingListeners() {
-                const page = mainContent.querySelector('#country-pricing-management');
-                if(!page) return;
+                const page = mainContent.querySelector('#country-pricing-management'); if(!page) return;
                 page.querySelector('#add-new-country-pricing-btn').addEventListener('click', showNewCountryPricingForm);
                 page.querySelector('#country-pricing-form').addEventListener('submit', async (e) => {
                     e.preventDefault();
                     const updatedPricing = {};
                     page.querySelectorAll('.country-pricing-item').forEach(item => {
                         const code = item.dataset.code;
-                        const countryData = {
-                            name: {}, flag: localState.settings.countryPricing[code].flag || '',
-                            adjustment: parseFloat(item.querySelector('[data-field="adjustment"]').value) || 0,
-                            defaultLanguage: item.querySelector('[data-field="defaultLanguage"]').value,
-                            currencySymbol: item.querySelector('[data-field="currencySymbol"]').value
-                        };
+                        const countryData = { name: {}, flag: localState.settings.countryPricing[code].flag || '', adjustment: parseFloat(item.querySelector('[data-field="adjustment"]').value) || 0, defaultLanguage: item.querySelector('[data-field="defaultLanguage"]').value, currencySymbol: item.querySelector('[data-field="currencySymbol"]').value };
                         item.querySelectorAll('.country-name-input').forEach(input => countryData.name[input.dataset.lang] = input.value.trim());
                         updatedPricing[code] = countryData;
                     });
                     localState.settings.countryPricing = updatedPricing;
-                    await saveData({ settings: { countryPricing: localState.settings.countryPricing } });
+                    await saveData('pufemo', 'settings', { settings: { countryPricing: localState.settings.countryPricing } });
                 });
                 page.querySelector('#country-pricing-list-container').addEventListener('click', async (e) => {
                     const deleteBtn = e.target.closest('.delete-country-btn');
                     if (deleteBtn) {
-                        const codeToDelete = deleteBtn.dataset.code;
-                        const countryName = localState.settings.countryPricing[codeToDelete]?.name.tr || codeToDelete.toUpperCase();
+                        const codeToDelete = deleteBtn.dataset.code; const countryName = localState.settings.countryPricing[codeToDelete]?.name.tr || codeToDelete.toUpperCase();
                         if (confirm(`'${countryName}' ülkesini silmek istediğinizden emin misiniz?`)) {
                             delete localState.settings.countryPricing[codeToDelete];
                             const updateData = { [`settings.countryPricing.${codeToDelete}`]: firebase.firestore.FieldValue.delete() };
                             await db.collection('pufemo').doc('settings').update(updateData);
-                            alert('Ülke başarıyla silindi.');
-                            renderCountryPricingList();
+                            alert('Ülke başarıyla silindi.'); renderCountryPricingList();
                         }
                     }
                 });
             }
-
-            // === BÖLÜM 6: BAŞLANGIÇ ===
+            
+            // === BÖLÜM 5: BAŞLANGIÇ ===
             async function init() {
                 await fetchData();
-                const initialPage = 'general-settings';
+                const initialPage = 'product-management'; // Başlangıçta ürünler sayfası açılsın
                 document.querySelector('.sidebar-nav .nav-item.active')?.classList.remove('active');
                 const navItem = document.querySelector(`.sidebar-nav .nav-item[data-page="${initialPage}"]`);
-                if (navItem) {
-                    navItem.classList.add('active');
-                    await loadPage(initialPage);
-                }
+                if (navItem) { navItem.classList.add('active'); await loadPage(initialPage); }
             }
             document.querySelector('.sidebar-nav').addEventListener('click', e => { 
-                const navItem = e.target.closest('.nav-item'); 
-                if (!navItem) return; 
+                const navItem = e.target.closest('.nav-item'); if (!navItem) return; 
                 document.querySelectorAll('.sidebar-nav .nav-item').forEach(item => item.classList.remove('active')); 
                 navItem.classList.add('active'); 
                 loadPage(navItem.dataset.page); 
