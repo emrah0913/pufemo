@@ -560,7 +560,7 @@
             let localState = { 
                 settings: { 
                     languages: [ 
-                        { code: 'tr', name: {tr:'Türkçe', en:'Turkish'}, flag: '🇹🇷' }, // Varsayılanlar da map ve emoji içeriyor
+                        { code: 'tr', name: {tr:'Türkçe', en:'Turkish'}, flag: '🇹🇷' }, 
                         { code: 'en', name: {tr:'İngilizce', en:'English'}, flag: '🇬🇧' },
                         { code: 'el', name: {tr:'Yunanca', en:'Greek'}, flag: '🇬🇷' }, 
                         { code: 'ru', name: {tr:'Rusça', en:'Russian'}, flag: '🇷🇺' } 
@@ -724,9 +724,7 @@
                 if(!tabsContainer || !contentContainer) return;
                 tabsContainer.innerHTML = '';
                 contentContainer.innerHTML = '';
-                const languages = localState.settings.languages?.length ? localState.settings.languages : [
-                    { code: 'tr', name: {tr:'Türkçe', en:'Turkish'}, flag: '🇹🇷' } // name artık map
-                ];
+                const languages = localState.settings.languages?.length ? localState.settings.languages : [{code: 'tr', name: {tr:'Türkçe', en:'Turkish'}, flag: '🇹🇷'}];
                 
                 languages.forEach((lang, index) => {
                     const isActive = index === 0;
@@ -1274,8 +1272,8 @@
                 document.getElementById('logoTextColor').value = generalSettings.logo?.textColor || '#2c3e50';
                 
                 document.getElementById('logoImageUrl').value = generalSettings.logo?.imageUrl || '';
-                document.getElementById('logoImageWidth').value = generalSettings.logo?.imageWidth || 150;
-                document.getElementById('logoImageHeight').value = generalSettings.logo?.imageHeight || 40;
+                document.getElementById('logoImageWidth').value = parseInt(document.getElementById('logoImageWidth').value) || 0;
+                document.getElementById('logoImageHeight').value = parseInt(document.getElementById('logoImageHeight').value) || 0;
 
                 logoIconPicker.innerHTML = '';
                 fontAwesomeIcons.forEach(iconClass => {
@@ -1308,19 +1306,15 @@
 
             function renderLanguageList() {
                 languageListContainer.innerHTML = '';
-                // localState.settings.languages'taki dil objesinin name'ini de çevrilebilir hale getirelim
                 const languages = localState.settings.languages?.length ? localState.settings.languages : [{code: 'tr', name: {tr:'Türkçe', en:'Turkish'}, flag: '🇹🇷'}];
                 
-                languages.forEach((lang) => { // index kaldırıldı
+                languages.forEach((lang) => { 
                     const langItem = document.createElement('div');
                     langItem.className = 'language-item';
                     langItem.dataset.code = lang.code; 
                     
-                    // Dil adını Firebase'den gelen name map'inden çek (ör: name.tr, name.en)
-                    // Varsayılan olarak Türkçe, yoksa İngilizce, yine yoksa kod kullan
                     const displayLangName = lang.name?.tr || lang.name?.en || lang.name || lang.code; 
                     
-                    // Dil adları için çoklu dil giriş alanları
                     const langNameInputsHTML = languages.map(inputLang => `
                         <div class="form-group" style="flex:1; min-width: 80px; margin-bottom:0;">
                             <label style="font-size: 0.75em; color: #666; margin-bottom: 2px;">${inputLang.flag || inputLang.code}</label>
@@ -1342,20 +1336,22 @@
                     languageListContainer.appendChild(langItem);
                 });
 
-                // Inline düzenleme için değişiklik dinleyicisi ekle
                 languageListContainer.querySelectorAll('.lang-name-input-edit').forEach(input => {
                     input.addEventListener('change', async (e) => {
-                        const editedLangCode = e.target.dataset.editCode; // Hangi dil objesi düzenleniyor
-                        const inputLangCode = e.target.dataset.lang;     // Hangi dildeki isim düzenleniyor
+                        const editedLangCode = e.target.dataset.editCode; 
+                        const inputLangCode = e.target.dataset.lang;     
                         const newValue = e.target.value.trim();
 
                         const langToUpdate = localState.settings.languages.find(l => l.code === editedLangCode);
                         if (langToUpdate) {
-                            if (!langToUpdate.name) langToUpdate.name = {};
+                            // Eğer name alanı henüz map değilse veya boşsa, bir map olarak başlat
+                            if (!langToUpdate.name || typeof langToUpdate.name !== 'object') {
+                                langToUpdate.name = {}; 
+                            }
                             langToUpdate.name[inputLangCode] = newValue;
                             await saveData('settings', { languages: localState.settings.languages });
-                            renderLanguageList(); // Güncelleme sonrası listeyi yenile
-                            renderGeneralSettings(); // Diğer ayarları da yenile
+                            renderLanguageList(); 
+                            renderGeneralSettings(); 
                         }
                     });
                 });
@@ -1368,327 +1364,6 @@
                 
                 const languages = localState.settings.languages?.length ? localState.settings.languages : [{code: 'tr', name: {tr:'Türkçe', en:'Turkish'}, flag: '🇹🇷'}];
                 
-                // Çoklu dil adı giriş alanları oluştur
-                const langNameInputsHTML = languages.map(lang => `
-                    <div class="form-group">
-                        <label for="newLangName_${lang.code}">Dil Adı (${lang.name?.tr || lang.name?.en || lang.name || lang.code})</label> 
-                        <input type="text" id="newLangName_${lang.code}" class="new-lang-name-input" data-lang="${lang.code}" placeholder="${lang.name?.tr || lang.name?.en || lang.name || lang.code} Adı" ${lang.code === 'tr' ? 'required' : ''}>
-                    </div>
-                `).join('');
-
-                form.innerHTML = `
-                    <div class="form-group">
-                        <label for="newLangCode">Dil Kodu (Örn: en)</label>
-                        <input type="text" id="newLangCode" maxlength="2" required>
-                    </div>
-                    ${langNameInputsHTML} 
-                    <div class="form-group">
-                        <label for="newLangFlag">Bayrak Emojisi (Örn: 🇬🇧)</label>
-                        <input type="text" id="newLangFlag" maxlength="5"> 
-                    </div>
-                    <div class="form-actions">
-                        <button type="button" class="btn btn-danger cancel-new-language-btn">İptal</button>
-                        <button type="submit" class="btn btn-success">Dili Ekle</button>
-                    </div>
-                `;
-                newLanguageFormContainer.appendChild(form);
-                form.querySelector('#newLangName_tr')?.focus() || form.querySelector('#newLangCode').focus(); 
-
-                form.addEventListener('submit', async (e) => {
-                    e.preventDefault();
-                    const code = form.querySelector('#newLangCode').value.trim().toLowerCase(); 
-                    const flag = form.querySelector('#newLangFlag').value.trim();
-
-                    const newLangNameMap = {}; 
-                    let hasAnyLangName = false;
-                    form.querySelectorAll('.new-lang-name-input').forEach(input => {
-                        const langCode = input.dataset.lang;
-                        const nameValue = input.value.trim();
-                        if(nameValue) hasAnyLangName = true;
-                        newLangNameMap[langCode] = nameValue;
-                    });
-                    if (!hasAnyLangName) { alert('Lütfen en az bir dilde dil adı girin.'); return; }
-
-
-                    if (!code) {
-                        alert('Dil kodu boş bırakılamaz.');
-                        return;
-                    }
-                    if (localState.settings.languages.some(lang => lang.code === code)) {
-                        alert('Bu dil kodu zaten mevcut!');
-                        return;
-                    }
-                    if (code.length !== 2) {
-                        alert('Dil kodu 2 karakterli olmalıdır (örn: en, tr, el).');
-                        return;
-                    }
-
-                    localState.settings.languages.push({ name: newLangNameMap, code, flag }); 
-                    await saveData('settings', { languages: localState.settings.languages });
-                    newLanguageFormContainer.innerHTML = ''; 
-                    renderLanguageList(); 
-                    renderBannerSettings(); 
-                    const productLangTabsContainer = productForm.querySelector('#product-lang-tabs-container');
-                    const productLangContentContainer = productForm.querySelector('#product-lang-content-container');
-                    if (productLangTabsContainer && productLangContentContainer && productForm.style.display !== 'none') {
-                        createLangTabs(productLangTabsContainer, productLangContentContainer, {}, [{ label: 'Ürün Adı', key: 'name' }, { label: 'Açıklama', key: 'description', type: 'textarea' }]);
-                    }
-                    renderGeneralSettings(); 
-                    renderCountryPricingList(); 
-                });
-
-                form.querySelector('.cancel-new-language-btn').addEventListener('click', () => {
-                    newLanguageFormContainer.innerHTML = '';
-                });
-            }
-
-            function renderCurrencySymbolList() {
-                currencySymbolListContainer.innerHTML = '';
-                const sortedSymbols = Object.keys(localState.settings.currencySymbols).sort();
-                sortedSymbols.forEach(code => {
-                    const symbol = localState.settings.currencySymbols[code];
-                    const symbolItem = document.createElement('div');
-                    symbolItem.className = 'language-item'; 
-                    symbolItem.dataset.code = code;
-                    symbolItem.innerHTML = `
-                        <span class="lang-name-flag">${code} (${symbol})</span>
-                        <div class="lang-controls">
-                            <button type="button" class="delete-currency-symbol-btn" title="Sembolü Sil" data-code="${code}"><i class="fa-solid fa-trash"></i></button>
-                        </div>
-                        `;
-                    currencySymbolListContainer.appendChild(symbolItem);
-                });
-            }
-
-            function showNewCurrencySymbolForm() {
-                if (newCurrencySymbolFormContainer.querySelector('form')) return;
-
-                const form = document.createElement('form');
-                form.innerHTML = `
-                    <div class="form-group">
-                        <label for="newCurrencyCode">Para Birimi Kodu (Örn: GBP, JPY)</label>
-                        <input type="text" id="newCurrencyCode" maxlength="3" required style="text-transform: uppercase;">
-                    </div>
-                    <div class="form-group">
-                        <label for="newCurrencySymbol">Sembol (Örn: £, ¥)</label>
-                        <input type="text" id="newCurrencySymbol" maxlength="5" required>
-                    </div>
-                    <div class="form-actions">
-                        <button type="button" class="btn btn-danger cancel-new-currency-symbol-btn">İptal</button>
-                        <button type="submit" class="btn btn-success">Sembol Ekle</button>
-                    </div>
-                `;
-                newCurrencySymbolFormContainer.appendChild(form);
-                form.querySelector('#newCurrencyCode').focus();
-
-                form.addEventListener('submit', async (e) => {
-                    e.preventDefault();
-                    const code = form.querySelector('#newCurrencyCode').value.trim().toUpperCase();
-                    const symbol = form.querySelector('#newCurrencySymbol').value.trim();
-
-                    if (!code || !symbol) {
-                        alert('Para birimi kodu ve sembolü boş bırakılamaz.');
-                        return;
-                    }
-                    if (localState.settings.currencySymbols[code]) {
-                        alert('Bu para birimi kodu zaten mevcut!');
-                        return;
-                    }
-
-                    localState.settings.currencySymbols[code] = symbol;
-                    await saveData('settings', { currencySymbols: localState.settings.currencySymbols });
-                    newCurrencySymbolFormContainer.innerHTML = '';
-                    renderCurrencySymbolList();
-                    renderCountryPricingList(); 
-                });
-
-                form.querySelector('.cancel-new-currency-symbol-btn').addEventListener('click', () => {
-                    newCurrencySymbolFormContainer.innerHTML = '';
-                });
-            }
-
-
-            generalSettingsForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const selectedLogoType = logoTypeSelect.value;
-                const newGeneralSettings = {
-                    logo: {
-                        type: selectedLogoType 
-                    },
-                    promoBar: {
-                        bgColor: document.getElementById('promoBarBgColor').value,
-                        textColor: document.getElementById('promoBarTextColor').value,
-                        fontSize: `${document.getElementById('promoBarFontSize').value}px`, 
-                        scrollSpeed: `${document.getElementById('promoBarScrollSpeed').value}s`,
-                        text: {},
-                        enabled: document.getElementById('promoBarEnabled').checked 
-                    }
-                };
-
-                if (selectedLogoType === 'text_icon') {
-                    newGeneralSettings.logo.text = document.getElementById('logoText').value.trim();
-                    newGeneralSettings.logo.icon = document.getElementById('logoIcon').value.trim();
-                    newGeneralSettings.logo.iconColor = document.getElementById('logoIconColor').value;
-                    newGeneralSettings.logo.textColor = document.getElementById('logoTextColor').value;
-                } else { 
-                    newGeneralSettings.logo.imageUrl = document.getElementById('logoImageUrl').value.trim();
-                    newGeneralSettings.logo.imageWidth = parseInt(document.getElementById('logoImageWidth').value) || 0;
-                    newGeneralSettings.logo.imageHeight = parseInt(document.getElementById('logoImageHeight').value) || 0;
-                }
-
-                document.querySelectorAll('#promo-text-lang-content .lang-content').forEach(cont => {
-                    const lang = cont.dataset.langContent;
-                    newGeneralSettings.promoBar.text[lang] = cont.querySelector('[data-key="text"]').value.trim();
-                });
-
-                localState.settings.general = newGeneralSettings;
-                await saveData('settings', { general: newGeneralSettings });
-                renderGeneralSettings(); 
-            });
-
-            logoTypeSelect.addEventListener('change', toggleLogoOptions);
-
-            logoIconPicker.addEventListener('click', (e) => {
-                const selectedIconItem = e.target.closest('.icon-item');
-                if (selectedIconItem) {
-                    logoIconPicker.querySelectorAll('.icon-item.selected').forEach(item => item.classList.remove('selected'));
-                    selectedIconItem.classList.add('selected');
-                    document.getElementById('logoIcon').value = selectedIconItem.dataset.iconClass;
-                }
-            });
-
-            addLanguageBtn.addEventListener('click', showNewLanguageForm);
-            languageListContainer.addEventListener('click', async (e) => {
-                const deleteBtn = e.target.closest('.delete-language-btn');
-                if (deleteBtn) {
-                    const langItem = deleteBtn.closest('.language-item');
-                    const langCodeToDelete = langItem.dataset.code;
-
-                    if (localState.settings.languages.length <= 1) {
-                        alert('En az bir dil olmak zorundadır. Son dili silemezsiniz.');
-                        return;
-                    }
-                    // DİLİN GÖRÜNÜR ADINI ALMA (ÇEVRİLİ)
-                    // localState.settings.languages içindeki name'in artık map olduğunu varsayarak
-                    const langDisplayName = localState.settings.languages.find(l => l.code === langCodeToDelete)?.name?.tr || localState.settings.languages.find(l => l.code === langCodeToDelete)?.name?.en || langCodeToDelete;
-
-                    if (!confirm(`'${langDisplayName}' (${langCodeToDelete.toUpperCase()}) dilini silmek istediğinizden emin misiniz? Bu, tüm içerik alanlarındaki ilgili dil verilerini etkileyebilir!`)) { 
-                        return;
-                    }
-
-                    localState.settings.languages = localState.settings.languages.filter(lang => lang.code !== langCodeToDelete);
-                    await saveData('settings', { languages: localState.settings.languages });
-                    renderLanguageList(); 
-                    renderBannerSettings(); 
-                    const productLangTabsContainer = productForm.querySelector('#product-lang-tabs-container');
-                    const productLangContentContainer = productForm.querySelector('#product-lang-content-container');
-                    if (productLangTabsContainer && productLangContentContainer && productForm.style.display !== 'none') {
-                        createLangTabs(productLangTabsContainer, productLangContentContainer, {}, [{ label: 'Ürün Adı', key: 'name' }, { label: 'Açıklama', key: 'description', type: 'textarea' }]);
-                    }
-                    renderGeneralSettings(); 
-                    renderCountryPricingList(); 
-                }
-            });
-
-            addCurrencySymbolBtn.addEventListener('click', showNewCurrencySymbolForm);
-            currencySymbolListContainer.addEventListener('click', async (e) => {
-                const deleteBtn = e.target.closest('.delete-currency-symbol-btn');
-                if (deleteBtn) {
-                    const codeToDelete = deleteBtn.dataset.code;
-                    if (confirm(`'${codeToDelete}' para birimi sembolünü silmek istediğinizden emin misiniz?`)) {
-                        delete localState.settings.currencySymbols[codeToDelete];
-                        await saveData('settings', { currencySymbols: localState.settings.currencySymbols });
-                        renderCurrencySymbolList();
-                        renderCountryPricingList(); 
-                    }
-                }
-            });
-
-
-            // --- YENİLENEN: ÜLKELERE GÖRE FİYATLANDIRMA YÖNETİMİ ---
-            
-            function renderCountryPricingList() {
-                newCountryPricingFormContainer.innerHTML = ''; 
-                countryPricingListContainer.innerHTML = '';
-                
-                const languages = localState.settings.languages?.length ? localState.settings.languages : [{code: 'tr', name: {tr:'Türkçe', en:'Turkish'}, flag: '🇹🇷'}];
-
-                // localState.settings.countryPricing objesindeki entry'leri alıp sırala
-                const countriesToRender = Object.entries(localState.settings.countryPricing)
-                    .map(([codeKey, countryData]) => ({
-                        code: codeKey, 
-                        ...countryData 
-                    }))
-                    .sort((a,b) => {
-                        const nameA = typeof a.name === 'object' ? a.name.tr || a.name.en || a.code : a.name || a.code;
-                        const nameB = typeof b.name === 'object' ? b.name.tr || b.name.en || b.code : b.name || b.code;
-                        return nameA.localeCompare(nameB);
-                    });
-
-                countriesToRender.forEach(country => {
-                    const countryItem = document.createElement('div');
-                    countryItem.className = 'country-pricing-item';
-                    countryItem.dataset.code = country.code; 
-                    
-                    const countryNameInputsHTML = languages.map(lang => `
-                        <div class="form-group">
-                            <label>${lang.flag || lang.code}</label>
-                            <input type="text" class="country-name-input" data-country-code="${country.code}" data-lang="${lang.code}" value="${country.name?.[lang.code] || ''}">
-                        </div>
-                    `).join('');
-
-                    countryItem.innerHTML = `
-                        <div class="country-name-inputs-group">
-                            ${countryNameInputsHTML}
-                            <span style="font-weight: 500; font-size: 0.9em; margin-left: 10px; align-self: center; white-space: nowrap;">(${country.flag || ''} ${country.code.toUpperCase()})</span>
-                        </div>
-                        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; flex-grow: 1;">
-                            <div class="price-adjustment-input-group">
-                                <label for="adjustment_${country.code}">%</label>
-                                <input type="number" id="adjustment_${country.code}" class="country-adjustment-input" data-country-code="${country.code}" data-field="adjustment" value="${country.adjustment}">
-                            </div>
-                            <div class="form-group" style="margin-bottom: 0; min-width: 120px;">
-                                <label for="defaultLang_${country.code}" style="font-size: 0.8em; margin-bottom: 2px;">Varsayılan Dil</label>
-                                <select id="defaultLang_${country.code}" class="country-adjustment-input" data-country-code="${country.code}" data-field="defaultLanguage">
-                                    ${localState.settings.languages.map(lang => 
-                                        `<option value="${lang.code}" ${lang.code === country.defaultLanguage ? 'selected' : ''}>${lang.name?.tr || lang.name?.en || lang.name || lang.code}</option>` 
-                                    ).join('')}
-                                </select>
-                            </div>
-                            <div class="form-group" style="margin-bottom: 0; min-width: 80px;">
-                                <label for="currencySymbol_${country.code}" style="font-size: 0.8em; margin-bottom: 2px;">Para Birimi</label>
-                                <select id="currencySymbol_${country.code}" class="country-adjustment-input" data-country-code="${country.code}" data-field="currencySymbol">
-                                    ${Object.keys(localState.settings.currencySymbols).map(code => {
-                                        const symbol = localState.settings.currencySymbols[code];
-                                        return `<option value="${symbol}" ${symbol === country.currencySymbol ? 'selected' : ''}>${code} (${symbol})</option>`;
-                                    }).join('')}
-                                </select>
-                            </div>
-                        </div>
-                        <div class="country-controls">
-                            <button type="button" class="btn btn-danger delete-country-pricing-btn" title="Ülkeyi Sil" data-country-code="${country.code}"><i class="fa-solid fa-trash"></i></button>
-                        </div>
-                    `;
-                    countryPricingListContainer.appendChild(countryItem);
-                });
-                
-                if (countriesToRender.length === 0) {
-                    countryPricingListContainer.innerHTML = '<p>Henüz tanımlı bir ülke fiyatlandırması yok. Yeni bir ülke eklemek için yukarıdaki "Yeni Ülke Ekle" butonunu kullanın.</p>';
-                }
-            }
-            
-            // "Yeni Ülke Ekle" butonu formu gösterme
-            addCountryPricingBtn.addEventListener('click', () => {
-                showNewCountryPricingForm();
-            });
-
-            // Yeni Ülke Fiyatlandırma Formu Gösterme (Çoklu Dil Desteği ile)
-            function showNewCountryPricingForm() {
-                if (newCountryPricingFormContainer.querySelector('form')) return; 
-
-                const form = document.createElement('form');
-                
-                const languages = localState.settings.languages?.length ? localState.settings.languages : [{code: 'tr', name: {tr:'Türkçe', en:'Turkish'}, flag: '🇹🇷'}];
                 const langNameInputsHTML = languages.map(lang => `
                     <div class="form-group">
                         <label for="newLangName_${lang.code}">Dil Adı (${lang.name?.tr || lang.name?.en || lang.name || lang.code})</label> 
@@ -1765,7 +1440,7 @@
                         return;
                     }
 
-                    localState.settings.countryPricing[code] = { name: newLangNameMap, flag, adjustment, defaultLanguage, currencySymbol }; 
+                    localState.settings.countryPricing[code] = { name: newCountryNameMap, flag, adjustment, defaultLanguage, currencySymbol }; 
                     await saveData('settings', { countryPricing: localState.settings.countryPricing });
                     newCountryPricingFormContainer.innerHTML = ''; 
                     renderCountryPricingList(); 
