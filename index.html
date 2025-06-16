@@ -103,7 +103,7 @@
             font-size: 0.9rem;
             min-width: 110px; /* Bayrak ve dil adı için yeterli genişlik */
             text-align: left;
-            z-index: 10; /* Diğer elementlerin üstünde kalması için */
+            z-index: 10; 
         }
 
         .selected-language {
@@ -120,8 +120,8 @@
 
         .selected-language .flag-icon {
             margin-right: 8px;
-            font-size: 1.2em; /* Bayrak emojileri için boyut */
-            line-height: 1; /* Satır yüksekliği tutarlılığı */
+            font-size: 1.2em; 
+            line-height: 1; 
         }
 
         .selected-language .arrow-down {
@@ -142,8 +142,8 @@
             list-style: none;
             padding: 5px 0;
             min-width: 100%;
-            z-index: 100; /* Dropdown menünün diğer her şeyin üzerinde olması için */
-            max-height: 200px; /* Çok sayıda dil için scroll */
+            z-index: 100; 
+            max-height: 200px; 
             overflow-y: auto;
         }
 
@@ -601,14 +601,13 @@
                 'country_selector_label': { tr: 'Ülke Seçimi:', en: 'Select Country:', el: 'Επιλέξτε Χώρα:', ru: 'Выбрать страну:' }
             };
 
-            // supportedLanguages artık siteData.settings.languages'tan çekileceği için buradaki sabit liste kaldırıldı.
-            // Ancak, Firebase'den gelmezse veya boşsa yedek olarak kullanılacak bir yapıya ihtiyacımız var.
-            // Bu artık global scope'ta durmayacak.
+            // supportedLanguages global sabit olarak kaldırıldı, çünkü siteData.settings.languages kullanılacak
+            // Ancak fetchData içinde varsayılan olarak korunuyor.
+
             const loadingOverlay = document.getElementById('loading-overlay');
             let siteData = { 
                 settings: { 
-                    // languages varsayılan değeri doğrudan fetchData içinde ayarlanacak
-                    languages: [], 
+                    languages: [], // Burası fetchData'dan doldurulacak
                     banner: { slides: [] },
                     general: { 
                         logo: { type: 'text_icon', text: 'PUFEMO', icon: 'fa-solid fa-couch', iconColor: '#e74c3c', textColor: '#2c3e50', imageUrl: '', imageWidth: 150, imageHeight: 40 },
@@ -643,12 +642,12 @@
                     
                     siteData.settings = { 
                         ...fetchedSettings, 
-                        // Firebase'den languages yoksa veya boşsa varsayılanları kullan
+                        // Firebase'den languages yoksa veya boşsa, bu varsayılan listeyi kullan (içindeki name field'ı map olmalı)
                         languages: (fetchedSettings.languages && fetchedSettings.languages.length > 0) ? fetchedSettings.languages : [
-                            { code: 'tr', name: 'Türkçe', flag: '🇹🇷' },
-                            { code: 'en', name: 'English', flag: '🇬🇧' },
-                            { code: 'el', name: 'Ελληνικά', flag: '🇬🇷' },
-                            { code: 'ru', name: 'Русский', flag: '🇷🇺' }
+                            { code: 'tr', name: {tr:'Türkçe', en:'Turkish'}, flag: '🇹🇷' },
+                            { code: 'en', name: {tr:'İngilizce', en:'English'}, flag: '🇬🇧' },
+                            { code: 'el', name: {tr:'Yunanca', en:'Greek'}, flag: '🇬🇷' },
+                            { code: 'ru', name: {tr:'Rusça', en:'Russian'}, flag: '🇷🇺' }
                         ], 
                         banner: fetchedSettings.banner || { slides: [] },
                         general: { 
@@ -954,26 +953,33 @@
                 const customLangContainer = document.getElementById('custom-language-selector-container');
                 if (!customLangContainer) return;
 
-                // Mevcut içeriği temizle
                 customLangContainer.innerHTML = '';
 
                 const languages = siteData.settings.languages || [];
-                const currentLanguageObj = languages.find(l => l.code === currentLang) || languages[0] || { code: 'tr', name: 'Türkçe', flag: '🇹🇷' };
+                // Eğer currentLang'e uygun dil yoksa veya languages boşsa ilk varsayılanı kullan
+                const currentLanguageObj = languages.find(l => l.code === currentLang) || languages[0] || { code: 'tr', name: {tr:'Türkçe', en:'Turkish'}, flag: '🇹🇷' }; 
+                
+                // Görüntülenecek dil adını currentLang'e göre çeviriyoruz
+                const currentLangDisplayName = currentLanguageObj.name?.[currentLang] || currentLanguageObj.name?.en || currentLanguageObj.name?.tr || currentLanguageObj.name || currentLanguageObj.code.toUpperCase();
 
                 const customSelectorHTML = `
                     <div class="custom-language-selector">
                         <div class="selected-language" tabindex="0" role="button" aria-haspopup="listbox" aria-expanded="false">
                             <span class="flag-icon">${currentLanguageObj.flag || ''}</span>
-                            <span class="language-name">${currentLanguageObj.name}</span>
+                            <span class="language-name">${currentLangDisplayName}</span>
                             <span class="arrow-down"><i class="fa-solid fa-chevron-down"></i></span>
                         </div>
                         <ul class="language-options" role="listbox">
-                            ${languages.map(lang => `
-                                <li data-lang-code="${lang.code}" class="${lang.code === currentLang ? 'selected' : ''}" role="option" aria-selected="${lang.code === currentLang}">
-                                    <span class="flag-icon">${lang.flag || ''}</span>
-                                    <span class="language-name">${lang.name}</span>
-                                </li>
-                            `).join('')}
+                            ${languages.map(lang => {
+                                // Seçenekler listesi için de dil adını currentLang'e göre çeviriyoruz
+                                const optionLangDisplayName = lang.name?.[currentLang] || lang.name?.en || lang.name?.tr || lang.name || lang.code.toUpperCase();
+                                return `
+                                    <li data-lang-code="${lang.code}" class="${lang.code === currentLang ? 'selected' : ''}" role="option" aria-selected="${lang.code === currentLang}">
+                                        <span class="flag-icon">${lang.flag || ''}</span>
+                                        <span class="language-name">${optionLangDisplayName}</span>
+                                    </li>
+                                `;
+                            }).join('')}
                         </ul>
                     </div>
                 `;
@@ -1072,11 +1078,21 @@
                     }
                     renderAll(); 
                 });
+                
+                const toggleMenu = () => { 
+                    hamburgerBtn.classList.toggle('open'); 
+                    mobileNav.classList.toggle('open'); 
+                    mobileNavOverlay.classList.toggle('open');
+                    document.querySelector('.main-header').classList.toggle('mobile-menu-open');
+                };
+                hamburgerBtn.addEventListener('click', toggleMenu);
+                mobileNavOverlay.addEventListener('click', toggleMenu);
+                mobileNav.addEventListener('click', (e) => { if (e.target.tagName === 'A') toggleMenu(); });
             };
 
             const init = async () => {
                 await fetchData();
-                renderAll(); // Tüm render işlemleri artık renderAll içinde
+                renderAll(); 
                 loadingOverlay.classList.add('hidden');
                 console.log('Site Data:', siteData); 
             };
