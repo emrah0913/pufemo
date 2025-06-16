@@ -8,6 +8,9 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
     <style>
         :root { --primary-color: #2c3e50; --secondary-color: #e74c3c; --background-color: #ecf0f1; --text-color: #34495e; --light-text-color: #ffffff; --card-bg-color: #ffffff; --border-radius: 8px; --box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
@@ -380,17 +383,40 @@
             transform: translateY(-2px);
         }
 
-        /* Yeni: Görsel bayrak için stil */
-        .flag-icon {
-            display: inline-block;
-            width: 20px; /* Bayrak genişliği */
-            height: 15px; /* Bayrak yüksekliği */
-            background-size: cover;
-            background-position: center;
-            margin-right: 5px;
+        /* Select2 için özel stiller */
+        .select2-container--default .select2-selection--single {
+            border: 1px solid #ccc;
+            border-radius: var(--border-radius);
+            height: 38px; /* Control-select yüksekliğine yakın */
+        }
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            line-height: 38px; /* Yüksekliği metinle hizala */
+            padding-left: 10px;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 36px;
+        }
+        .select2-container .select2-selection__clear {
+            line-height: 36px;
+        }
+
+        /* Bayrak görselleri için stil */
+        .flag-img {
+            width: 20px;
+            height: 15px;
             vertical-align: middle;
-            border: 1px solid #eee; /* İsteğe bağlı: Küçük bir çerçeve */
+            margin-right: 8px;
+            border: 1px solid #eee; /* Küçük bir çerçeve için */
             box-shadow: 0 0 2px rgba(0,0,0,0.1);
+        }
+
+        /* Select2 dropdown içindeki seçenekler için stil */
+        .select2-results__option img.flag-img {
+            margin-right: 8px;
+        }
+        /* Select2'nin z-index'ini diğer modal'ların üzerinde tutmak için */
+        .select2-container--open {
+            z-index: 10002; 
         }
 
         @media (max-width: 992px) {
@@ -488,7 +514,6 @@
                 }
                 .product-name {
                     font-size: 0.8rem; 
-                    height: auto; 
                 }
                 .discounted-price {
                     font-size: 0.95rem; 
@@ -607,6 +632,9 @@
         </div>
     </footer>
 
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
 
@@ -627,23 +655,33 @@
         } catch (e) { console.error("Firebase başlatma hatası!", e); }
 
         if (db) {
-            // Bayrak görseli veya emoji döndüren yardımcı fonksiyon
-            function getFlagHTML(countryCode, flagData) {
-                // Eğer Firebase'den gelen 'flagData' bir URL ise görsel kullan
-                if (flagData && flagData.startsWith('http')) {
-                    return `<span class="flag-icon" style="background-image: url('${flagData}');"></span>`;
+            // Bayrak görseli veya emoji HTML'i döndüren yardımcı fonksiyon
+            function getFlagHTML(countryCode, flagDataFromFirebase) {
+                // Özel KKTC bayrak URL'si
+                const kktcFlagUrl = 'https://w7.pngwing.com/pngs/47/885/png-transparent-flag-of-turkey-flag-of-cyprus-flag-of-northern-cyprus-turk-miscellaneous-flag-logo.png';
+
+                // Eğer Firebase'den gelen 'flagDataFromFirebase' bir URL ise onu kullan (yüksek öncelikli)
+                if (flagDataFromFirebase && flagDataFromFirebase.startsWith('http')) {
+                    return `<img src="${flagDataFromFirebase}" class="flag-img" />`;
                 }
-                // KK için özel görsel URL'sini kullan (admin panelinden URL gelmediyse veya özel durumsa)
+                
+                // Eğer ülke kodu KK ise ve Firebase'den URL gelmediyse, özel KKTC URL'sini kullan
                 if (countryCode === 'KK') { 
-                    return `<span class="flag-icon" style="background-image: url('https://w7.pngwing.com/pngs/47/885/png-transparent-flag-of-turkey-flag-of-cyprus-flag-of-northern-cyprus-turk-miscellaneous-flag-logo.png');"></span>`; 
+                    return `<img src="${kktcFlagUrl}" class="flag-img" />`;
                 }
-                // Normal ISO kodları için emoji kullan
+                
+                // Diğer ISO 3166-1 alpha-2 kodları için bayrak emojisi veya flagcdn'den görsel
                 if (countryCode && countryCode.length === 2) {
+                    // Tercih: Flag CDN'den bayrak görseli (daha tutarlı görünür)
+                    // const flagCdnUrl = `https://flagcdn.com/w20/${countryCode.toLowerCase()}.png`;
+                    // return `<img src="${flagCdnUrl}" class="flag-img" />`;
+
+                    // Alternatif: Bayrak emojisi
                     return countryCode.toUpperCase().split('').map(char => 
                         String.fromCodePoint(char.charCodeAt(0) + 127397)
                     ).join('');
                 }
-                return ''; // Geçersiz kod ise boş döndür
+                return ''; 
             }
 
             const staticTranslations = {
@@ -798,9 +836,10 @@
                     localStorage.setItem('pufemo-currency', currentCurrency);
                 }
                 renderAll(); 
-                document.getElementById('language-selector').value = currentLang;
-                document.getElementById('currency-selector').value = currentCurrency;
-                document.getElementById('country-selector').value = currentCountryCode; 
+                // Select2 instance'larını güncelle
+                $('#language-selector').val(currentLang).trigger('change');
+                $('#currency-selector').val(currentCurrency).trigger('change');
+                $('#country-selector').val(currentCountryCode).trigger('change');
             };
 
             const renderAll = () => {
@@ -1054,15 +1093,23 @@
                 const mobileNav = document.getElementById('mobile-nav');
                 const mobileNavOverlay = document.getElementById('mobile-nav-overlay');
 
+                // Dil menüsünü Firebase'den gelen verilere göre doldur
                 const languagesFromDB = siteData.settings.languages || [];
-                languageSelector.innerHTML = languagesFromDB.map(l => `<option value="${l.code}">${getFlagHTML(l.flag, null)} ${l.name}</option>`).join(''); // L.flag doğrudan emoji kodu ise, getFlagHTML onu işler
+                languageSelector.innerHTML = languagesFromDB.map(l => `<option value="${l.code}" data-thumbnail="${getFlagHTML(l.flag, null)}">${l.name}</option>`).join(''); // data-thumbnail'ı kullandık
                 if (languagesFromDB.length > 0) {
                     languageSelector.value = currentLang;
-                    languageSelector.style.display = 'block';
+                    // Select2'yi başlat
+                    $('#language-selector').select2({
+                        templateResult: formatFlagAndText,
+                        templateSelection: formatFlagAndText,
+                        minimumResultsForSearch: Infinity // Arama kutusunu gizler
+                    });
+                    $('#language-selector').next(".select2-container").css("display", "block"); // Select2 görüntülenecek
                 } else {
-                    languageSelector.style.display = 'none';
+                    $('#language-selector').next(".select2-container").css("display", "none");
                 }
                 
+                // Para birimi menüsünü doldur
                 const currencies = siteData.settings?.currencySymbols || {};
                 const availableCurrencies = Object.keys(currencies);
                 currencySelector.innerHTML = availableCurrencies.map(c => {
@@ -1071,16 +1118,21 @@
                 }).join('');
                 if (availableCurrencies.length > 0) {
                     currencySelector.value = currentCurrency;
-                    currencySelector.style.display = 'block';
+                    // Select2'yi başlat
+                    $('#currency-selector').select2({
+                        minimumResultsForSearch: Infinity // Arama kutusunu gizler
+                    });
+                    $('#currency-selector').next(".select2-container").css("display", "block");
                 } else {
-                    currencySelector.style.display = 'none';
+                    $('#currency-selector').next(".select2-container").css("display", "none");
                 }
                 
+                // Ülke menüsünü, doğru ülke adları ve bayraklarla doldur (Select2 için data-thumbnail ile)
                 const countries = siteData.settings.countryPricing || {};
                 const countryOptionsHtml = Object.entries(countries).map(([code, data]) => {
                     const countryName = data.name?.[currentLang] || data.name?.['tr'] || code.toUpperCase();
-                    // getFlagHTML fonksiyonunu Firebase'den gelen 'data.flag' bilgisini de aktararak çağırıyoruz.
-                    return `<option value="${code}">${getFlagHTML(code, data.flag)} ${countryName}</option>`; 
+                    // data-thumbnail özelliğine bayrak görseli HTML'ini ekliyoruz
+                    return `<option value="${code}" data-thumbnail="${getFlagHTML(code, data.flag)}">${countryName}</option>`; 
                 }).join('');
 
                 if (Object.keys(countries).length > 0) {
@@ -1090,10 +1142,40 @@
 
                     welcomeCountrySelect.innerHTML = countryOptionsHtml; 
                     welcomeCountrySelect.value = currentCountryCode; 
+
+                    // Select2'yi her iki ülke seçici için de başlat
+                    $('#country-selector').select2({
+                        templateResult: formatFlagAndText,
+                        templateSelection: formatFlagAndText,
+                        dropdownParent: $('body') // Z-index sorunları için
+                    });
+                    $('#country-selector').next(".select2-container").css("display", "block");
+
+                    $('#welcomeCountrySelect').select2({
+                        templateResult: formatFlagAndText,
+                        templateSelection: formatFlagAndText,
+                        dropdownParent: $('#welcomeModalOverlay') // Modal içinde z-index sorunu yaşamamak için
+                    });
+                    $('#welcomeCountrySelect').next(".select2-container").css("width", "80%", "max-width", "300px"); // Stil uyumu için
+                    $('#welcomeCountrySelect').next(".select2-container").css("display", "block"); // Select2 görüntülenecek
+
                 } else {
                     countrySelector.parentElement.style.display = 'none';
                     welcomeModalOverlay.style.display = 'none'; 
                 }
+
+                // Select2 formatlayıcı fonksiyon
+                function formatFlagAndText (option) {
+                    if (!option.id) { return option.text; } // Placeholder durumunda
+                    var $option = $(option.element);
+                    var thumbnail = $option.data('thumbnail');
+                    if (thumbnail) {
+                        return $(`<span>${thumbnail}${option.text}</span>`);
+                    } else {
+                        // Eğer data-thumbnail yoksa, sadece metni döndür (emojiler burada metin olarak kalır)
+                        return $(`<span>${option.text}</span>`);
+                    }
+                };
 
                 languageSelector.onchange = (e) => { 
                     currentLang = e.target.value;
