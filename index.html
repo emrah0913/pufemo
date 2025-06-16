@@ -9,6 +9,72 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <style>
+        /* YENİ EKLENECEK KARŞILAMA EKRANI STİLLERİ */
+        #welcome-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(44, 62, 80, 0.9); /* --primary-color'ın şeffaf hali */
+            z-index: 20000;
+            display: none; /* JS ile açılacak */
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+        }
+
+        .welcome-modal {
+            background-color: var(--card-bg-color);
+            padding: 2.5rem 3rem;
+            border-radius: var(--border-radius);
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            max-width: 90%;
+            width: 500px;
+        }
+
+        .welcome-modal h1 {
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .welcome-modal p {
+            color: var(--text-color);
+            margin-bottom: 2rem;
+            font-size: 1.1rem;
+        }
+
+        .welcome-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .welcome-controls select {
+            flex-grow: 1;
+            padding: 12px;
+            font-size: 1rem;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        .welcome-controls button {
+            padding: 12px 20px;
+            font-size: 1rem;
+            font-weight: 600;
+            border: none;
+            background-color: var(--secondary-color);
+            color: var(--light-text-color);
+            border-radius: 5px;
+            cursor: pointer;
+            transition: opacity 0.3s;
+        }
+        .welcome-controls button:hover {
+            opacity: 0.9;
+        }
+
+        /* MEVCUT STİLLERİNİZ */
         :root { --primary-color: #2c3e50; --secondary-color: #e74c3c; --background-color: #ecf0f1; --text-color: #34495e; --light-text-color: #ffffff; --card-bg-color: #ffffff; --border-radius: 8px; --box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
         html { scroll-behavior: smooth; }
@@ -259,7 +325,6 @@
         .footer-section a:hover { color: var(--secondary-color); }
         .footer-bottom { text-align: center; margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.2); font-size: 0.9rem; }
         
-        /* GÜNCELLENDİ: Ülke seçici için yeni stiller */
         .country-selector-container {
             text-align: center;
             padding: 2rem 0;
@@ -412,6 +477,17 @@
     </style>
 </head>
 <body>
+    <div id="welcome-overlay">
+        <div class="welcome-modal">
+            <h1>Welcome to PUFEMO</h1>
+            <p>To provide you with a personalized experience, please select your country.</p>
+            <div class="welcome-controls">
+                <select id="welcome-country-selector"></select>
+                <button id="welcome-submit-btn">Continue</button>
+            </div>
+        </div>
+    </div>
+
     <div class="promo-bar">
         <span id="promo-text-content" class="promo-text"></span>
     </div>
@@ -497,12 +573,10 @@
         } catch (e) { console.error("Firebase başlatma hatası!", e); }
 
         if (db) {
-            // YENİ: Ülke kodunu bayrak emojisine çeviren fonksiyon
             function countryCodeToEmoji(code) {
                 if (!code || code.length !== 2) {
-                    return ''; // Kod yoksa veya geçersizse boş döndür
+                    return ''; 
                 }
-                // Her harfi bölgesel gösterge sembolüne dönüştürür (örn: T -> 🇹)
                 return code.toUpperCase().split('').map(char => 
                     String.fromCodePoint(char.charCodeAt(0) + 127397)
                 ).join('');
@@ -561,7 +635,9 @@
                     }
                     siteData.products = productsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-                    if (!localStorage.getItem('pufemo-country') && Object.keys(siteData.settings.countryPricing).length > 0) {
+                    if (localStorage.getItem('pufemo-country')) {
+                        currentCountryCode = localStorage.getItem('pufemo-country');
+                    } else if (Object.keys(siteData.settings.countryPricing).length > 0) {
                         currentCountryCode = Object.keys(siteData.settings.countryPricing)[0]; 
                         localStorage.setItem('pufemo-country', currentCountryCode);
                     }
@@ -717,9 +793,9 @@
 
                     slideEl.innerHTML += `
                         <div class="slide-content">
-                            <h2 style="${titleStyle}">${content.title || ''}</h2>
-                            <p style="${subtitleStyle}">${content.subtitle || ''}</p>
-                            <a href="${slideData.link_url || '#'}" class="btn-shop" style="${buttonInlineStyle}">${buttonText}</a>
+                            <h2 style="<span class="math-inline">\{titleStyle\}"\></span>{content.title || ''}</h2>
+                            <p style="<span class="math-inline">\{subtitleStyle\}"\></span>{content.subtitle || ''}</p>
+                            <a href="<span class="math-inline">\{slideData\.link\_url \|\| '\#'\}" class\="btn\-shop" style\="</span>{buttonInlineStyle}">${buttonText}</a>
                         </div>`;
                     bannerContainer.appendChild(slideEl);
                 });
@@ -775,8 +851,8 @@
                     if (discountedPrice !== null && typeof discountedPrice === 'number' && discountedPrice < originalPrice) {
                         priceHTML = `
                             <div class="price-container">
-                                <span class="original-price">${formatPrice(originalPrice)}</span>
-                                <span class="discounted-price">${formatPrice(originalPrice, discountedPrice)}</span>
+                                <span class="original-price"><span class="math-inline">\{formatPrice\(originalPrice\)\}</span\>
+<span class\="discounted\-price"\></span>{formatPrice(originalPrice, discountedPrice)}</span>
                             </div>`;
                     } else {
                         priceHTML = `<div class="price-container"><span class="discounted-price">${formatPrice(originalPrice)}</span></div>`;
@@ -787,12 +863,12 @@
                         : '';
 
                     card.innerHTML = `
-                        <a href="product.html?id=${product.id}" class="product-image-link">
-                            <img src="${firstImage}" alt="${name}" class="product-image">
-                        </a>
-                        <div class="product-info">
-                            <div class="product-info-top">
-                                <h3 class="product-name"><a href="product.html?id=${product.id}">${name}</a></h3>
+                        <a href="product.html?id=<span class="math-inline">\{product\.id\}" class\="product\-image\-link"\>
+<img src\="</span>{firstImage}" alt="<span class="math-inline">\{name\}" class\="product\-image"\>
+</a\>
+<div class\="product\-info"\>
+<div class\="product\-info\-top"\>
+<h3 class\="product\-name"\><a href\="product\.html?id\=</span>{product.id}">${name}</a></h3>
                             </div>
                             ${priceHTML} 
                         </div>
@@ -823,6 +899,56 @@
                 dots.forEach(dot => dot.addEventListener('click', () => { setSlide(parseInt(dot.dataset.index)); clearInterval(slideInterval); slideInterval = setInterval(nextSlide, 5000); }));
             };
             
+            // YENİ: Hem karşılama ekranı hem de footer'daki menü için ortak ülke ayarlama fonksiyonu
+            function setCountry(countryCode) {
+                currentCountryCode = countryCode;
+                localStorage.setItem('pufemo-country', currentCountryCode);
+
+                const countryData = siteData.settings.countryPricing[countryCode];
+                if (countryData) {
+                    currentLang = countryData.defaultLanguage || 'en';
+                    localStorage.setItem('pufemo-language', currentLang);
+
+                    const symbol = countryData.currencySymbol;
+                    if (symbol) {
+                        const currencyCode = Object.keys(siteData.settings.currencySymbols).find(key => siteData.settings.currencySymbols[key] === symbol);
+                        currentCurrency = currencyCode || 'TRY';
+                        localStorage.setItem('pufemo-currency', currentCurrency);
+                    }
+                }
+                renderAll();
+            }
+            
+            // YENİ: Karşılama ekranı menüsünü doldurur
+            function populateWelcomeModal() {
+                const welcomeSelector = document.getElementById('welcome-country-selector');
+                if (!welcomeSelector) return;
+                
+                const countries = siteData.settings.countryPricing || {};
+                
+                const sortedCountries = Object.entries(countries).sort(([,a], [,b]) => {
+                    const nameA = a.name[a.defaultLanguage] || a.name?.en || a.name?.tr || '';
+                    const nameB = b.name[b.defaultLanguage] || b.name?.en || b.name?.tr || '';
+                    return nameA.localeCompare(nameB);
+                });
+
+                welcomeSelector.innerHTML = sortedCountries.map(([code, data]) => {
+                    const nativeLangCode = data.defaultLanguage; 
+                    const countryNameInNativeLang = data.name[nativeLangCode] || data.name.tr || data.name.en || code.toUpperCase();
+                    return `<option value="<span class="math-inline">\{code\}"\></span>{countryCodeToEmoji(data.flag)} ${countryNameInNativeLang}</option>`;
+                }).join('');
+            }
+            
+            // YENİ: Karşılama ekranı onay butonunun olay dinleyicisi
+            document.getElementById('welcome-submit-btn')?.addEventListener('click', () => {
+                const welcomeSelector = document.getElementById('welcome-country-selector');
+                const selectedCountryCode = welcomeSelector.value;
+
+                localStorage.setItem('pufemo-country-selected', 'true');
+                document.getElementById('welcome-overlay').style.display = 'none';
+                setCountry(selectedCountryCode);
+            });
+
             const setupControls = () => {
                 const languageSelector = document.getElementById('language-selector');
                 const currencySelector = document.getElementById('currency-selector');
@@ -831,9 +957,8 @@
                 const mobileNav = document.getElementById('mobile-nav');
                 const mobileNavOverlay = document.getElementById('mobile-nav-overlay');
 
-                // Dil menüsünü Firebase'den gelen verilere ve bayrak koduna göre doldur
                 const languagesFromDB = siteData.settings.languages || [];
-                languageSelector.innerHTML = languagesFromDB.map(l => `<option value="${l.code}">${countryCodeToEmoji(l.flag)} ${l.name}</option>`).join('');
+                languageSelector.innerHTML = languagesFromDB.map(l => `<option value="<span class="math-inline">\{l\.code\}"\></span>{countryCodeToEmoji(l.flag)} ${l.name}</option>`).join('');
                 if (languagesFromDB.length > 0) {
                     languageSelector.value = currentLang;
                     languageSelector.style.display = 'block';
@@ -841,12 +966,11 @@
                     languageSelector.style.display = 'none';
                 }
                 
-                // Para birimi menüsünü doldur
                 const currencies = siteData.settings?.currencySymbols || {};
                 const availableCurrencies = Object.keys(currencies);
                 currencySelector.innerHTML = availableCurrencies.map(c => {
                     const symbol = currencies[c] || c; 
-                    return `<option value="${c}">${symbol} ${c}</option>`;
+                    return `<option value="<span class="math-inline">\{c\}"\></span>{symbol} ${c}</option>`;
                 }).join('');
                 if (availableCurrencies.length > 0) {
                     currencySelector.value = currentCurrency;
@@ -855,13 +979,11 @@
                     currencySelector.style.display = 'none';
                 }
                 
-                // Ülke menüsünü, doğru ülke adları ve bayraklarla doldur
                 const countries = siteData.settings.countryPricing || {};
                 if (Object.keys(countries).length > 0) {
                     countrySelector.innerHTML = Object.entries(countries).map(([code, data]) => {
                         const countryName = data.name?.[currentLang] || data.name?.tr || code.toUpperCase();
-                        // DÜZELTME BURADA: 'data.flag' doğrudan yazılmak yerine 'countryCodeToEmoji' fonksiyonundan geçiriliyor.
-                        return `<option value="${code}">${countryCodeToEmoji(data.flag)} ${countryName}</option>`; 
+                        return `<option value="<span class="math-inline">\{code\}"\></span>{countryCodeToEmoji(data.flag)} ${countryName}</option>`; 
                     }).join('');
 
                     countrySelector.value = currentCountryCode; 
@@ -870,7 +992,6 @@
                     countrySelector.parentElement.style.display = 'none';
                 }
 
-                // --- Olay Dinleyicileri ---
                 languageSelector.onchange = (e) => { 
                     currentLang = e.target.value;
                     localStorage.setItem('pufemo-language', currentLang);
@@ -883,23 +1004,9 @@
                     renderAll(); 
                 };
 
+                // Footer'daki menünün olayını yeni fonksiyona bağla
                 countrySelector.onchange = (e) => {
-                    currentCountryCode = e.target.value;
-                    localStorage.setItem('pufemo-country', currentCountryCode);
-                    const selectedCountryData = siteData.settings.countryPricing[currentCountryCode];
-                    if (selectedCountryData) {
-                        currentLang = selectedCountryData.defaultLanguage || currentLang;
-                        const selectedCountryCurrencySymbol = selectedCountryData.currencySymbol;
-                        if (selectedCountryCurrencySymbol) {
-                             const currencyCodeFromSymbol = Object.keys(siteData.settings.currencySymbols || {}).find(key => 
-                                siteData.settings.currencySymbols[key] === selectedCountryCurrencySymbol
-                            );
-                            currentCurrency = currencyCodeFromSymbol || currentCurrency;
-                        }
-                        localStorage.setItem('pufemo-language', currentLang);
-                        localStorage.setItem('pufemo-currency', currentCurrency);
-                    }
-                    renderAll(); 
+                    setCountry(e.target.value);
                 };
                 
                 const toggleMenu = () => { 
@@ -913,11 +1020,19 @@
                 mobileNav.onclick = (e) => { if (e.target.tagName === 'A') toggleMenu(); };
             };
             
+            // YENİLENMİŞ: Ana başlangıç fonksiyonu
             async function init() {
-                loadingOverlay.classList.remove('hidden');
-                await fetchData();
-                renderAll();
-                loadingOverlay.classList.add('hidden');
+                await fetchData(); 
+
+                if (localStorage.getItem('pufemo-country-selected')) {
+                    loadingOverlay.classList.remove('hidden');
+                    renderAll();
+                    loadingOverlay.classList.add('hidden');
+                } else {
+                    populateWelcomeModal();
+                    document.getElementById('welcome-overlay').style.display = 'flex';
+                    loadingOverlay.classList.add('hidden'); 
+                }
             }
             
             init();
