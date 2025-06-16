@@ -532,7 +532,7 @@
 
     <div id="loading-overlay" class="loading-overlay">
         <i class="fa-solid fa-couch fa-bounce" style="font-size: 3rem;"></i>
-        <p style="margin-top: 1.5rem;">PUFEMO Yükleniyor...</p>
+        <p>PUFEMO Yükleniyor...</p>
     </div>
     <div id="mobile-nav-overlay" class="mobile-nav-overlay"></div>
     <header class="main-header">
@@ -614,12 +614,10 @@
         } catch (e) { console.error("Firebase başlatma hatası!", e); }
 
         if (db) {
-            // YENİ: Ülke kodunu bayrak emojisine çeviren fonksiyon
             function countryCodeToEmoji(code) {
                 if (!code || code.length !== 2) {
-                    return ''; // Kod yoksa veya geçersizse boş döndür
+                    return ''; 
                 }
-                // Her harfi bölgesel gösterge sembolüne dönüştürür (örn: T -> 🇹)
                 return code.toUpperCase().split('').map(char => 
                     String.fromCodePoint(char.charCodeAt(0) + 127397)
                 ).join('');
@@ -634,14 +632,13 @@
                 'footer-title-fast-links': { tr: 'Hızlı Bağlantılar', en: 'Quick Links', el: 'Γρήγοροι Σύνδεσμοι', ru: 'Быстрые ссылки' },
                 'footer-link-about': { tr: 'Hakkımızda', en: 'About Us', el: 'Σχετικά με εμάς', ru: 'О нас' },
                 'footer-link-contact': { tr: 'İletişim', en: 'Contact', el: 'Επικοινωνία', ru: 'Контакт' },
-                'footer-link-privacy': { tr: 'Gizlilik Politikası', en: 'Privacy Policy', el: 'Πολιτική Αποrρήτου', ru: 'Политика конфиденциальности' },
+                'footer-link-privacy': { tr: 'Gizlilik Politikası', en: 'Privacy Policy', el: 'Πολιτική Απορρήτου', ru: 'Политика конфиденциальности' },
                 'footer-title-follow-us': { tr: 'Bizi Takip Edin', en: 'Follow Us', el: 'Ακολουθήστε μας', ru: 'Следите за нами' },
                 'footer-copyright': { tr: '&copy; 2025 PUFEMO.COM | Tüm Hakları Saklıdır.', en: '&copy; 2025 PUFEMO.COM | All Rights Reserved.', el: '&copy; 2025 PUFEMO.COM | Με την επιφύλαξη παντός δικαιώματος.', ru: '&copy; 2025 PUFEMO.COM | Все права защищены.' },
                 'default_button_text': { tr: 'Alışverişe Başla', en: 'Shop Now', el: 'Αγοράστε τώρα', ru: 'Купить сейчас' },
                 'free_shipping_text': { tr: 'Ücretsiz Kargo', en: 'Free Shipping', el: 'Δωρεάν Αποστολή', ru: 'Бесплатная доставка' },
                 'free_shipping_promo': { tr: 'Ücretsiz Kargo İmkanı! Türkiye\'nin Her Yerine Mobilyalarınız Kapınızda!', en: 'Free Shipping Available!', el: 'Διαθέσιμη δωρεάν αποστολή!', ru: 'Доступна бесплатная доставка!' },
                 'country_selector_label': { tr: 'Ülke Seçimi:', en: 'Select Country:', el: 'Επιλέξτε Χώρα:', ru: 'Выбрать страну:' },
-                // YENİ EKLENEN ÇEVİRİLER (SADECE İNGİLİZCE METİNLERİ İÇERİR)
                 'welcome_modal_title': { tr: 'Welcome!', en: 'Welcome!', el: 'Welcome!', ru: 'Welcome!' }, 
                 'welcome_modal_message': { tr: 'Please select your country below.', en: 'Please select your country below.', el: 'Please select your country below.', ru: 'Please select your country below.' }, 
                 'welcome_modal_button': { tr: 'Continue', en: 'Continue', el: 'Continue', ru: 'Continue' } 
@@ -662,12 +659,10 @@
                 products: []
             };
 
-            // currentLang için varsayılan değeri doğrudan 'en' olarak belirlendi
             let currentLang = localStorage.getItem('pufemo-language') || 'en'; 
-            let currentCurrency = localStorage.getItem('pufemo-currency') || 'USD'; // Varsayılan para birimi USD olarak ayarlandı
+            let currentCurrency = localStorage.getItem('pufemo-currency') || 'USD'; 
             let currentCountryCode = localStorage.getItem('pufemo-country') || ''; 
 
-            // Karşılama Modalı Elementleri
             const welcomeModalOverlay = document.getElementById('welcomeModalOverlay');
             const welcomeCountrySelect = document.getElementById('welcomeCountrySelect');
             const welcomeModalConfirmButton = document.getElementById('welcomeModalConfirmButton');
@@ -692,19 +687,22 @@
                     siteData.products = productsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
                     const availableCountries = Object.keys(siteData.settings.countryPricing);
-                    if (localStorage.getItem('pufemo-country') && availableCountries.includes(localStorage.getItem('pufemo-country'))) {
-                        currentCountryCode = localStorage.getItem('pufemo-country');
-                    } else if (availableCountries.length > 0) {
-                        currentCountryCode = availableCountries[0]; 
-                        localStorage.setItem('pufemo-country', currentCountryCode);
+                    
+                    // Eğer local storage'da kayıtlı bir ülke yoksa VEYA kayıtlı ülke Firebase'de mevcut ülkeler arasında değilse
+                    if (!localStorage.getItem('pufemo-country') || !availableCountries.includes(localStorage.getItem('pufemo-country'))) {
+                        if (availableCountries.length > 0) {
+                            currentCountryCode = availableCountries[0]; // Firebase'deki ilk ülkeyi varsayılan yap
+                            localStorage.setItem('pufemo-country', currentCountryCode);
+                        } else {
+                            currentCountryCode = 'US'; // Firebase'de hiç ülke yoksa sabit bir varsayılan ata
+                            localStorage.setItem('pufemo-country', currentCountryCode); 
+                        }
                     } else {
-                        currentCountryCode = 'US'; 
-                        localStorage.setItem('pufemo-country', currentCountryCode); 
+                        currentCountryCode = localStorage.getItem('pufemo-country'); // Kayıtlı ve geçerli ise onu kullan
                     }
 
                     const selectedCountryData = siteData.settings.countryPricing[currentCountryCode];
                     if (selectedCountryData) {
-                        // Dil kodu kontrolü: Sadece 2 karakterli string olduğundan emin ol
                         if (selectedCountryData.defaultLanguage && typeof selectedCountryData.defaultLanguage === 'string' && selectedCountryData.defaultLanguage.length === 2) {
                             currentLang = selectedCountryData.defaultLanguage;
                         } else {
@@ -728,7 +726,6 @@
                         localStorage.setItem('pufemo-language', currentLang);
                         localStorage.setItem('pufemo-currency', currentCurrency);
                     } else {
-                        // Eğer seçilen ülke için veri gelmezse, varsayılan dil ve para birimi kullan
                         currentLang = 'en';
                         currentCurrency = 'USD';
                         localStorage.setItem('pufemo-language', currentLang);
@@ -748,14 +745,13 @@
                 } 
             };
             
-            // Ülke ayarlarını uygulayan ve sayfayı yeniden render eden yardımcı fonksiyon
             window.applyCountryAndRender = (countryCode) => {
                 currentCountryCode = countryCode;
                 localStorage.setItem('pufemo-country', currentCountryCode);
 
                 const selectedCountryData = siteData.settings.countryPricing[currentCountryCode];
                 if (selectedCountryData) {
-                     if (selectedCountryData.defaultLanguage && typeof selectedCountryData.defaultLanguage === 'string' && selectedCountryData.defaultLanguage.length === 2) {
+                    if (selectedCountryData.defaultLanguage && typeof selectedCountryData.defaultLanguage === 'string' && selectedCountryData.defaultLanguage.length === 2) {
                         currentLang = selectedCountryData.defaultLanguage;
                     } else {
                         currentLang = 'en'; 
@@ -854,7 +850,7 @@
                     const scrollSpeed = generalSettings.promoBar?.scrollSpeed || '20s';
                     promoTextContent.style.animationDuration = scrollSpeed;
                     
-                    const promoText = generalSettings.promoBar?.text?.[currentLang] || generalSettings.promoBar?.text?.tr || '';
+                    const promoText = generalSettings.promoBar?.text?.[currentLang] || staticTranslations['free_shipping_promo'][currentLang] || staticTranslations['free_shipping_promo']['tr']; // Promo metni yoksa varsayılan
                     promoTextContent.textContent = promoText;
                     promoBar.style.display = generalSettings.promoBar?.enabled ? 'block' : 'none';
                 }
@@ -921,7 +917,7 @@
                     
                     const titleStyle = `${slideStyle.title_color ? `color: ${slideStyle.title_color};` : ''} ${slideStyle.title_font_size ? `font-size: ${slideStyle.title_font_size};` : ''}`;
                     const subtitleStyle = `${slideStyle.subtitle_color ? `color: ${slideStyle.subtitle_color};` : ''} ${slideStyle.subtitle_font_size ? `font-size: ${slideStyle.subtitle_font_size};` : ''}`;
-                    const buttonInlineStyle = `${slideStyle.button_bg_color ? `background-color: ${slideStyle.button_bg_color};` : ''} ${slideStyle.button_text_color ? `color: ${slideStyle.button_text_color};` : ''} ${slideStyle.button_border_radius ? `border-radius: ${slideStyle.button_border_radius};` : ''} ${slideStyle.button_padding ? `padding: ${slideData.style.button_padding};` : ''}`;
+                    const buttonInlineStyle = `${slideStyle.button_bg_color ? `background-color: ${slideStyle.button_bg_color};` : ''} ${slideStyle.button_text_color ? `color: ${slideStyle.button_text_color};` : ''} ${slideStyle.button_border_radius ? `border-radius: ${slideStyle.button_border_radius};` : ''} ${slideData.style.button_padding ? `padding: ${slideData.style.button_padding};` : ''}`;
 
                     slideEl.innerHTML += `
                         <div class="slide-content">
@@ -1039,7 +1035,6 @@
                 const mobileNav = document.getElementById('mobile-nav');
                 const mobileNavOverlay = document.getElementById('mobile-nav-overlay');
 
-                // Dil menüsünü Firebase'den gelen verilere ve bayrak koduna göre doldur
                 const languagesFromDB = siteData.settings.languages || [];
                 languageSelector.innerHTML = languagesFromDB.map(l => `<option value="${l.code}">${countryCodeToEmoji(l.flag)} ${l.name}</option>`).join('');
                 if (languagesFromDB.length > 0) {
@@ -1049,7 +1044,6 @@
                     languageSelector.style.display = 'none';
                 }
                 
-                // Para birimi menüsünü doldur
                 const currencies = siteData.settings?.currencySymbols || {};
                 const availableCurrencies = Object.keys(currencies);
                 currencySelector.innerHTML = availableCurrencies.map(c => {
@@ -1063,27 +1057,24 @@
                     currencySelector.style.display = 'none';
                 }
                 
-                // Ülke menüsünü, doğru ülke adları ve bayraklarla doldur (Hem footer hem de welcome modal için)
                 const countries = siteData.settings.countryPricing || {};
                 const countryOptionsHtml = Object.entries(countries).map(([code, data]) => {
-                    // Ülke adını o anki currentLang'e göre alır, yoksa Türkçe, o da yoksa kodu kullanır
                     const countryName = data.name?.[currentLang] || data.name?.['tr'] || code.toUpperCase();
                     return `<option value="${code}">${countryCodeToEmoji(data.flag)} ${countryName}</option>`; 
                 }).join('');
 
                 if (Object.keys(countries).length > 0) {
-                    countrySelector.innerHTML = countryOptionsHtml; // Footer'daki seçici
+                    countrySelector.innerHTML = countryOptionsHtml; 
                     countrySelector.value = currentCountryCode; 
                     countrySelector.parentElement.style.display = 'block'; 
 
-                    welcomeCountrySelect.innerHTML = countryOptionsHtml; // Welcome modal'daki seçici
-                    welcomeCountrySelect.value = currentCountryCode; // Modal başlangıç değerini de ayarla
+                    welcomeCountrySelect.innerHTML = countryOptionsHtml; 
+                    welcomeCountrySelect.value = currentCountryCode; 
                 } else {
                     countrySelector.parentElement.style.display = 'none';
-                    welcomeModalOverlay.style.display = 'none'; // Ülke yoksa modalı gösterme
+                    welcomeModalOverlay.style.display = 'none'; 
                 }
 
-                // --- Olay Dinleyicileri ---
                 languageSelector.onchange = (e) => { 
                     currentLang = e.target.value;
                     localStorage.setItem('pufemo-language', currentLang);
@@ -1096,19 +1087,16 @@
                     renderAll(); 
                 };
 
-                // Mevcut ülke seçicinizin onchange event'i, yeni yardımcı fonksiyonu çağırıyor
                 countrySelector.onchange = (e) => {
                     window.applyCountryAndRender(e.target.value);
                 };
                 
-                // Karşılama Modalı Onay Butonu Olay Dinleyicisi
                 welcomeModalConfirmButton.addEventListener('click', function() {
                     const selectedCountry = welcomeCountrySelect.value;
                     if (selectedCountry) {
                         window.applyCountryAndRender(selectedCountry); 
                         welcomeModalOverlay.classList.remove('active'); 
                     } else {
-                        // Eğer ülke seçilmeden devam etmeye çalışılırsa İngilizce uyarı ver
                         alert(staticTranslations['welcome_modal_message']['en'].replace('Please select your country below.', 'Please select a country to continue.')); 
                     }
                 });
@@ -1131,14 +1119,16 @@
                 const savedCountry = localStorage.getItem('pufemo-country');
                 const availableCountries = Object.keys(siteData.settings.countryPricing);
 
-                // Eğer daha önce bir ülke seçilmemişse VEYA kaydedilen ülke Firebase'de artık mevcut değilse, modalı göster.
-                // Firebase'de hiç ülke tanımlı değilse de modalı gösterme.
-                if ((!savedCountry || !availableCountries.includes(savedCountry)) && availableCountries.length > 0) {
+                // Sadece ve sadece eğer daha önce bir ülke seçimi yapılmamışsa
+                // VEYA Firebase'den hiç ülke bilgisi gelmemişse (bu durumda da pop-up gösterilmez)
+                // VEYA kaydedilmiş ülke Firebase'de artık mevcut değilse pop-up'ı göster.
+                if ((!savedCountry && availableCountries.length > 0) || (savedCountry && !availableCountries.includes(savedCountry) && availableCountries.length > 0)) {
                     renderStaticText(); 
                     setupControls(); 
                     welcomeModalOverlay.classList.add('active'); 
                     loadingOverlay.classList.add('hidden'); 
                 } else {
+                    // Diğer durumlarda (kaydedilmiş ve geçerli bir ülke varsa veya hiç ülke yoksa)
                     renderAll();
                     loadingOverlay.classList.add('hidden');
                 }
