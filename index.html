@@ -57,11 +57,10 @@
         
         .header-top {
             display: flex;
-            justify-content: center; 
+            justify-content: space-between; /* Kontrolleri sağa yaslamak için */
             align-items: center;
-            padding: 0.8rem 0; 
+            padding: 0.8rem 20px; /* Kenar boşlukları ekledim */
         }
-
         .main-header .container {
             display: flex;
             justify-content: space-between; 
@@ -557,7 +556,8 @@
                     
                     siteData.settings = { 
                         ...fetchedSettings, 
-                        languages: fetchedSettings.languages || [],
+                        // languages'ı Firebase'den al, yoksa varsayılan supportedLanguages listesini kullan
+                        languages: (fetchedSettings.languages && fetchedSettings.languages.length > 0) ? fetchedSettings.languages : supportedLanguages, 
                         banner: fetchedSettings.banner || { slides: [] },
                         general: { 
                             logo: fetchedSettings.general?.logo || siteData.settings.general.logo,
@@ -597,7 +597,7 @@
             };
             
             const renderAll = () => {
-                setupControls(); // BURAYA TAŞINDI: Dil değiştiğinde kontrol elemanlarını da güncellemek için
+                setupControls(); 
                 renderStaticText();
                 renderCategories();
                 renderBanner();
@@ -841,7 +841,7 @@
 
                 if (selectedCountryData && typeof selectedCountryData.adjustment === 'number') {
                     const adjustmentPercentage = selectedCountryData.adjustment / 100;
-                    adjustedPrice = basePrice * (1 + adjustmentPercentage); 
+                    adjustedPrice = price * (1 + adjustmentPercentage); 
                 }
 
                 const rate = rates[currentCurrency] || 1;
@@ -880,7 +880,8 @@
                 }
 
                 // Dil seçiciyi doldur
-                languageSelector.innerHTML = supportedLanguages.map(l => `<option value="${l.code}">${l.flag || ''} ${l.name}</option>`).join('');
+                // Artık hardcoded `supportedLanguages` yerine Firebase'den gelen `siteData.settings.languages` kullanılıyor
+                languageSelector.innerHTML = (siteData.settings.languages || []).map(l => `<option value="${l.code}">${l.flag || ''} ${l.name}</option>`).join('');
                 languageSelector.value = currentLang;
 
                 // Para birimi seçiciyi doldur
