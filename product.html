@@ -119,8 +119,8 @@
             box-shadow: var(--box-shadow-md);
             padding: 2.5rem; /* Daha fazla iç boşluk */
             width: 100%;
-            display: flex; 
-            flex-wrap: nowrap; 
+            display: flex; /* Ana Flex Container */
+            flex-wrap: nowrap; /* Satır atlamayı engelle */
             gap: 3rem; /* Sütunlar arası daha büyük boşluk */
             align-items: flex-start; 
         }
@@ -327,7 +327,7 @@
         .variant-option { 
             cursor: pointer;
             border: 2px solid #ccc;
-            border-radius: var(--border-radius-sm);
+            border-radius: 5px;
             padding: 6px; /* İç boşluk */
             transition: all 0.2s ease;
             display: flex;
@@ -343,7 +343,7 @@
         }
         .variant-option.active {
             border-color: var(--secondary-color);
-            box-shadow: 0 0 0 2px rgba(var(--secondary-color), 0.2);
+            box-shadow: 0 0 0 2px rgba(231, 76, 60, 0.2);
         }
         .variant-option:hover {
             border-color: var(--secondary-color);
@@ -470,11 +470,11 @@
             }
             .product-image-column,
             .product-info-column {
-                flex: none; /* Flex özelliklerini devre dışı bırak */
+                flex: none; 
                 width: 100%; 
                 max-width: 100%;
                 padding: 0; 
-                order: initial; /* Sıralamayı resetle */
+                order: initial; 
             }
             .main-media-display {
                 height: 350px; 
@@ -684,30 +684,34 @@
 
         // Medya galerisini (büyük resim/video + küçük resimler) render eden fonksiyon
         // Bu fonksiyon artık global kapsamda tanımlanmıştır.
-        function renderMediaGallery(mediaArray, mainMediaDisplayId, thumbnailsContainerId) {
-            const mainMediaDisplay = document.getElementById(mainMediaDisplayId);
-            const thumbnailsContainer = document.getElementById(thumbnailsContainerId); // Bu olmayabilir
-
+        window.renderMainMediaDisplay = function(mediaUrl, mediaType) { // window. ile global yapıldı
+            const mainMediaDisplay = document.getElementById('main-product-media-display');
             if (!mainMediaDisplay) return;
 
             mainMediaDisplay.innerHTML = ''; 
-            if (thumbnailsContainer) thumbnailsContainer.innerHTML = ''; 
 
-            if (!mediaArray || mediaArray.length === 0) {
+            if (!mediaUrl) {
                 mainMediaDisplay.innerHTML = `<img src="https://placehold.co/600x400/ccc/fff?text=Resim+Yok" alt="No image" style="object-fit: contain;">`;
                 return;
             }
 
-            // İlk medyayı ana displaye yükle
-            const firstMedia = mediaArray[0];
-            if (firstMedia.url.endsWith('.mp4') || firstMedia.url.endsWith('.webm')) {
-                mainMediaDisplay.innerHTML = `<video src="${firstMedia.url}" autoplay muted loop playsinline></video>`;
+            if (mediaType === 'video') {
+                mainMediaDisplay.innerHTML = `<video src="${mediaUrl}" autoplay muted loop playsinline></video>`;
             } else {
-                mainMediaDisplay.innerHTML = `<img src="${firstMedia.url}" alt="Main product image">`;
+                mainMediaDisplay.innerHTML = `<img src="${mediaUrl}" alt="Main product image">`;
             }
+        }
 
-            // Küçük resimleri render et (eğer thumbnailsContainer varsa ve birden fazla medya varsa)
-            if (thumbnailsContainer && mediaArray.length > 1) { 
+        // Küçük resim galerisini render eden fonksiyon (ayrı tutuldu)
+        function renderThumbnails(mediaArray, thumbnailsContainerId) {
+            const thumbnailsContainer = document.getElementById(thumbnailsContainerId);
+            const mainMediaDisplay = document.getElementById('main-product-media-display');
+
+            if (!thumbnailsContainer || !mainMediaDisplay) return;
+
+            thumbnailsContainer.innerHTML = ''; // Küçük resim alanını temizle
+
+            if (mediaArray.length > 1) { // Birden fazla medya varsa küçük resimleri göster
                 mediaArray.forEach((media, index) => {
                     let thumbnailTag = '';
                     if (media.url.endsWith('.mp4') || media.url.endsWith('.webm')) {
@@ -939,7 +943,7 @@
                         
                         const initialMediaUrl = initialMedia.length > 0 ? initialMedia[0].url : '';
                         const initialMediaType = initialMediaUrl.endsWith('.mp4') || initialMediaUrl.endsWith('.webm') ? 'video' : 'image';
-                        renderMainMediaDisplay(initialMediaUrl, initialMediaType);
+                        window.renderMainMediaDisplay(initialMediaUrl, initialMediaType); // window. ile çağrıldı
 
 
                         // Renk varyantı tıklama olayları
@@ -952,7 +956,7 @@
                                 const mediaUrlToDisplay = selectedMedia.length > 0 ? selectedMedia[0].url : '';
                                 const mediaTypeToDisplay = mediaUrlToDisplay.endsWith('.mp4') || mediaUrlToDisplay.endsWith('.webm') ? 'video' : 'image';
                                 
-                                renderMainMediaDisplay(mediaUrlToDisplay, mediaTypeToDisplay);
+                                window.renderMainMediaDisplay(mediaUrlToDisplay, mediaTypeToDisplay); // window. ile çağrıldı
                             });
                         });
                         
