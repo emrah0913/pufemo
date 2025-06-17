@@ -1,160 +1,872 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PUFEMO - Ürün Detay</title>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Poppins', sans-serif; background-color: #f9f9f9; color: #2c3e50; }
-    .promo-bar { background-color: #e74c3c; color: #fff; text-align: center; padding: 10px; font-weight: 600; font-size: 0.95rem; }
-    .header { background: #fff; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-    .logo { font-size: 1.5rem; font-weight: bold; color: #2c3e50; display: flex; align-items: center; gap: 8px; }
-    .controls { display: flex; gap: 10px; align-items: center; }
-    .control-select { padding: 6px 10px; border-radius: 6px; border: 1px solid #ccc; background: #f1f1f1; cursor: pointer; }
-    .cart-icon { position: relative; font-size: 1.3rem; color: #2c3e50; }
-    .cart-icon .badge { position: absolute; top: -8px; right: -8px; background: #e74c3c; color: white; font-size: 0.7rem; padding: 2px 6px; border-radius: 50%; }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PUFEMO - Ürün Detay Sayfası (Ana Sayfa Olarak)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <style>
+        /* Ana sayfa CSS'inden genel değişkenler ve temel stiller */
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #e74c3c;
+            --background-color: #f9f9f9; /* Ürün detay sayfasının arka planı ile uyumlu */
+            --text-color: #2c3e50;
+            --light-text-color: #ffffff;
+            --card-bg-color: #ffffff;
+            --border-radius: 8px;
+            --box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
+        html { scroll-behavior: smooth; }
+        body { background-color: var(--background-color); color: var(--text-color); line-height: 1.6; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+        a { text-decoration: none; color: inherit; }
 
-    .container { max-width: 1200px; margin: auto; padding: 30px 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 40px; }
-    .image-gallery { display: flex; flex-direction: column; gap: 20px; }
-    .main-image { width: 100%; aspect-ratio: 4/3; object-fit: cover; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-    .thumbnail-row { display: flex; gap: 10px; overflow-x: auto; }
-    .thumbnail-row img { width: 60px; height: 60px; object-fit: cover; border-radius: 8px; cursor: pointer; border: 2px solid transparent; transition: 0.2s; }
-    .thumbnail-row img.active { border-color: #e74c3c; }
+        /* Yükleme ekranı stilleri */
+        .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.95); z-index: 10000; display: flex; justify-content: center; align-items: center; flex-direction: column; }
+        .loading-overlay p { font-size: 1.5rem; margin-top: 1.5rem; color: var(--primary-color); }
+        .loading-overlay.hidden { opacity: 0; pointer-events: none; transition: opacity 0.5s ease; }
 
-    .details { display: flex; flex-direction: column; gap: 20px; }
-    .details h1 { font-size: 2rem; font-weight: 700; }
-    .price { display: flex; align-items: baseline; gap: 10px; }
-    .old-price { text-decoration: line-through; color: #888; font-size: 1.1rem; }
-    .new-price { font-size: 1.6rem; font-weight: bold; color: #e74c3c; }
-    .variant-selectors { display: flex; gap: 10px; }
-    .color-circle { width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 2px solid #ccc; }
-    .color-circle.active { border-color: #e74c3c; }
-    .actions { display: flex; gap: 15px; }
-    .btn { padding: 12px 20px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.3s; }
-    .btn-cart { background: #2c3e50; color: white; }
-    .btn-cart:hover { background: #1a242f; }
-    .btn-buy { background: #e74c3c; color: white; }
-    .btn-buy:hover { background: #c0392b; }
-    .free-shipping { background-color: #27ae60; color: white; padding: 8px 16px; border-radius: 20px; font-size: 0.9rem; display: inline-block; animation: pulse 2s infinite; }
-    @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+        /* Promo bar stilleri (Ana Sayfa Kodundan Alındı) */
+        .promo-bar {
+            background-color: var(--secondary-color);
+            color: var(--light-text-color);
+            text-align: center;
+            padding: 8px 0;
+            font-size: 0.95rem;
+            font-weight: 600;
+            overflow: hidden;
+            white-space: nowrap;
+            position: relative;
+            z-index: 1001;
+        }
+        .promo-text {
+            display: inline-block;
+            padding-left: 100%;
+            animation: scroll-text 20s linear infinite;
+        }
+        @keyframes scroll-text {
+            0% { transform: translateX(0%); }
+            100% { transform: translateX(-100%); }
+        }
 
-    .description { margin: 30px auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); max-width: 1100px; }
-    .description h2 { margin-bottom: 15px; font-size: 1.5rem; border-bottom: 2px solid #e74c3c; display: inline-block; }
-    .footer { background: #2c3e50; color: white; padding: 30px 20px; text-align: center; margin-top: 40px; font-size: 0.9rem; }
-  </style>
+        /* Header stilleri (Ana Sayfa Kodundan Alındı, biraz düzenlendi) */
+        .main-header {
+            background-color: var(--card-bg-color);
+            box-shadow: var(--box-shadow);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            padding-bottom: 0.5rem;
+        }
+        .header-top {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 0.8rem 0;
+        }
+        .main-header .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 20px;
+        }
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+        }
+        .logo i {
+            color: var(--secondary-color);
+            margin-right: 5px;
+        }
+        .logo img { max-width: 100%; height: auto; }
+        .header-controls { display: flex; align-items: center; gap: 1rem; }
+        .control-select { background-color: #f8f9fa; border: 1px solid #ddd; padding: 5px; border-radius: 5px; font-size: 0.9rem; cursor: pointer; }
+        .cart-icon { font-size: 1.5rem; position: relative; }
+        .cart-badge { position: absolute; top: -5px; right: -10px; background-color: var(--secondary-color); color: var(--light-text-color); border-radius: 50%; padding: 2px 6px; font-size: 0.7rem; font-weight: 600; }
+        .hamburger-menu { display: none; cursor: pointer; width: 30px; height: 25px; flex-direction: column; justify-content: space-between; background: transparent; border: none; z-index: 1003; }
+        .hamburger-menu span { display: block; width: 100%; height: 3px; background-color: var(--primary-color); border-radius: 3px; transition: all 0.3s ease-in-out; }
+        .hamburger-menu.open span { background-color: var(--light-text-color); }
+        .hamburger-menu.open span:nth-child(1) { transform: translateY(11px) rotate(45deg); }
+        .hamburger-menu.open span:nth-child(2) { opacity: 0; }
+        .hamburger-menu.open span:nth-child(3) { transform: translateY(-11px) rotate(-45deg); }
+        .mobile-nav { position: fixed; top: 0; left: -100%; width: 300px; height: 100vh; background-color: var(--primary-color); color: var(--light-text-color); z-index: 1002; transition: left 0.4s ease-in-out; box-shadow: 5px 0 15px rgba(0,0,0,0.2); overflow-y: auto; padding: 1.5rem; }
+        .mobile-nav.open { left: 0; }
+        .mobile-nav-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); z-index: 1001; opacity: 0; visibility: hidden; transition: opacity 0.4s ease, visibility 0.4s ease; }
+        .mobile-nav-overlay.open { opacity: 1; visibility: visible; }
+        .mobile-nav .mobile-nav-header { padding-bottom: 1rem; margin-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.2); font-size: 1.5rem; font-weight: 600; color: var(--light-text-color); }
+        .mobile-nav ul { list-style: none; }
+        .mobile-nav ul a { display: block; padding: 15px 0; color: var(--light-text-color); border-bottom: 1px solid rgba(255,255,255,0.1); font-weight: 500; transition: background-color 0.3s ease; }
+        .mobile-nav ul a:hover { background-color: rgba(255,255,255,0.1); }
+        .mobile-nav ul ul a { padding-left: 20px; font-size: 0.9em; }
+        .mobile-nav ul ul ul a { padding-left: 40px; }
+        .category-nav { background-color: var(--primary-color); padding: 0.8rem 0; }
+        .category-nav ul { list-style: none; display: flex; justify-content: center; gap: 2.5rem; flex-wrap: wrap; }
+        .category-nav a { color: var(--light-text-color); font-weight: 500; padding: 5px 10px; border-radius: 5px; transition: background-color 0.3s ease; }
+        .category-nav a:hover { background-color: rgba(255,255,255,0.1); }
+
+        /* Ürün Detay Sayfası Stilleri (İkinci Koddaki style etiketinden alındı) */
+        .product-detail-container { /* Eski .container yerine daha spesifik bir isim */
+            max-width: 1200px; margin: auto; padding: 30px 20px; display: grid; grid-template-columns: repeat(auto-fit, minmin(320px, 1fr)); gap: 40px;
+        }
+        .image-gallery { display: flex; flex-direction: column; gap: 20px; }
+        .main-image { width: 100%; aspect-ratio: 4/3; object-fit: cover; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .thumbnail-row { display: flex; gap: 10px; overflow-x: auto; }
+        .thumbnail-row img { width: 60px; height: 60px; object-fit: cover; border-radius: 8px; cursor: pointer; border: 2px solid transparent; transition: 0.2s; }
+        .thumbnail-row img.active { border-color: var(--secondary-color); } /* Değişken kullanımı */
+
+        .details { display: flex; flex-direction: column; gap: 20px; }
+        .details h1 { font-size: 2rem; font-weight: 700; }
+        .price { display: flex; align-items: baseline; gap: 10px; }
+        .old-price { text-decoration: line-through; color: #888; font-size: 1.1rem; }
+        .new-price { font-size: 1.6rem; font-weight: bold; color: var(--secondary-color); } /* Değişken kullanımı */
+        .variant-selectors { display: flex; gap: 10px; }
+        .color-circle { width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 2px solid #ccc; }
+        .color-circle.active { border-color: var(--secondary-color); } /* Değişken kullanımı */
+        .actions { display: flex; gap: 15px; }
+        .btn { padding: 12px 20px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.3s; }
+        .btn-cart { background: var(--primary-color); color: white; } /* Değişken kullanımı */
+        .btn-cart:hover { background: #1a242f; }
+        .btn-buy { background: var(--secondary-color); color: white; } /* Değişken kullanımı */
+        .btn-buy:hover { background: #c0392b; }
+        .free-shipping { background-color: #27ae60; color: white; padding: 8px 16px; border-radius: 20px; font-size: 0.9rem; display: inline-block; animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+
+        .description-section { /* Eski .description yerine daha spesifik bir isim */
+            margin: 30px auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); max-width: 1100px;
+        }
+        .description-section h2 { margin-bottom: 15px; font-size: 1.5rem; border-bottom: 2px solid var(--secondary-color); display: inline-block; } /* Değişken kullanımı */
+
+        /* Footer stilleri (Ana Sayfa Kodundan Alındı) */
+        .main-footer { background-color: var(--primary-color); color: var(--light-text-color); padding: 3rem 0 1rem 0; margin-top: 3rem; }
+        .footer-content { display: flex; justify-content: space-around; flex-wrap: wrap; gap: 2rem; text-align: center; }
+        .footer-section { flex: 1; min-width: 200px; }
+        .footer-section h4 { font-size: 1.2rem; margin-bottom: 1rem; border-bottom: 2px solid var(--secondary-color); padding-bottom: 0.5rem; display: inline-block; }
+        .footer-section ul { list-style: none; padding: 0;}
+        .footer-section a:hover { color: var(--secondary-color); }
+        .footer-bottom { text-align: center; margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.2); font-size: 0.9rem; }
+
+        /* Ülke seçici ve Modal stilleri (Ana Sayfa Kodundan Alındı) */
+        .country-selector-container { text-align: center; padding: 2rem 0; margin: 2rem 0 0 0; border-top: 1px solid rgba(255,255,255,0.15); }
+        .country-selector-container label { font-size: 1.1rem; color: var(--light-text-color); margin-right: 10px; font-weight: 500; }
+        .country-selector-container .control-select { padding: 8px 12px; font-size: 1rem; border-radius: var(--border-radius); border: 1px solid #ccc; background-color: var(--card-bg-color); color: var(--text-color); box-shadow: inset 0 1px 3px rgba(0,0,0,0.1); cursor: pointer; outline: none; transition: border-color 0.3s ease, box-shadow 0.3s ease; }
+        .country-selector-container .control-select:focus { border-color: var(--secondary-color); box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.2); }
+
+        .welcome-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); display: flex; justify-content: center; align-items: center; z-index: 10001; opacity: 0; visibility: hidden; transition: opacity 0.3s ease, visibility 0.3s ease; }
+        .welcome-modal-overlay.active { opacity: 1; visibility: visible; }
+        .welcome-modal-content { background-color: var(--card-bg-color); padding: 30px; border-radius: var(--border-radius); box-shadow: var(--box-shadow); text-align: center; max-width: 450px; width: 90%; transform: translateY(-20px); transition: transform 0.3s ease; }
+        .welcome-modal-overlay.active .welcome-modal-content { transform: translateY(0); }
+        .welcome-modal-content h2 { font-size: 2rem; color: var(--primary-color); margin-bottom: 15px; }
+        .welcome-modal-content p { font-size: 1.1rem; color: var(--text-color); margin-bottom: 25px; }
+        .welcome-modal-content .control-select { width: 80%; max-width: 300px; padding: 10px 15px; margin-bottom: 20px; font-size: 1rem; border-radius: var(--border-radius); border: 1px solid #ccc; background-color: #f8f9fa; color: var(--text-color); box-shadow: inset 0 1px 3px rgba(0,0,0,0.1); outline: none; cursor: pointer; }
+        .welcome-modal-content .control-select:focus { border-color: var(--secondary-color); box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.2); }
+        .welcome-modal-content button { background-color: var(--secondary-color); color: var(--light-text-color); padding: 12px 30px; border: none; border-radius: var(--border-radius); font-size: 1.1rem; font-weight: 600; cursor: pointer; transition: background-color 0.3s ease, transform 0.2s ease; }
+        .welcome-modal-content button:hover { background-color: #c0392b; transform: translateY(-2px); }
+
+        /* Responsive Ayarlamalar (Ana Sayfa Kodundan Alındı) */
+        @media (max-width: 992px) {
+            .category-nav { display: none; }
+            .hamburger-menu { display: flex; }
+            .main-header { padding-bottom: 0.5rem; }
+            .header-top { padding: 0.5rem 0; }
+            .logo { font-size: 1.5rem; }
+            .main-header .container { padding: 0.5rem 20px; }
+            /* Ürün detay kısmı için responsive düzenlemeler */
+            .product-detail-container {
+                grid-template-columns: 1fr; /* Küçük ekranlarda tek sütun */
+                padding: 20px 15px;
+                gap: 20px;
+            }
+            .image-gallery { margin-bottom: 15px; }
+            .main-image { border-radius: 10px; }
+            .thumbnail-row img { width: 50px; height: 50px; border-radius: 6px; }
+            .details h1 { font-size: 1.8rem; }
+            .new-price { font-size: 1.4rem; }
+            .old-price { font-size: 1rem; }
+            .btn { padding: 10px 15px; font-size: 0.95rem; }
+            .description-section {
+                padding: 20px;
+                margin: 20px auto;
+            }
+            .description-section h2 { font-size: 1.3rem; }
+        }
+
+        @media (max-width: 767px) {
+             /* Ürün detay kısmı için daha küçük responsive düzenlemeler */
+            .product-detail-container {
+                padding: 15px 10px;
+                gap: 15px;
+            }
+            .main-image { border-radius: 8px; }
+            .thumbnail-row img { width: 45px; height: 45px; border-radius: 5px; }
+            .details h1 { font-size: 1.6rem; }
+            .new-price { font-size: 1.2rem; }
+            .old-price { font-size: 0.9rem; }
+            .actions { flex-direction: column; gap: 10px; }
+            .btn { width: 100%; padding: 10px 15px; font-size: 0.9rem; }
+            .free-shipping { font-size: 0.8rem; padding: 6px 12px; }
+            .description-section {
+                padding: 15px;
+                margin: 15px auto;
+            }
+            .description-section h2 { font-size: 1.2rem; }
+
+            .country-selector-container { padding: 1.5rem 0; }
+            .country-selector-container label { font-size: 1rem; display: block; margin-bottom: 5px; }
+            .country-selector-container .control-select { width: 80%; }
+            .welcome-modal-content { padding: 20px; }
+            .welcome-modal-content h2 { font-size: 1.5rem; }
+            .welcome-modal-content p { font-size: 1rem; }
+            .welcome-modal-content .control-select { width: 100%; }
+            .welcome-modal-content button { padding: 10px 20px; font-size: 1rem; }
+        }
+    </style>
 </head>
 <body>
-  <div class="promo-bar">Ücretsiz kargo ve fırsatlarla PUFEMO farkını yaşayın!</div>
-  <div class="header">
-    <div class="logo"><i class="fa-solid fa-couch"></i>PUFEMO</div>
-    <div class="controls">
-      <select class="control-select" id="langSelect"></select>
-      <select class="control-select" id="currencySelect"></select>
-      <div class="cart-icon"><i class="fa-solid fa-cart-shopping"></i><span class="badge">0</span></div>
+    <div id="welcomeModalOverlay" class="welcome-modal-overlay">
+        <div class="welcome-modal-content">
+            <h2 id="welcome-modal-title">Welcome!</h2>
+            <p id="welcome-modal-message">Please select your country below.</p>
+            <select id="welcomeCountrySelect" class="control-select"></select>
+            <button id="welcomeModalConfirmButton">Continue</button>
+        </div>
     </div>
-  </div>
 
-  <div class="container">
-    <div class="image-gallery">
-      <img id="main-image" class="main-image" src="" alt="Ürün görseli" />
-      <div class="thumbnail-row" id="thumbnail-row"></div>
+    <div class="promo-bar">
+        <span id="promo-text-content" class="promo-text"></span>
     </div>
-    <div class="details">
-      <h1 id="product-title">Ürün Başlığı</h1>
-      <div class="price">
-        <span class="old-price" id="product-old-price"></span>
-        <span class="new-price" id="product-price"></span>
-      </div>
-      <div class="variant-selectors" id="variant-selectors"></div>
-      <div class="actions">
-        <button class="btn btn-cart">Sepete Ekle</button>
-        <button class="btn btn-buy">Satın Al</button>
-      </div>
-      <div id="free-shipping" class="free-shipping" style="display:none;">Ücretsiz Kargo</div>
+
+    <div id="loading-overlay" class="loading-overlay">
+        <i class="fa-solid fa-couch fa-bounce" style="font-size: 3rem;"></i>
+        <p>PUFEMO Yükleniyor...</p>
     </div>
-  </div>
+    <div id="mobile-nav-overlay" class="mobile-nav-overlay"></div>
+    <header class="main-header">
+        <div class="header-top">
+            <a href="index.html" class="logo" id="main-logo-link">
+            </a>
+        </div>
+        <div class="container">
+            <button class="hamburger-menu" id="hamburger-menu-btn" aria-label="Menüyü aç/kapat"><span></span><span></span><span></span></button>
+            <div class="header-controls">
+                <select id="language-selector" class="control-select"></select>
+                <select id="currency-selector" class="control-select"></select>
+                <a href="cart.html" class="cart-icon"><i class="fa-solid fa-cart-shopping"></i><span class="cart-badge">0</span></a>
+            </div>
+        </div>
+    </header>
+    <nav id="mobile-nav" class="mobile-nav"></nav>
+    <nav class="category-nav"><div class="container"><ul id="category-menu-container"></ul></div></nav>
 
-  <div class="description">
-    <h2>Ürün Detayları</h2>
-    <p id="product-description">Yükleniyor...</p>
-  </div>
+    <main class="product-detail-container">
+        <div class="image-gallery">
+            <img id="main-image" class="main-image" src="" alt="Ürün görseli" />
+            <div class="thumbnail-row" id="thumbnail-row"></div>
+        </div>
+        <div class="details">
+            <h1 id="product-title">Ürün Başlığı</h1>
+            <div class="price">
+                <span class="old-price" id="product-old-price"></span>
+                <span class="new-price" id="product-price"></span>
+            </div>
+            <div class="variant-selectors" id="variant-selectors"></div>
+            <div class="actions">
+                <button class="btn btn-cart">Sepete Ekle</button>
+                <button class="btn btn-buy">Satın Al</button>
+            </div>
+            <div id="free-shipping" class="free-shipping" style="display:none;">Ücretsiz Kargo</div>
+        </div>
+    </main>
 
-  <div class="footer">&copy; 2025 PUFEMO.COM | Tüm hakları saklıdır.</div>
+    <div class="description-section">
+        <h2>Ürün Detayları</h2>
+        <p id="product-description">Yükleniyor...</p>
+    </div>
 
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
-  <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyDYkzZzNXB22U4oEXxOoPh-puwuE8kz0g4",
-      authDomain: "pufemo-com.firebaseapp.com",
-      projectId: "pufemo-com"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
+    <footer class="main-footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4 id="footer-title-pufemo"></h4>
+                    <p id="footer-desc-pufemo"></p>
+                </div>
+                <div class="footer-section">
+                    <h4 id="footer-title-fast-links"></h4>
+                    <ul>
+                        <li><a href="#" id="footer-link-about"></a></li>
+                        <li><a href="#" id="footer-link-contact"></a></li>
+                        <li><a href="#" id="footer-link-privacy"></a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4 id="footer-title-follow-us"></h4>
+                    <ul>
+                        <li><a href="#">Facebook</a></li>
+                        <li><a href="#">Instagram</a></li>
+                        <li><a href="#">Pinterest</a></li>
+                    </ul>
+                </div>
+            </div>
 
-    const productId = new URLSearchParams(window.location.search).get('id');
+            <div class="country-selector-container">
+                <label for="country-selector" id="country-selector-label">Ülke Seçimi:</label>
+                <select id="country-selector" class="control-select"></select>
+            </div>
 
-    db.collection("pufemo-products").doc(productId).get().then(doc => {
-      if (!doc.exists) return;
-      const data = doc.data();
-      const lang = localStorage.getItem("pufemo-language") || 'tr';
-      const content = data.content?.[lang] || data.content?.tr || {};
+            <div class="footer-bottom" id="footer-copyright"></div>
+        </div>
+    </footer>
 
-      document.getElementById("product-title").textContent = content.name || 'İsimsiz Ürün';
-      document.getElementById("product-description").textContent = content.description || '';
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
 
-      const basePrice = data.basePriceTL || 0;
-      const discountedPrice = data.baseDiscountedPriceTL;
-
-      if (discountedPrice && discountedPrice < basePrice) {
-        document.getElementById("product-old-price").textContent = `₺${basePrice}`;
-        document.getElementById("product-price").textContent = `₺${discountedPrice}`;
-      } else {
-        document.getElementById("product-price").textContent = `₺${basePrice}`;
-      }
-
-      if (data.isFreeShipping) {
-        document.getElementById("free-shipping").style.display = 'inline-block';
-      }
-
-      const variants = data.variants || [];
-      const selectorContainer = document.getElementById("variant-selectors");
-      const thumbnailRow = document.getElementById("thumbnail-row");
-
-      const setImages = (media) => {
-        if (!media || media.length === 0) return;
-        document.getElementById("main-image").src = media[0].url;
-        thumbnailRow.innerHTML = '';
-        media.forEach((m, i) => {
-          const thumb = document.createElement('img');
-          thumb.src = m.url;
-          if (i === 0) thumb.classList.add('active');
-          thumb.onclick = () => {
-            document.querySelectorAll('.thumbnail-row img').forEach(el => el.classList.remove('active'));
-            thumb.classList.add('active');
-            document.getElementById("main-image").src = m.url;
-          };
-          thumbnailRow.appendChild(thumb);
-        });
-      };
-
-      variants.forEach((variant, index) => {
-        const span = document.createElement('span');
-        span.className = 'color-circle';
-        span.style.backgroundColor = variant.colorCode || '#ccc';
-        if (index === 0) span.classList.add('active');
-        span.onclick = () => {
-          document.querySelectorAll('.color-circle').forEach(el => el.classList.remove('active'));
-          span.classList.add('active');
-          setImages(variant.media);
+    <script type="module">
+        const firebaseConfig = {
+            apiKey: "AIzaSyDYkzZzNXB22U4oEXxOoPh-puwuE8kz0g4",
+            authDomain: "pufemo-com.firebaseapp.com",
+            projectId: "pufemo-com",
+            storageBucket: "pufemo-com.appspot.com",
+            messagingSenderId: "983352837227",
+            appId: "1:983352837227:web:defaa8dae215776e2e1d2e",
         };
-        selectorContainer.appendChild(span);
-        if (index === 0) setImages(variant.media);
-      });
-    });
-  </script>
+
+        let db;
+        try {
+            firebase.initializeApp(firebaseConfig);
+            db = firebase.firestore();
+        } catch (e) {
+            console.error("Firebase başlatma hatası!", e);
+        }
+
+        if (db) {
+            function countryCodeToEmoji(code) {
+                if (!code || code.length !== 2) {
+                    return '';
+                }
+                return code.toUpperCase().split('').map(char =>
+                    String.fromCodePoint(char.charCodeAt(0) + 127397)
+                ).join('');
+            }
+
+            const staticTranslations = {
+                'loading_text': { tr: 'PUFEMO Yükleniyor...', en: 'Loading PUFEMO...', el: 'Φόρτωση PUFEMO...', ru: 'Загрузка PUFEMO...' },
+                'mobile_menu_title': { tr: 'Kategoriler', en: 'Categories', el: 'Κατηγορίες', ru: 'Категории' },
+                'main_section_title': { tr: 'Öne Çıkan Ürünler', en: 'Featured Products', el: 'Προτεινόμενα Προϊόντα', ru: 'Рекомендуемые товары' }, // Bu artık kullanılmıyor ama tutalım
+                'footer-title-pufemo': { tr: 'PUFEMO', en: 'PUFEMO', el: 'PUFEMO', ru: 'ПУФЕМО' },
+                'footer-desc-pufemo': { tr: 'Hayallerinizdeki konforu ve estetiği evinize taşıyoruz.', en: 'We bring the comfort and aesthetics of your dreams to your home.', el: 'Φέρνουμε την άνεση και την αισθητική των ονείρων σας στο σπίτι σας.', ru: 'Мы приносим комфорт и эстетику в ваш дом.' },
+                'footer-title-fast-links': { tr: 'Hızlı Bağlantılar', en: 'Quick Links', el: 'Γρήγοροι Σύνδεσμοι', ru: 'Быстрые ссылки' },
+                'footer-link-about': { tr: 'Hakkımızda', en: 'About Us', el: 'Σχετικά με εμάς', ru: 'О нас' },
+                'footer-link-contact': { tr: 'İletişim', en: 'Contact', el: 'Επικοινωνία', ru: 'Контакт' },
+                'footer-link-privacy': { tr: 'Gizlilik Politikası', en: 'Privacy Policy', el: 'Πολιτική Απορρήτου', ru: 'Политика конфиденциальности' },
+                'footer-title-follow-us': { tr: 'Bizi Takip Edin', en: 'Follow Us', el: 'Ακολουθήστε μας', ru: 'Следите за нами' },
+                'footer-copyright': { tr: '&copy; 2025 PUFEMO.COM | Tüm Hakları Saklıdır.', en: '&copy; 2025 PUFEMO.COM | All Rights Reserved.', el: '&copy; 2025 PUFEMO.COM | Με την επιφύλαξη παντός δικαιώματος.', ru: '&copy; 2025 PUFEMO.COM | Все права защищены.' },
+                'default_button_text': { tr: 'Alışverişe Başla', en: 'Shop Now', el: 'Αγοράστε τώρα', ru: 'Купить сейчас' },
+                'free_shipping_text': { tr: 'Ücretsiz Kargo', en: 'Free Shipping', el: 'Δωρεάν Αποστολή', ru: 'Бесплатная доставка' },
+                'free_shipping_promo': { tr: 'Ücretsiz Kargo İmkanı! Türkiye\'nin Her Yerine Mobilyalarınız Kapınızda!', en: 'Free Shipping Available!', el: 'Διαθέσιμη δωρεάν αποστολή!', ru: 'Доступна бесплатная доставка!' },
+                'country_selector_label': { tr: 'Ülke Seçimi:', en: 'Select Country:', el: 'Επιλέξτε Χώρα:', ru: 'Выбрать страну:' },
+                'welcome_modal_title': { tr: 'Welcome!', en: 'Welcome!', el: 'Welcome!', ru: 'Welcome!' },
+                'welcome_modal_message': { tr: 'Please select your country below.', en: 'Please select your country below.', el: 'Please select your country below.', ru: 'Please select your country below.' },
+                'welcome_modal_button': { tr: 'Continue', en: 'Continue', el: 'Continue', ru: 'Continue' },
+                // Ürün detay sayfası için yeni çeviriler
+                'product_title_default': { tr: 'Ürün Başlığı', en: 'Product Title', el: 'Τίτλος Προϊόντος', ru: 'Название продукта' },
+                'product_description_loading': { tr: 'Yükleniyor...', en: 'Loading...', el: 'Φορτώνεται...', ru: 'Загрузка...' },
+                'product_not_found_title': { tr: 'Ürün Bulunamadı', en: 'Product Not Found', el: 'Το προϊόν δεν βρέθηκε', ru: 'Продукт не найден' },
+                'product_not_found_desc': { tr: 'Aradığınız ürün bulunamamaktadır.', en: 'The product you are looking for cannot be found.', el: 'Το προϊόν που αναζητάτε δεν είναι διαθέσιμο.', ru: 'Искомый товар не найден.' },
+                'error_loading_product_title': { tr: 'Hata Oluştu', en: 'Error Occurred', el: 'Σφάλμα παρουσιάστηκε', ru: 'Произошла ошибка' },
+                'error_loading_product_desc': { tr: 'Ürün bilgileri yüklenemedi. Lütfen daha sonra tekrar deneyin.', en: 'Product information could not be loaded. Please try again later.', el: 'Δεν ήταν δυνατή η φόρτωση των πληροφοριών προϊόντος. Παρακαλώ δοκιμάστε ξανά αργότερα.', ru: 'Не удалось загрузить информацию о товаре. Пожалуйста, попробуйте еще раз позже.' },
+                'add_to_cart_button': { tr: 'Sepete Ekle', en: 'Add to Cart', el: 'Προσθήκη στο καλάθι', ru: 'Добавить в корзину' },
+                'buy_now_button': { tr: 'Satın Al', en: 'Buy Now', el: 'Αγορά τώρα', ru: 'Купить сейчас' },
+                'product_details_heading': { tr: 'Ürün Detayları', en: 'Product Details', el: 'Λεπτομέρειες προϊόντος', ru: 'Информация о продукте' }
+            };
+
+            const loadingOverlay = document.getElementById('loading-overlay');
+            let siteData = {
+                settings: {
+                    languages: [],
+                    banner: { slides: [] }, // Banner kaldırılacak ama veri yapısı korunuyor
+                    general: { logo: {}, promoBar: {} },
+                    countryPricing: {},
+                    currencySymbols: {},
+                    exchangeRates: {}
+                },
+                categories: { tree: [] },
+                products: [] // Ana sayfada ürün listesi olmayacak
+            };
+
+            let currentLang = localStorage.getItem('pufemo-language') || 'en';
+            let currentCurrency = localStorage.getItem('pufemo-currency') || 'USD';
+            let currentCountryCode = localStorage.getItem('pufemo-country') || '';
+
+            const welcomeModalOverlay = document.getElementById('welcomeModalOverlay');
+            const welcomeCountrySelect = document.getElementById('welcomeCountrySelect');
+            const welcomeModalConfirmButton = document.getElementById('welcomeModalConfirmButton');
+            const welcomeModalTitle = document.getElementById('welcome-modal-title');
+            const welcomeModalMessage = document.getElementById('welcome-modal-message');
+            const welcomeModalButtonText = document.getElementById('welcomeModalConfirmButton');
+
+            // Product Detail Page Elements
+            const productDetailContainer = document.querySelector('.product-detail-container'); // Yeni konteyner
+            const mainImageEl = document.getElementById("main-image");
+            const thumbnailRowEl = document.getElementById("thumbnail-row");
+            const productTitleEl = document.getElementById("product-title");
+            const productOldPriceEl = document.getElementById("product-old-price");
+            const productPriceEl = document.getElementById("product-price");
+            const variantSelectorsEl = document.getElementById("variant-selectors");
+            const freeShippingEl = document.getElementById("free-shipping");
+            const productDescriptionEl = document.getElementById("product-description");
+            const promoBarEl = document.querySelector('.promo-bar');
+            const promoTextContentEl = document.getElementById('promo-text-content');
+            const btnCartEl = document.querySelector('.btn-cart');
+            const btnBuyEl = document.querySelector('.btn-buy');
+            const descriptionSectionTitleEl = document.querySelector('.description-section h2');
+
+
+            const fetchData = async () => {
+                try {
+                    const [settingsDoc, categoriesDoc] = await Promise.all([
+                        db.collection('pufemo').doc('settings').get(),
+                        db.collection('pufemo').doc('categories').get()
+                    ]);
+
+                    if (settingsDoc.exists) {
+                        siteData.settings = { ...siteData.settings, ...settingsDoc.data() };
+                    }
+                    if (categoriesDoc.exists) {
+                        siteData.categories = { ...siteData.categories, ...categoriesDoc.data() };
+                    }
+
+                    const availableCountries = Object.keys(siteData.settings.countryPricing);
+
+                    if (localStorage.getItem('pufemo-country') && availableCountries.includes(localStorage.getItem('pufemo-country'))) {
+                        currentCountryCode = localStorage.getItem('pufemo-country');
+                    } else if (availableCountries.length > 0) {
+                        currentCountryCode = availableCountries[0];
+                        localStorage.setItem('pufemo-country', currentCountryCode);
+                    } else {
+                        currentCountryCode = 'US';
+                        localStorage.setItem('pufemo-country', currentCountryCode);
+                    }
+
+                    const selectedCountryData = siteData.settings.countryPricing[currentCountryCode];
+                    if (selectedCountryData) {
+                        if (selectedCountryData.defaultLanguage && typeof selectedCountryData.defaultLanguage === 'string' && selectedCountryData.defaultLanguage.length === 2) {
+                            currentLang = selectedCountryData.defaultLanguage;
+                        } else {
+                            currentLang = 'en';
+                        }
+
+                        const selectedCountryCurrencySymbol = selectedCountryData.currencySymbol;
+                        if (selectedCountryCurrencySymbol) {
+                            const currencyCodeFromSymbol = Object.keys(siteData.settings.currencySymbols || {}).find(key =>
+                                siteData.settings.currencySymbols[key] === selectedCountryCurrencySymbol
+                            );
+                            if (currencyCodeFromSymbol) {
+                                currentCurrency = currencyCodeFromSymbol;
+                            } else {
+                                currentCurrency = 'USD';
+                            }
+                        } else {
+                            currentCurrency = 'USD';
+                        }
+
+                        localStorage.setItem('pufemo-language', currentLang);
+                        localStorage.setItem('pufemo-currency', currentCurrency);
+                    } else {
+                        currentLang = 'en';
+                        currentCurrency = 'USD';
+                        localStorage.setItem('pufemo-language', currentLang);
+                        localStorage.setItem('pufemo-currency', currentCurrency);
+                    }
+
+                } catch (e) {
+                    console.error("Veri okuma hatası! Varsayılan ayarlar kullanılıyor.", e);
+                    currentLang = 'en';
+                    currentCurrency = 'USD';
+                    localStorage.setItem('pufemo-language', currentLang);
+                    localStorage.setItem('pufemo-currency', currentCurrency);
+                    if (!localStorage.getItem('pufemo-country')) {
+                        localStorage.setItem('pufemo-country', 'US');
+                        currentCountryCode = 'US';
+                    }
+                }
+            };
+
+            window.applyCountryAndRender = (countryCode) => {
+                currentCountryCode = countryCode;
+                localStorage.setItem('pufemo-country', currentCountryCode);
+
+                const selectedCountryData = siteData.settings.countryPricing[currentCountryCode];
+                if (selectedCountryData) {
+                    if (selectedCountryData.defaultLanguage && typeof selectedCountryData.defaultLanguage === 'string' && selectedCountryData.defaultLanguage.length === 2) {
+                        currentLang = selectedCountryData.defaultLanguage;
+                    } else {
+                        currentLang = 'en';
+                    }
+                    const selectedCountryCurrencySymbol = selectedCountryData.currencySymbol;
+                    if (selectedCountryCurrencySymbol) {
+                        const currencyCodeFromSymbol = Object.keys(siteData.settings.currencySymbols || {}).find(key =>
+                            siteData.settings.currencySymbols[key] === selectedCountryCurrencySymbol
+                        );
+                        if (currencyCodeFromSymbol) {
+                            currentCurrency = currencyCodeFromSymbol;
+                        } else {
+                            currentCurrency = 'USD';
+                        }
+                    } else {
+                        currentCurrency = 'USD';
+                    }
+                    localStorage.setItem('pufemo-language', currentLang);
+                    localStorage.setItem('pufemo-currency', currentCurrency);
+                } else {
+                    currentLang = 'en';
+                    currentCurrency = 'USD';
+                    localStorage.setItem('pufemo-language', currentLang);
+                    localStorage.setItem('pufemo-currency', currentCurrency);
+                }
+                renderAll();
+                document.getElementById('language-selector').value = currentLang;
+                document.getElementById('currency-selector').value = currentCurrency;
+                document.getElementById('country-selector').value = currentCountryCode;
+            };
+
+            const renderAll = () => {
+                renderStaticText();
+                setupControls();
+                renderCategories();
+                renderGeneralSiteElements();
+                // Ürün detayını yüklemek için bir ID'ye ihtiyacımız var.
+                // Ana sayfa olduğu için varsayılan bir ürün ID'si kullanabiliriz
+                // veya URL'den bir ID bekleyebiliriz. Şimdilik URL'den alıyoruz:
+                const defaultProductId = new URLSearchParams(window.location.search).get('id') || "your_default_product_id_here"; // Burayı kendi varsayılan ürün ID'nizle değiştirin
+                loadProductDetails(defaultProductId);
+            };
+
+            const renderStaticText = () => {
+                document.documentElement.lang = currentLang;
+                const translate = (key) => staticTranslations[key]?.[currentLang] || staticTranslations[key]?.['en'] || staticTranslations[key]?.['tr'] || '';
+
+                document.querySelector('#loading-overlay p').textContent = translate('loading_text');
+                // document.getElementById('main-section-title').textContent = translate('main_section_title'); // Artık kullanılmıyor
+                document.getElementById('footer-title-pufemo').textContent = translate('footer-title-pufemo');
+                document.getElementById('footer-desc-pufemo').textContent = translate('footer-desc-pufemo');
+                document.getElementById('footer-title-fast-links').textContent = translate('footer-title-fast-links');
+                document.getElementById('footer-link-about').textContent = translate('footer-link-about');
+                document.getElementById('footer-link-contact').textContent = translate('footer-link-contact');
+                document.getElementById('footer-link-privacy').textContent = translate('footer-link-privacy');
+                document.getElementById('footer-title-follow-us').textContent = translate('footer-title-follow-us');
+                document.getElementById('footer-copyright').innerHTML = translate('footer-copyright');
+                document.getElementById('country-selector-label').textContent = translate('country_selector_label');
+
+                welcomeModalTitle.textContent = translate('welcome_modal_title');
+                welcomeModalMessage.textContent = translate('welcome_modal_message');
+                welcomeModalButtonText.textContent = translate('welcome_modal_button');
+
+                // Ürün detay sayfası statik metinleri
+                btnCartEl.textContent = translate('add_to_cart_button');
+                btnBuyEl.textContent = translate('buy_now_button');
+                descriptionSectionTitleEl.textContent = translate('product_details_heading');
+            };
+
+            const renderGeneralSiteElements = () => {
+                const generalSettings = siteData.settings.general || {};
+                const logoLink = document.getElementById('main-logo-link');
+
+                if (logoLink) {
+                    logoLink.innerHTML = '';
+
+                    if (generalSettings.logo?.type === 'image' && generalSettings.logo.imageUrl) {
+                        const img = document.createElement('img');
+                        img.src = generalSettings.logo.imageUrl;
+                        img.alt = generalSettings.logo.text || 'PUFEMO Logo';
+                        if (generalSettings.logo.imageWidth) img.style.width = `${generalSettings.logo.imageWidth}px`;
+                        if (generalSettings.logo.imageHeight) img.style.height = `${generalSettings.logo.imageHeight}px`;
+                        logoLink.appendChild(img);
+                    } else {
+                        const icon = document.createElement('i');
+                        icon.className = generalSettings.logo?.icon || 'fa-solid fa-couch';
+                        icon.style.color = generalSettings.logo?.iconColor || 'var(--secondary-color)';
+                        logoLink.appendChild(icon);
+
+                        const textNode = document.createTextNode(generalSettings.logo?.text ? ` ${generalSettings.logo.text}` : ' PUFEMO');
+                        logoLink.appendChild(textNode);
+                        logoLink.style.color = generalSettings.logo?.textColor || 'var(--primary-color)';
+                    }
+                }
+
+                const promoBar = document.querySelector('.promo-bar');
+                const promoTextContent = document.getElementById('promo-text-content');
+                if (promoBar && promoTextContent) {
+                    promoBar.style.backgroundColor = generalSettings.promoBar?.bgColor || 'var(--secondary-color)';
+                    promoBar.style.color = generalSettings.promoBar?.textColor || 'var(--light-text-color)';
+                    promoBar.style.fontSize = generalSettings.promoBar?.fontSize || '0.95rem';
+
+                    const scrollSpeed = generalSettings.promoBar?.scrollSpeed || '20s';
+                    promoTextContent.style.animationDuration = scrollSpeed;
+
+                    const promoText = generalSettings.promoBar?.text?.[currentLang] || staticTranslations['free_shipping_promo'][currentLang] || staticTranslations['free_shipping_promo']['tr'];
+                    promoTextContent.textContent = promoText;
+                    promoBar.style.display = generalSettings.promoBar?.enabled ? 'block' : 'none';
+                }
+            };
+
+            const renderCategories = () => {
+                const desktopContainer = document.getElementById('category-menu-container');
+                const mobileContainer = document.getElementById('mobile-nav');
+                const categories = siteData.categories?.tree || [];
+
+                desktopContainer.innerHTML = '';
+                mobileContainer.innerHTML = '';
+
+                if (categories.length === 0) return;
+
+                const mobileMenuTitle = staticTranslations['mobile_menu_title']?.[currentLang] || staticTranslations['mobile_menu_title']?.['tr'];
+                mobileContainer.innerHTML += `<div class="mobile-nav-header">${mobileMenuTitle}</div>`;
+
+                const createMenu = (categoryArray) => {
+                    const ul = document.createElement('ul');
+                    categoryArray.forEach(cat => {
+                        const li = document.createElement('li');
+                        li.innerHTML = `<a href="#">${cat.name[currentLang] || cat.name.tr}</a>`;
+                        if (cat.children && cat.children.length > 0) li.appendChild(createMenu(cat.children));
+                        ul.appendChild(li);
+                    });
+                    return ul;
+                };
+
+                categories.forEach(cat => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `<a href="#">${cat.name[currentLang] || cat.name.tr}</a>`;
+                    desktopContainer.appendChild(li);
+                });
+
+                mobileContainer.appendChild(createMenu(categories));
+            };
+
+            const formatPrice = (basePrice, discountPrice = null) => {
+                const symbols = siteData.settings?.currencySymbols || {};
+                const selectedCountryData = siteData.settings.countryPricing[currentCountryCode];
+                let priceToFormat = discountPrice !== null ? discountPrice : basePrice;
+
+                if (selectedCountryData && typeof selectedCountryData.adjustment === 'number') {
+                    const adjustmentPercentage = selectedCountryData.adjustment / 100;
+                    priceToFormat = priceToFormat * (1 + adjustmentPercentage);
+                }
+
+                const rates = siteData.settings?.exchangeRates || {};
+                const rate = rates[currentCurrency] || 1;
+                priceToFormat = priceToFormat * rate;
+
+                const symbol = symbols[currentCurrency] || currentCurrency;
+
+                const numberFormatOptions = currentCurrency === 'TRY'
+                    ? { maximumFractionDigits: 0 }
+                    : { minimumFractionDigits: 2, maximumFractionDigits: 2 };
+
+                const formattedPrice = new Intl.NumberFormat(currentLang, numberFormatOptions).format(priceToFormat);
+
+                return `${symbol} ${formattedPrice}`;
+            };
+
+            // --- Ürün Detaylarını Yükleme Fonksiyonu (İkinci Koddaki gibi) ---
+            const loadProductDetails = async (productId) => {
+                // Yükleniyor durumunu göster
+                productTitleEl.textContent = staticTranslations['product_title_default'][currentLang];
+                productDescriptionEl.textContent = staticTranslations['product_description_loading'][currentLang];
+
+                try {
+                    const doc = await db.collection("pufemo-products").doc(productId).get();
+
+                    if (!doc.exists) {
+                        productTitleEl.textContent = staticTranslations['product_not_found_title'][currentLang];
+                        productDescriptionEl.textContent = staticTranslations['product_not_found_desc'][currentLang];
+                        return;
+                    }
+
+                    const data = doc.data();
+                    const content = data.content?.[currentLang] || data.content?.tr || {};
+
+                    productTitleEl.textContent = content.name || staticTranslations['product_title_default'][currentLang];
+                    productDescriptionEl.textContent = content.description || staticTranslations['product_description_loading'][currentLang];
+
+                    const basePrice = data.basePriceTL || 0;
+                    const discountedPrice = data.baseDiscountedPriceTL;
+
+                    if (discountedPrice && discountedPrice < basePrice) {
+                        productOldPriceEl.textContent = formatPrice(basePrice);
+                        productPriceEl.textContent = formatPrice(basePrice, discountedPrice);
+                    } else {
+                        productPriceEl.textContent = formatPrice(basePrice);
+                        productOldPriceEl.textContent = '';
+                    }
+
+                    if (data.isFreeShipping) {
+                        freeShippingEl.style.display = 'inline-block';
+                    } else {
+                        freeShippingEl.style.display = 'none';
+                    }
+
+                    const setImages = (media) => {
+                        if (!media || media.length === 0) {
+                            mainImageEl.src = 'https://via.placeholder.com/600x450?text=Görsel+Yok';
+                            mainImageEl.alt = content.name + " - Görsel Yok";
+                            thumbnailRowEl.innerHTML = '';
+                            return;
+                        }
+                        mainImageEl.src = media[0].url;
+                        mainImageEl.alt = content.name + " - Ana Görsel";
+                        thumbnailRowEl.innerHTML = '';
+                        media.forEach((m, i) => {
+                            const thumb = document.createElement('img');
+                            thumb.src = m.url;
+                            thumb.alt = content.name + " - Küçük Resim " + (i + 1);
+                            thumb.loading = "lazy";
+                            if (i === 0) thumb.classList.add('active');
+                            thumb.onclick = () => {
+                                document.querySelectorAll('.thumbnail-row img').forEach(el => el.classList.remove('active'));
+                                thumb.classList.add('active');
+                                mainImageEl.src = m.url;
+                            };
+                            thumbnailRowEl.appendChild(thumb);
+                        });
+                    };
+
+                    const variants = data.variants || [];
+                    variantSelectorsEl.innerHTML = ''; // Önceki varyantları temizle
+                    if (variants.length > 0) {
+                        variants.forEach((variant, index) => {
+                            const span = document.createElement('span');
+                            span.className = 'color-circle';
+                            span.style.backgroundColor = variant.colorCode || '#ccc';
+                            span.title = variant.name || 'Renk Seçeneği';
+                            if (index === 0) span.classList.add('active');
+                            span.onclick = () => {
+                                document.querySelectorAll('.color-circle').forEach(el => el.classList.remove('active'));
+                                span.classList.add('active');
+                                setImages(variant.media);
+                            };
+                            variantSelectorsEl.appendChild(span);
+                            if (index === 0) setImages(variant.media);
+                        });
+                    } else {
+                        setImages(data.media); // Varyant yoksa ana medyadaki görselleri göster
+                    }
+
+                } catch (error) {
+                    console.error("Ürün verileri çekilirken bir hata oluştu:", error);
+                    productTitleEl.textContent = staticTranslations['error_loading_product_title'][currentLang];
+                    productDescriptionEl.textContent = staticTranslations['error_loading_product_desc'][currentLang];
+                }
+            };
+
+            const setupControls = () => {
+                const languageSelector = document.getElementById('language-selector');
+                const currencySelector = document.getElementById('currency-selector');
+                const countrySelector = document.getElementById('country-selector');
+                const hamburgerBtn = document.getElementById('hamburger-menu-btn');
+                const mobileNav = document.getElementById('mobile-nav');
+                const mobileNavOverlay = document.getElementById('mobile-nav-overlay');
+
+                const languagesFromDB = siteData.settings.languages || [];
+                languageSelector.innerHTML = languagesFromDB.map(l => `<option value="${l.code}">${countryCodeToEmoji(l.flag)} ${l.name}</option>`).join('');
+                if (languagesFromDB.length > 0) {
+                    languageSelector.value = currentLang;
+                    languageSelector.style.display = 'block';
+                } else {
+                    languageSelector.style.display = 'none';
+                }
+
+                const currencies = siteData.settings?.currencySymbols || {};
+                const availableCurrencies = Object.keys(currencies);
+                currencySelector.innerHTML = availableCurrencies.map(c => {
+                    const symbol = currencies[c] || c;
+                    return `<option value="${c}">${symbol} ${c}</option>`;
+                }).join('');
+                if (availableCurrencies.length > 0) {
+                    currencySelector.value = currentCurrency;
+                    currencySelector.style.display = 'block';
+                } else {
+                    currencySelector.style.display = 'none';
+                }
+
+                const countries = siteData.settings.countryPricing || {};
+                const countryOptionsHtml = Object.entries(countries).map(([code, data]) => {
+                    const countryName = data.name?.[currentLang] || data.name?.['tr'] || code.toUpperCase();
+                    return `<option value="${code}">${countryCodeToEmoji(data.flag)} ${countryName}</option>`;
+                }).join('');
+
+                if (Object.keys(countries).length > 0) {
+                    countrySelector.innerHTML = countryOptionsHtml;
+                    countrySelector.value = currentCountryCode;
+                    countrySelector.parentElement.style.display = 'block';
+
+                    welcomeCountrySelect.innerHTML = countryOptionsHtml;
+                    welcomeCountrySelect.value = currentCountryCode;
+                } else {
+                    countrySelector.parentElement.style.display = 'none';
+                    welcomeModalOverlay.style.display = 'none';
+                }
+
+                languageSelector.onchange = (e) => {
+                    currentLang = e.target.value;
+                    localStorage.setItem('pufemo-language', currentLang);
+                    renderAll();
+                };
+
+                currencySelector.onchange = (e) => {
+                    currentCurrency = e.target.value;
+                    localStorage.setItem('pufemo-currency', currentCurrency);
+                    renderAll();
+                };
+
+                countrySelector.onchange = (e) => {
+                    window.applyCountryAndRender(e.target.value);
+                };
+
+                welcomeModalConfirmButton.addEventListener('click', function() {
+                    const selectedCountry = welcomeCountrySelect.value;
+                    if (selectedCountry) {
+                        window.applyCountryAndRender(selectedCountry);
+                        welcomeModalOverlay.classList.remove('active');
+                    } else {
+                        alert(staticTranslations['welcome_modal_message'][currentLang].replace('Please select your country below.', 'Please select a country to continue.'));
+                    }
+                });
+
+                const toggleMenu = () => {
+                    hamburgerBtn.classList.toggle('open');
+                    mobileNav.classList.toggle('open');
+                    mobileNavOverlay.classList.toggle('open');
+                    document.querySelector('body').classList.toggle('mobile-menu-open');
+                };
+                hamburgerBtn.onclick = toggleMenu;
+                mobileNavOverlay.onclick = toggleMenu;
+                mobileNav.onclick = (e) => { if (e.target.tagName === 'A') toggleMenu(); };
+            };
+
+            async function init() {
+                loadingOverlay.classList.remove('hidden');
+                await fetchData();
+
+                const availableCountries = Object.keys(siteData.settings.countryPricing);
+                if (availableCountries.length > 0) {
+                    renderStaticText();
+                    setupControls();
+                    welcomeModalOverlay.classList.add('active');
+                } else {
+                    renderAll();
+                }
+                loadingOverlay.classList.add('hidden');
+            }
+
+            init();
+        }
+    </script>
 </body>
 </html>
