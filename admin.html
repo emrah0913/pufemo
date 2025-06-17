@@ -9,6 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet">
 
     <style>
         :root {
@@ -327,6 +328,114 @@
             border-radius: 5px;
             font-size: 1rem;
         }
+
+        /* SEO Sayfası Stilleri */
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 2rem;
+        }
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border: 1px solid transparent;
+            border-bottom: none;
+            background-color: #f0f0f0;
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
+            margin-right: 5px;
+            font-weight: 500;
+            color: var(--text-color);
+            transition: background-color 0.2s, color 0.2s;
+        }
+        .tab.active {
+            background-color: var(--form-bg-color);
+            border: 1px solid var(--border-color);
+            border-bottom-color: var(--form-bg-color);
+            color: var(--primary-color);
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .product-seo-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        .product-seo-table th,
+        .product-seo-table td {
+            border: 1px solid var(--border-color);
+            padding: 10px;
+            text-align: left;
+        }
+        .product-seo-table th {
+            background-color: var(--background-color);
+            font-weight: 600;
+        }
+        .product-seo-table tbody tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .product-seo-table button {
+            padding: 6px 12px;
+            font-size: 0.9rem;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .product-seo-table button.edit-product-seo-btn {
+            background-color: var(--info-color);
+            color: white;
+            border: none;
+        }
+        .product-seo-table button.edit-product-seo-btn:hover {
+            background-color: #2980b9;
+        }
+
+        /* Modal Stilleri */
+        .modal {
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: auto;
+            padding: 30px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 600px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            position: relative;
+        }
+        .modal-content h2 {
+            margin-top: 0;
+            margin-bottom: 20px;
+            color: var(--primary-color);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+        .modal-content .form-group {
+            margin-bottom: 15px;
+        }
+        .modal-content .form-actions {
+            text-align: right;
+            margin-top: 20px;
+        }
+        .modal-content .form-actions button {
+            margin-left: 10px;
+        }
     </style>
 </head>
 <body>
@@ -343,6 +452,11 @@
                 <ul>
                     <li class="nav-item" data-page="homepage-settings"><span class="nav-item-name">Anasayfa Ayarları</span></li>
                     <li class="nav-item" data-page="general-settings"><span class="nav-item-name">Site Genel Ayarları</span></li>
+                    <li class="nav-item" data-page="seo-management">
+                        <a href="#" class="flex items-center gap-2 text-white hover:text-secondary px-4 py-2" style="display: flex; align-items: center; gap: 8px;">
+                            <i class="ri-seo-line" style="font-size: 1.2rem;"></i> <span class="nav-item-name" style="color:white;">SEO Yönetimi</span>
+                        </a>
+                    </li>
                 </ul>
                 <h3>İçerik</h3>
                 <ul>
@@ -560,7 +674,103 @@
                     <div class="form-actions"><button type="submit" class="btn btn-success">Ülke Fiyatlandırmasını Kaydet</button></div>
                 </form>
             </div>
+
+            <div id="seo-management" class="page">
+                <h1>SEO Yönetimi</h1>
+                <div class="tabs">
+                    <button class="tab active" data-tab-target="homepage-seo">Anasayfa SEO</button>
+                    <button class="tab" data-tab-target="product-seo">Ürün SEO</button>
+                    <button class="tab" data-tab-target="template-seo">Etiket Şablonları</button>
+                </div>
+
+                <div id="homepage-seo" class="tab-content active form-section">
+                    <h2>Anasayfa SEO Ayarları</h2>
+                    <div class="form-group">
+                        <label for="seo-homepage-title-tr">Başlık (TR)</label>
+                        <input type="text" id="seo-homepage-title-tr" placeholder="Başlık (title_tr)">
+                    </div>
+                    <div class="form-group">
+                        <label for="seo-homepage-description-tr">Meta Açıklama (TR)</label>
+                        <textarea id="seo-homepage-description-tr" placeholder="Meta Açıklama (description_tr)"></textarea>
+                    </div>
+                    <div class="lang-tabs" id="seo-homepage-lang-tabs-container"></div>
+                    <div id="seo-homepage-lang-content-container"></div>
+                    <div class="form-actions">
+                        <button type="button" id="save-homepage-seo-btn" class="btn btn-success">Anasayfa SEO Ayarlarını Kaydet</button>
+                    </div>
+                </div>
+
+                <div id="product-seo" class="tab-content form-section">
+                    <h2>Ürün SEO Ayarları</h2>
+                    <div class="overflow-x-auto">
+                        <table class="product-seo-table">
+                            <thead>
+                                <tr>
+                                    <th>Ürün Adı</th>
+                                    <th>Slug</th>
+                                    <th>Başlık (TR)</th>
+                                    <th>Açıklama (TR)</th>
+                                    <th>Düzenle</th>
+                                </tr>
+                            </thead>
+                            <tbody id="product-seo-table-body">
+                                </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="template-seo" class="tab-content form-section">
+                    <h2>SEO Etiket Şablonları</h2>
+                    <div class="form-group">
+                        <label for="seo-template-title-tr">Başlık Şablonu (TR)</label>
+                        <input type="text" id="seo-template-title-tr" placeholder="Başlık (TR)">
+                    </div>
+                    <div class="form-group">
+                        <label for="seo-template-description-tr">Açıklama Şablonu (TR)</label>
+                        <textarea id="seo-template-description-tr" placeholder="Açıklama (TR)"></textarea>
+                    </div>
+                    <div class="lang-tabs" id="seo-template-lang-tabs-container"></div>
+                    <div id="seo-template-lang-content-container"></div>
+                    
+                    <div class="form-group">
+                        <label for="seo-template-products">Bu şablonu uygulanacak ürünleri seçin (Birden fazla seçilebilir)</label>
+                        <select multiple id="seo-template-products" class="w-full p-2 border rounded h-48">
+                            </select>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" id="apply-seo-template-btn" class="btn btn-primary">Bu şablonu seçili ürünlere uygula</button>
+                        <button type="button" id="save-seo-template-btn" class="btn btn-success">Şablonu Kaydet</button>
+                    </div>
+
+                    <h3 style="margin-top: 2rem;">Kaydedilmiş Şablonlar</h3>
+                    <div id="saved-seo-templates-container">
+                        </div>
+                </div>
+            </div>
         </main>
+    </div>
+
+    <div id="edit-product-seo-modal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <h2>Ürün SEO Düzenle</h2>
+            <input type="hidden" id="edit-product-seo-id">
+            <div class="form-group">
+                <label for="edit-product-seo-sku">SKU</label>
+                <input type="text" id="edit-product-seo-sku" disabled>
+            </div>
+            <div class="form-group">
+                <label for="edit-product-seo-slug">SEO URL Uzantısı (Slug)</label>
+                <input type="text" id="edit-product-seo-slug" placeholder="urun-adi-slug">
+            </div>
+
+            <div class="lang-tabs" id="edit-product-seo-lang-tabs-container"></div>
+            <div id="edit-product-seo-lang-content-container"></div>
+
+            <div class="form-actions">
+                <button type="button" class="btn btn-danger" onclick="document.getElementById('edit-product-seo-modal').style.display='none'">İptal</button>
+                <button type="button" id="save-product-seo-changes-btn" class="btn btn-success">Kaydet</button>
+            </div>
+        </div>
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
@@ -608,6 +818,14 @@
                             text: {},
                             enabled: true 
                         }
+                    },
+                    // SEO Ayarları için yeni alanlar
+                    seo: {
+                        homepage: {
+                            title: {}, // Çok dilli başlıklar
+                            description: {} // Çok dilli açıklamalar
+                        },
+                        templates: [] // SEO Şablonları
                     }
                 }, 
                 categories: [], 
@@ -642,6 +860,19 @@
             const countryPricingListContainer = document.getElementById('country-pricing-list-container');
             const addCountryPricingBtn = document.getElementById('add-new-country-pricing-btn');
             const newCountryPricingFormContainer = document.getElementById('new-country-pricing-form-container');
+
+            // Yeni SEO Elementleri
+            const seoManagementPage = document.getElementById('seo-management');
+            const seoTabsContainer = seoManagementPage.querySelector('.tabs');
+            const homepageSeoContent = document.getElementById('homepage-seo');
+            const productSeoTableBody = document.getElementById('product-seo-table-body');
+            const templateSeoContent = document.getElementById('template-seo');
+            const editProductSeoModal = document.getElementById('edit-product-seo-modal');
+            const saveHomepageSeoBtn = document.getElementById('save-homepage-seo-btn');
+            const saveProductSeoChangesBtn = document.getElementById('save-product-seo-changes-btn');
+            const applySeoTemplateBtn = document.getElementById('apply-seo-template-btn');
+            const saveSeoTemplateBtn = document.getElementById('save-seo-template-btn');
+            const savedSeoTemplatesContainer = document.getElementById('saved-seo-templates-container');
 
 
             const fontAwesomeIcons = [
@@ -690,6 +921,11 @@
                                 ...(fetchedSettings.general?.promoBar || localState.settings.general.promoBar),
                                 enabled: fetchedSettings.general?.promoBar?.enabled !== undefined ? fetchedSettings.general.promoBar.enabled : true 
                             }
+                        },
+                        // SEO verilerini de çek
+                        seo: {
+                            homepage: fetchedSettings.seo?.homepage || { title: {}, description: {} },
+                            templates: fetchedSettings.seo?.templates || []
                         }
                     };
                     
@@ -769,8 +1005,8 @@
                         const value = data?.[lang.code]?.[field.key] || ''; 
                         const inputType = field.type === 'textarea' ? 'textarea' : (field.inputType || 'text'); 
                         const inputElement = inputType === 'textarea'
-                            ? `<textarea class="lang-input" data-key="${field.key}" data-lang="${lang.code}">${value}</textarea>`
-                            : `<input type="${inputType}" class="lang-input" data-key="${field.key}" data-lang="${lang.code}" value="${value}">`;
+                            ? `<textarea class="lang-input" data-key="${field.key}" data-lang="${lang.code}" placeholder="${field.placeholder || ''}">${value}</textarea>`
+                            : `<input type="${inputType}" class="lang-input" data-key="${field.key}" data-lang="${lang.code}" value="${value}" placeholder="${field.placeholder || ''}">`;
                         contentHTML += `<div class="form-group"><label>${field.label}</label>${inputElement}</div>`;
                     });
                     contentHTML += `</div>`;
@@ -833,7 +1069,7 @@
                     productForm.querySelector('#product-lang-tabs-container'),
                     productForm.querySelector('#product-lang-content-container'),
                     product.content || {},
-                    [{ label: 'Ürün Adı', key: 'name' }, { label: 'Açıklama', key: 'description', type: 'textarea' }]
+                    [{ label: 'Ürün Adı', key: 'name', placeholder: 'Ürün Adı' }, { label: 'Açıklama', key: 'description', type: 'textarea', placeholder: 'Ürün Açıklaması' }]
                 );
 
                 const colorVariantsContainer = document.getElementById('color-variants-container');
@@ -953,7 +1189,7 @@
                         </div>
                         `;
                     bannerSettingsContainer.appendChild(slideSection);
-                    createLangTabs(document.getElementById(tabsId), document.getElementById(contentId), slide.content || {}, [{ label: 'Başlık', key: 'title' }, { label: 'Alt Başlık', key: 'subtitle' }, { label: 'Buton Metni', key: 'button_text' }]);
+                    createLangTabs(document.getElementById(tabsId), document.getElementById(contentId), slide.content || {}, [{ label: 'Başlık', key: 'title', placeholder: 'Başlık' }, { label: 'Alt Başlık', key: 'subtitle', placeholder: 'Alt Başlık' }, { label: 'Buton Metni', key: 'button_text', placeholder: 'Buton Metni' }]);
                 });
             }
             
@@ -1051,7 +1287,7 @@
                     renderProductList(); 
                     const currentProductId = productForm.querySelector('#productId').value;
                     if (productForm.style.display !== 'none' && currentProductId) {
-                            loadProductForEditing(currentProductId);
+                                loadProductForEditing(currentProductId);
                     } else if (localState.products.length > 0) {
                         document.querySelector('#product-list-container li:first-child')?.click();
                     } else {
@@ -1066,6 +1302,8 @@
                     refreshCategoryView(); 
                 } else if (pageId === 'country-pricing-management') { 
                     renderCountryPricingList(); 
+                } else if (pageId === 'seo-management') {
+                    renderSeoManagement();
                 }
             });
             
@@ -1080,7 +1318,8 @@
                     isInShowcase: false, 
                     categories: [], 
                     content: {}, 
-                    variants: [] 
+                    variants: [],
+                    seo: { slug: '', title: {}, description: {} } // Yeni ürün için boş SEO alanları
                 }); 
             });
             productListContainer.addEventListener('click', e => { const li = e.target.closest('li'); if (li) { document.querySelectorAll('#product-list-container li').forEach(item => item.classList.remove('active')); li.classList.add('active'); loadProductForEditing(li.dataset.id); } });
@@ -1097,7 +1336,8 @@
                     isInShowcase: productForm.querySelector('#productIsInShowcase').checked, 
                     categories: Array.from(document.querySelectorAll('#product-category-checklist input:checked')).map(cb => cb.value), 
                     content: {}, 
-                    variants: [] 
+                    variants: [],
+                    seo: product.seo || { slug: '', title: {}, description: {} } // Mevcut SEO verisini koru veya boş başlat
                 }; 
                 
                 productForm.querySelectorAll('.lang-content').forEach(cont => { 
@@ -1187,14 +1427,12 @@
                             previewElement.controls = true;
                         }
                         if (previewElement) {
+                            previewElement.classList.add('max-w-xs', 'max-h-20', 'object-contain', 'mr-2'); // CSS sınıflarını ekle
                             mediaInputGroup.prepend(previewElement); 
                         }
                     }
                 }
             });
-
-            // Dosya yükleme dinleyicisi kaldırıldı - artık doğrudan URL girişi var
-            // productForm.addEventListener('change', async e => { ... });
             
             homepageForm.addEventListener('submit', async e => { 
                 e.preventDefault(); 
@@ -1408,7 +1646,7 @@
                     document.getElementById('promo-text-lang-tabs'),
                     document.getElementById('promo-text-lang-content'),
                     generalSettings.promoBar?.text || {},
-                    [{ label: 'Promosyon Yazısı', key: 'text' }]
+                    [{ label: 'Promosyon Yazısı', key: 'text', placeholder: 'Promosyon metni' }]
                 );
 
                 // Desteklenen Diller Ayarları
@@ -1485,10 +1723,11 @@
                     const productLangTabsContainer = productForm.querySelector('#product-lang-tabs-container');
                     const productLangContentContainer = productForm.querySelector('#product-lang-content-container');
                     if (productLangTabsContainer && productLangContentContainer && productForm.style.display !== 'none') {
-                        createLangTabs(productLangTabsContainer, productLangContentContainer, {}, [{ label: 'Ürün Adı', key: 'name' }, { label: 'Açıklama', key: 'description', type: 'textarea' }]);
+                        createLangTabs(productLangTabsContainer, productLangContentContainer, {}, [{ label: 'Ürün Adı', key: 'name', placeholder: 'Ürün Adı' }, { label: 'Açıklama', key: 'description', type: 'textarea', placeholder: 'Ürün Açıklaması' }]);
                     }
                     renderGeneralSettings(); 
                     renderCountryPricingList(); 
+                    renderSeoManagement(); // Yeni dil eklenince SEO yönetimini de güncelle
                 });
 
                 form.querySelector('.cancel-new-language-btn').addEventListener('click', () => {
@@ -1633,10 +1872,11 @@
                     const productLangTabsContainer = productForm.querySelector('#product-lang-tabs-container');
                     const productLangContentContainer = productForm.querySelector('#product-lang-content-container');
                     if (productLangTabsContainer && productLangContentContainer && productForm.style.display !== 'none') {
-                        createLangTabs(productLangTabsContainer, productLangContentContainer, {}, [{ label: 'Ürün Adı', key: 'name' }, { label: 'Açıklama', key: 'description', type: 'textarea' }]);
+                        createLangTabs(productLangTabsContainer, productLangContentContainer, {}, [{ label: 'Ürün Adı', key: 'name', placeholder: 'Ürün Adı' }, { label: 'Açıklama', key: 'description', type: 'textarea', placeholder: 'Ürün Açıklaması' }]);
                     }
                     renderGeneralSettings(); 
                     renderCountryPricingList(); 
+                    renderSeoManagement(); // Dil silinince SEO yönetimini de güncelle
                 }
             });
 
@@ -1909,6 +2149,320 @@
                 }
             });
 
+            // --- SEO YÖNETİMİ FONKSİYONLARI VE OLAY DİNLEYİCİLERİ ---
+            
+            function renderSeoManagement() {
+                // Anasayfa SEO Yükle
+                const homepageSeo = localState.settings.seo?.homepage || { title: {}, description: {} };
+                createLangTabs(
+                    document.getElementById('seo-homepage-lang-tabs-container'),
+                    document.getElementById('seo-homepage-lang-content-container'),
+                    homepageSeo,
+                    [
+                        { label: 'Başlık', key: 'title', placeholder: 'Anasayfa Başlığı' },
+                        { label: 'Meta Açıklama', key: 'description', type: 'textarea', placeholder: 'Anasayfa Meta Açıklaması' }
+                    ]
+                );
+
+                // Mevcut "TR" inputlarını da doldur
+                document.getElementById('seo-homepage-title-tr').value = homepageSeo.tr?.title || '';
+                document.getElementById('seo-homepage-description-tr').value = homepageSeo.tr?.description || '';
+
+
+                // Ürün SEO Tablosunu Yükle
+                renderProductSeoTable();
+
+                // Etiket Şablonları Yükle
+                renderSeoTemplates();
+            }
+
+            saveHomepageSeoBtn.addEventListener('click', async () => {
+                const homepageSeoData = {};
+                document.querySelectorAll('#seo-homepage-lang-content-container .lang-content').forEach(contentDiv => {
+                    const langCode = contentDiv.dataset.langContent;
+                    homepageSeoData[langCode] = {
+                        title: contentDiv.querySelector('[data-key="title"]').value.trim(),
+                        description: contentDiv.querySelector('[data-key="description"]').value.trim()
+                    };
+                });
+                
+                // Ayrıca eski TR inputlarındaki veriyi de kontrol edip, eğer yeni çok dilli sistemde TR yoksa ekle.
+                // Bu kısım, mevcut TR inputlarını doğrudan güncelleyerek daha basit olabilir.
+                homepageSeoData.tr = homepageSeoData.tr || {};
+                homepageSeoData.tr.title = document.getElementById('seo-homepage-title-tr').value.trim();
+                homepageSeoData.tr.description = document.getElementById('seo-homepage-description-tr').value.trim();
+
+
+                localState.settings.seo.homepage = homepageSeoData;
+                await saveData('settings', { seo: localState.settings.seo });
+            });
+
+            function renderProductSeoTable() {
+                productSeoTableBody.innerHTML = '';
+                localState.products.forEach(product => {
+                    const row = productSeoTableBody.insertRow();
+                    const productName = product.content?.tr?.name || product.sku || 'N/A';
+                    const seo = product.seo || { slug: '', title: {}, description: {} };
+
+                    row.insertCell().textContent = productName;
+                    row.insertCell().textContent = seo.slug || 'N/A';
+                    row.insertCell().textContent = seo.title?.tr || 'N/A'; // TR başlığı göster
+                    row.insertCell().textContent = seo.description?.tr || 'N/A'; // TR açıklama göster
+
+                    const editCell = row.insertCell();
+                    const editButton = document.createElement('button');
+                    editButton.textContent = 'Düzenle';
+                    editButton.className = 'btn edit-product-seo-btn';
+                    editButton.dataset.productId = product.id;
+                    editCell.appendChild(editButton);
+                });
+            }
+
+            productSeoTableBody.addEventListener('click', async (e) => {
+                const editBtn = e.target.closest('.edit-product-seo-btn');
+                if (editBtn) {
+                    const productId = editBtn.dataset.productId;
+                    const product = localState.products.find(p => p.id === productId);
+
+                    if (product) {
+                        document.getElementById('edit-product-seo-id').value = product.id;
+                        document.getElementById('edit-product-seo-sku').value = product.sku || '';
+                        document.getElementById('edit-product-seo-slug').value = product.seo?.slug || '';
+
+                        createLangTabs(
+                            document.getElementById('edit-product-seo-lang-tabs-container'),
+                            document.getElementById('edit-product-seo-lang-content-container'),
+                            product.seo?.title || {},
+                            [{ label: 'Başlık', key: 'title', placeholder: 'Ürün Başlığı' }]
+                        );
+                        createLangTabs(
+                            document.getElementById('edit-product-seo-lang-tabs-container'),
+                            document.getElementById('edit-product-seo-lang-content-container'),
+                            product.seo?.description || {},
+                            [{ label: 'Açıklama', key: 'description', type: 'textarea', placeholder: 'Ürün Açıklaması' }]
+                        );
+
+                        editProductSeoModal.style.display = 'flex';
+                    }
+                }
+            });
+
+            saveProductSeoChangesBtn.addEventListener('click', async () => {
+                const productId = document.getElementById('edit-product-seo-id').value;
+                const slug = document.getElementById('edit-product-seo-slug').value.trim();
+                
+                const productToUpdate = localState.products.find(p => p.id === productId);
+                if (!productToUpdate) return;
+
+                const seoTitle = {};
+                const seoDescription = {};
+
+                document.querySelectorAll('#edit-product-seo-lang-content-container .lang-content').forEach(contentDiv => {
+                    const langCode = contentDiv.dataset.langContent;
+                    const titleInput = contentDiv.querySelector('[data-key="title"]');
+                    const descriptionInput = contentDiv.querySelector('[data-key="description"]');
+                    
+                    if (titleInput) seoTitle[langCode] = titleInput.value.trim();
+                    if (descriptionInput) seoDescription[langCode] = descriptionInput.value.trim();
+                });
+
+                // Slug'ı product direkt altına, title ve description'ı seo objesi altına alıyoruz
+                const updatedProductData = {
+                    'seo.slug': slug,
+                    'seo.title': seoTitle,
+                    'seo.description': seoDescription
+                };
+
+                showLoading();
+                try {
+                    await db.collection('pufemo-products').doc(productId).update(updatedProductData);
+                    alert('Ürün SEO bilgileri başarıyla güncellendi!');
+                    await fetchData(); // Verileri yeniden çek
+                    renderProductSeoTable(); // Tabloyu yeniden render et
+                    editProductSeoModal.style.display = 'none';
+                } catch (error) {
+                    alert('Ürün SEO bilgileri güncellenirken hata: ' + error.message);
+                } finally {
+                    hideLoading();
+                }
+            });
+
+            function renderSeoTemplates() {
+                const seoTemplateProductsSelect = document.getElementById('seo-template-products');
+                seoTemplateProductsSelect.innerHTML = '';
+                localState.products.forEach(product => {
+                    const option = document.createElement('option');
+                    option.value = product.id;
+                    option.textContent = product.content?.tr?.name || product.sku;
+                    seoTemplateProductsSelect.appendChild(option);
+                });
+
+                savedSeoTemplatesContainer.innerHTML = '';
+                if (localState.settings.seo?.templates.length === 0) {
+                    savedSeoTemplatesContainer.innerHTML = '<p>Henüz kaydedilmiş SEO şablonu bulunmamaktadır.</p>';
+                    return;
+                }
+
+                localState.settings.seo.templates.forEach((template, index) => {
+                    const templateDiv = document.createElement('div');
+                    templateDiv.className = 'form-section';
+                    templateDiv.style.marginBottom = '1rem';
+                    templateDiv.innerHTML = `
+                        <h3>Şablon: ${template.title?.tr || 'İsimsiz Şablon'}</h3>
+                        <p><strong>Başlık (TR):</strong> ${template.title?.tr || 'N/A'}</p>
+                        <p><strong>Açıklama (TR):</strong> ${template.description?.tr || 'N/A'}</p>
+                        <div class="form-actions" style="margin-top: 1rem; text-align: left;">
+                            <button type="button" class="btn btn-info apply-saved-template-btn" data-template-index="${index}" style="margin-right: 10px;">Uygula</button>
+                            <button type="button" class="btn btn-danger delete-saved-template-btn" data-template-index="${index}">Sil</button>
+                        </div>
+                    `;
+                    savedSeoTemplatesContainer.appendChild(templateDiv);
+                });
+            }
+
+            saveSeoTemplateBtn.addEventListener('click', async () => {
+                const newTemplate = {
+                    title: {},
+                    description: {}
+                };
+
+                document.querySelectorAll('#seo-template-lang-content-container .lang-content').forEach(contentDiv => {
+                    const langCode = contentDiv.dataset.langContent;
+                    newTemplate.title[langCode] = contentDiv.querySelector('[data-key="title"]').value.trim();
+                    newTemplate.description[langCode] = contentDiv.querySelector('[data-key="description"]').value.trim();
+                });
+
+                // En az bir dilde başlık veya açıklama var mı kontrol et
+                if (Object.values(newTemplate.title).every(t => !t) && Object.values(newTemplate.description).every(d => !d)) {
+                    alert('Lütfen şablon için en az bir dilde başlık veya açıklama girin.');
+                    return;
+                }
+
+                if (!localState.settings.seo.templates) {
+                    localState.settings.seo.templates = [];
+                }
+                localState.settings.seo.templates.push(newTemplate);
+                await saveData('settings', { seo: localState.settings.seo });
+                document.getElementById('seo-template-title-tr').value = '';
+                document.getElementById('seo-template-description-tr').value = '';
+                document.getElementById('seo-template-lang-content-container').innerHTML = ''; // Dil inputlarını temizle
+                renderSeoTemplates(); // Şablon listesini güncelle
+            });
+
+            applySeoTemplateBtn.addEventListener('click', async () => {
+                const selectedProductIds = Array.from(document.getElementById('seo-template-products').selectedOptions).map(option => option.value);
+                
+                if (selectedProductIds.length === 0) {
+                    alert('Lütfen şablonu uygulamak için en az bir ürün seçin.');
+                    return;
+                }
+
+                const templateTitle = {};
+                const templateDescription = {};
+                document.querySelectorAll('#seo-template-lang-content-container .lang-content').forEach(contentDiv => {
+                    const langCode = contentDiv.dataset.langContent;
+                    templateTitle[langCode] = contentDiv.querySelector('[data-key="title"]').value.trim();
+                    templateDescription[langCode] = contentDiv.querySelector('[data-key="description"]').value.trim();
+                });
+
+                if (Object.values(templateTitle).every(t => !t) && Object.values(templateDescription).every(d => !d)) {
+                    alert('Uygulanacak şablon için lütfen en az bir dilde başlık veya açıklama girin.');
+                    return;
+                }
+
+                showLoading();
+                const batch = db.batch();
+                selectedProductIds.forEach(productId => {
+                    const productRef = db.collection('pufemo-products').doc(productId);
+                    const updateData = {
+                        'seo.title': templateTitle,
+                        'seo.description': templateDescription
+                    };
+                    batch.update(productRef, updateData);
+                });
+
+                try {
+                    await batch.commit();
+                    alert(`${selectedProductIds.length} ürüne şablon başarıyla uygulandı!`);
+                    await fetchData(); // Ürün verilerini güncelledikten sonra yeniden çek
+                    renderProductSeoTable(); // Ürün SEO tablosunu güncelle
+                } catch (error) {
+                    alert('Şablon uygulanırken hata oluştu: ' + error.message);
+                } finally {
+                    hideLoading();
+                }
+            });
+
+            savedSeoTemplatesContainer.addEventListener('click', async (e) => {
+                const applyBtn = e.target.closest('.apply-saved-template-btn');
+                const deleteBtn = e.target.closest('.delete-saved-template-btn');
+
+                if (applyBtn) {
+                    const index = parseInt(applyBtn.dataset.templateIndex);
+                    const template = localState.settings.seo.templates[index];
+                    if (template) {
+                        // Şablon verilerini ana şablon alanlarına aktar
+                        createLangTabs(
+                            document.getElementById('seo-template-lang-tabs-container'),
+                            document.getElementById('seo-template-lang-content-container'),
+                            {
+                                title: template.title,
+                                description: template.description
+                            },
+                            [
+                                { label: 'Başlık Şablonu', key: 'title', placeholder: 'Başlık Şablonu' },
+                                { label: 'Açıklama Şablonu', key: 'description', type: 'textarea', placeholder: 'Açıklama Şablonu' }
+                            ]
+                        );
+                        // Eğer eski TR inputları da varsa manuel olarak doldur
+                        document.getElementById('seo-template-title-tr').value = template.title?.tr || '';
+                        document.getElementById('seo-template-description-tr').value = template.description?.tr || '';
+                        
+                        // Ürün seçimi yapılacaksa, tüm ürünleri otomatik seçebilir veya boş bırakabilirsin
+                        document.querySelectorAll('#seo-template-products option').forEach(option => option.selected = false);
+                        alert('Şablon, "Etiket Şablonları" formuna yüklendi. Uygulamak istediğiniz ürünleri seçip "Uygula" butonuna basınız.');
+                    }
+                } else if (deleteBtn) {
+                    const index = parseInt(deleteBtn.dataset.templateIndex);
+                    if (confirm('Bu SEO şablonunu silmek istediğinizden emin misiniz?')) {
+                        localState.settings.seo.templates.splice(index, 1);
+                        await saveData('settings', { seo: localState.settings.seo });
+                        renderSeoTemplates();
+                    }
+                }
+            });
+
+
+            seoTabsContainer.addEventListener('click', (e) => {
+                const tab = e.target.closest('.tab');
+                if (tab) {
+                    const targetId = tab.dataset.tabTarget;
+                    seoTabsContainer.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    seoManagementPage.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
+
+                    tab.classList.add('active');
+                    document.getElementById(targetId).classList.add('active');
+                    
+                    // Ürün SEO sekmesi açıldığında tabloyu yeniden render et
+                    if (targetId === 'product-seo') {
+                        renderProductSeoTable();
+                    } else if (targetId === 'template-seo') {
+                        renderSeoTemplates();
+                        // Şablon için dil tablarını oluştur
+                        createLangTabs(
+                            document.getElementById('seo-template-lang-tabs-container'),
+                            document.getElementById('seo-template-lang-content-container'),
+                            {},
+                            [
+                                { label: 'Başlık Şablonu', key: 'title', placeholder: 'Başlık (TR)' },
+                                { label: 'Açıklama Şablonu', key: 'description', type: 'textarea', placeholder: 'Açıklama (TR)' }
+                            ]
+                        );
+                    } else if (targetId === 'homepage-seo') {
+                        renderSeoManagement(); // Anasayfa SEO'yu yeniden yüklüyor
+                    }
+                }
+            });
 
             // === 7. BAŞLANGIÇ FONKSİYONU ===
             async function init() {
@@ -1919,6 +2473,13 @@
                 renderGeneralSettings(); 
                 renderCountryPricingList(); 
                 
+                // Başlangıçta SEO Yönetimi sekmesini Product SEO olarak ayarla
+                const initialSeoTab = document.querySelector('.tabs .tab[data-tab-target="homepage-seo"]');
+                if (initialSeoTab) {
+                    initialSeoTab.click(); // Programatik olarak tıklayarak ilk SEO sekmesini aç
+                }
+                
+                // Varsayılan olarak "Ürün Yönetimi" sekmesini aç
                 document.querySelector('.sidebar-nav .nav-item[data-page="product-management"]').click();
             }
             
