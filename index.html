@@ -572,7 +572,7 @@
                     <ul>
                         <li><a href="#" id="footer-link-about"></a></li>
                         <li><a href="#" id="footer-link-contact"></a></li>
-                        <li><a href="#" id="footer-link-privacy"></a></li>
+                        <li><a href="#" id="footer-link-privacy"></li>
                     </ul>
                 </div>
                 <div class="footer-section">
@@ -828,8 +828,6 @@
             let siteData = {
                 settings: {
                     languages: [],
-                    // 'banner' alanı artık burada varsayılan bir objeyle başlatılmıyor,
-                    // çünkü fetchData'da doğrudan Firebase'den gelen 'banner' dizisini atayacağız.
                     general: { logo: {}, promoBar: {} },
                     countryPricing: {},
                     currencySymbols: {},
@@ -864,15 +862,12 @@
                     if (settingsDoc.exists) {
                         const settingsData = settingsDoc.data();
                         
-                        // BURASI GÜNCELLENDİ: Firebase'den gelen settings.banner doğrudan bir dizi olduğu için,
-                        // siteData.settings.banner'a bu diziyi atıyoruz.
                         siteData.settings = { 
-                            ...siteData.settings, // Mevcut siteData.settings'i koru
-                            ...settingsData       // Firebase'den gelen tüm veriyi üzerine yaz
+                            ...siteData.settings,
+                            ...settingsData       
                         };
 
                         console.log('Firebase settings yüklendi:', siteData.settings);
-                        // Artık .slides değil, doğrudan settings.banner'ı logluyoruz
                         console.log('Banner slides (fetchData içinde):', siteData.settings.banner); 
                     } else {
                         console.log('Settings belgesi mevcut değil!');
@@ -984,7 +979,7 @@
                 renderStaticText();
                 setupControls();
                 renderCategories();
-                renderBanner(); // Render banner here
+                renderBanner();
                 renderProducts();
                 renderGeneralSiteElements();
             };
@@ -1209,13 +1204,28 @@
                 });
             };
 
+            let sliderInterval;
+            let touchStartX = 0;
+            let touchEndX = 0;
+            const SWIPE_THRESHOLD = 50; // Minimum piksel kaydırma mesafesi
+
             const startSlider = () => {
+                const bannerContainer = document.getElementById('hero-banner-container');
                 const slides = document.querySelectorAll('.slide');
                 const navContainer = document.querySelector('.slide-nav');
-                if (!navContainer) return;
+                
+                if (!navContainer) return; 
                 navContainer.innerHTML = '';
-                if (slides.length <= 1) return;
+                if (slides.length <= 1) { 
+                    clearInterval(sliderInterval); 
+                    slides.forEach(s => s.style.opacity = '1'); 
+                    // Dokunmatik olay dinleyicilerini kaldır
+                    bannerContainer.removeEventListener('touchstart', handleTouchStart);
+                    bannerContainer.removeEventListener('touchend', handleTouchEnd);
+                    return;
+                }
 
+                // Dotları oluşturma
                 slides.forEach((_, index) => {
                     const dot = document.createElement('div');
                     dot.className = 'nav-dot' + (index === 0 ? ' active' : '');
@@ -1225,10 +1235,57 @@
 
                 const dots = navContainer.querySelectorAll('.nav-dot');
                 let currentSlide = 0;
-                let slideInterval = setInterval(nextSlide, 5000);
-                function setSlide(index) { slides.forEach((s, i) => s.classList.toggle('active', i === index)); dots.forEach((d, i) => d.classList.toggle('active', i === index)); currentSlide = index; }
+
+                function setSlide(index) { 
+                    slides.forEach((s, i) => s.classList.toggle('active', i === index)); 
+                    dots.forEach((d, i) => d.classList.toggle('active', i === index)); 
+                    currentSlide = index; 
+                }
                 function nextSlide() { setSlide((currentSlide + 1) % slides.length); }
-                dots.forEach(dot => dot.addEventListener('click', () => { setSlide(parseInt(dot.dataset.index)); clearInterval(slideInterval); slideInterval = setInterval(nextSlide, 5000); }));
+                function prevSlide() { setSlide((currentSlide - 1 + slides.length) % slides.length); }
+
+                // Otomatik geçişi başlatma/sıfırlama
+                clearInterval(sliderInterval); 
+                sliderInterval = setInterval(nextSlide, 5000);
+
+                // Dot tıklama olayları
+                dots.forEach(dot => dot.addEventListener('click', () => { 
+                    setSlide(parseInt(dot.dataset.index)); 
+                    clearInterval(sliderInterval); 
+                    sliderInterval = setInterval(nextSlide, 5000); 
+                }));
+
+                // Dokunmatik olay dinleyicileri (Swipe için)
+                function handleTouchStart(event) {
+                    touchStartX = event.touches[0].clientX;
+                }
+
+                function handleTouchEnd(event) {
+                    touchEndX = event.changedTouches[0].clientX;
+                    handleSwipe();
+                }
+
+                function handleSwipe() {
+                    const diffX = touchEndX - touchStartX;
+
+                    if (Math.abs(diffX) > SWIPE_THRESHOLD) { 
+                        if (diffX > 0) { 
+                            prevSlide();
+                        } else { 
+                            nextSlide();
+                        }
+                        clearInterval(sliderInterval);
+                        sliderInterval = setInterval(nextSlide, 5000);
+                    }
+                }
+                
+                // Olay dinleyicilerini ekle (sadece tek slayt yoksa)
+                // Bu olay dinleyicilerinin zaten eklenip eklenmediğini kontrol etmek
+                // veya önce kaldırmak, birden fazla kez eklenmesini önler.
+                // Basitlik için burada doğrudan ekledik, ancak daha sağlam uygulamalar
+                // için eventListener'ların eklenmeden önce kontrol edilmesi iyi bir pratiktir.
+                bannerContainer.addEventListener('touchstart', handleTouchStart);
+                bannerContainer.addEventListener('touchend', handleTouchEnd);
             };
             
             const setupControls = () => {
@@ -1322,7 +1379,6 @@
 
                 await fetchData();
                 
-                // Debug: fetchData sonrası siteData.settings.banner değerini kontrol edelim (artık doğrudan dizi olmalı)
                 console.log('init sonrası siteData.settings.banner:', siteData.settings.banner);
 
 
