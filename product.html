@@ -711,7 +711,8 @@
 
     <section class="related-variants-section">
         <div class="container">
-            <h2 id="related-variants-title">Benzer Ürünler</h2> <div class="related-variants-grid" id="related-variants-grid">
+            <h2 id="related-variants-title">Benzer Ürünler</h2>
+            <div class="related-variants-grid" id="related-variants-grid">
                 </div>
         </div>
     </section>
@@ -752,6 +753,9 @@
 
     <script type="module">
         // Yeni modüler SDK importları
+        // NOT: firebasejs/10.12.0/firestore.js path'i yerine firebasejs/9.6.1/firebase-firestore.js kullandık.
+        // Eğer 10.12.0 sürümüne tamamen geçmek isterseniz, o zaman tüm Firebase SDK kullanımını bu sürüme göre güncellemek gerekir.
+        // Şimdilik, sizin belirttiğiniz 9.6.1 versiyonunun modüler importlarını koruyup, getDoc ve doc fonksiyonlarını çağıracağız.
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
         import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 
@@ -1272,7 +1276,8 @@
                 allVariants.forEach(variant => {
                     // Ürün adı için, ana ürünün adını kullanıyoruz, varyantın adını değil.
                     const productName = productContentGlobal.name || staticTranslations['product_title_default'][currentLang];
-                    const variantImageUrl = variant.media?.[0]?.url || 'https://via.placeholder.com/150x150/cccccc/000000?text=NoImg'; // Kart için default resim
+                    // Varyantın ilk görseli, yoksa default resim
+                    const variantImageUrl = variant.media?.[0]?.url || 'https://via.placeholder.com/150x150/cccccc/000000?text=Resim+Yok'; 
 
                     // Fiyatlar dinamik olarak hesaplanacak (ana ürün fiyatından alınır)
                     const originalPrice = currentProductData.basePriceTL;
@@ -1309,21 +1314,22 @@
                     `;
                     
                     card.onclick = () => {
-                        // Ana görseli ve varyant seçicileri bu varyanta göre güncelle
-                        setImages(variant.media); // setImages artık global
+                        // Tıklanan varyantın tüm medyalarını ana ekrana ve thumbnail'lara yükle
+                        setImages(variant.media); 
 
                         // Varyant seçicilerdeki aktif sınıfı güncelle
                         document.querySelectorAll('.color-option').forEach(el => el.classList.remove('active'));
                         document.querySelectorAll('.color-circle').forEach(el => el.classList.remove('active'));
                         
                         // Tıklanan varyantı bulup aktif yap
+                        // Eğer varyantların id'si varsa, id'ye göre de bulabiliriz. Şimdilik colorName ile devam.
                         const clickedColorOption = Array.from(variantSelectorsEl.querySelectorAll('.color-option'))
                                                     .find(opt => (opt.querySelector('.color-name').textContent === (variant.colorName || staticTranslations['unknown_color'][currentLang])));
                         if(clickedColorOption){
                             clickedColorOption.classList.add('active');
                             clickedColorOption.querySelector('.color-circle').classList.add('active');
                         }
-                        
+
                         // Sayfayı ürün detaylarının başına kaydır (smooth scroll)
                         productDetailContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
                     };
@@ -1434,6 +1440,7 @@
                             colorNameSpan.textContent = variant.colorName || staticTranslations['unknown_color'][currentLang];
                             colorOptionDiv.title = colorNameSpan.textContent;
 
+                            // İlk varyantı aktif yapma
                             if (index === 0) {
                                 colorCircleDiv.classList.add('active');
                                 colorOptionDiv.classList.add('active');
@@ -1465,7 +1472,7 @@
                     if (increaseQuantityBtn) increaseQuantityBtn.disabled = false;
 
                     // Benzer varyantları render et
-                    renderRelatedVariants(variants); // productContentGlobal'i renderRelatedVariants içinde kullanabiliriz.
+                    renderRelatedVariants(variants);
 
 
                 } catch (error) {
