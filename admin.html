@@ -60,10 +60,40 @@
         .lang-content { display: none; }
         .lang-content.active { display: block; }
         .variant-color-block { border: 1px solid var(--border-color); border-radius: 5px; padding: 1rem; margin-bottom: 1rem; background-color: #fafafa; }
-        .variant-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
-        .media-input-group { display: flex; gap: 10px; align-items: center; margin-bottom: 10px;}
+        .variant-header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: flex-start; /* Align items to the start for multi-line inputs */
+            margin-bottom: 1rem; 
+            flex-wrap: wrap; /* Allow wrapping for language inputs */
+            gap: 10px; /* Gap between language inputs */
+        }
+        .variant-header .form-group { /* Style for individual language inputs within header */
+            flex: 1; /* Make inputs flexible */
+            min-width: 100px; /* Minimum width for each language input */
+            margin: 0;
+        }
+        .media-input-group { 
+            display: flex; 
+            gap: 10px; 
+            align-items: center; 
+            margin-bottom: 10px;
+            flex-wrap: wrap; /* Allow wrapping */
+        }
         .media-input-group select { width: 120px; flex-shrink: 0; }
         .media-input-group input { flex-grow: 1; }
+        /* Yeni eklenen media önizleme stilleri */
+        .media-input-group img, .media-input-group video {
+            max-width: 80px;
+            max-height: 80px;
+            object-fit: contain;
+            margin-right: 10px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            flex-shrink: 0; /* Önizlemenin küçülmesini engelle */
+        }
+
+
         .category-tree-container ul, .category-checklist-container ul { list-style: none; padding-left: 20px; }
         .category-item { 
             background-color: #fff; 
@@ -537,33 +567,35 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage-compat.js"></script>
 
     <script type="module">
         const firebaseConfig = {
             apiKey: "AIzaSyDYkzZzNXB22U4oEXxOoPh-puwuE8kz0g4",
             authDomain: "pufemo-com.firebaseapp.com",
             projectId: "pufemo-com",
-            storageBucket: "pufemo-com.appspot.com",
+            storageBucket: "pufemo-com.appspot.com", // storageBucket eklendi
             messagingSenderId: "983352837227",
             appId: "1:983352837227:web:defaa8dae215776e2e1d2e",
         };
         
         let db;
+        let storage; // storage değişkeni tanımlandı
         try {
             firebase.initializeApp(firebaseConfig);
             db = firebase.firestore();
+            storage = firebase.storage(); // storage başlatıldı
         } catch (e) { alert('Firebase başlatılamadı: ' + e.message); }
 
-        if (db) {
+        if (db && storage) { // db ve storage kontrolü yapıldı
             // === 1. GLOBAL STATE VE DOM ELEMENTLERİ ===
-            // localState.settings.languages varsayılan değerleri, Firebase'den gelmezse kullanılacak
             let localState = { 
                 settings: { 
                     languages: [ 
                         { code: 'tr', name: 'Türkçe', flag: 'TR' },
                         { code: 'en', name: 'English', flag: 'GB' },
-                        { code: 'el', name: 'Ελληνικά', flag: 'GR' }, // Yunanca eklendi
-                        { code: 'ru', name: 'Русский', flag: 'RU' } // Rusça eklendi
+                        { code: 'el', name: 'Ελληνικά', flag: 'GR' }, 
+                        { code: 'ru', name: 'Русский', flag: 'RU' } 
                     ], 
                     countryPricing: {}, 
                     currencySymbols: { "TRY": "₺", "USD": "$", "EUR": "€", "GBP": "£" }, 
@@ -608,7 +640,6 @@
 
             const saveCategoriesBtn = document.getElementById('save-categories-btn');
 
-            // Yeni Ülke Fiyatlandırma Sayfası DOM Elementleri
             const countryPricingForm = document.getElementById('country-pricing-form');
             const countryPricingListContainer = document.getElementById('country-pricing-list-container');
             const addCountryPricingBtn = document.getElementById('add-new-country-pricing-btn');
@@ -637,9 +668,8 @@
              */
             function countryCodeToEmoji(code) {
                 if (!code || code.length !== 2) {
-                    return ''; // Kod yoksa veya geçersizse boş döndür
+                    return ''; 
                 }
-                // Her harfi bölgesel gösterge sembolüne dönüştürür (örn: T -> 🇹)
                 return code.toUpperCase().split('').map(char => 
                     String.fromCodePoint(char.charCodeAt(0) + 127397)
                 ).join('');
@@ -658,7 +688,6 @@
                     
                     localState.settings = { 
                         ...fetchedSettings, 
-                        // Firebase'den languages yoksa veya boşsa varsayılanları kullan
                         languages: (fetchedSettings.languages && fetchedSettings.languages.length > 0) ? fetchedSettings.languages : localState.settings.languages, 
                         countryPricing: fetchedSettings.countryPricing || {},
                         currencySymbols: fetchedSettings.currencySymbols || localState.settings.currencySymbols, 
@@ -685,11 +714,11 @@
                 }
             }
 
-            async function saveData(docName, data, merge = true) { // merge parametresi eklendi, varsayılan true
+            async function saveData(docName, data, merge = true) { 
                 showLoading();
                 try {
                     const dataToSave = docName === 'categories' ? { tree: data } : data;
-                    await db.collection('pufemo').doc(docName).set(dataToSave, { merge: merge }); // merge parametresi kullanıldı
+                    await db.collection('pufemo').doc(docName).set(dataToSave, { merge: merge }); 
                     console.log(`${docName} başarıyla kaydedildi!`);
                     alert('Değişiklikler kaydedildi!'); 
                 } catch (error) {
@@ -738,7 +767,6 @@
                 if(!tabsContainer || !contentContainer) return;
                 tabsContainer.innerHTML = '';
                 contentContainer.innerHTML = '';
-                // Firebase'den gelen diller yoksa veya boşsa localState'deki varsayılanları kullan
                 const languages = localState.settings.languages?.length ? localState.settings.languages : [{code: 'tr', name: 'Türkçe', flag: 'TR'}];
                 
                 languages.forEach((lang, index) => {
@@ -789,7 +817,6 @@
                 productForm.querySelector('#productId').value = product.id || '';
                 productForm.querySelector('#productSKU').value = product.sku || '';
                 
-                // Baz Fiyat Girişleri
                 productForm.querySelector('#basePriceTL').value = product.basePriceTL !== undefined ? product.basePriceTL : '';
                 productForm.querySelector('#baseDiscountedPriceTL').value = product.baseDiscountedPriceTL !== undefined ? product.baseDiscountedPriceTL : '';
                 
@@ -823,15 +850,54 @@
                 productForm.style.display = 'block';
             }
             
+            // Renk varyantları için medya inputu oluşturma (önizleme dahil)
             function createMediaInputHTML(media = { type: 'image', url: '' }) {
-                return `<div class="media-input-group"><select class="variant-media-type"><option value="image" ${media.type === 'image' ? 'selected' : ''}>Resim</option><option value="video" ${media.type === 'video' ? 'selected' : ''}>Video</option></select><input type="text" class="variant-media-url" placeholder="Medya URL'si (jpg, webp, mp4...)" value="${media.url || ''}"><button type="button" class="btn btn-danger btn-sm remove-media-btn">Sil</button></div>`;
+                const previewHTML = media.url ?
+                    (media.type === 'image' ?
+                        `<img src="${media.url}" alt="Görsel Önizleme">` :
+                        `<video src="${media.url}" controls></video>`)
+                    : '';
+
+                return `
+                    <div class="media-input-group">
+                        ${previewHTML}
+                        <select class="variant-media-type">
+                            <option value="image" ${media.type === 'image' ? 'selected' : ''}>Resim</option>
+                            <option value="video" ${media.type === 'video' ? 'selected' : ''}>Video</option>
+                        </select>
+                        <input type="text" class="variant-media-url" placeholder="Medya URL'si (yüklendiğinde dolar)" value="${media.url || ''}" style="display: none;">
+                        <input type="file" class="variant-media-file-input" accept="image/*,video/*">
+                        <button type="button" class="btn btn-danger btn-sm remove-media-btn">Sil</button>
+                    </div>`;
             }
 
-            function createColorVariantBlock(variant = { colorName: '', media: [] }) {
+            // Renk varyant bloğu oluşturma (çoklu dil renk adı ile)
+            function createColorVariantBlock(variant = { colorName: {}, media: [] }) {
                 const block = document.createElement('div');
                 block.className = 'variant-color-block';
+
+                const languages = localState.settings.languages?.length ? localState.settings.languages : [{code: 'tr', name: 'Türkçe', flag: 'TR'}];
+                let colorNameInputsHTML = languages.map(lang => `
+                    <div class="form-group" style="flex-grow: 1; margin-bottom: 5px;">
+                        <label style="font-size: 0.8em; margin-bottom: 2px;">${countryCodeToEmoji(lang.flag) || lang.code} ${lang.name} Adı</label>
+                        <input type="text" class="variant-color-input" data-lang="${lang.code}" value="${variant.colorName?.[lang.code] || ''}" placeholder="${lang.name} Renk Adı">
+                    </div>
+                `).join('');
+
                 const mediaHtml = (variant.media || []).map(m => createMediaInputHTML(m)).join('');
-                block.innerHTML = `<div class="variant-header"><div class="form-group" style="flex-grow: 1; margin: 0;"><label>Renk Adı</label><input type="text" class="variant-color-input" value="${variant.colorName || ''}"></div><button type="button" class="btn btn-danger remove-color-btn" style="margin-left: 1rem;">Rengi Sil</button></div><hr style="margin: 1rem 0;"><label>Bu Renge Ait Medyalar</label><div class="media-inputs-container">${mediaHtml || ''}</div><button type="button" class="btn btn-primary add-media-btn" style="margin-top: 0.5rem;">Yeni Medya Alanı Ekle</button>`;
+
+                block.innerHTML = `
+                    <div class="variant-header" style="flex-wrap: wrap;">
+                        ${colorNameInputsHTML}
+                        <button type="button" class="btn btn-danger remove-color-btn" style="margin-left: 1rem; align-self: flex-end; margin-bottom: 1rem;">Rengi Sil</button>
+                    </div>
+                    <hr style="margin: 1rem 0;">
+                    <label>Bu Renge Ait Medyalar</label>
+                    <div class="media-inputs-container">
+                        ${mediaHtml || ''}
+                    </div>
+                    <button type="button" class="btn btn-primary add-media-btn" style="margin-top: 0.5rem;">Yeni Medya Alanı Ekle</button>
+                `;
                 return block;
             }
 
@@ -1051,13 +1117,21 @@
                 }); 
                 
                 document.querySelectorAll('#color-variants-container .variant-color-block').forEach(block => { 
-                    const variant = { colorName: block.querySelector('.variant-color-input').value, media: [] }; 
+                    const variantColorName = {}; // Renk adlarını tutacak obje
+                    block.querySelectorAll('.variant-color-input').forEach(input => {
+                        variantColorName[input.dataset.lang] = input.value.trim();
+                    });
+
+                    const variant = { colorName: variantColorName, media: [] }; 
                     block.querySelectorAll('.media-input-group').forEach(mediaEl => { 
                         const urlInput = mediaEl.querySelector('.variant-media-url'); 
                         if (urlInput.value.trim()) 
                             variant.media.push({ type: mediaEl.querySelector('.variant-media-type').value, url: urlInput.value.trim() }); 
                     }); 
-                    if (variant.colorName.trim()) productData.variants.push(variant); 
+                    // Sadece en az bir dilde adı olan veya medyası olan varyantları ekle
+                    if (Object.values(variant.colorName).some(name => name) || variant.media.length > 0) {
+                        productData.variants.push(variant);
+                    }
                 }); 
                 
                 const savedId = await saveProduct(productData, id); 
@@ -1077,7 +1151,8 @@
                     renderProductList(); 
                 } 
             });
-            productForm.addEventListener('click', e => { 
+
+            productForm.addEventListener('click', async e => { 
                 const target = e.target; 
                 if (target.id === 'add-color-variant-btn') {
                     document.getElementById('color-variants-container').appendChild(createColorVariantBlock());
@@ -1093,6 +1168,79 @@
                     formSection.querySelectorAll('.lang-tab, .lang-content').forEach(el => el.classList.remove('active')); 
                     target.classList.add('active'); 
                     formSection.querySelector(`.lang-content[data-lang-content="${langCode}"]`).classList.add('active'); 
+                }
+            });
+
+            // Medya URL veya tip değiştiğinde önizlemeyi güncelle
+            productForm.addEventListener('input', e => {
+                if (e.target.classList.contains('variant-media-url') || e.target.classList.contains('variant-media-type')) {
+                    const mediaInputGroup = e.target.closest('.media-input-group');
+                    const type = mediaInputGroup.querySelector('.variant-media-type').value;
+                    const url = mediaInputGroup.querySelector('.variant-media-url').value.trim();
+                    let previewElement = mediaInputGroup.querySelector('img, video');
+
+                    if (previewElement) {
+                        previewElement.remove(); 
+                    }
+
+                    if (url) {
+                        if (type === 'image') {
+                            previewElement = document.createElement('img');
+                            previewElement.src = url;
+                            previewElement.alt = "Görsel Önizleme";
+                        } else if (type === 'video') {
+                            previewElement = document.createElement('video');
+                            previewElement.src = url;
+                            previewElement.controls = true;
+                        }
+                        if (previewElement) {
+                            mediaInputGroup.prepend(previewElement); 
+                        }
+                    }
+                }
+            });
+
+            // Dosya yükleme dinleyicisi
+            productForm.addEventListener('change', async e => {
+                if (e.target.classList.contains('variant-media-file-input')) {
+                    const fileInput = e.target;
+                    const file = fileInput.files[0];
+                    if (!file) return;
+
+                    showLoading();
+                    try {
+                        const storageRef = storage.ref();
+                        const filePath = `product_media/${generateUniqueId()}-${file.name}`;
+                        const fileRef = storageRef.child(filePath);
+                        await fileRef.put(file);
+                        const downloadURL = await fileRef.getDownloadURL();
+
+                        const mediaInputGroup = fileInput.closest('.media-input-group');
+                        const urlInput = mediaInputGroup.querySelector('.variant-media-url');
+                        const typeSelect = mediaInputGroup.querySelector('.variant-media-type');
+
+                        urlInput.value = downloadURL;
+                        // Dosya uzantısına göre tipi otomatik belirle
+                        if (file.type.startsWith('image/')) {
+                            typeSelect.value = 'image';
+                        } else if (file.type.startsWith('video/')) {
+                            typeSelect.value = 'video';
+                        }
+                        
+                        fileInput.style.display = 'none'; // Dosya yüklenince file input'u gizle
+                        urlInput.style.display = 'block'; // URL input'u göster
+
+                        // Önizlemeyi güncellemek için trigger
+                        const event = new Event('input', { bubbles: true });
+                        urlInput.dispatchEvent(event);
+
+                        alert('Dosya başarıyla yüklendi!');
+                    } catch (error) {
+                        console.error("Dosya yükleme hatası:", error);
+                        alert('Dosya yüklenirken bir hata oluştu: ' + error.message);
+                    } finally {
+                        hideLoading();
+                    }
                 }
             });
             
@@ -1563,16 +1711,14 @@
                 
                 const languages = localState.settings.languages?.length ? localState.settings.languages : [{code: 'tr', name: 'Türkçe', flag: 'TR'}];
 
-                // localState.settings.countryPricing objesindeki entry'leri alıp sırala
                 const countriesToRender = Object.entries(localState.settings.countryPricing)
                     .map(([codeKey, countryData]) => ({
-                        code: codeKey, // Küçük harf kodu firebase'den geldiği gibi kalsın
+                        code: codeKey, 
                         ...countryData 
                     }))
                     .sort((a,b) => {
-                        // Eğer name bir map ise, varsayılan dildeki (örn: Türkçe) adına göre sırala
-                        const nameA = typeof a.name === 'object' ? a.name.tr || a.name.en || a.code : a.name || a.code;
-                        const nameB = typeof b.name === 'object' ? b.name.tr || b.name.en || b.code : b.name || b.code;
+                        const nameA = typeof a.name === 'object' ? a.name.tr || a.name.en || a.name[Object.keys(a.name)[0]] || a.code : a.name || a.code;
+                        const nameB = typeof b.name === 'object' ? b.name.tr || b.name.en || b.name[Object.keys(b.name)[0]] || b.code : b.name || b.code;
                         return nameA.localeCompare(nameB);
                     });
 
@@ -1581,7 +1727,6 @@
                     countryItem.className = 'country-pricing-item';
                     countryItem.dataset.code = country.code; 
                     
-                    // Ülke adını çok dilli alana çevir
                     const countryNameInputsHTML = languages.map(lang => `
                         <div class="form-group">
                             <label>${countryCodeToEmoji(lang.flag) || lang.code}</label>
@@ -1629,18 +1774,15 @@
                 }
             }
             
-            // "Yeni Ülke Ekle" butonu formu gösterme
             addCountryPricingBtn.addEventListener('click', () => {
                 showNewCountryPricingForm();
             });
 
-            // Yeni Ülke Fiyatlandırma Formu Gösterme (Çoklu Dil Desteği ile)
             function showNewCountryPricingForm() {
                 if (newCountryPricingFormContainer.querySelector('form')) return; 
 
                 const form = document.createElement('form');
                 
-                // Ülke adı için çoklu dil giriş alanları oluştur
                 const languages = localState.settings.languages?.length ? localState.settings.languages : [{code: 'tr', name: 'Türkçe', flag: 'TR'}];
                 const countryNameInputsHTML = languages.map(lang => `
                     <div class="form-group">
@@ -1693,7 +1835,7 @@
                     e.preventDefault();
                     const code = form.querySelector('#newCountryCode').value.trim().toLowerCase(); 
                     
-                    const newCountryNameMap = {}; // Yeni: name artık bir map
+                    const newCountryNameMap = {}; 
                     let hasAnyName = false;
                     form.querySelectorAll('.new-country-name-input').forEach(input => {
                         const langCode = input.dataset.lang;
@@ -1702,7 +1844,6 @@
                         newCountryNameMap[langCode] = nameValue;
                     });
 
-                    // Eğer herhangi bir dilde isim girilmemişse uyarı ver
                     if (!hasAnyName) {
                         alert('Lütfen en az bir dilde ülke adı girin.');
                         return;
@@ -1726,7 +1867,6 @@
                         return;
                     }
 
-                    // localState'i güncelle ve Firebase'e kaydet
                     localState.settings.countryPricing[code] = { name: newCountryNameMap, flag, adjustment, defaultLanguage, currencySymbol }; 
                     await saveData('settings', { countryPricing: localState.settings.countryPricing });
                     newCountryPricingFormContainer.innerHTML = ''; 
@@ -1738,21 +1878,18 @@
                 });
             }
 
-            // Ülke fiyatlandırma ayarlarını kaydetme (listeyi güncelleyen genel kaydetme butonu)
             countryPricingForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const newCountryPricingSettings = {};
-                // Mevcut render edilmiş inputlardan verileri topla
                 document.querySelectorAll('.country-pricing-item').forEach(item => {
-                    const countryCode = item.dataset.code; // Bu zaten küçük harf Firebase anahtarı olacak
+                    const countryCode = item.dataset.code; 
                     
-                    // İlgili ülkenin inputlarını bul
                     const adjustmentInput = item.querySelector('[data-field="adjustment"]');
                     const defaultLangSelect = item.querySelector('[data-field="defaultLanguage"]');
                     const currencySymbolSelect = item.querySelector('[data-field="currencySymbol"]');
                     
-                    const countryNameInputs = item.querySelectorAll('.country-name-input'); // name inputları
-                    const currentCountryNameMap = {}; // name'i map olarak topla
+                    const countryNameInputs = item.querySelectorAll('.country-name-input'); 
+                    const currentCountryNameMap = {}; 
                     countryNameInputs.forEach(input => {
                         const langCode = input.dataset.lang;
                         const nameValue = input.value.trim();
@@ -1761,12 +1898,11 @@
 
 
                     if (adjustmentInput && defaultLangSelect && currencySymbolSelect) {
-                        // Mevcut ülkenin bayrağını localState'ten al, değişmiyor
                         const existingCountryData = localState.settings.countryPricing[countryCode] || {};
 
                         newCountryPricingSettings[countryCode] = { 
-                            name: currentCountryNameMap, // name artık inputlardan toplanan map
-                            flag: existingCountryData.flag || '', // Bayrak olduğu gibi kalsın
+                            name: currentCountryNameMap, 
+                            flag: existingCountryData.flag || '', 
                             adjustment: parseFloat(adjustmentInput.value) || 0,
                             defaultLanguage: defaultLangSelect.value,
                             currencySymbol: currencySymbolSelect.value
@@ -1779,7 +1915,6 @@
                 renderCountryPricingList(); 
             });
 
-            // Ülke silme butonu dinleyicisi
             countryPricingListContainer.addEventListener('click', async (e) => {
                 const deleteBtn = e.target.closest('.delete-country-pricing-btn');
                 if (deleteBtn) {
@@ -1791,9 +1926,9 @@
                         return;
                     }
 
-                    const countryData = localState.settings.countryPricing[countryCodeToDelete]; // localState'ten veriyi al
+                    const countryData = localState.settings.countryPricing[countryCodeToDelete]; 
 
-                    let confirmDisplayName = countryCodeToDelete.toUpperCase(); // Onay mesajı için varsayılan ad
+                    let confirmDisplayName = countryCodeToDelete.toUpperCase(); 
                     
                     if (countryData) {
                         if (typeof countryData.name === 'object' && countryData.name !== null) {
@@ -1826,14 +1961,12 @@
             // === 7. BAŞLANGIÇ FONKSİYONU ===
             async function init() {
                 await fetchData();
-                // Tüm render fonksiyonlarını çağırarak başlangıçta tüm formları doğru veriyle doldur
                 renderProductList();
                 renderBannerSettings(); 
                 refreshCategoryView();
                 renderGeneralSettings(); 
                 renderCountryPricingList(); 
                 
-                // Sayfa ilk yüklendiğinde varsayılan olarak Ürün Yönetimi aktif olsun
                 document.querySelector('.sidebar-nav .nav-item[data-page="product-management"]').click();
             }
             
