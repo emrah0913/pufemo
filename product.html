@@ -395,7 +395,7 @@
             margin-bottom: 10px;
         }
 
-        .related-variant-card .variant-name {
+        .related-variant-card .variant-name { /* Sadece ürün adı gösterilecek */
             font-size: 1.1rem;
             font-weight: 600;
             color: var(--primary-color);
@@ -634,8 +634,7 @@
 
     <section class="related-variants-section">
         <div class="container">
-            <h2 id="related-variants-title">Diğer Renk Varyantları</h2>
-            <div class="related-variants-grid" id="related-variants-grid">
+            <h2 id="related-variants-title">Diğer Renk Varyantları</h2> <div class="related-variants-grid" id="related-variants-grid">
                 </div>
         </div>
     </section>
@@ -789,6 +788,8 @@
             const relatedVariantsTitleEl = document.getElementById('related-variants-title'); // Başlık referansı
 
             let currentProductData = null; // Mevcut ürün verisini tutmak için
+            // productContentGlobal değişkenini en üst seviyede tanımla
+            let productContentGlobal = {};
 
 
             const fetchData = async () => {
@@ -799,10 +800,10 @@
                     ]);
 
                     if (settingsDoc.exists()) {
-                        siteData.settings = { ...siteData.settings, ...settingsDoc.data() };
+                        siteData.settings = { ...settingsDoc.data() }; // Spread operatörü ile mevcut değeri güncelle
                     }
                     if (categoriesDoc.exists()) {
-                        siteData.categories = { ...siteData.categories, ...categoriesDoc.data() };
+                        siteData.categories = { ...categoriesDoc.data() }; // Spread operatörü ile mevcut değeri güncelle
                     }
 
                     const availableCountries = Object.keys(siteData.settings.countryPricing);
@@ -958,7 +959,7 @@
                 if (variantSelectorLabelEl) variantSelectorLabelEl.textContent = translate('variant_selection_label');
                 if (quantityLabelEl) quantityLabelEl.textContent = translate('quantity_label');
                 if (totalPriceLabelEl) totalPriceLabelEl.textContent = translate('total_price_label');
-                if (relatedVariantsTitleEl) relatedVariantsTitleEl.textContent = translate('related_products_title'); // Başlık çevirisi güncellendi
+                if (relatedVariantsTitleEl) relatedVariantsTitleEl.textContent = translate('related_products_title');
             };
 
             const renderGeneralSiteElements = () => {
@@ -1085,13 +1086,101 @@
                 calculatedTotalPriceEl.textContent = formatPrice(totalPrice);
             };
 
-            // Yeni fonksiyon: Benzer varyantları render et
-            const renderRelatedVariants = (allVariants, currentProductContent) => {
+            // setImages fonksiyonunu global kapsamda tanımla ve productContentGlobal'i kullan
+            const setImages = (media) => {
+                if (!mainMediaDisplayEl || !thumbnailRowEl) return;
+
+                mainMediaDisplayEl.innerHTML = '';
+                thumbnailRowEl.innerHTML = '';
+
+                if (!media || media.length === 0) {
+                    const imgPlaceholder = document.createElement('img');
+                    imgPlaceholder.src = 'https://via.placeholder.com/600x450?text=Görsel+Yok';
+                    // productContentGlobal kullanarak alt metin
+                    imgPlaceholder.alt = (productContentGlobal && productContentGlobal.name) ? productContentGlobal.name + " - Görsel Yok" : "Ürün Görseli Yok";
+                    imgPlaceholder.classList.add('main-media');
+                    mainMediaDisplayEl.appendChild(imgPlaceholder);
+                    return;
+                }
+
+                const initialMediaToDisplay = media[0];
+                
+                if (initialMediaToDisplay.type === 'video') {
+                    const videoEl = document.createElement('video');
+                    videoEl.src = initialMediaToDisplay.url;
+                    videoEl.controls = true;
+                    videoEl.autoplay = true;
+                    videoEl.muted = true;
+                    videoEl.loop = true;
+                    videoEl.playsInline = true;
+                    videoEl.classList.add('main-media');
+                    mainMediaDisplayEl.appendChild(videoEl);
+                } else {
+                    const imgEl = document.createElement('img');
+                    imgEl.src = initialMediaToDisplay.url;
+                    // productContentGlobal kullanarak alt metin
+                    imgEl.alt = (productContentGlobal && productContentGlobal.name) ? productContentGlobal.name + " - Ana Görsel" : "Ana Görsel";
+                    imgEl.classList.add('main-media');
+                    mainMediaDisplayEl.appendChild(imgEl);
+                }
+
+                media.forEach((m, i) => {
+                    const thumbnailItem = document.createElement('div');
+                    thumbnailItem.classList.add('thumbnail-item');
+                    
+                    if (i === 0) {
+                        thumbnailItem.classList.add('active');
+                    }
+
+                    if (m.type === 'video') {
+                        const videoThumb = document.createElement('video');
+                        videoThumb.src = m.url;
+                        videoThumb.muted = true;
+                        videoThumb.playsInline = true;
+                        videoThumb.preload = "metadata";
+                        thumbnailItem.appendChild(videoThumb);
+                        thumbnailItem.classList.add('video-thumb');
+                    } else {
+                        const imgThumb = document.createElement('img');
+                        imgThumb.src = m.url;
+                        imgThumb.loading = "lazy";
+                        thumbnailItem.appendChild(imgThumb);
+                    }
+                    
+                    thumbnailItem.onclick = () => {
+                        document.querySelectorAll('.thumbnail-item').forEach(el => el.classList.remove('active'));
+                        thumbnailItem.classList.add('active');
+                        mainMediaDisplayEl.innerHTML = '';
+
+                        if (m.type === 'video') {
+                            const videoEl = document.createElement('video');
+                            videoEl.src = m.url;
+                            videoEl.controls = true;
+                            videoEl.autoplay = true;
+                            videoEl.muted = true;
+                            videoEl.loop = true;
+                            videoEl.playsInline = true;
+                            videoEl.classList.add('main-media');
+                            mainMediaDisplayEl.appendChild(videoEl);
+                        } else {
+                            const imgEl = document.createElement('img');
+                            imgEl.src = m.url;
+                            // productContentGlobal kullanarak alt metin
+                            imgEl.alt = (productContentGlobal && productContentGlobal.name) ? productContentGlobal.name + " - " + (m.alt || "Görsel") : "Görsel";
+                            imgEl.classList.add('main-media');
+                            mainMediaDisplayEl.appendChild(imgEl);
+                        }
+                    };
+                    thumbnailRowEl.appendChild(thumbnailItem);
+                });
+            };
+
+            // Benzer varyantları render et
+            const renderRelatedVariants = (allVariants) => { // productContentGlobal'e erişmek için productContent parametresi kaldırıldı
                 if (!relatedVariantsGridEl || !relatedVariantsTitleEl) return;
 
-                // Başlığı güncelle (eğer bu zaten yapıldıysa tekrara gerek yok)
-                relatedVariantsTitleEl.textContent = staticTranslations['related_products_title'][currentLang];
-                
+                relatedVariantsTitleEl.textContent = staticTranslations['related_products_title'][currentLang]; // Başlık çevirisi
+
                 relatedVariantsGridEl.innerHTML = ''; // Önceki kartları temizle
 
                 // Eğer hiç varyant yoksa veya sadece 1 varyant varsa bu bölümü gizle
@@ -1106,7 +1195,8 @@
 
                 allVariants.forEach(variant => {
                     // Ürün adı için, ana ürünün adını kullanıyoruz, varyantın adını değil.
-                    const productName = currentProductContent.name || staticTranslations['product_title_default'][currentLang];
+                    // productContentGlobal kullanarak ürün adını al
+                    const productName = productContentGlobal.name || staticTranslations['product_title_default'][currentLang];
                     const variantImageUrl = variant.media?.[0]?.url || 'https://via.placeholder.com/150x150/cccccc/000000?text=NoImg'; // Kart için default resim
 
                     // Kart için ürünün mevcut fiyatını göster
@@ -1117,22 +1207,20 @@
                     const card = document.createElement('div');
                     card.className = 'related-variant-card';
                     card.innerHTML = `
-                        <img src="${variantImageUrl}" alt="${productName} - ${variant.colorName || staticTranslations['unknown_color'][currentLang]}">
-                        <span class="variant-name">${productName}</span> <span class="variant-price">${priceToDisplay}</span>
+                        <img src="${variantImageUrl}" alt="${productName}"> <span class="variant-name">${productName}</span> <span class="variant-price">${priceToDisplay}</span>
                     `;
                     
                     card.onclick = () => {
                         // Ana görseli ve varyant seçicileri bu varyanta göre güncelle
-                        setImages(variant.media);
+                        setImages(variant.media); // setImages artık global
 
                         // Varyant seçicilerdeki aktif sınıfı güncelle
                         document.querySelectorAll('.color-option').forEach(el => el.classList.remove('active'));
                         document.querySelectorAll('.color-circle').forEach(el => el.classList.remove('active'));
                         
                         // Tıklanan varyantı bulup aktif yap
-                        // variant.colorName ile eşleştiriyoruz
                         const clickedColorOption = Array.from(variantSelectorsEl.querySelectorAll('.color-option'))
-                                                    .find(opt => opt.querySelector('.color-name').textContent === (variant.colorName || staticTranslations['unknown_color'][currentLang]));
+                                                    .find(opt => (opt.querySelector('.color-name').textContent === (variant.colorName || staticTranslations['unknown_color'][currentLang])));
                         if(clickedColorOption){
                             clickedColorOption.classList.add('active');
                             clickedColorOption.querySelector('.color-circle').classList.add('active');
@@ -1169,18 +1257,21 @@
                         if (productTitleEl) productTitleEl.textContent = staticTranslations['product_not_found_title'][currentLang];
                         if (productDescriptionEl) productDescriptionEl.textContent = staticTranslations['product_not_found_desc'][currentLang];
                         if (calculatedTotalPriceEl) calculatedTotalPriceEl.textContent = '';
+                        // Hata durumunda benzer varyantlar bölümünü gizle
+                        if (relatedVariantsGridEl) relatedVariantsGridEl.innerHTML = ''; // Temizle
+                        const relatedSection = document.querySelector('.related-variants-section');
+                        if (relatedSection) relatedSection.style.display = 'none';
                         return;
                     }
 
                     const data = docSnap.data();
                     currentProductData = data;
                     
-                    // !!! BURADA KRİTİK DÜZELTME YAPILDI: data.content altındaki dil objesine erişim !!!
-                    const productContent = data.content?.[currentLang] || data.content?.tr || {}; 
+                    // !!! KRİTİK DÜZELTME: productContent'i data.content altından al
+                    productContentGlobal = data.content?.[currentLang] || data.content?.tr || {}; 
 
-                    if (productTitleEl) productTitleEl.textContent = productContent.name || staticTranslations['product_title_default'][currentLang];
-                    // !!! BURADA AÇIKLAMA İÇİN DÜZELTME YAPILDI !!! Eğer açıklama boşsa "description_not_found_fallback" metnini kullan
-                    if (productDescriptionEl) productDescriptionEl.textContent = productContent.description || staticTranslations['description_not_found_fallback'][currentLang];
+                    if (productTitleEl) productTitleEl.textContent = productContentGlobal.name || staticTranslations['product_title_default'][currentLang];
+                    if (productDescriptionEl) productDescriptionEl.textContent = productContentGlobal.description || staticTranslations['description_not_found_fallback'][currentLang];
 
                     const basePrice = data.basePriceTL || 0;
                     const discountedPrice = data.baseDiscountedPriceTL;
@@ -1200,90 +1291,6 @@
                             freeShippingEl.style.display = 'none';
                         }
                     }
-
-                    const setImages = (media) => {
-                        if (!mainMediaDisplayEl || !thumbnailRowEl) return;
-
-                        mainMediaDisplayEl.innerHTML = '';
-                        thumbnailRowEl.innerHTML = '';
-
-                        if (!media || media.length === 0) {
-                            const imgPlaceholder = document.createElement('img');
-                            imgPlaceholder.src = 'https://via.placeholder.com/600x450?text=Görsel+Yok';
-                            imgPlaceholder.alt = productContent.name + " - Görsel Yok";
-                            imgPlaceholder.classList.add('main-media');
-                            mainMediaDisplayEl.appendChild(imgPlaceholder);
-                            return;
-                        }
-
-                        // Ana medyayı göster
-                        const activeMediaItem = media.find(m => m.url) || media[0]; // URL'si olan ilkini al
-                        if (activeMediaItem.type === 'video') {
-                            const videoEl = document.createElement('video');
-                            videoEl.src = activeMediaItem.url;
-                            videoEl.controls = true;
-                            videoEl.autoplay = true;
-                            videoEl.muted = true;
-                            videoEl.loop = true;
-                            videoEl.playsInline = true;
-                            videoEl.classList.add('main-media');
-                            mainMediaDisplayEl.appendChild(videoEl);
-                        } else {
-                            const imgEl = document.createElement('img');
-                            imgEl.src = activeMediaItem.url;
-                            imgEl.alt = productContent.name + " - Ana Görsel";
-                            imgEl.classList.add('main-media');
-                            mainMediaDisplayEl.appendChild(imgEl);
-                        }
-
-                        // Thumbnail'ları doldur
-                        media.forEach((m, i) => {
-                            const thumbnailItem = document.createElement('div');
-                            thumbnailItem.classList.add('thumbnail-item');
-                            // Sadece aktif olan medya öğesini vurgula
-                            if (m.url === activeMediaItem.url) thumbnailItem.classList.add('active');
-
-                            if (m.type === 'video') {
-                                const videoThumb = document.createElement('video');
-                                videoThumb.src = m.url;
-                                videoThumb.muted = true;
-                                videoThumb.playsInline = true;
-                                videoThumb.preload = "metadata";
-                                thumbnailItem.appendChild(videoThumb);
-                                thumbnailItem.classList.add('video-thumb');
-                            } else {
-                                const imgThumb = document.createElement('img');
-                                imgThumb.src = m.url;
-                                imgThumb.loading = "lazy";
-                                thumbnailItem.appendChild(imgThumb);
-                            }
-                            
-                            thumbnailItem.onclick = () => {
-                                document.querySelectorAll('.thumbnail-item').forEach(el => el.classList.remove('active'));
-                                thumbnailItem.classList.add('active');
-                                mainMediaDisplayEl.innerHTML = ''; // Ana ekranı temizle
-
-                                if (m.type === 'video') {
-                                    const videoEl = document.createElement('video');
-                                    videoEl.src = m.url;
-                                    videoEl.controls = true;
-                                    videoEl.autoplay = true;
-                                    videoEl.muted = true;
-                                    videoEl.loop = true;
-                                    videoEl.playsInline = true;
-                                    videoEl.classList.add('main-media');
-                                    mainMediaDisplayEl.appendChild(videoEl);
-                                } else {
-                                    const imgEl = document.createElement('img');
-                                    imgEl.src = m.url;
-                                    imgEl.alt = productContent.name + " - " + (m.alt || "Görsel");
-                                    imgEl.classList.add('main-media');
-                                    mainMediaDisplayEl.appendChild(imgEl);
-                                }
-                            };
-                            thumbnailRowEl.appendChild(thumbnailItem);
-                        });
-                    };
 
                     const variants = data.variants || [];
                     
@@ -1315,7 +1322,7 @@
                                 variantImageUrl = variantFirstMedia.url;
                             } else if (variantFirstMedia && variantFirstMedia.type === 'video' && variantFirstMedia.thumbnailUrl) {
                                 variantImageUrl = variantFirstMedia.thumbnailUrl;
-                            } else if (variantFirstMedia && variantFirstMedia.url) { // Video değil ve URL varsa
+                            } else if (variantFirstMedia && variantFirstMedia.url) {
                                 variantImageUrl = variantFirstMedia.url;
                             }
                             
@@ -1329,9 +1336,6 @@
                             colorNameSpan.textContent = variant.colorName || staticTranslations['unknown_color'][currentLang];
                             colorOptionDiv.title = colorNameSpan.textContent;
 
-                            // Eğer bu varyant, şu anki URL'den gelen ürünün aktif varyantıysa aktif yap
-                            // Bu logic, product ID'sinin varyant ID'siyle eşleştiği bir senaryoda daha anlamlı olur.
-                            // Şimdilik, ilk yüklenen ürünün varsayılan varyantını aktif bırakalım.
                             if (index === 0) {
                                 colorCircleDiv.classList.add('active');
                                 colorOptionDiv.classList.add('active');
@@ -1355,7 +1359,7 @@
                             }
                         });
                     } else {
-                        setImages(data.media); // Varyant yoksa ana medyadaki görselleri göster
+                        setImages(data.media);
                     }
 
                     updateCalculatedTotalPrice(); // Ürün yüklendikten sonra toplam fiyatı güncelle
@@ -1363,9 +1367,8 @@
                     if (increaseQuantityBtn) increaseQuantityBtn.disabled = false;
 
                     // Benzer varyantları render et
-                    // Sadece ürün ID'si aynı olan ürünün varyantlarını getirmek için
-                    // Burada 'data.variants' kullanıyoruz, çünkü her ürünün varyantları kendi belgesinde olmalı.
-                    renderRelatedVariants(variants, productContent); // Tüm varyantları render fonksiyonuna gönder
+                    renderRelatedVariants(variants, productContentGlobal); // productContentGlobal'i gönder
+
 
                 } catch (error) {
                     console.error("Ürün verileri çekilirken bir hata oluştu:", error);
@@ -1375,7 +1378,7 @@
                     if (decreaseQuantityBtn) decreaseQuantityBtn.disabled = true;
                     if (increaseQuantityBtn) increaseQuantityBtn.disabled = true;
                     // Hata durumunda benzer varyantlar bölümünü gizle
-                    if (relatedVariantsGridEl) relatedVariantsGridEl.innerHTML = ''; // Temizle
+                    if (relatedVariantsGridEl) relatedVariantsGridEl.innerHTML = '';
                     const relatedSection = document.querySelector('.related-variants-section');
                     if (relatedSection) relatedSection.style.display = 'none';
                 }
