@@ -411,8 +411,7 @@
             </div>
             <div class="actions">
                 <button class="btn btn-cart">Sepete Ekle</button>
-                <button class="btn btn-buy">Satın Al</button>
-            </div>
+                <button class="btn btn-buy" id="btn-buy">Satın Al</button> </div>
             <div id="free-shipping" class="free-shipping" style="display:none;">Ücretsiz Kargo</div>
         </div>
     </main>
@@ -511,7 +510,7 @@
                 'buy_now_button': { tr: 'Satın Al', en: 'Buy Now', el: 'Αγορά τώρα', ru: 'Купить сейчас' },
                 'product_details_heading': { tr: 'Ürün Detayları', en: 'Product Details', el: 'Λεπτομέρειες προϊόντος', ru: 'Информация о продукте' },
                 'variant_selection_label': { tr: 'Renk Seçimi', en: 'Color Selection', el: 'Επιλογή Χρώματος', ru: 'Выбор цвета' },
-                'unknown_color': { tr: 'Bilinmeyen Renk', en: 'Unknown Color', el: 'Άγνωστο Χρώμα', ru: 'Неизвестный χρώμα' } // Son eklenen çeviri
+                'unknown_color': { tr: 'Bilinmeyen Renk', en: 'Unknown Color', el: 'Άγνωστο Χρώμα', ru: 'Неизвестный χρώμα' }
             };
 
             const loadingOverlay = document.getElementById('loading-overlay');
@@ -526,7 +525,7 @@
                 categories: { tree: [] }
             };
 
-            let currentLang = localStorage.getItem('pufemo-language') || 'tr'; // Varsayılan dili 'tr' olarak değiştirdim
+            let currentLang = localStorage.getItem('pufemo-language') || 'tr';
             let currentCurrency = localStorage.getItem('pufemo-currency') || 'USD';
             let currentCountryCode = localStorage.getItem('pufemo-country') || '';
 
@@ -543,7 +542,7 @@
             const promoBarEl = document.querySelector('.promo-bar');
             const promoTextContentEl = document.getElementById('promo-text-content');
             const btnCartEl = document.querySelector('.btn-cart');
-            const btnBuyEl = document.getElementById('btn-buy'); // ID'yi yakalamak için
+            const btnBuyEl = document.getElementById('btn-buy'); // Şimdi doğru ID ile alıyoruz
             const descriptionSectionTitleEl = document.querySelector('.description-section h2');
             const variantSelectorLabelEl = document.getElementById('variant-selector-label');
 
@@ -565,7 +564,6 @@
 
                     const availableCountries = Object.keys(siteData.settings.countryPricing);
 
-                    // Ülke bilgisini localStorage'dan al, yoksa Firebase'den ilkini veya 'US' varsayılanını ata
                     if (!localStorage.getItem('pufemo-country') || !availableCountries.includes(localStorage.getItem('pufemo-country'))) {
                         if (availableCountries.length > 0) {
                             currentCountryCode = availableCountries[0];
@@ -577,13 +575,12 @@
                         currentCountryCode = localStorage.getItem('pufemo-country');
                     }
 
-                    // Seçili ülkeye göre dil ve para birimini ayarla
                     const selectedCountryData = siteData.settings.countryPricing[currentCountryCode];
                     if (selectedCountryData) {
                         if (selectedCountryData.defaultLanguage && typeof selectedCountryData.defaultLanguage === 'string' && selectedCountryData.defaultLanguage.length === 2) {
                             currentLang = selectedCountryData.defaultLanguage;
                         } else {
-                            currentLang = 'en'; // Ülke için varsayılan dil yoksa İngilizce
+                            currentLang = 'en';
                         }
 
                         const selectedCountryCurrencySymbol = selectedCountryData.currencySymbol;
@@ -594,16 +591,15 @@
                             if (currencyCodeFromSymbol) {
                                 currentCurrency = currencyCodeFromSymbol;
                             } else {
-                                currentCurrency = 'USD'; // Para birimi eşleşmezse USD
+                                currentCurrency = 'USD';
                             }
                         } else {
-                            currentCurrency = 'USD'; // Para birimi sembolü yoksa USD
+                            currentCurrency = 'USD';
                         }
 
                         localStorage.setItem('pufemo-language', currentLang);
                         localStorage.setItem('pufemo-currency', currentCurrency);
                     } else {
-                        // Seçilen ülke verisi yoksa genel varsayılanlara dön
                         currentLang = 'en';
                         currentCurrency = 'USD';
                         localStorage.setItem('pufemo-language', currentLang);
@@ -616,7 +612,6 @@
                     currentCurrency = 'USD';
                     localStorage.setItem('pufemo-language', currentLang);
                     localStorage.setItem('pufemo-currency', currentCurrency);
-                    // Hata durumunda da ülkeyi default olarak ayarla
                     if (!localStorage.getItem('pufemo-country')) {
                         localStorage.setItem('pufemo-country', 'US');
                         currentCountryCode = 'US';
@@ -624,7 +619,6 @@
                 }
             };
 
-            // Ülke değişimi ve sayfanın yeniden render edilmesi
             window.applyCountryAndRender = (countryCode) => {
                 currentCountryCode = countryCode;
                 localStorage.setItem('pufemo-country', currentCountryCode);
@@ -663,18 +657,15 @@
                 document.getElementById('country-selector').value = currentCountryCode;
             };
 
-            // Sayfadaki tüm elementleri render et
             const renderAll = () => {
                 renderStaticText();
                 setupControls();
                 renderCategories();
                 renderGeneralSiteElements();
-                // URL'den ürün ID'sini al, yoksa varsayılanı kullan
-                const defaultProductId = new URLSearchParams(window.location.search).get('id') || "your_default_product_id_here"; // Lütfen burayı Firebase'deki gerçek bir ürün ID'si ile DEĞİŞTİRİN!
+                const defaultProductId = new URLSearchParams(window.location.search).get('id') || "your_default_product_id_here";
                 loadProductDetails(defaultProductId);
             };
 
-            // Statik metinleri mevcut dile göre çevir
             const renderStaticText = () => {
                 document.documentElement.lang = currentLang;
                 const translate = (key) => staticTranslations[key]?.[currentLang] || staticTranslations[key]?.['en'] || staticTranslations[key]?.['tr'] || '';
@@ -690,13 +681,13 @@
                 document.getElementById('footer-copyright').innerHTML = translate('footer-copyright');
                 document.getElementById('country-selector-label').textContent = translate('country_selector_label');
 
-                btnCartEl.textContent = translate('add_to_cart_button');
-                btnBuyEl.textContent = translate('buy_now_button');
-                descriptionSectionTitleEl.textContent = translate('product_details_heading');
-                variantSelectorLabelEl.textContent = translate('variant_selection_label');
+                // Bu satırlar artık doğru ID'lere sahip olduğu için hata vermeyecek
+                if (btnCartEl) btnCartEl.textContent = translate('add_to_cart_button');
+                if (btnBuyEl) btnBuyEl.textContent = translate('buy_now_button');
+                if (descriptionSectionTitleEl) descriptionSectionTitleEl.textContent = translate('product_details_heading');
+                if (variantSelectorLabelEl) variantSelectorLabelEl.textContent = translate('variant_selection_label');
             };
 
-            // Genel site elementlerini (logo, promo bar) render et
             const renderGeneralSiteElements = () => {
                 const generalSettings = siteData.settings.general || {};
                 const logoLink = document.getElementById('main-logo-link');
@@ -737,7 +728,6 @@
                 }
             };
 
-            // Kategorileri render et
             const renderCategories = () => {
                 const desktopContainer = document.getElementById('category-menu-container');
                 const mobileContainer = document.getElementById('mobile-nav');
@@ -771,7 +761,6 @@
                 mobileContainer.appendChild(createMenu(categories));
             };
 
-            // Fiyat formatlama fonksiyonu
             const formatPrice = (basePrice, discountPrice = null) => {
                 const symbols = siteData.settings?.currencySymbols || {};
                 const selectedCountryData = siteData.settings.countryPricing[currentCountryCode];
@@ -797,7 +786,6 @@
                 return `${symbol} ${formattedPrice}`;
             };
 
-            // Ürün Detaylarını Yükleme Fonksiyonu
             const loadProductDetails = async (productId) => {
                 productTitleEl.textContent = staticTranslations['product_title_default'][currentLang];
                 productDescriptionEl.textContent = staticTranslations['product_description_loading'][currentLang];
@@ -861,15 +849,13 @@
 
                     const variants = data.variants || [];
                     
-                    // Varyant varsa etiketi göster, yoksa gizle
                     if (variants.length > 0) {
                         variantSelectorLabelEl.style.display = 'block';
                     } else {
                         variantSelectorLabelEl.style.display = 'none';
                     }
 
-                    // Mevcut varyant seçicilerini temizle, sadece label kalsın
-                    while (variantSelectorsEl.children.length > 1) { // İlk çocuk (label) hariç
+                    while (variantSelectorsEl.children.length > 1) {
                         variantSelectorsEl.removeChild(variantSelectorsEl.lastChild);
                     }
 
@@ -881,19 +867,16 @@
                             const colorCircleDiv = document.createElement('div');
                             colorCircleDiv.className = 'color-circle';
 
-                            // Varyantın ilk görselini kullan, yoksa bir placeholder
                             const variantImageUrl = variant.media?.[0]?.url || 'https://via.placeholder.com/60x60/cccccc/000000?text=NoImg';
                             const img = document.createElement('img');
                             img.src = variantImageUrl;
-                            // **BURADA DÜZELTME YAPILDI:** variant.colorName'i oku, yoksa unknown_color kullan
-                            img.alt = variant.colorName || staticTranslations['unknown_color'][currentLang];
+                            img.alt = variant.colorName || staticTranslations['unknown_color'][currentLang]; // colorName'i kullan
                             colorCircleDiv.appendChild(img);
 
                             const colorNameSpan = document.createElement('span');
                             colorNameSpan.className = 'color-name';
-                            // **BURADA DÜZELTME YAPILDI:** variant.colorName'i oku, yoksa unknown_color kullan
-                            colorNameSpan.textContent = variant.colorName || staticTranslations['unknown_color'][currentLang];
-                            colorOptionDiv.title = colorNameSpan.textContent; // Tooltip olarak da ekle
+                            colorNameSpan.textContent = variant.colorName || staticTranslations['unknown_color'][currentLang]; // colorName'i kullan
+                            colorOptionDiv.title = colorNameSpan.textContent;
 
                             if (index === 0) {
                                 colorCircleDiv.classList.add('active');
@@ -911,12 +894,12 @@
                             colorOptionDiv.appendChild(colorNameSpan);
                             variantSelectorsEl.appendChild(colorOptionDiv);
 
-                            if (index === 0) { // Sayfa yüklendiğinde ilk varyantın görsellerini göster
+                            if (index === 0) {
                                 setImages(variant.media);
                             }
                         });
                     } else {
-                        setImages(data.media); // Varyant yoksa ana medyadaki görselleri göster
+                        setImages(data.media);
                     }
 
                 } catch (error) {
@@ -926,7 +909,6 @@
                 }
             };
 
-            // Kontrol elementlerinin (dil, para birimi, hamburger menü) kurulumu
             const setupControls = () => {
                 const languageSelector = document.getElementById('language-selector');
                 const currencySelector = document.getElementById('currency-selector');
@@ -935,7 +917,6 @@
                 const mobileNav = document.getElementById('mobile-nav');
                 const mobileNavOverlay = document.getElementById('mobile-nav-overlay');
 
-                // Dil Seçimi
                 const languagesFromDB = siteData.settings.languages || [];
                 languageSelector.innerHTML = languagesFromDB.map(l => `<option value="${l.code}">${countryCodeToEmoji(l.flag)} ${l.name}</option>`).join('');
                 if (languagesFromDB.length > 0) {
@@ -945,7 +926,6 @@
                     languageSelector.style.display = 'none';
                 }
 
-                // Para Birimi Seçimi
                 const currencies = siteData.settings?.currencySymbols || {};
                 const availableCurrencies = Object.keys(currencies);
                 currencySelector.innerHTML = availableCurrencies.map(c => {
@@ -959,7 +939,6 @@
                     currencySelector.style.display = 'none';
                 }
 
-                // Ülke Seçimi
                 const countries = siteData.settings.countryPricing || {};
                 const countryOptionsHtml = Object.entries(countries).map(([code, data]) => {
                     const countryName = data.name?.[currentLang] || data.name?.['tr'] || code.toUpperCase();
@@ -974,7 +953,6 @@
                     countrySelector.parentElement.style.display = 'none';
                 }
 
-                // Event Listenerlar
                 languageSelector.onchange = (e) => {
                     currentLang = e.target.value;
                     localStorage.setItem('pufemo-language', currentLang);
@@ -991,7 +969,6 @@
                     window.applyCountryAndRender(e.target.value);
                 };
 
-                // Hamburger Menü İşlevselliği
                 const toggleMenu = () => {
                     hamburgerBtn.classList.toggle('open');
                     mobileNav.classList.toggle('open');
@@ -1003,15 +980,13 @@
                 mobileNav.onclick = (e) => { if (e.target.tagName === 'A') toggleMenu(); };
             };
 
-            // Sayfa Başlatma Fonksiyonu
             async function init() {
-                loadingOverlay.classList.remove('hidden'); // Yükleme ekranını göster
-                await fetchData(); // Verileri çek
-                renderAll(); // Tüm sayfa içeriğini render et
-                loadingOverlay.classList.add('hidden'); // Yükleme ekranını gizle
+                loadingOverlay.classList.remove('hidden');
+                await fetchData();
+                renderAll();
+                loadingOverlay.classList.add('hidden');
             }
 
-            // Sayfa yüklendiğinde init fonksiyonunu çağır
             init();
         }
     </script>
