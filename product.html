@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PUFEMO - Ürün Detay Sayfası</title>
+    <title>PUFEMO - Ürün Detay</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -589,6 +589,10 @@
             db = firebase.firestore();
         } catch (e) {
             console.error("Firebase başlatma hatası!", e);
+            // Firebase başlatılamazsa yükleme ekranını gizle ve hata mesajı göster
+            if (loadingOverlay) loadingOverlay.classList.add('hidden');
+            if (productTitleEl) productTitleEl.textContent = "Hata: Site yüklenemedi.";
+            if (productDescriptionEl) productDescriptionEl.textContent = "Lütfen internet bağlantınızı kontrol edin veya daha sonra tekrar deneyin.";
         }
 
         if (db) {
@@ -617,6 +621,7 @@
                 'country_selector_label': { tr: 'Ülke Seçimi:', en: 'Select Country:', el: 'Επιλέξτε Χώρα:', ru: 'Выбрать страну:' },
                 'product_title_default': { tr: 'Ürün Başlığı', en: 'Product Title', el: 'Τίτλος Προϊόντος', ru: 'Название продукта' },
                 'product_description_loading': { tr: 'Yükleniyor...', en: 'Loading...', el: 'Φορτώνεται...', ru: 'Загрузка...' },
+                'product_description_no_info': { tr: 'Bu ürün hakkında detaylı bilgi bulunmamaktadır.', en: 'No detailed information is available for this product.', el: 'Δεν υπάρχουν διαθέσιμες λεπτομέρειες για αυτό το προϊόν.', ru: 'Подробная информация об этом продукте отсутствует.' }, // Yeni çeviri eklendi
                 'product_not_found_title': { tr: 'Ürün Bulunamadı', en: 'Product Not Found', el: 'Το προϊόν δεν βρέθηκε', ru: 'Продукт не находится' },
                 'product_not_found_desc': { tr: 'Aradığınız ürün bulunamamaktadır.', en: 'The product you are looking for cannot be found.', el: 'Το προϊόν που αναζητάτε δεν μπορεί να βρεθεί.', ru: 'Искомый товар не найден.' },
                 'error_loading_product_title': { tr: 'Hata Oluştu', en: 'Error Occurred', el: 'Σφάλμα παρουσιάστηκε', ru: 'Произошла ошибка' },
@@ -669,7 +674,7 @@
             const totalPriceLabelEl = document.getElementById('total-price-label');
             const calculatedTotalPriceEl = document.getElementById('calculated-total-price');
 
-            let currentProductData = null; // Mevcut ürün verisini tutmak için
+            let currentProductData = null;
 
 
             const fetchData = async () => {
@@ -786,8 +791,13 @@
                 setupControls();
                 renderCategories();
                 renderGeneralSiteElements();
-                const defaultProductId = new URLSearchParams(window.location.search).get('id') || "your_default_product_id_here"; // Lütfen burayı Firebase'deki gerçek bir ürün ID'si ile DEĞİŞTİRİN!
-                loadProductDetails(defaultProductId);
+                const productId = new URLSearchParams(window.location.search).get('id'); // URL'den ID al
+                if (productId) {
+                    loadProductDetails(productId); // ID varsa o ürünü yükle
+                } else {
+                    // ID yoksa varsayılan bir ürün yükle veya hata mesajı göster
+                    loadProductDetails("your_default_product_id_here"); // Lütfen burayı Firebase'deki gerçek bir ürün ID'si ile DEĞİŞTİRİN!
+                }
             };
 
             const renderStaticText = () => {
@@ -958,32 +968,38 @@
 
 
             const loadProductDetails = async (productId) => {
+                // Başlangıçta metinleri ve toplamı "yükleniyor..." olarak ayarla
                 if (productTitleEl) productTitleEl.textContent = staticTranslations['product_title_default'][currentLang];
                 if (productDescriptionEl) productDescriptionEl.textContent = staticTranslations['product_description_loading'][currentLang];
                 
                 if (quantityInputEl) quantityInputEl.value = '1';
                 if (calculatedTotalPriceEl) calculatedTotalPriceEl.textContent = staticTranslations['product_description_loading'][currentLang];
 
+                // Butonları devre dışı bırak
+                if (decreaseQuantityBtn) decreaseQuantityBtn.disabled = true;
+                if (increaseQuantityBtn) increaseQuantityBtn.disabled = true;
+
+
                 try {
                     const doc = await db.collection("pufemo-products").doc(productId).get();
 
                     if (!doc.exists) {
+                        // Ürün bulunamazsa hata mesajlarını göster
                         if (productTitleEl) productTitleEl.textContent = staticTranslations['product_not_found_title'][currentLang];
                         if (productDescriptionEl) productDescriptionEl.textContent = staticTranslations['product_not_found_desc'][currentLang];
                         if (calculatedTotalPriceEl) calculatedTotalPriceEl.textContent = '';
-                        if (decreaseQuantityBtn) decreaseQuantityBtn.disabled = true;
-                        if (increaseQuantityBtn) increaseQuantityBtn.disabled = true;
                         return;
                     }
 
                     const data = doc.data();
                     currentProductData = data;
-                    // !!! BURADA DÜZELTME YAPILDI !!! Firebase yapınıza göre dil objesini alıyoruz.
-                    // Ekran görüntünüze göre "tr" veya "en" gibi alanlar doğrudan belgenin kök seviyesinde.
+                    // !!! BURADA KRİTİK DÜZELTME YAPILDI: Firebase yapısına göre dil objesini alıyoruz.
+                    // Ekran görüntünüzde "tr" veya "en" gibi alanlar doğrudan belgenin kök seviyesinde.
                     const productContent = data[currentLang] || data.tr || {}; 
 
                     if (productTitleEl) productTitleEl.textContent = productContent.name || staticTranslations['product_title_default'][currentLang];
-                    if (productDescriptionEl) productDescriptionEl.textContent = productContent.description || staticTranslations['product_description_loading'][currentLang];
+                    // !!! BURADA AÇIKLAMA İÇİN DÜZELTME YAPILDI !!! Eğer açıklama boşsa "no_info" metnini kullan
+                    if (productDescriptionEl) productDescriptionEl.textContent = productContent.description || staticTranslations['product_description_no_info'][currentLang];
 
                     const basePrice = data.basePriceTL || 0;
                     const discountedPrice = data.baseDiscountedPriceTL;
@@ -1115,7 +1131,7 @@
                                 variantImageUrl = variantFirstMedia.url;
                             } else if (variantFirstMedia && variantFirstMedia.type === 'video' && variantFirstMedia.thumbnailUrl) {
                                 variantImageUrl = variantFirstMedia.thumbnailUrl;
-                            } else if (variantFirstMedia && variantFirstMedia.url && !variantFirstMedia.url.endsWith('.mp4')) { // video değil ve url varsa
+                            } else if (variantFirstMedia && variantFirstMedia.url && !variantFirstMedia.url.endsWith('.mp4')) {
                                 variantImageUrl = variantFirstMedia.url;
                             }
                             
@@ -1156,12 +1172,17 @@
                     }
 
                     updateCalculatedTotalPrice(); // Ürün yüklendikten sonra toplam fiyatı güncelle
+                    // Ürün yüklendikten sonra adet butonlarını etkinleştir
+                    if (decreaseQuantityBtn) decreaseQuantityBtn.disabled = false;
+                    if (increaseQuantityBtn) increaseQuantityBtn.disabled = false;
+
 
                 } catch (error) {
                     console.error("Ürün verileri çekilirken bir hata oluştu:", error);
                     if (productTitleEl) productTitleEl.textContent = staticTranslations['error_loading_product_title'][currentLang];
                     if (productDescriptionEl) productDescriptionEl.textContent = staticTranslations['error_loading_product_desc'][currentLang];
                     if (calculatedTotalPriceEl) calculatedTotalPriceEl.textContent = '';
+                    // Hata durumunda adet butonlarını devre dışı bırak
                     if (decreaseQuantityBtn) decreaseQuantityBtn.disabled = true;
                     if (increaseQuantityBtn) increaseQuantityBtn.disabled = true;
                 }
@@ -1259,13 +1280,29 @@
             };
 
             async function init() {
-                loadingOverlay.classList.remove('hidden');
+                // Yükleme ekranını göster ve sayfa yüklenmeden önce dom referanslarını al
+                if (loadingOverlay) loadingOverlay.classList.remove('hidden');
+
+                // Firebase'den veri çekme ve render etme
                 await fetchData();
-                renderAll();
-                loadingOverlay.classList.add('hidden');
+                renderAll(); // Bu, loadProductDetails'ı çağıracak
+
+                // Her şey yüklendiğinde yükleme ekranını gizle
+                if (loadingOverlay) loadingOverlay.classList.add('hidden');
             }
 
+            // Sayfa yüklendiğinde init fonksiyonunu çağır
             init();
+        } else {
+            // Firebase başlatılamazsa (db objesi null ise)
+            if (loadingOverlay) loadingOverlay.classList.add('hidden'); // Yükleme ekranını gizle
+            if (productTitleEl) productTitleEl.textContent = "Hata: Site içeriği yüklenemedi.";
+            if (productDescriptionEl) productDescriptionEl.textContent = "Lütfen internet bağlantınızı kontrol edin veya daha sonra tekrar deneyin.";
+            // Butonları da devre dışı bırak
+            if (btnCartEl) btnCartEl.disabled = true;
+            if (btnBuyEl) btnBuyEl.disabled = true;
+            if (decreaseQuantityBtn) decreaseQuantityBtn.disabled = true;
+            if (increaseQuantityBtn) increaseQuantityBtn.disabled = true;
         }
     </script>
 </body>
