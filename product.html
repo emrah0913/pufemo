@@ -190,21 +190,44 @@
         .old-price { text-decoration: line-through; color: #888; font-size: 1.1rem; }
         .new-price { font-size: 1.6rem; font-weight: bold; color: var(--secondary-color); }
 
-        /* Adet Seçici Stilleri */
-        .quantity-selector {
+        /* Adet Seçici Stilleri - GÜNCELLEME: Butonlar eklendi */
+        .quantity-control {
             display: flex;
             align-items: center;
-            gap: 10px;
-            margin-top: 10px;
+            gap: 5px; /* Butonlar ve input arasındaki boşluk */
         }
-        .quantity-selector label {
+        .quantity-control .quantity-label {
             font-size: 1.1rem;
             font-weight: 600;
             color: var(--primary-color);
+            margin-right: 5px; /* Label ve input grubu arasındaki boşluk */
+        }
+        .quantity-button {
+            background-color: var(--primary-color);
+            color: var(--light-text-color);
+            border: none;
+            border-radius: 8px;
+            width: 35px; /* Kare butonlar */
+            height: 35px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.2rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            user-select: none; /* Metin seçimi engeller */
+        }
+        .quantity-button:hover {
+            background-color: #1a242f;
+        }
+        .quantity-button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
         }
         .quantity-input {
-            width: 80px; /* Genişliği ayarla */
-            padding: 8px 10px;
+            width: 60px; /* Daha dar input */
+            padding: 8px 5px; /* İç boşluk */
             border: 1px solid #ccc;
             border-radius: 8px;
             font-size: 1rem;
@@ -216,6 +239,7 @@
             -webkit-appearance: none; /* Chrome, Safari, Edge'de okları gizle */
             margin: 0;
         }
+
         /* Toplam Fiyat Stilleri */
         .total-price-display {
             display: flex;
@@ -384,13 +408,14 @@
                 font-size: 0.8rem;
             }
             /* Adet ve toplam için responsive */
-            .quantity-selector, .total-price-display {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 5px;
+            .quantity-control, .total-price-display {
+                flex-direction: row; /* Mobil'de yatay kalsın */
+                align-items: center;
+                justify-content: flex-start; /* Sola hizala */
+                gap: 10px;
             }
             .quantity-input {
-                width: 100px;
+                width: 60px;
             }
             .calculated-total-price {
                 font-size: 1.6rem;
@@ -489,9 +514,11 @@
             <div class="variant-selectors" id="variant-selectors">
                 <span class="variant-label" id="variant-selector-label">Renk Seçimi</span>
             </div>
-            <div class="quantity-selector">
+            <div class="quantity-control">
                 <label for="quantity-input" id="quantity-label">Adet:</label>
+                <button type="button" id="decrease-quantity" class="quantity-button">-</button>
                 <input type="number" id="quantity-input" class="quantity-input" value="1" min="1" max="99">
+                <button type="button" id="increase-quantity" class="quantity-button">+</button>
             </div>
             <div class="total-price-display">
                 <span class="total-price-label" id="total-price-label">Genel Toplam:</span>
@@ -598,8 +625,8 @@
                 'product_details_heading': { tr: 'Ürün Detayları', en: 'Product Details', el: 'Λεπτομέρειες προϊόντος', ru: 'Информация о продукте' },
                 'variant_selection_label': { tr: 'Renk Seçimi', en: 'Color Selection', el: 'Επιλογή Χρώματος', ru: 'Выбор цвета' },
                 'unknown_color': { tr: 'Bilinmeyen Renk', en: 'Unknown Color', el: 'Άγνωστο Χρώμα', ru: 'Неизвестный χρώμα' },
-                'quantity_label': { tr: 'Adet:', en: 'Quantity:', el: 'Ποσότητα:', ru: 'Количество:' }, // Yeni çeviri
-                'total_price_label': { tr: 'Genel Toplam:', en: 'Total:', el: 'Σύνολο:', ru: 'Итого:' } // Yeni çeviri
+                'quantity_label': { tr: 'Adet:', en: 'Quantity:', el: 'Ποσότητα:', ru: 'Количество:' },
+                'total_price_label': { tr: 'Genel Toplam:', en: 'Total:', el: 'Σύνολο:', ru: 'Итого:' }
             };
 
             const loadingOverlay = document.getElementById('loading-overlay');
@@ -634,13 +661,14 @@
             const descriptionSectionTitleEl = document.querySelector('.description-section h2');
             const variantSelectorLabelEl = document.getElementById('variant-selector-label');
 
-            // Yeni DOM element referansları
             const quantityInputEl = document.getElementById('quantity-input');
             const quantityLabelEl = document.getElementById('quantity-label');
+            const decreaseQuantityBtn = document.getElementById('decrease-quantity'); // Yeni buton referansı
+            const increaseQuantityBtn = document.getElementById('increase-quantity'); // Yeni buton referansı
             const totalPriceLabelEl = document.getElementById('total-price-label');
             const calculatedTotalPriceEl = document.getElementById('calculated-total-price');
 
-            let currentProductData = null; // Mevcut ürün verisini tutmak için
+            let currentProductData = null;
 
 
             const fetchData = async () => {
@@ -799,7 +827,6 @@
                 if (btnBuyEl) btnBuyEl.textContent = translate('buy_now_button');
                 if (descriptionSectionTitleEl) descriptionSectionTitleEl.textContent = translate('product_details_heading');
                 if (variantSelectorLabelEl) variantSelectorLabelEl.textContent = translate('variant_selection_label');
-                // Yeni çeviriler
                 if (quantityLabelEl) quantityLabelEl.textContent = translate('quantity_label');
                 if (totalPriceLabelEl) totalPriceLabelEl.textContent = translate('total_price_label');
             };
@@ -905,16 +932,27 @@
             const updateCalculatedTotalPrice = () => {
                 if (!currentProductData || !calculatedTotalPriceEl || !quantityInputEl) return;
 
-                const quantity = parseInt(quantityInputEl.value);
+                let quantity = parseInt(quantityInputEl.value);
+                const min = parseInt(quantityInputEl.min);
+                const max = parseInt(quantityInputEl.max);
+
+                // Adeti minimum ve maksimum sınırlar içinde tut
+                if (isNaN(quantity) || quantity < min) {
+                    quantity = min;
+                } else if (quantity > max) {
+                    quantity = max;
+                }
+                quantityInputEl.value = quantity; // Güncellenmiş adeti input'a yaz
+
+                // Butonların durumunu güncelle
+                if (decreaseQuantityBtn) decreaseQuantityBtn.disabled = (quantity === min);
+                if (increaseQuantityBtn) increaseQuantityBtn.disabled = (quantity === max);
+
+
                 const currentPrice = currentProductData.baseDiscountedPriceTL !== undefined && currentProductData.baseDiscountedPriceTL < currentProductData.basePriceTL
                     ? currentProductData.baseDiscountedPriceTL
                     : currentProductData.basePriceTL;
-
-                if (isNaN(quantity) || quantity < 1) {
-                    quantityInputEl.value = 1;
-                    return; // Fonksiyonu tekrar çağırabiliriz
-                }
-
+                
                 const totalPrice = currentPrice * quantity;
                 calculatedTotalPriceEl.textContent = formatPrice(totalPrice);
             };
@@ -924,10 +962,8 @@
                 if (productTitleEl) productTitleEl.textContent = staticTranslations['product_title_default'][currentLang];
                 if (productDescriptionEl) productDescriptionEl.textContent = staticTranslations['product_description_loading'][currentLang];
                 
-                // Adet ve genel toplamı varsayılan olarak sıfırla veya yükleniyor metni koy
-                if (quantityInputEl) quantityInputEl.value = '1';
+                if (quantityInputEl) quantityInputEl.value = '1'; // Ürün yüklenirken adeti 1'e sıfırla
                 if (calculatedTotalPriceEl) calculatedTotalPriceEl.textContent = staticTranslations['product_description_loading'][currentLang];
-
 
                 try {
                     const doc = await db.collection("pufemo-products").doc(productId).get();
@@ -935,12 +971,15 @@
                     if (!doc.exists) {
                         if (productTitleEl) productTitleEl.textContent = staticTranslations['product_not_found_title'][currentLang];
                         if (productDescriptionEl) productDescriptionEl.textContent = staticTranslations['product_not_found_desc'][currentLang];
-                        if (calculatedTotalPriceEl) calculatedTotalPriceEl.textContent = ''; // Ürün yoksa fiyatı boş bırak
+                        if (calculatedTotalPriceEl) calculatedTotalPriceEl.textContent = '';
+                        // Adet kontrol butonlarını da devre dışı bırak
+                        if (decreaseQuantityBtn) decreaseQuantityBtn.disabled = true;
+                        if (increaseQuantityBtn) increaseQuantityBtn.disabled = true;
                         return;
                     }
 
                     const data = doc.data();
-                    currentProductData = data; // Ürün verisini global değişkene ata
+                    currentProductData = data;
                     const productContent = data.content?.[currentLang] || data.content?.tr || {};
 
                     if (productTitleEl) productTitleEl.textContent = productContent.name || staticTranslations['product_title_default'][currentLang];
@@ -949,7 +988,7 @@
                     const basePrice = data.basePriceTL || 0;
                     const discountedPrice = data.baseDiscountedPriceTL;
 
-                    if (discountedPrice !== undefined && discountedPrice < basePrice) { // Undefined kontrolü eklendi
+                    if (discountedPrice !== undefined && discountedPrice < basePrice) {
                         if (productOldPriceEl) productOldPriceEl.textContent = formatPrice(basePrice);
                         if (productPriceEl) productPriceEl.textContent = formatPrice(basePrice, discountedPrice);
                     } else {
@@ -1123,7 +1162,9 @@
                     console.error("Ürün verileri çekilirken bir hata oluştu:", error);
                     if (productTitleEl) productTitleEl.textContent = staticTranslations['error_loading_product_title'][currentLang];
                     if (productDescriptionEl) productDescriptionEl.textContent = staticTranslations['error_loading_product_desc'][currentLang];
-                    if (calculatedTotalPriceEl) calculatedTotalPriceEl.textContent = ''; // Hata durumunda fiyatı boş bırak
+                    if (calculatedTotalPriceEl) calculatedTotalPriceEl.textContent = '';
+                    if (decreaseQuantityBtn) decreaseQuantityBtn.disabled = true;
+                    if (increaseQuantityBtn) increaseQuantityBtn.disabled = true;
                 }
             };
 
@@ -1193,16 +1234,28 @@
                     mobileNav.onclick = (e) => { if (e.target.tagName === 'A') toggleMenu(); };
                 }
 
-                // Adet inputu için event listener
+                // Adet inputu ve butonları için event listeners
                 if (quantityInputEl) {
-                    quantityInputEl.addEventListener('input', () => {
-                        // Negatif veya 0 olmamasını sağla
-                        let value = parseInt(quantityInputEl.value);
-                        if (isNaN(value) || value < 1) {
-                            value = 1;
+                    quantityInputEl.addEventListener('input', updateCalculatedTotalPrice); // Input değiştiğinde toplamı güncelle
+                }
+                if (decreaseQuantityBtn) {
+                    decreaseQuantityBtn.addEventListener('click', () => {
+                        let currentQuantity = parseInt(quantityInputEl.value);
+                        if (isNaN(currentQuantity)) currentQuantity = 1;
+                        if (currentQuantity > parseInt(quantityInputEl.min)) {
+                            quantityInputEl.value = currentQuantity - 1;
+                            updateCalculatedTotalPrice();
                         }
-                        quantityInputEl.value = value;
-                        updateCalculatedTotalPrice();
+                    });
+                }
+                if (increaseQuantityBtn) {
+                    increaseQuantityBtn.addEventListener('click', () => {
+                        let currentQuantity = parseInt(quantityInputEl.value);
+                        if (isNaN(currentQuantity)) currentQuantity = 1;
+                        if (currentQuantity < parseInt(quantityInputEl.max)) {
+                            quantityInputEl.value = currentQuantity + 1;
+                            updateCalculatedTotalPrice();
+                        }
                     });
                 }
             };
