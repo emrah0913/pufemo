@@ -140,12 +140,13 @@
         }
 
         .thumbnail-row {
-            display: flex;
+            display: grid; /* Flex yerine Grid kullanıyoruz */
+            grid-template-columns: repeat(auto-fit, minmax(60px, 1fr)); /* Her satırda 60px genişliğinde, mümkün olduğunca çok resim */
             gap: 5px;
-            overflow-x: auto;
-            justify-content: flex-start;
+            justify-items: center; /* Resimleri grid içinde ortala */
             padding-top: 10px;
-            -webkit-overflow-scrolling: touch; /* iOS'ta daha akıcı kaydırma */
+            /* overflow-x: auto; kaldırıldı, çünkü artık yatay kaydırma olmayacak */
+            /* -webkit-overflow-scrolling: touch; kaldırıldı */
         }
 
         .thumbnail-row .thumbnail-item {
@@ -596,7 +597,10 @@
                 gap: 15px;
             }
             .image-gallery .main-media { border-radius: 8px; }
-            .thumbnail-row { justify-content: center; }
+            .thumbnail-row {
+                grid-template-columns: repeat(auto-fit, minmax(45px, 1fr)); /* Mobil için daha küçük resimler */
+                gap: 5px;
+            }
             .thumbnail-row .thumbnail-item { width: 45px; height: 45px; border-radius: 5px; }
             .details h1 { font-size: 1.6rem; }
             .new-price { font-size: 1.2rem; }
@@ -1379,16 +1383,12 @@
                         }
                         
                         // `currentProductData` nesnesinin fiyat ve kargo özelliklerini güncel varyanta göre ayarla
-                        // Bu, adet kontrolünün doğru çalışması için kritik.
                         currentProductData.basePriceTL = basePriceForVariant;
                         currentProductData.baseDiscountedPriceTL = discountedPriceForVariant;
-                        currentProductData.isFreeShipping = isFreeShippingForVariant;
-                        
-                        // Total fiyatı da güncel varyant fiyatlarına göre yeniden hesapla
-                        updateCalculatedTotalPrice();
+                        currentProductData.isFreeShipping = (variant.isFreeShipping || data.isFreeShipping);
 
-                        // Sayfayı yukarı kaydır (ürün detaylarına)
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                        updateCalculatedTotalPrice(); // Yeni fiyatlara göre toplamı güncelle
+                        window.scrollTo({ top: 0, behavior: 'smooth' }); // Sayfayı yukarı kaydır (ürün detaylarına)
                     };
 
                     relatedVariantsGridEl.appendChild(card);
