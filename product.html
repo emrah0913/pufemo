@@ -683,10 +683,10 @@
 <body>
     <div id="welcomeModalOverlay" class="welcome-modal-overlay">
         <div class="welcome-modal-content">
-            <h2 id="welcome-modal-title">Welcome!</h2>
-            <p id="welcome-modal-message">Please select your country below.</p>
+            <h2 id="welcome-modal-title"></h2>
+            <p id="welcome-modal-message"></p>
             <select id="welcomeCountrySelect" class="control-select"></select>
-            <button id="welcomeModalConfirmButton">Continue</button>
+            <button id="welcomeModalConfirmButton" class="btn"></button>
         </div>
     </div>
 
@@ -696,7 +696,7 @@
 
     <div id="loading-overlay" class="loading-overlay">
         <i class="fa-solid fa-couch fa-bounce" style="font-size: 3rem;"></i>
-        <p>PUFEMO Yükleniyor...</p>
+        <p id="loading-text"></p>
     </div>
 
     <div id="mobile-nav-overlay" class="mobile-nav-overlay"></div>
@@ -711,7 +711,9 @@
             <div class="header-controls">
                 <select id="language-selector" class="control-select"></select>
                 <select id="currency-selector" class="control-select"></select>
-                <a href="cart.html" class="cart-icon"><i class="fa-solid fa-cart-shopping"></i><span class="cart-badge">0</span></a>
+                <a href="cart.html" class="cart-icon" id="cart-page-link" title="">
+                    <i class="fa-solid fa-cart-shopping"></i><span class="cart-badge">0</span>
+                </a>
             </div>
         </div>
     </header>
@@ -727,45 +729,45 @@
         </div>
 
         <div class="details">
-            <h1 id="product-title">Ürün Başlığı</h1>
+            <h1 id="product-title"></h1>
             <div class="price">
                 <span class="old-price" id="product-old-price"></span>
                 <span class="new-price" id="product-price"></span>
             </div>
             
             <div class="variant-section">
-                <span class="variant-title" id="variant-selector-label">Renk Seçimi</span>
+                <span class="variant-title" id="variant-selector-label"></span>
                 <div class="variant-selectors" id="variant-selectors">
-                    </div>
+                </div>
             </div>
             <div class="quantity-control">
-                <label for="quantity-input" id="quantity-label">Adet:</label>
+                <label for="quantity-input" id="quantity-label"></label>
                 <button type="button" id="decrease-quantity" class="quantity-button">-</button>
                 <input type="number" id="quantity-input" class="quantity-input" value="1" min="1" max="99">
                 <button type="button" id="increase-quantity" class="quantity-button">+</button>
             </div>
             <div class="total-price-display">
-                <span class="total-price-label" id="total-price-label">Genel Toplam:</span>
+                <span class="total-price-label" id="total-price-label"></span>
                 <span class="calculated-total-price" id="calculated-total-price"></span>
             </div>
             <div class="actions">
-                <button class="btn btn-cart">Sepete Ekle</button>
-                <button class="btn btn-buy" id="btn-buy">Satın Al</button>
+                <button class="btn btn-cart" id="btn-cart"></button>
+                <button class="btn btn-buy" id="btn-buy"></button>
             </div>
-            <div id="free-shipping" class="free-shipping" style="display:none;">Ücretsiz Kargo</div>
+            <div id="free-shipping" class="free-shipping" style="display:none;"></div>
         </div>
     </main>
 
     <div class="description-section">
-        <h2>Ürün Detayları</h2>
-        <p id="product-description">Yükleniyor...</p>
+        <h2 id="product-details-heading"></h2>
+        <p id="product-description"></p>
     </div>
 
     <section class="related-variants-section">
         <div class="container">
-            <h2 id="related-variants-title">Diğer Renk Varyantları</h2>
+            <h2 id="related-variants-title"></h2>
             <div class="related-variants-grid" id="related-variants-grid">
-                </div>
+            </div>
         </div>
     </section>
 
@@ -795,7 +797,7 @@
             </div>
 
             <div class="country-selector-container">
-                <label for="country-selector" id="country-selector-label">Ülke Seçimi:</label>
+                <label for="country-selector" id="country-selector-label"></label>
                 <select id="country-selector" class="control-select"></select>
             </div>
 
@@ -824,8 +826,9 @@
         } catch (e) {
             console.error("Firebase başlatma hatası!", e);
             if (document.getElementById('loading-overlay')) document.getElementById('loading-overlay').classList.add('hidden');
-            if (document.getElementById('product-title')) document.getElementById('product-title').textContent = "Hata: Ürün yüklenemedi!";
-            if (document.getElementById('product-description')) document.getElementById('product-description').textContent = "Lütfen internet bağlantınızı kontrol edin veya daha sonra tekrar deneyin.";
+            // Hata durumunda statik metinlerin varsayılan dilinde görünmesini sağla
+            if (document.getElementById('product-title')) document.getElementById('product-title').textContent = staticTranslations['error_loading_product_title']['tr'];
+            if (document.getElementById('product-description')) document.getElementById('product-description').textContent = staticTranslations['error_loading_product_desc']['tr'];
             if (document.getElementById('btn-cart')) document.getElementById('btn-cart').disabled = true;
             if (document.getElementById('btn-buy')) document.getElementById('btn-buy').disabled = true;
             if (document.getElementById('decrease-quantity')) document.getElementById('decrease-quantity').disabled = true;
@@ -844,38 +847,312 @@
             }
 
             // Statik Çeviriler ve Metinler
+            // BURAYA YUKARIDAKİ GENİŞLETİLMİŞ staticTranslations OBJESİNİ YAPIŞTIRIN
             const staticTranslations = {
-                'loading_text': { tr: 'PUFEMO Yükleniyor...', en: 'Loading PUFEMO...', el: 'Φόρτωση PUFEMO...', ru: 'Загрузка PUFEMO...' },
-                'mobile_menu_title': { tr: 'Kategoriler', en: 'Categories', el: 'Κατηγορίες', ru: 'Категории' },
-                'footer-title-pufemo': { tr: 'PUFEMO', en: 'PUFEMO', el: 'PUFEMO', ru: 'ПУΦΕΜΟ' },
-                'footer-desc-pufemo': { tr: 'Hayallerinizdeki konforu ve estetiği evinize taşıyoruz.', en: 'We bring the comfort and aesthetics of your dreams to your home.', el: 'Φέρνουμε την άνεση και την αισθητική των ονείρων σας στο σπίτι σας.', ru: 'Мы приносим комфорт и эстетику в ваш дом.' },
-                'footer-title-fast-links': { tr: 'Hızlı Bağlantılar', en: 'Quick Links', el: 'Γρήγοροι Σύνδεσμοι', ru: 'Быстрые ссылки' },
-                'footer-link-about': { tr: 'Hakkımızda', en: 'About Us', el: 'Σχετικά με εμάς', ru: 'О нас' },
-                'footer-link-contact': { tr: 'İletişim', en: 'Contact', el: 'Επικοινωνία', ru: 'Контакт' },
-                'footer-link-privacy': { tr: 'Gizlilik Politikası', en: 'Privacy Policy', el: 'Πολιτική Απορρήτου', ru: 'Политика конфиденциальности' },
-                'footer-title-follow-us': { tr: 'Bizi Takip Edin', en: 'Follow Us', el: 'Ακολουθήστε μας', ru: 'Следите за нами' },
-                'footer-copyright': { tr: '&copy; 2025 PUFEMO.COM | Tüm Hakları Saklıdır.', en: '&copy; 2025 PUFEMO.COM | All Rights Reserved.', el: '&copy; 2025 PUFEMO.COM | Με την επιφύλαξη παντός δικαιώματος.', ru: '&copy; 2025 PUFEMO.COM | Все права защищены.' },
-                'country_selector_label': { tr: 'Ülke Seçimi:', en: 'Select Country:', el: 'Επιλέξτε Χώρα:', ru: 'Выбрать страну:' },
-                'product_title_default': { tr: 'Ürün Başlığı', en: 'Product Title', el: 'Τίτλος Προϊόντος', ru: 'Название продукта' },
-                'product_description_loading': { tr: 'Yükleniyor...', en: 'Loading...', el: 'Φορτώνεται...', ru: 'Загрузка...' },
-                'product_description_no_info': { tr: 'Bu ürün hakkında detaylı bilgi bulunmamaktadır.', en: 'No detailed information is available for this product.', el: 'Δεν υπάρχουν διαθέσιμες λεπτομέreileri για αυτό το προϊόν.', ru: 'Подробная информация об этом продукте отсутствует.' },
-                'product_not_found_title': { tr: 'Ürün Bulunamadı', en: 'Product Not Found', el: 'Το προϊόν δεν βρέθηκε', ru: 'Продукт не находится' },
-                'product_not_found_desc': { tr: 'Aradığınız ürün bulunamamaktadır.', en: 'The product you are looking for cannot be found.', el: 'Το προϊόν που αναζητάiniz cannot be found.', ru: 'Искомый товар не найден.' },
-                'error_loading_product_title': { tr: 'Hata Oluştu', en: 'Error Occurred', el: 'Σφάλμα παρουσιάστηκε', ru: 'Произошла ошибка' },
-                'error_loading_product_desc': { tr: 'Ürün bilgileri yüklenemedi. Lütfen daha sonra tekrar deneyin.', en: 'Product information could not be loaded. Please try again later.', el: 'Δεν ήταν δυνατή η φόρτωση των πληροφοριών προϊόντος. Παρακαλώ δοκιμάστε ξανά αργότερα.', ru: 'Не удалось загрузить информацию о товаре. Пожалуйста, попробуйте еще раз позже.' },
-                'add_to_cart_button': { tr: 'Sepete Ekle', en: 'Add to Cart', el: 'Προσθήκη στο καλάθι', ru: 'Добавить в корзина' },
-                'buy_now_button': { tr: 'Satın Al', en: 'Buy Now', el: 'Αγορά τώρα', ru: 'Купить сейчас' },
-                'product_details_heading': { tr: 'Ürün Detayları', en: 'Product Details', el: 'Λεπτομέρειες προϊόντος', ru: 'Информация о продукте' },
-                'variant_selection_label': { tr: 'Renk Seçimi', en: 'Color Selection', el: 'Επιλογή Χρώματος', ru: 'Выбор цвета' },
-                'unknown_color': { tr: 'Bilinmeyen Renk', en: 'Unknown Color', el: 'Άγνωστο Χρώμα', ru: 'Неизвестный χρώμα' },
-                'quantity_label': { tr: 'Adet:', en: 'Quantity:', el: 'Ποσότητα:', ru: 'Количество:' },
-                'total_price_label': { tr: 'Genel Toplam:', en: 'Total:', el: 'Σύνολο:', ru: 'Итого:' },
-                'description_not_found_fallback': { tr: 'Açıklama bulunamadı.', en: 'Description not found.', el: 'Περιγραφή δεν βρέθηκε.', ru: 'Описание не найдено.' },
-                'related_products_title': { tr: 'Benzer Ürünler', en: 'Related Products', el: 'Σχετικά Προϊόντα', ru: 'Похожие товары' },
-                'free_shipping_tag': { tr: 'Ücretsiz Kargo', en: 'Free Shipping', el: 'Δωρεάν Αποστολή', ru: 'Бесплатная доставка' }
+                'loading_text': {
+                    tr: 'PUFEMO Yükleniyor...',
+                    en: 'Loading PUFEMO...',
+                    el: 'Φόρτωση PUFEMO...',
+                    ru: 'Загрузка PUFEMO...',
+                    de: 'PUFEMO wird geladen...',
+                    fr: 'Chargement de PUFEMO...',
+                    it: 'Caricamento PUFEMO...'
+                },
+                'mobile_menu_title': {
+                    tr: 'Kategoriler',
+                    en: 'Categories',
+                    el: 'Κατηγορίες',
+                    ru: 'Категории',
+                    de: 'Kategorien',
+                    fr: 'Catégories',
+                    it: 'Categorie'
+                },
+                'footer-title-pufemo': {
+                    tr: 'PUFEMO',
+                    en: 'PUFEMO',
+                    el: 'PUFEMO',
+                    ru: 'ПУΦΕΜΟ',
+                    de: 'PUFEMO',
+                    fr: 'PUFEMO',
+                    it: 'PUFEMO'
+                },
+                'footer-desc-pufemo': {
+                    tr: 'Hayallerinizdeki konforu ve estetiği evinize taşıyoruz.',
+                    en: 'We bring the comfort and aesthetics of your dreams to your home.',
+                    el: 'Φέρνουμε την άνεση και την αισθητική των ονείρων σας στο σπίτι σας.',
+                    ru: 'Мы приносим комфорт и эстетику в ваш дом.',
+                    de: 'Wir bringen den Komfort und die Ästhetik Ihrer Träume in Ihr Zuhause.',
+                    fr: 'Nous apportons le confort et l\'esthétique de vos rêves à votre maison.',
+                    it: 'Portiamo il comfort e l\'estetica dei vostri sogni nella vostra casa.'
+                },
+                'footer-title-fast-links': {
+                    tr: 'Hızlı Bağlantılar',
+                    en: 'Quick Links',
+                    el: 'Γρήγοροι Σύνδεσμοι',
+                    ru: 'Быстрые ссылки',
+                    de: 'Schnelllinks',
+                    fr: 'Liens Rapides',
+                    it: 'Link Veloci'
+                },
+                'footer-link-about': {
+                    tr: 'Hakkımızda',
+                    en: 'About Us',
+                    el: 'Σχετικά με εμάς',
+                    ru: 'О нас',
+                    de: 'Über Uns',
+                    fr: 'À Propos',
+                    it: 'Chi Siamo'
+                },
+                'footer-link-contact': {
+                    tr: 'İletişim',
+                    en: 'Contact',
+                    el: 'Επικοινωνία',
+                    ru: 'Контакт',
+                    de: 'Kontakt',
+                    fr: 'Contact',
+                    it: 'Contatti'
+                },
+                'footer-link-privacy': {
+                    tr: 'Gizlilik Politikası',
+                    en: 'Privacy Policy',
+                    el: 'Πολιτική Απορρήτου',
+                    ru: 'Политика конфиденциальности',
+                    de: 'Datenschutzbestimmungen',
+                    fr: 'Politique de Confidentialité',
+                    it: 'Informativa sulla Privacy'
+                },
+                'footer-title-follow-us': {
+                    tr: 'Bizi Takip Edin',
+                    en: 'Follow Us',
+                    el: 'Ακολουθήστε μας',
+                    ru: 'Следите за нами',
+                    de: 'Folgen Sie Uns',
+                    fr: 'Suivez-nous',
+                    it: 'Seguici'
+                },
+                'footer-copyright': {
+                    tr: '&copy; 2025 PUFEMO.COM | Tüm Hakları Saklıdır.',
+                    en: '&copy; 2025 PUFEMO.COM | All Rights Reserved.',
+                    el: '&copy; 2025 PUFEMO.COM | Με την επιφύλαξη παντός δικαιώματος.',
+                    ru: '&copy; 2025 PUFEMO.COM | Все права защищены.',
+                    de: '&copy; 2025 PUFEMO.COM | Alle Rechte vorbehalten.',
+                    fr: '&copy; 2025 PUFEMO.COM | Tous droits réservés.',
+                    it: '&copy; 2025 PUFEMO.COM | Tutti i diritti riservati.'
+                },
+                'country_selector_label': {
+                    tr: 'Ülke Seçimi:',
+                    en: 'Select Country:',
+                    el: 'Επιλέξτε Χώρα:',
+                    ru: 'Выбрать страну:',
+                    de: 'Land auswählen:',
+                    fr: 'Sélectionner le pays :',
+                    it: 'Seleziona Paese:'
+                },
+                'product_title_default': {
+                    tr: 'Ürün Başlığı',
+                    en: 'Product Title',
+                    el: 'Τίτλος Προϊόντος',
+                    ru: 'Название продукта',
+                    de: 'Produkttitel',
+                    fr: 'Titre du Produit',
+                    it: 'Titolo Prodotto'
+                },
+                'product_description_loading': {
+                    tr: 'Yükleniyor...',
+                    en: 'Loading...',
+                    el: 'Φορτώνεται...',
+                    ru: 'Загрузка...',
+                    de: 'Wird geladen...',
+                    fr: 'Chargement...',
+                    it: 'Caricamento...'
+                },
+                'product_description_no_info': {
+                    tr: 'Bu ürün hakkında detaylı bilgi bulunmamaktadır.',
+                    en: 'No detailed information is available for this product.',
+                    el: 'Δεν υπάρχουν διαθέσιμες λεπτομέρειες για αυτό το προϊόν.',
+                    ru: 'Подробная информация об этом продукте отсутствует.',
+                    de: 'Keine detaillierten Informationen zu diesem Produkt verfügbar.',
+                    fr: 'Aucune information détaillée n\'est disponible pour ce prodotto.',
+                    it: 'Nessuna informazione dettagliata disponibile per questo prodotto.'
+                },
+                'product_not_found_title': {
+                    tr: 'Ürün Bulunamadı',
+                    en: 'Product Not Found',
+                    el: 'Το προϊόν δεν βρέθηκε',
+                    ru: 'Продукт не найден',
+                    de: 'Produkt nicht gefunden',
+                    fr: 'Produit non trouvé',
+                    it: 'Prodotto non trovato'
+                },
+                'product_not_found_desc': {
+                    tr: 'Aradığınız ürün bulunamamaktadır.',
+                    en: 'The product you are looking for cannot be found.',
+                    el: 'Το προϊόν που αναζητάτε δεν μπορεί να βρεθεί.',
+                    ru: 'Искомый товар не найден.',
+                    de: 'Das gesuchte Produkt konnte nicht gefunden werden.',
+                    fr: 'Le produit que vous recherchez est introuvable.',
+                    it: 'Il prodotto che stai cercando non è stato trovato.'
+                },
+                'error_loading_product_title': {
+                    tr: 'Hata Oluştu',
+                    en: 'Error Occurred',
+                    el: 'Σφάλμα παρουσιάστηκε',
+                    ru: 'Произошла ошибка',
+                    de: 'Fehler aufgetreten',
+                    fr: 'Erreur survenue',
+                    it: 'Si è verificato un errore'
+                },
+                'error_loading_product_desc': {
+                    tr: 'Ürün bilgileri yüklenemedi. Lütfen daha sonra tekrar deneyin.',
+                    en: 'Product information could not be loaded. Please try again later.',
+                    el: 'Δεν ήταν δυνατή η φόρτωση των πληροφοριών προϊόντος. Παρακαλώ δοκιμάστε ξανά αργότερα.',
+                    ru: 'Не удалось загрузить информацию о товаре. Пожалуйста, попробуйте еще раз позже.',
+                    de: 'Produktinformationen konnten nicht geladen werden. Bitte versuchen Sie es später erneut.',
+                    fr: 'Les informations sur le produit n\'ont pas pu être chargées. Veuillez réessayer plus tard.',
+                    it: 'Impossibile caricare le informazioni sul prodotto. Si prega di riprovare più tardi.'
+                },
+                'add_to_cart_button': {
+                    tr: 'Sepete Ekle',
+                    en: 'Add to Cart',
+                    el: 'Προσθήκη στο καλάθι',
+                    ru: 'Добавить в корзину',
+                    de: 'In den Warenkorb',
+                    fr: 'Ajouter au panier',
+                    it: 'Aggiungi al carrello'
+                },
+                'buy_now_button': {
+                    tr: 'Satın Al',
+                    en: 'Buy Now',
+                    el: 'Αγορά τώρα',
+                    ru: 'Купить сейчас',
+                    de: 'Jetzt kaufen',
+                    fr: 'Acheter maintenant',
+                    it: 'Acquista ora'
+                },
+                'product_details_heading': {
+                    tr: 'Ürün Detayları',
+                    en: 'Product Details',
+                    el: 'Λεπτομέρειες προϊόντος',
+                    ru: 'Информация о продукте',
+                    de: 'Produktdetails',
+                    fr: 'Détails du Produit',
+                    it: 'Dettagli Prodotto'
+                },
+                'variant_selection_label': {
+                    tr: 'Renk Seçimi',
+                    en: 'Color Selection',
+                    el: 'Επιλογή Χρώματος',
+                    ru: 'Выбор цвета',
+                    de: 'Farbauswahl',
+                    fr: 'Sélection de couleur',
+                    it: 'Selezione Colore'
+                },
+                'unknown_color': {
+                    tr: 'Bilinmeyen Renk',
+                    en: 'Unknown Color',
+                    el: 'Άγνωστο Χρώμα',
+                    ru: 'Неизвестный цвет',
+                    de: 'Unbekannte Farbe',
+                    fr: 'Couleur inconnue',
+                    it: 'Colore sconosciuto'
+                },
+                'quantity_label': {
+                    tr: 'Adet:',
+                    en: 'Quantity:',
+                    el: 'Ποσότητα:',
+                    ru: 'Количество:',
+                    de: 'Menge:',
+                    fr: 'Quantité :',
+                    it: 'Quantità:'
+                },
+                'total_price_label': {
+                    tr: 'Genel Toplam:',
+                    en: 'Total:',
+                    el: 'Σύνολο:',
+                    ru: 'Итого:',
+                    de: 'Gesamt:',
+                    fr: 'Total :',
+                    it: 'Totale:'
+                },
+                'description_not_found_fallback': {
+                    tr: 'Açıklama bulunamadı.',
+                    en: 'Description not found.',
+                    el: 'Περιγραφή δεν βρέθηκε.',
+                    ru: 'Описание не найдено.',
+                    de: 'Beschreibung nicht gefunden.',
+                    fr: 'Description introuvable.',
+                    it: 'Descrizione non trovata.'
+                },
+                'related_products_title': {
+                    tr: 'Diğer Renk Varyantları',
+                    en: 'Other Color Variants',
+                    el: 'Άλλες Παραλλαγές Χρωμάτων',
+                    ru: 'Другие цветовые варианты',
+                    de: 'Andere Farbvarianten',
+                    fr: 'Autres Variantes de Couleur',
+                    it: 'Altre Varianti di Colore'
+                },
+                'free_shipping_tag': {
+                    tr: 'Ücretsiz Kargo',
+                    en: 'Free Shipping',
+                    el: 'Δωρεάν Αποστολή',
+                    ru: 'Бесплатная доставка',
+                    de: 'Kostenloser Versand',
+                    fr: 'Livraison Gratuite',
+                    it: 'Spedizione Gratuita'
+                },
+                'welcome_modal_title': {
+                    tr: 'Hoş Geldiniz!',
+                    en: 'Welcome!',
+                    el: 'Καλώς ήρθατε!',
+                    ru: 'Добро пожаловать!',
+                    de: 'Willkommen!',
+                    fr: 'Bienvenue !',
+                    it: 'Benvenuto!'
+                },
+                'welcome_modal_message': {
+                    tr: 'Lütfen ülkenizi seçin.',
+                    en: 'Please select your country below.',
+                    el: 'Παρακαλώ επιλέξτε τη χώρα σας παρακάτω.',
+                    ru: 'Пожалуйста, выберите свою страну ниже.',
+                    de: 'Bitte wählen Sie Ihr Land unten aus.',
+                    fr: 'Veuillez sélectionner votre pays ci-dessous.',
+                    it: 'Seleziona il tuo paese qui sotto.'
+                },
+                'welcome_modal_confirm_button': {
+                    tr: 'Devam Et',
+                    en: 'Continue',
+                    el: 'Συνέχεια',
+                    ru: 'Продолжить',
+                    de: 'Weiter',
+                    fr: 'Continuer',
+                    it: 'Continua'
+                },
+                'promo_bar_text': {
+                    tr: 'Ücretsiz Kargo Fırsatını Kaçırmayın!',
+                    en: 'Don\'t Miss Free Shipping!',
+                    el: 'Μην χάσετε τη δωρεάν αποστολή!',
+                    ru: 'Не пропустите бесплатную доставку!',
+                    de: 'Verpassen Sie nicht den kostenlosen Versand!',
+                    fr: 'Ne manquez pas la livraison gratuite !',
+                    it: 'Non perdere la spedizione gratuita!'
+                },
+                'cart_page_link_title': {
+                    tr: 'Sepetim',
+                    en: 'My Cart',
+                    el: 'Το καλάθι μου',
+                    ru: 'Моя корзина',
+                    de: 'Mein Warenkorb',
+                    fr: 'Mon Panier',
+                    it: 'Il mio Carrello'
+                }
             };
 
+
             const loadingOverlay = document.getElementById('loading-overlay');
+            // Yeni çeviri için 'loading-text' id'li p elementini tanımla
+            const loadingTextP = document.getElementById('loading-text');
+
             let siteData = {
                 settings: {
                     languages: [],
@@ -901,13 +1178,19 @@
             const productDescriptionEl = document.getElementById("product-description");
             const promoBarEl = document.querySelector('.promo-bar');
             const promoTextContentEl = document.getElementById('promo-text-content');
-            const btnCartEl = document.querySelector('.btn-cart');
+            const btnCartEl = document.getElementById('btn-cart'); // Updated to use ID
             const btnBuyEl = document.getElementById('btn-buy');
-            const descriptionSectionTitleEl = document.querySelector('.description-section h2');
-
+            const productDetailsHeadingEl = document.getElementById('product-details-heading'); // Updated ID
+            
             // Yeni tanımlanan referanslar
+            const welcomeModalTitleEl = document.getElementById('welcome-modal-title'); // Yeni
+            const welcomeModalMessageEl = document.getElementById('welcome-modal-message'); // Yeni
+            const welcomeModalConfirmButtonEl = document.getElementById('welcomeModalConfirmButton'); // Yeni
+            const cartPageLinkEl = document.getElementById('cart-page-link'); // Yeni
+
+
             const variantSectionEl = document.querySelector('.variant-section');
-            const variantTitleEl = document.querySelector('.variant-title');
+            const variantTitleEl = document.getElementById('variant-selector-label'); // Updated ID
             const variantSelectorsEl = document.getElementById('variant-selectors');
 
             const quantityInputEl = document.getElementById('quantity-input');
@@ -1061,9 +1344,13 @@
                 document.documentElement.lang = currentLang;
                 const translate = (key) => staticTranslations[key]?.[currentLang] || staticTranslations[key]?.['en'] || staticTranslations[key]?.['tr'] || '';
 
-                const loadingOverlayP = document.querySelector('#loading-overlay p');
-                if (loadingOverlayP) loadingOverlayP.textContent = translate('loading_text');
+                if (loadingTextP) loadingTextP.textContent = translate('loading_text');
                 
+                // Yeni eklenen modal metinleri
+                if (welcomeModalTitleEl) welcomeModalTitleEl.textContent = translate('welcome_modal_title');
+                if (welcomeModalMessageEl) welcomeModalMessageEl.textContent = translate('welcome_modal_message');
+                if (welcomeModalConfirmButtonEl) welcomeModalConfirmButtonEl.textContent = translate('welcome_modal_confirm_button');
+
                 const footerTitlePufemo = document.getElementById('footer-title-pufemo');
                 if (footerTitlePufemo) footerTitlePufemo.textContent = translate('footer-title-pufemo');
 
@@ -1093,11 +1380,14 @@
 
                 if (btnCartEl) btnCartEl.textContent = translate('add_to_cart_button');
                 if (btnBuyEl) btnBuyEl.textContent = translate('buy_now_button');
-                if (descriptionSectionTitleEl) descriptionSectionTitleEl.textContent = translate('product_details_heading');
+                if (productDetailsHeadingEl) productDetailsHeadingEl.textContent = translate('product_details_heading');
                 if (variantTitleEl) variantTitleEl.textContent = translate('variant_selection_label');
                 if (quantityLabelEl) quantityLabelEl.textContent = translate('quantity_label');
                 if (totalPriceLabelEl) totalPriceLabelEl.textContent = translate('total_price_label');
                 if (relatedVariantsTitleEl) relatedVariantsTitleEl.textContent = translate('related_products_title');
+                if (freeShippingEl) freeShippingEl.textContent = translate('free_shipping_tag'); // Moved here for translation
+
+                if (cartPageLinkEl) cartPageLinkEl.title = translate('cart_page_link_title'); // Set title for cart link
             };
 
             const renderGeneralSiteElements = () => {
@@ -1134,7 +1424,7 @@
                     const scrollSpeed = generalSettings.promoBar?.scrollSpeed || '20s';
                     promoTextContent.style.animationDuration = scrollSpeed;
 
-                    const promoText = generalSettings.promoBar?.text?.[currentLang] || staticTranslations['free_shipping_promo'][currentLang] || staticTranslations['free_shipping_promo']['tr'];
+                    const promoText = generalSettings.promoBar?.text?.[currentLang] || staticTranslations['promo_bar_text'][currentLang] || staticTranslations['promo_bar_text']['tr'];
                     promoTextContent.textContent = promoText;
                     promoBar.style.display = generalSettings.promoBar?.enabled ? 'block' : 'none';
                 }
@@ -1376,7 +1666,7 @@
                         document.querySelectorAll('.color-circle').forEach(el => el.classList.remove('active'));
                         
                         const clickedColorOption = Array.from(variantSelectorsEl.querySelectorAll('.color-option'))
-                                                    .find(opt => (opt.querySelector('.color-name').textContent === (variant.colorName?.[currentLang] || variant.colorName?.tr || staticTranslations['unknown_color'][currentLang])));
+                                                             .find(opt => (opt.querySelector('.color-name').textContent === (variant.colorName?.[currentLang] || variant.colorName?.tr || staticTranslations['unknown_color'][currentLang])));
                         if(clickedColorOption){
                             clickedColorOption.classList.add('active');
                             clickedColorOption.querySelector('.color-circle').classList.add('active');
@@ -1546,6 +1836,7 @@
                                 currentProductData.isFreeShipping = (variant.isFreeShipping || data.isFreeShipping);
 
                                 updateCalculatedTotalPrice(); // Yeni fiyatlara göre toplamı güncelle
+                                window.scrollTo({ top: 0, behavior: 'smooth' }); // Sayfayı yukarı kaydır (ürün detaylarına)
                             };
                             colorOptionDiv.appendChild(colorCircleDiv);
                             colorOptionDiv.appendChild(colorNameSpan);
@@ -1570,7 +1861,7 @@
                 } catch (error) {
                     console.error("Ürün verileri çekilirken bir hata oluştu:", error);
                     if (productTitleEl) productTitleEl.textContent = staticTranslations['error_loading_product_title'][currentLang];
-                    if (productDescriptionEl) productDescriptionEl.textContent = staticTranslations['error_loading_product_desc'][currentLang];
+                    if (productDescriptionEl) productDescriptionEl.getElementById('product-description').textContent = staticTranslations['error_loading_product_desc'][currentLang];
                     if (calculatedTotalPriceEl) calculatedTotalPriceEl.textContent = '';
                     if (decreaseQuantityBtn) decreaseQuantityBtn.disabled = true;
                     if (increaseQuantityBtn) increaseQuantityBtn.disabled = true;
@@ -1588,6 +1879,7 @@
                 const hamburgerBtn = document.getElementById('hamburger-menu-btn');
                 const mobileNav = document.getElementById('mobile-nav');
                 const mobileNavOverlay = document.getElementById('mobile-nav-overlay');
+                const welcomeModalConfirmButton = document.getElementById('welcomeModalConfirmButton'); // Added for the modal button
 
                 const languagesFromDB = siteData.settings.languages || [];
                 if (languageSelector) {
@@ -1630,6 +1922,35 @@
                         countrySelector.parentElement.style.display = 'none';
                     }
                 }
+                
+                // Welcome Modal - Initial setup
+                const welcomeModalOverlay = document.getElementById('welcomeModalOverlay');
+                const welcomeModalContent = document.querySelector('.welcome-modal-content');
+                const welcomeCountrySelect = document.getElementById('welcomeCountrySelect');
+
+                if (welcomeCountrySelect) {
+                    welcomeCountrySelect.innerHTML = countryOptionsHtml;
+                    welcomeCountrySelect.value = currentCountryCode; // Set default or stored country
+                }
+
+                // Show welcome modal if no country is set in localStorage (or if it's invalid)
+                if (!localStorage.getItem('pufemo-country') && Object.keys(countries).length > 0) {
+                    if (welcomeModalOverlay) welcomeModalOverlay.style.display = 'flex';
+                    if (welcomeModalContent) welcomeModalContent.style.display = 'block';
+                } else {
+                    if (welcomeModalOverlay) welcomeModalOverlay.style.display = 'none';
+                    if (welcomeModalContent) welcomeModalContent.style.display = 'none';
+                }
+
+                if (welcomeModalConfirmButton) {
+                    welcomeModalConfirmButton.onclick = () => {
+                        const selectedCountry = welcomeCountrySelect.value;
+                        window.applyCountryAndRender(selectedCountry);
+                        if (welcomeModalOverlay) welcomeModalOverlay.style.display = 'none';
+                        if (welcomeModalContent) welcomeModalContent.style.display = 'none';
+                    };
+                }
+
 
                 if (languageSelector) { languageSelector.onchange = (e) => { currentLang = e.target.value; localStorage.setItem('pufemo-language', currentLang); renderAll(); }; }
                 if (currencySelector) { currencySelector.onchange = (e) => { currentCurrency = e.target.value; localStorage.setItem('pufemo-currency', currentCurrency); renderAll(); }; }
@@ -1674,6 +1995,8 @@
 
             async function init() {
                 if (loadingOverlay) loadingOverlay.classList.remove('hidden');
+                // Ensure loading text is translated immediately
+                if (loadingTextP) loadingTextP.textContent = staticTranslations['loading_text'][currentLang];
 
                 await fetchData();
                 renderAll(); // Bu, loadProductDetails'ı çağıracak
@@ -1685,8 +2008,8 @@
         } else {
             // Firebase başlatılamazsa genel hata mesajı göster
             if (document.getElementById('loading-overlay')) document.getElementById('loading-overlay').classList.add('hidden');
-            if (document.getElementById('product-title')) document.getElementById('product-title').textContent = "Hata: Ürün yüklenemedi!";
-            if (document.getElementById('product-description')) document.getElementById('product-description').textContent = "Lütfen internet bağlantınızı kontrol edin veya daha sonra tekrar deneyin.";
+            if (document.getElementById('product-title')) document.getElementById('product-title').textContent = staticTranslations['error_loading_product_title']['tr'];
+            if (document.getElementById('product-description')) document.getElementById('product-description').textContent = staticTranslations['error_loading_product_desc']['tr'];
             if (document.getElementById('btn-cart')) document.getElementById('btn-cart').disabled = true;
             if (document.getElementById('btn-buy')) document.getElementById('btn-buy').disabled = true;
             if (document.getElementById('decrease-quantity')) document.getElementById('decrease-quantity').disabled = true;
