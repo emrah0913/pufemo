@@ -389,7 +389,8 @@
         .related-variant-card img {
             width: 150px; /* Kart içindeki resim boyutu */
             height: 150px;
-            object-fit: cover;
+            /* GÜNCELLEME: object-fit: contain; olarak değiştirildi */
+            object-fit: contain; /* Resmin tamamının çerçeveye sığmasını sağlar */
             border-radius: 8px;
             margin-bottom: 10px;
         }
@@ -741,7 +742,7 @@
                 'quantity_label': { tr: 'Adet:', en: 'Quantity:', el: 'Ποσότητα:', ru: 'Количество:' },
                 'total_price_label': { tr: 'Genel Toplam:', en: 'Total:', el: 'Σύνολο:', ru: 'Итого:' },
                 'description_not_found_fallback': { tr: 'Açıklama bulunamadı.', en: 'Description not found.', el: 'Περιγραφή δεν βρέθηκε.', ru: 'Описание не найдено.' },
-                'related_variants_title': { tr: 'Diğer Renk Varyantları', en: 'Other Color Variants', el: 'Άλλες Παραλλαγές Χρώματος', ru: 'Другие цветовые варианты' } // Yeni çeviri eklendi
+                'related_products_title': { tr: 'Benzer Ürünler', en: 'Related Products', el: 'Σχετικά Προϊόντα', ru: 'Похожие товары' } // Başlık değiştirildi
             };
 
             const loadingOverlay = document.getElementById('loading-overlay');
@@ -783,9 +784,9 @@
             const totalPriceLabelEl = document.getElementById('total-price-label');
             const calculatedTotalPriceEl = document.getElementById('calculated-total-price');
 
-            // Benzer varyantlar için yeni referans
+            // Benzer varyantlar için referans
             const relatedVariantsGridEl = document.getElementById('related-variants-grid');
-            const relatedVariantsTitleEl = document.getElementById('related-variants-title');
+            const relatedVariantsTitleEl = document.getElementById('related-variants-title'); // Başlık referansı
 
             let currentProductData = null; // Mevcut ürün verisini tutmak için
 
@@ -957,7 +958,7 @@
                 if (variantSelectorLabelEl) variantSelectorLabelEl.textContent = translate('variant_selection_label');
                 if (quantityLabelEl) quantityLabelEl.textContent = translate('quantity_label');
                 if (totalPriceLabelEl) totalPriceLabelEl.textContent = translate('total_price_label');
-                if (relatedVariantsTitleEl) relatedVariantsTitleEl.textContent = translate('related_variants_title'); // Yeni çeviri
+                if (relatedVariantsTitleEl) relatedVariantsTitleEl.textContent = translate('related_products_title'); // Başlık çevirisi güncellendi
             };
 
             const renderGeneralSiteElements = () => {
@@ -1085,9 +1086,12 @@
             };
 
             // Yeni fonksiyon: Benzer varyantları render et
-            const renderRelatedVariants = (allVariants) => {
-                if (!relatedVariantsGridEl) return;
+            const renderRelatedVariants = (allVariants, currentProductContent) => {
+                if (!relatedVariantsGridEl || !relatedVariantsTitleEl) return;
 
+                // Başlığı güncelle (eğer bu zaten yapıldıysa tekrara gerek yok)
+                relatedVariantsTitleEl.textContent = staticTranslations['related_products_title'][currentLang];
+                
                 relatedVariantsGridEl.innerHTML = ''; // Önceki kartları temizle
 
                 // Eğer hiç varyant yoksa veya sadece 1 varyant varsa bu bölümü gizle
@@ -1100,30 +1104,24 @@
                     if (relatedSection) relatedSection.style.display = 'block'; // Göster
                 }
 
-
                 allVariants.forEach(variant => {
-                    const variantName = variant.colorName || staticTranslations['unknown_color'][currentLang];
+                    // Ürün adı için, ana ürünün adını kullanıyoruz, varyantın adını değil.
+                    const productName = currentProductContent.name || staticTranslations['product_title_default'][currentLang];
                     const variantImageUrl = variant.media?.[0]?.url || 'https://via.placeholder.com/150x150/cccccc/000000?text=NoImg'; // Kart için default resim
+
+                    // Kart için ürünün mevcut fiyatını göster
                     const priceToDisplay = (currentProductData.baseDiscountedPriceTL !== undefined && currentProductData.baseDiscountedPriceTL < currentProductData.basePriceTL)
                         ? formatPrice(currentProductData.basePriceTL, currentProductData.baseDiscountedPriceTL)
-                        : formatPrice(currentProductData.basePriceTL); // Ana ürünün fiyatını göster
+                        : formatPrice(currentProductData.basePriceTL);
 
                     const card = document.createElement('div');
                     card.className = 'related-variant-card';
                     card.innerHTML = `
-                        <img src="${variantImageUrl}" alt="${variantName}">
-                        <span class="variant-name">${variantName}</span>
-                        <span class="variant-price">${priceToDisplay}</span>
+                        <img src="${variantImageUrl}" alt="${productName} - ${variant.colorName || staticTranslations['unknown_color'][currentLang]}">
+                        <span class="variant-name">${productName}</span> <span class="variant-price">${priceToDisplay}</span>
                     `;
                     
-                    // Tıklama olayı: Sayfa içinde kal ve ürünü güncelle
                     card.onclick = () => {
-                        // URL'yi değiştir ama sayfayı yeniden yükleme
-                        const newUrl = new URL(window.location.href);
-                        // Eğer ürün ID'si Firebase'de bir varyanta özel atanmışsa
-                        // o varyantın ana ürün ID'sine dönmeniz gerekebilir.
-                        // Şimdilik, sadece varyant görsellerini güncelleyeceğiz.
-                        
                         // Ana görseli ve varyant seçicileri bu varyanta göre güncelle
                         setImages(variant.media);
 
@@ -1132,9 +1130,9 @@
                         document.querySelectorAll('.color-circle').forEach(el => el.classList.remove('active'));
                         
                         // Tıklanan varyantı bulup aktif yap
-                        // Basit bir yaklaşımla, colorName'e göre bulabiliriz
+                        // variant.colorName ile eşleştiriyoruz
                         const clickedColorOption = Array.from(variantSelectorsEl.querySelectorAll('.color-option'))
-                                                    .find(opt => opt.querySelector('.color-name').textContent === variantName);
+                                                    .find(opt => opt.querySelector('.color-name').textContent === (variant.colorName || staticTranslations['unknown_color'][currentLang]));
                         if(clickedColorOption){
                             clickedColorOption.classList.add('active');
                             clickedColorOption.querySelector('.color-circle').classList.add('active');
@@ -1163,7 +1161,6 @@
 
 
                 try {
-                    // !!! BURADA GÜNCELLEME YAPILDI: doc ve getDoc kullanıldı !!!
                     const docRef = doc(db, "pufemo-products", productId);
                     const docSnap = await getDoc(docRef);
 
@@ -1318,7 +1315,7 @@
                                 variantImageUrl = variantFirstMedia.url;
                             } else if (variantFirstMedia && variantFirstMedia.type === 'video' && variantFirstMedia.thumbnailUrl) {
                                 variantImageUrl = variantFirstMedia.thumbnailUrl;
-                            } else if (variantFirstMedia && variantFirstMedia.url) { // Video olmayan bir URL ise (e.g., GIF)
+                            } else if (variantFirstMedia && variantFirstMedia.url) { // Video değil ve URL varsa
                                 variantImageUrl = variantFirstMedia.url;
                             }
                             
@@ -1332,9 +1329,9 @@
                             colorNameSpan.textContent = variant.colorName || staticTranslations['unknown_color'][currentLang];
                             colorOptionDiv.title = colorNameSpan.textContent;
 
-                            // Eğer bu varyant, şu anki URL'deki ürünün varsayılan varyantıysa aktif yap
-                            // (bu kısım biraz daha karmaşık olabilir eğer varyantlar ayrı ürünlerse)
-                            // Şimdilik, ilk varyantı aktif kabul edelim
+                            // Eğer bu varyant, şu anki URL'den gelen ürünün aktif varyantıysa aktif yap
+                            // Bu logic, product ID'sinin varyant ID'siyle eşleştiği bir senaryoda daha anlamlı olur.
+                            // Şimdilik, ilk yüklenen ürünün varsayılan varyantını aktif bırakalım.
                             if (index === 0) {
                                 colorCircleDiv.classList.add('active');
                                 colorOptionDiv.classList.add('active');
@@ -1366,8 +1363,9 @@
                     if (increaseQuantityBtn) increaseQuantityBtn.disabled = false;
 
                     // Benzer varyantları render et
-                    renderRelatedVariants(variants); // Tüm varyantları render fonksiyonuna gönder
-
+                    // Sadece ürün ID'si aynı olan ürünün varyantlarını getirmek için
+                    // Burada 'data.variants' kullanıyoruz, çünkü her ürünün varyantları kendi belgesinde olmalı.
+                    renderRelatedVariants(variants, productContent); // Tüm varyantları render fonksiyonuna gönder
 
                 } catch (error) {
                     console.error("Ürün verileri çekilirken bir hata oluştu:", error);
