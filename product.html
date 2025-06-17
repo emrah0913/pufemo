@@ -190,24 +190,24 @@
         .old-price { text-decoration: line-through; color: #888; font-size: 1.1rem; }
         .new-price { font-size: 1.6rem; font-weight: bold; color: var(--secondary-color); }
 
-        /* Adet Seçici Stilleri - GÜNCELLEME: Butonlar eklendi */
+        /* Adet Seçici Stilleri */
         .quantity-control {
             display: flex;
             align-items: center;
-            gap: 5px; /* Butonlar ve input arasındaki boşluk */
+            gap: 5px;
         }
         .quantity-control .quantity-label {
             font-size: 1.1rem;
             font-weight: 600;
             color: var(--primary-color);
-            margin-right: 5px; /* Label ve input grubu arasındaki boşluk */
+            margin-right: 5px;
         }
         .quantity-button {
             background-color: var(--primary-color);
             color: var(--light-text-color);
             border: none;
             border-radius: 8px;
-            width: 35px; /* Kare butonlar */
+            width: 35px;
             height: 35px;
             display: flex;
             justify-content: center;
@@ -216,7 +216,7 @@
             font-weight: 700;
             cursor: pointer;
             transition: background-color 0.2s ease;
-            user-select: none; /* Metin seçimi engeller */
+            user-select: none;
         }
         .quantity-button:hover {
             background-color: #1a242f;
@@ -226,17 +226,17 @@
             cursor: not-allowed;
         }
         .quantity-input {
-            width: 60px; /* Daha dar input */
-            padding: 8px 5px; /* İç boşluk */
+            width: 60px;
+            padding: 8px 5px;
             border: 1px solid #ccc;
             border-radius: 8px;
             font-size: 1rem;
             text-align: center;
-            -moz-appearance: textfield; /* Firefox'ta okları gizle */
+            -moz-appearance: textfield;
         }
         .quantity-input::-webkit-outer-spin-button,
         .quantity-input::-webkit-inner-spin-button {
-            -webkit-appearance: none; /* Chrome, Safari, Edge'de okları gizle */
+            -webkit-appearance: none;
             margin: 0;
         }
 
@@ -259,7 +259,6 @@
             font-weight: bold;
             color: var(--secondary-color);
         }
-
 
         /* Varyant Seçicileri Stilleri */
         .variant-selectors {
@@ -409,9 +408,9 @@
             }
             /* Adet ve toplam için responsive */
             .quantity-control, .total-price-display {
-                flex-direction: row; /* Mobil'de yatay kalsın */
+                flex-direction: row;
                 align-items: center;
-                justify-content: flex-start; /* Sola hizala */
+                justify-content: flex-start;
                 gap: 10px;
             }
             .quantity-input {
@@ -663,8 +662,8 @@
 
             const quantityInputEl = document.getElementById('quantity-input');
             const quantityLabelEl = document.getElementById('quantity-label');
-            const decreaseQuantityBtn = document.getElementById('decrease-quantity'); // Yeni buton referansı
-            const increaseQuantityBtn = document.getElementById('increase-quantity'); // Yeni buton referansı
+            const decreaseQuantityBtn = document.getElementById('decrease-quantity');
+            const increaseQuantityBtn = document.getElementById('increase-quantity');
             const totalPriceLabelEl = document.getElementById('total-price-label');
             const calculatedTotalPriceEl = document.getElementById('calculated-total-price');
 
@@ -936,15 +935,13 @@
                 const min = parseInt(quantityInputEl.min);
                 const max = parseInt(quantityInputEl.max);
 
-                // Adeti minimum ve maksimum sınırlar içinde tut
                 if (isNaN(quantity) || quantity < min) {
                     quantity = min;
                 } else if (quantity > max) {
                     quantity = max;
                 }
-                quantityInputEl.value = quantity; // Güncellenmiş adeti input'a yaz
+                quantityInputEl.value = quantity;
 
-                // Butonların durumunu güncelle
                 if (decreaseQuantityBtn) decreaseQuantityBtn.disabled = (quantity === min);
                 if (increaseQuantityBtn) increaseQuantityBtn.disabled = (quantity === max);
 
@@ -962,7 +959,7 @@
                 if (productTitleEl) productTitleEl.textContent = staticTranslations['product_title_default'][currentLang];
                 if (productDescriptionEl) productDescriptionEl.textContent = staticTranslations['product_description_loading'][currentLang];
                 
-                if (quantityInputEl) quantityInputEl.value = '1'; // Ürün yüklenirken adeti 1'e sıfırla
+                if (quantityInputEl) quantityInputEl.value = '1';
                 if (calculatedTotalPriceEl) calculatedTotalPriceEl.textContent = staticTranslations['product_description_loading'][currentLang];
 
                 try {
@@ -972,7 +969,6 @@
                         if (productTitleEl) productTitleEl.textContent = staticTranslations['product_not_found_title'][currentLang];
                         if (productDescriptionEl) productDescriptionEl.textContent = staticTranslations['product_not_found_desc'][currentLang];
                         if (calculatedTotalPriceEl) calculatedTotalPriceEl.textContent = '';
-                        // Adet kontrol butonlarını da devre dışı bırak
                         if (decreaseQuantityBtn) decreaseQuantityBtn.disabled = true;
                         if (increaseQuantityBtn) increaseQuantityBtn.disabled = true;
                         return;
@@ -980,7 +976,8 @@
 
                     const data = doc.data();
                     currentProductData = data;
-                    const productContent = data.content?.[currentLang] || data.content?.tr || {};
+                    // productContent'i doğru şekilde çekmek için düzeltme
+                    const productContent = data[currentLang] || data.tr || {}; // Firebase yapınıza göre düzeltildi
 
                     if (productTitleEl) productTitleEl.textContent = productContent.name || staticTranslations['product_title_default'][currentLang];
                     if (productDescriptionEl) productDescriptionEl.textContent = productContent.description || staticTranslations['product_description_loading'][currentLang];
@@ -1155,8 +1152,7 @@
                         setImages(data.media);
                     }
 
-                    // Fiyat ve adet bilgisi yüklendiğinde toplamı güncelle
-                    updateCalculatedTotalPrice();
+                    updateCalculatedTotalPrice(); // Ürün yüklendikten sonra toplam fiyatı güncelle
 
                 } catch (error) {
                     console.error("Ürün verileri çekilirken bir hata oluştu:", error);
@@ -1234,9 +1230,8 @@
                     mobileNav.onclick = (e) => { if (e.target.tagName === 'A') toggleMenu(); };
                 }
 
-                // Adet inputu ve butonları için event listeners
                 if (quantityInputEl) {
-                    quantityInputEl.addEventListener('input', updateCalculatedTotalPrice); // Input değiştiğinde toplamı güncelle
+                    quantityInputEl.addEventListener('input', updateCalculatedTotalPrice);
                 }
                 if (decreaseQuantityBtn) {
                     decreaseQuantityBtn.addEventListener('click', () => {
