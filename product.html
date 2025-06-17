@@ -379,6 +379,12 @@
             flex-direction: column;
             position: relative;
             cursor: pointer; /* Tıklanabilir olduğunu belirtmek için */
+            /* Seçili varyant kartını vurgulamak için ek stil */
+            border: 2px solid transparent; /* Varsayılan olarak şeffaf */
+        }
+        .product-card.active-variant { /* Yeni sınıf */
+            border-color: var(--secondary-color);
+            box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.3);
         }
         .product-card:hover {
             transform: translateY(-5px); /* Hafifçe yukarı kaydır */
@@ -753,9 +759,6 @@
 
     <script type="module">
         // Yeni modüler SDK importları
-        // NOT: firebasejs/10.12.0/firestore.js path'i yerine firebasejs/9.6.1/firebase-firestore.js kullandık.
-        // Eğer 10.12.0 sürümüne tamamen geçmek isterseniz, o zaman tüm Firebase SDK kullanımını bu sürüme göre güncellemek gerekir.
-        // Şimdilik, sizin belirttiğiniz 9.6.1 versiyonunun modüler importlarını koruyup, getDoc ve doc fonksiyonlarını çağıracağız.
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
         import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 
@@ -1276,8 +1279,7 @@
                 allVariants.forEach(variant => {
                     // Ürün adı için, ana ürünün adını kullanıyoruz, varyantın adını değil.
                     const productName = productContentGlobal.name || staticTranslations['product_title_default'][currentLang];
-                    // Varyantın ilk görseli, yoksa default resim
-                    const variantImageUrl = variant.media?.[0]?.url || 'https://via.placeholder.com/150x150/cccccc/000000?text=Resim+Yok'; 
+                    const variantImageUrl = variant.media?.[0]?.url || 'https://via.placeholder.com/150x150/cccccc/000000?text=Resim+Yok'; // Kart için default resim
 
                     // Fiyatlar dinamik olarak hesaplanacak (ana ürün fiyatından alınır)
                     const originalPrice = currentProductData.basePriceTL;
@@ -1301,6 +1303,13 @@
 
                     const card = document.createElement('div');
                     card.className = 'product-card'; // index.html'deki stil sınıfı
+                    // Eğer bu varyant şu an gösterilen varyant ise active-variant sınıfını ekle
+                    // Buradaki logic'i, URL'deki product ID'si ve varyant.colorName'e göre belirleyebiliriz.
+                    // Veya basitleştirerek, sadece ürün detay sayfasındaki aktif varyant seçicisindeki varyantı aktif yapabiliriz.
+                    // Şimdilik, sadece ilk yüklenen varyantı aktif kabul edip, sonradan tıklanan varyantı aktif yapalım.
+                    // Bu kısmı, `loadProductDetails` içinde veya varyant seçici tıklamalarında yönetmek daha doğru.
+                    // Burada, `loadProductDetails` çağrıldığında, o anki productId'ye ait aktif varyantı belirlemek için ek bir kontrol ekleyelim.
+                    
                     card.innerHTML = `
                         <div class="product-image-link">
                             <img src="${variantImageUrl}" alt="${productName}" class="product-image">
@@ -1314,7 +1323,7 @@
                     `;
                     
                     card.onclick = () => {
-                        // Tıklanan varyantın tüm medyalarını ana ekrana ve thumbnail'lara yükle
+                        // Ana görseli ve varyant seçicileri bu varyanta göre güncelle
                         setImages(variant.media); 
 
                         // Varyant seçicilerdeki aktif sınıfı güncelle
@@ -1322,13 +1331,16 @@
                         document.querySelectorAll('.color-circle').forEach(el => el.classList.remove('active'));
                         
                         // Tıklanan varyantı bulup aktif yap
-                        // Eğer varyantların id'si varsa, id'ye göre de bulabiliriz. Şimdilik colorName ile devam.
                         const clickedColorOption = Array.from(variantSelectorsEl.querySelectorAll('.color-option'))
                                                     .find(opt => (opt.querySelector('.color-name').textContent === (variant.colorName || staticTranslations['unknown_color'][currentLang])));
                         if(clickedColorOption){
                             clickedColorOption.classList.add('active');
                             clickedColorOption.querySelector('.color-circle').classList.add('active');
                         }
+
+                        // Benzer ürün kartlarındaki aktif sınıfı güncelle
+                        document.querySelectorAll('.related-variants-grid .product-card').forEach(el => el.classList.remove('active-variant'));
+                        card.classList.add('active-variant'); // Tıklanan karta aktif sınıfı ekle
 
                         // Sayfayı ürün detaylarının başına kaydır (smooth scroll)
                         productDetailContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1371,11 +1383,12 @@
                     const data = docSnap.data();
                     currentProductData = data;
                     
-                    // !!! KRİTİK DÜZELTME: productContent'i data.content altından al ve global değişkene ata
-                    productContentGlobal = data.content?.[currentLang] || data.content?.tr || {}; 
+                    // KRİTİK DÜZELTME: productContent'i data.content altından al ve global değişkene ata
+                    const productContent = data.content?.[currentLang] || data.content?.tr || {}; 
+                    productContentGlobal = productContent; // Global değişkene atama
 
-                    if (productTitleEl) productTitleEl.textContent = productContentGlobal.name || staticTranslations['product_title_default'][currentLang];
-                    if (productDescriptionEl) productDescriptionEl.textContent = productContentGlobal.description || staticTranslations['description_not_found_fallback'][currentLang];
+                    if (productTitleEl) productTitleEl.textContent = productContent.name || staticTranslations['product_title_default'][currentLang];
+                    if (productDescriptionEl) productDescriptionEl.textContent = productContent.description || staticTranslations['description_not_found_fallback'][currentLang];
 
                     const basePrice = data.basePriceTL || 0;
                     const discountedPrice = data.baseDiscountedPriceTL;
@@ -1440,8 +1453,8 @@
                             colorNameSpan.textContent = variant.colorName || staticTranslations['unknown_color'][currentLang];
                             colorOptionDiv.title = colorNameSpan.textContent;
 
-                            // İlk varyantı aktif yapma
-                            if (index === 0) {
+                            // Eğer bu varyant şu anki URL'den gelen ürünün aktif varyantıysa veya ilk varyant ise aktif yap
+                            if (variant.id === productId || index === 0) { // varyant.id, eğer her varyant Firebase'de ayrı bir doküman ise
                                 colorCircleDiv.classList.add('active');
                                 colorOptionDiv.classList.add('active');
                             }
@@ -1459,7 +1472,8 @@
                                 variantSelectorsEl.appendChild(colorOptionDiv);
                             }
 
-                            if (index === 0) {
+                            // Eğer ilk varyant veya URL'deki varyant ise resimleri set et
+                            if (index === 0 || (variant.id && variant.id === productId)) {
                                 setImages(variant.media);
                             }
                         });
