@@ -168,9 +168,67 @@
         .price { display: flex; align-items: baseline; gap: 10px; }
         .old-price { text-decoration: line-through; color: #888; font-size: 1.1rem; }
         .new-price { font-size: 1.6rem; font-weight: bold; color: var(--secondary-color); }
-        .variant-selectors { display: flex; gap: 10px; }
-        .color-circle { width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 2px solid #ccc; }
-        .color-circle.active { border-color: var(--secondary-color); }
+
+        /* VARYANT SEÇİCİLERİ VE YENİ STİLLER */
+        .variant-selectors {
+            display: flex;
+            flex-wrap: wrap; /* Eğer çok varyant varsa alt alta geçsin */
+            gap: 15px;
+            align-items: center; /* Dikeyde ortala */
+        }
+
+        .variant-label { /* "Renk Seçimi" başlığı için */
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 5px; /* Altındaki varyantlara boşluk bırak */
+            width: 100%; /* Kendi satırında olsun */
+        }
+
+        .color-option { /* Her bir renk varyantının kapsayıcısı */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+            text-align: center;
+            transition: transform 0.2s ease;
+        }
+        .color-option:hover {
+            transform: translateY(-3px);
+        }
+
+        .color-circle {
+            width: 60px; /* Büyütüldü */
+            height: 60px; /* Büyütüldü */
+            border-radius: 50%;
+            border: 2px solid #ccc;
+            overflow: hidden; /* Görseli yuvarlak içine sığdırmak için */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            transition: border-color 0.2s, box-shadow 0.2s;
+            position: relative;
+        }
+        .color-circle.active {
+            border-color: var(--secondary-color);
+            box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.3); /* Vurgu için daha belirgin gölge */
+        }
+        .color-circle img {
+            width: 100%; /* Yuvarlağın içine sığması için */
+            height: 100%;
+            object-fit: cover; /* Görselin bozulmadan kaplaması için */
+            border-radius: 50%; /* Görselin de yuvarlak olması için */
+        }
+        .color-name {
+            font-size: 0.85rem;
+            color: var(--text-color);
+            font-weight: 500;
+        }
+
+        /* VARYANT SEÇİCİLERİ BİTTİ */
+
         .actions { display: flex; gap: 15px; }
         .btn { padding: 12px 20px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.3s; }
         .btn-cart { background: var(--primary-color); color: white; }
@@ -178,7 +236,7 @@
         .btn-buy { background: var(--secondary-color); color: white; }
         .btn-buy:hover { background: #c0392b; }
         .free-shipping { background-color: #27ae60; color: white; padding: 8px 16px; border-radius: 20px; font-size: 0.9rem; display: inline-block; animation: pulse 2s infinite; }
-        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: 1); } }
 
         .description-section {
             margin: 30px auto;
@@ -246,6 +304,18 @@
                 margin: 20px auto;
             }
             .description-section h2 { font-size: 1.3rem; }
+
+            /* Varyant seçiciler için responsive */
+            .color-option {
+                flex-basis: 25%; /* Daha küçük alanlarda yan yana daha az sığsın */
+            }
+            .color-circle {
+                width: 50px;
+                height: 50px;
+            }
+            .color-name {
+                font-size: 0.8rem;
+            }
         }
 
         @media (max-width: 767px) {
@@ -271,6 +341,18 @@
             .country-selector-container { padding: 1.5rem 0; }
             .country-selector-container label { font-size: 1rem; display: block; margin-bottom: 5px; }
             .country-selector-container .control-select { width: 80%; }
+
+            /* En küçük ekranlarda varyant seçiciler */
+            .color-option {
+                flex-basis: 30%; /* Daha da küçük alanlarda daha az sığsın */
+            }
+            .color-circle {
+                width: 45px;
+                height: 45px;
+            }
+            .color-name {
+                font-size: 0.75rem;
+            }
         }
     </style>
 </head>
@@ -322,7 +404,9 @@
                 <span class="old-price" id="product-old-price"></span>
                 <span class="new-price" id="product-price"></span>
             </div>
-            <div class="variant-selectors" id="variant-selectors"></div>
+            <div class="variant-selectors" id="variant-selectors">
+                <span class="variant-label" id="variant-selector-label">Renk Seçimi</span>
+            </div>
             <div class="actions">
                 <button class="btn btn-cart">Sepete Ekle</button>
                 <button class="btn btn-buy">Satın Al</button>
@@ -406,7 +490,7 @@
                 'mobile_menu_title': { tr: 'Kategoriler', en: 'Categories', el: 'Κατηγορίες', ru: 'Категории' },
                 'main_section_title': { tr: 'Öne Çıkan Ürünler', en: 'Featured Products', el: 'Προτεινόμενα Προϊόντα', ru: 'Рекомендуемые товары' }, // Bu artık kullanılmıyor ama tutalım
                 'footer-title-pufemo': { tr: 'PUFEMO', en: 'PUFEMO', el: 'PUFEMO', ru: 'ПУФЕМО' },
-                'footer-desc-pufemo': { tr: 'Hayallerinizdeki konforu ve estetiği evinize taşıyoruz.', en: 'We bring the comfort and aesthetics of your dreams to your home.', el: 'Φέρνουμε την άνεση και την αισθητική των ονείρων σας στο σπίτι σας.', ru: 'Мы приносим комфорτ και αισθητική των ονείρων σας στο σπίτι σας.' },
+                'footer-desc-pufemo': { tr: 'Hayallerinizdeki konforu ve estetiği evinize taşıyoruz.', en: 'We bring the comfort and aesthetics of your dreams to your home.', el: 'Φέρνουμε την άνεση και την αισθητική των ονείρων σας στο σπίτι σας.', ru: 'Мы приносим комфорт и эстетику в ваш дом.' },
                 'footer-title-fast-links': { tr: 'Hızlı Bağlantılar', en: 'Quick Links', el: 'Γρήγοροι Σύνδεσμοι', ru: 'Быстрые ссылки' },
                 'footer-link-about': { tr: 'Hakkımızda', en: 'About Us', el: 'Σχετικά με εμάς', ru: 'О нас' },
                 'footer-link-contact': { tr: 'İletişim', en: 'Contact', el: 'Επικοινωνία', ru: 'Контакт' },
@@ -429,7 +513,8 @@
                 'error_loading_product_desc': { tr: 'Ürün bilgileri yüklenemedi. Lütfen daha sonra tekrar deneyin.', en: 'Product information could not be loaded. Please try again later.', el: 'Δεν ήταν δυνατή η φόρτωση των πληροφοριών προϊόντος. Παρακαλώ δοκιμάστε ξανά αργότερα.', ru: 'Не удалось загрузить информацию о товаре. Пожалуйста, попробуйте еще раз позже.' },
                 'add_to_cart_button': { tr: 'Sepete Ekle', en: 'Add to Cart', el: 'Προσθήκη στο καλάθι', ru: 'Добавить в корзину' },
                 'buy_now_button': { tr: 'Satın Al', en: 'Buy Now', el: 'Αγορά τώρα', ru: 'Купить сейчас' },
-                'product_details_heading': { tr: 'Ürün Detayları', en: 'Product Details', el: 'Λεπτομέρειες προϊόντος', ru: 'Информация о продукте' }
+                'product_details_heading': { tr: 'Ürün Detayları', en: 'Product Details', el: 'Λεπτομέρειες προϊόντος', ru: 'Информация о продукте' },
+                'variant_selection_label': { tr: 'Renk Seçimi', en: 'Color Selection', el: 'Επιλογή Χρώματος', ru: 'Выбор цвета' }
             };
 
             const loadingOverlay = document.getElementById('loading-overlay');
@@ -450,14 +535,6 @@
             let currentCurrency = localStorage.getItem('pufemo-currency') || 'USD';
             let currentCountryCode = localStorage.getItem('pufemo-country') || '';
 
-            // Welcome Modal ile ilgili elemanlar kaldırıldı veya gizlendi
-            const welcomeModalOverlay = document.getElementById('welcomeModalOverlay');
-            // const welcomeCountrySelect = document.getElementById('welcomeCountrySelect'); // Kaldırıldı
-            // const welcomeModalConfirmButton = document.getElementById('welcomeModalConfirmButton'); // Kaldırıldı
-            // const welcomeModalTitle = document.getElementById('welcome-modal-title'); // Kaldırıldı
-            // const welcomeModalMessage = document.getElementById('welcome-modal-message'); // Kaldırıldı
-            // const welcomeModalButtonText = document.getElementById('welcomeModalConfirmButton'); // Kaldırıldı
-
             // Product Detail Page Elements
             const productDetailContainer = document.querySelector('.product-detail-container');
             const mainImageEl = document.getElementById("main-image");
@@ -473,6 +550,7 @@
             const btnCartEl = document.querySelector('.btn-cart');
             const btnBuyEl = document.querySelector('.btn-buy');
             const descriptionSectionTitleEl = document.querySelector('.description-section h2');
+            const variantSelectorLabelEl = document.getElementById('variant-selector-label'); // Yeni
 
 
             const fetchData = async () => {
@@ -491,12 +569,11 @@
 
                     const availableCountries = Object.keys(siteData.settings.countryPricing);
 
-                    // Eğer localStorage'da ülke bilgisi yoksa veya Firebase'deki geçerli ülkeler arasında değilse varsayılanı ayarla
                     if (!localStorage.getItem('pufemo-country') || !availableCountries.includes(localStorage.getItem('pufemo-country'))) {
                         if (availableCountries.length > 0) {
-                            currentCountryCode = availableCountries[0]; // Firebase'deki ilk ülkeyi varsayılan yap
+                            currentCountryCode = availableCountries[0];
                         } else {
-                            currentCountryCode = 'US'; // Firebase'de hiç ülke yoksa sabit bir varsayılan ata
+                            currentCountryCode = 'US';
                         }
                         localStorage.setItem('pufemo-country', currentCountryCode);
                     } else {
@@ -528,7 +605,6 @@
                         localStorage.setItem('pufemo-language', currentLang);
                         localStorage.setItem('pufemo-currency', currentCurrency);
                     } else {
-                        // Eğer seçilen ülke verisi yoksa veya hatalıysa, güvenli varsayılanları kullan
                         currentLang = 'en';
                         currentCurrency = 'USD';
                         localStorage.setItem('pufemo-language', currentLang);
@@ -610,14 +686,10 @@
                 document.getElementById('footer-copyright').innerHTML = translate('footer-copyright');
                 document.getElementById('country-selector-label').textContent = translate('country_selector_label');
 
-                // Welcome modal metinleri artık gizlendiği için güncellemelerine gerek yok.
-                // welcomeModalTitle.textContent = translate('welcome_modal_title');
-                // welcomeModalMessage.textContent = translate('welcome_modal_message');
-                // welcomeModalButtonText.textContent = translate('welcome_modal_button');
-
                 btnCartEl.textContent = translate('add_to_cart_button');
                 btnBuyEl.textContent = translate('buy_now_button');
                 descriptionSectionTitleEl.textContent = translate('product_details_heading');
+                variantSelectorLabelEl.textContent = translate('variant_selection_label'); // Yeni
             };
 
             const renderGeneralSiteElements = () => {
@@ -783,24 +855,57 @@
                     };
 
                     const variants = data.variants || [];
-                    variantSelectorsEl.innerHTML = ''; // Önceki varyantları temizle
+                    // Variant selector label'ı her zaman görünür yap
+                    variantSelectorLabelEl.style.display = 'block';
+
+                    // Mevcut varyant seçicilerini temizle, sadece label kalsın
+                    while (variantSelectorsEl.children.length > 1) { // İlk çocuk (label) hariç
+                        variantSelectorsEl.removeChild(variantSelectorsEl.lastChild);
+                    }
+
                     if (variants.length > 0) {
                         variants.forEach((variant, index) => {
-                            const span = document.createElement('span');
-                            span.className = 'color-circle';
-                            span.style.backgroundColor = variant.colorCode || '#ccc';
-                            span.title = variant.name || 'Renk Seçeneği';
-                            if (index === 0) span.classList.add('active');
-                            span.onclick = () => {
+                            const colorOptionDiv = document.createElement('div'); // Yeni kapsayıcı div
+                            colorOptionDiv.className = 'color-option';
+
+                            const colorCircleDiv = document.createElement('div');
+                            colorCircleDiv.className = 'color-circle';
+
+                            // Varyantın ilk görselini kullan
+                            const variantImageUrl = variant.media?.[0]?.url || 'https://via.placeholder.com/60x60?text=Renk';
+                            const img = document.createElement('img');
+                            img.src = variantImageUrl;
+                            img.alt = variant.name || 'Varyant Resmi';
+                            colorCircleDiv.appendChild(img);
+
+                            const colorNameSpan = document.createElement('span');
+                            colorNameSpan.className = 'color-name';
+                            colorNameSpan.textContent = variant.name || 'Bilinmeyen Renk'; // Varyantın adını göster
+
+                            if (index === 0) {
+                                colorCircleDiv.classList.add('active');
+                                colorOptionDiv.classList.add('active'); // Kapsayıcıya da active class'ı ekle
+                            }
+
+                            colorOptionDiv.onclick = () => {
+                                document.querySelectorAll('.color-option').forEach(el => el.classList.remove('active'));
                                 document.querySelectorAll('.color-circle').forEach(el => el.classList.remove('active'));
-                                span.classList.add('active');
+                                colorOptionDiv.classList.add('active');
+                                colorCircleDiv.classList.add('active');
                                 setImages(variant.media);
                             };
-                            variantSelectorsEl.appendChild(span);
-                            if (index === 0) setImages(variant.media);
+                            colorOptionDiv.appendChild(colorCircleDiv);
+                            colorOptionDiv.appendChild(colorNameSpan);
+                            variantSelectorsEl.appendChild(colorOptionDiv);
+
+                            if (index === 0) { // Sayfa yüklendiğinde ilk varyantın görsellerini göster
+                                setImages(variant.media);
+                            }
                         });
                     } else {
+                        // Eğer hiç varyant yoksa ve ana ürünün medyası varsa onu göster
                         setImages(data.media);
+                        variantSelectorLabelEl.style.display = 'none'; // Varyant yoksa etiketi gizle
                     }
 
                 } catch (error) {
@@ -850,13 +955,8 @@
                     countrySelector.innerHTML = countryOptionsHtml;
                     countrySelector.value = currentCountryCode;
                     countrySelector.parentElement.style.display = 'block';
-
-                    // Welcome Country Select elementi artık kullanılmadığı için buradaki satırı kaldırıyoruz
-                    // welcomeCountrySelect.innerHTML = countryOptionsHtml;
-                    // welcomeCountrySelect.value = currentCountryCode;
                 } else {
                     countrySelector.parentElement.style.display = 'none';
-                    // welcomeModalOverlay.style.display = 'none'; // Modal kaldırıldığı için bu da kaldırıldı
                 }
 
                 languageSelector.onchange = (e) => {
@@ -875,17 +975,6 @@
                     window.applyCountryAndRender(e.target.value);
                 };
 
-                // Welcome modal confirm butonu olayı artık kullanılmıyor
-                // welcomeModalConfirmButton.addEventListener('click', function() {
-                //     const selectedCountry = welcomeCountrySelect.value;
-                //     if (selectedCountry) {
-                //         window.applyCountryAndRender(selectedCountry);
-                //         welcomeModalOverlay.classList.remove('active');
-                //     } else {
-                //         alert(staticTranslations['welcome_modal_message'][currentLang].replace('Please select your country below.', 'Please select a country to continue.'));
-                //     }
-                // });
-
                 const toggleMenu = () => {
                     hamburgerBtn.classList.toggle('open');
                     mobileNav.classList.toggle('open');
@@ -900,18 +989,6 @@
             async function init() {
                 loadingOverlay.classList.remove('hidden');
                 await fetchData();
-
-                // Ülke seçim modalını açma mantığı kaldırıldı
-                // const availableCountries = Object.keys(siteData.settings.countryPricing);
-                // if (availableCountries.length > 0) {
-                //     renderStaticText();
-                //     setupControls();
-                //     welcomeModalOverlay.classList.add('active');
-                // } else {
-                //     renderAll();
-                // }
-
-                // Artık doğrudan renderAll() çağrılıyor çünkü modal gösterilmeyecek.
                 renderAll();
                 loadingOverlay.classList.add('hidden');
             }
