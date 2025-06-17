@@ -9,7 +9,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <style>
-        /* (Mevcut CSS Kodunuz buraya gelecek, değişiklik yapmadım) */
         :root { --primary-color: #2c3e50; --secondary-color: #e74c3c; --background-color: #ecf0f1; --text-color: #34495e; --light-text-color: #ffffff; --card-bg-color: #ffffff; --border-radius: 8px; --box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
         html { scroll-behavior: smooth; }
@@ -460,7 +459,7 @@
                     padding: 1.5rem 0;
                 }
                 .country-selector-container label {
-                    font-size: 1rem;
+                    font-size: 1.0rem;
                     display: block;
                     margin-bottom: 5px;
                 }
@@ -614,14 +613,11 @@
             db = firebase.firestore();
         } catch (e) { 
             console.error("Firebase başlatma hatası!", e); 
-            // Firebase başlatılamazsa bile loading overlay'i gizle ve varsayılan metinleri göster
             if (document.getElementById('loading-overlay')) document.getElementById('loading-overlay').classList.add('hidden');
-            // Geçici olarak varsayılan dil Türkçe olarak alınırsa:
             const defaultLangOnError = 'tr';
             if (document.getElementById('loading-text')) document.getElementById('loading-text').textContent = "Hata: Sayfa yüklenemedi!";
             if (document.getElementById('main-section-title')) document.getElementById('main-section-title').textContent = "Ürünler Yüklenemedi";
             if (document.getElementById('footer-title-pufemo')) document.getElementById('footer-title-pufemo').textContent = "PUFEMO";
-            // ... diğer statik metinler için de benzer şekilde varsayılan değerler atanabilir.
         }
 
         if (db) {
@@ -634,7 +630,6 @@
                 ).join('');
             }
 
-            // Statik Çeviriler - BU OBJEYİ YUKARIDAKİ YENİ VERİLEN İLE DEĞİŞTİRİN
             const staticTranslations = {
                 'loading_text': {
                     tr: 'PUFEMO Yükleniyor...',
@@ -678,7 +673,7 @@
                     el: 'Φέρνουμε την άνεση και την αισθητική των ονείρων σας στο σπίτι σας.',
                     ru: 'Мы приносим комфорт и эстетику в ваш дом.',
                     de: 'Wir bringen den Komfort und die Ästhetik Ihrer Träume in Ihr Zuhause.',
-                    fr: 'Nous apportamos el confort et l\'estetica de vos rêves à votre maison.',
+                    fr: 'Nous apportons le confort et l\'esthétique de vos rêves à votre maison.',
                     it: 'Portiamo il comfort e l\'estetica dei vostri sogni nella vostra casa.'
                 },
                 'footer-title-fast-links': {
@@ -833,7 +828,8 @@
             let siteData = {
                 settings: {
                     languages: [],
-                    banner: { slides: [] },
+                    // 'banner' alanı artık burada varsayılan bir objeyle başlatılmıyor,
+                    // çünkü fetchData'da doğrudan Firebase'den gelen 'banner' dizisini atayacağız.
                     general: { logo: {}, promoBar: {} },
                     countryPricing: {},
                     currencySymbols: {},
@@ -866,11 +862,18 @@
                     ]);
 
                     if (settingsDoc.exists) {
-                        siteData.settings = { ...siteData.settings, ...settingsDoc.data() };
-                        // Debug: settings verisini kontrol edelim
+                        const settingsData = settingsDoc.data();
+                        
+                        // BURASI GÜNCELLENDİ: Firebase'den gelen settings.banner doğrudan bir dizi olduğu için,
+                        // siteData.settings.banner'a bu diziyi atıyoruz.
+                        siteData.settings = { 
+                            ...siteData.settings, // Mevcut siteData.settings'i koru
+                            ...settingsData       // Firebase'den gelen tüm veriyi üzerine yaz
+                        };
+
                         console.log('Firebase settings yüklendi:', siteData.settings);
-                        // Debug: banner.slides dizisini kontrol edelim
-                        console.log('Banner slides (fetchData içinde):', siteData.settings.banner?.slides);
+                        // Artık .slides değil, doğrudan settings.banner'ı logluyoruz
+                        console.log('Banner slides (fetchData içinde):', siteData.settings.banner); 
                     } else {
                         console.log('Settings belgesi mevcut değil!');
                     }
@@ -1085,19 +1088,20 @@
 
             const renderBanner = () => {
                 const bannerContainer = document.getElementById('hero-banner-container');
-                const slides = siteData.settings?.banner?.slides || [];
+                // BURASI GÜNCELLENDİ: slides verisini doğrudan siteData.settings.banner olarak alıyoruz
+                const slides = siteData.settings?.banner || []; 
 
                 // Debug: renderBanner fonksiyonunun başında slides dizisini tekrar kontrol edelim
-                console.log('renderBanner içinde slides:', slides);
+                console.log('renderBanner içinde slides (güncellendi):', slides);
 
                 bannerContainer.innerHTML = '';
                 if (slides.length === 0) {
                     bannerContainer.style.display = 'none';
-                    console.log('Banner gizlendi çünkü slides boş.');
+                    console.log('Banner gizlendi çünkü slides boş (güncellendi).');
                     return;
                 }
                 bannerContainer.style.display = 'block';
-                console.log('Banner gösterildi çünkü slides dolu.');
+                console.log('Banner gösterildi çünkü slides dolu (güncellendi).');
 
                 slides.forEach((slideData, index) => {
                     const slideEl = document.createElement('div');
@@ -1318,8 +1322,8 @@
 
                 await fetchData();
                 
-                // Debug: fetchData sonrası siteData.settings.banner.slides değerini kontrol edelim
-                console.log('init sonrası siteData.settings.banner.slides:', siteData.settings.banner?.slides);
+                // Debug: fetchData sonrası siteData.settings.banner değerini kontrol edelim (artık doğrudan dizi olmalı)
+                console.log('init sonrası siteData.settings.banner:', siteData.settings.banner);
 
 
                 const availableCountries = Object.keys(siteData.settings.countryPricing);
@@ -1342,8 +1346,7 @@
             
             init();
         } else {
-             // Firebase başlatılamazsa genel hata mesajı göster
-            if (document.getElementById('loading-overlay')) document.getElementById('loading-overlay').classList.add('hidden');
+             if (document.getElementById('loading-overlay')) document.getElementById('loading-overlay').classList.add('hidden');
             if (document.getElementById('loading-text')) document.getElementById('loading-text').textContent = "Hata: Sayfa yüklenemedi! Lütfen internet bağlantınızı kontrol edin.";
             if (document.getElementById('main-section-title')) document.getElementById('main-section-title').textContent = "Ürünler Yüklenemedi";
         }
