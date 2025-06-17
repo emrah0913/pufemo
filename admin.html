@@ -63,14 +63,14 @@
         .variant-header { 
             display: flex; 
             justify-content: space-between; 
-            align-items: flex-start; /* Align items to the start for multi-line inputs */
+            align-items: flex-start; 
             margin-bottom: 1rem; 
-            flex-wrap: wrap; /* Allow wrapping for language inputs */
-            gap: 10px; /* Gap between language inputs */
+            flex-wrap: wrap; 
+            gap: 10px; 
         }
-        .variant-header .form-group { /* Style for individual language inputs within header */
-            flex: 1; /* Make inputs flexible */
-            min-width: 100px; /* Minimum width for each language input */
+        .variant-header .form-group { 
+            flex: 1; 
+            min-width: 100px; 
             margin: 0;
         }
         .media-input-group { 
@@ -78,11 +78,10 @@
             gap: 10px; 
             align-items: center; 
             margin-bottom: 10px;
-            flex-wrap: wrap; /* Allow wrapping */
+            flex-wrap: wrap; 
         }
         .media-input-group select { width: 120px; flex-shrink: 0; }
         .media-input-group input { flex-grow: 1; }
-        /* Yeni eklenen media önizleme stilleri */
         .media-input-group img, .media-input-group video {
             max-width: 80px;
             max-height: 80px;
@@ -90,7 +89,7 @@
             margin-right: 10px;
             border-radius: 4px;
             border: 1px solid #ddd;
-            flex-shrink: 0; /* Önizlemenin küçülmesini engelle */
+            flex-shrink: 0; 
         }
 
 
@@ -574,21 +573,20 @@
             apiKey: "AIzaSyDYkzZzNXB22U4oEXxOoPh-puwuE8kz0g4",
             authDomain: "pufemo-com.firebaseapp.com",
             projectId: "pufemo-com",
-            storageBucket: "pufemo-com.appspot.com", // storageBucket eklendi
+            storageBucket: "pufemo-com.appspot.com", 
             messagingSenderId: "983352837227",
             appId: "1:983352837227:web:defaa8dae215776e2e1d2e",
         };
         
         let db;
-        let storage; // storage değişkeni tanımlandı
+        let storage; 
         try {
             firebase.initializeApp(firebaseConfig);
             db = firebase.firestore();
-            storage = firebase.storage(); // storage başlatıldı
+            storage = firebase.storage(); 
         } catch (e) { alert('Firebase başlatılamadı: ' + e.message); }
 
-        if (db && storage) { // db ve storage kontrolü yapıldı
-            // === 1. GLOBAL STATE VE DOM ELEMENTLERİ ===
+        if (db && storage) { 
             let localState = { 
                 settings: { 
                     languages: [ 
@@ -656,16 +654,10 @@
                 "fa-solid fa-rupee-sign", "fa-solid fa-basket-shopping", "fa-solid fa-cart-shopping", "fa-solid fa-bag-shopping"
             ];
 
-            // === 2. ÇEKİRDEK FONKSİYONLAR ===
             const showLoading = () => loadingOverlay.classList.remove('hidden');
             const hideLoading = () => loadingOverlay.classList.add('hidden');
             const generateUniqueId = () => '_' + Math.random().toString(36).substr(2, 9);
             
-            /**
-             * İki harfli ülke kodunu (örn: "TR") bayrak emojisine (örn: "🇹🇷") çevirir.
-             * @param {string} code - İki harfli ISO ülke kodu.
-             * @returns {string} Bayrak emojisi.
-             */
             function countryCodeToEmoji(code) {
                 if (!code || code.length !== 2) {
                     return ''; 
@@ -851,6 +843,7 @@
             }
             
             // Renk varyantları için medya inputu oluşturma (önizleme dahil)
+            // SADECE URL GİRİŞİ İÇİN GÜNCELLENDİ
             function createMediaInputHTML(media = { type: 'image', url: '' }) {
                 const previewHTML = media.url ?
                     (media.type === 'image' ?
@@ -861,12 +854,11 @@
                 return `
                     <div class="media-input-group">
                         ${previewHTML}
-                        <select class="variant-media-type">
+                        <select class="variant-media-type" style="width: 100px; flex-shrink: 0;">
                             <option value="image" ${media.type === 'image' ? 'selected' : ''}>Resim</option>
                             <option value="video" ${media.type === 'video' ? 'selected' : ''}>Video</option>
                         </select>
-                        <input type="text" class="variant-media-url" placeholder="Medya URL'si (yüklendiğinde dolar)" value="${media.url || ''}" style="display: none;">
-                        <input type="file" class="variant-media-file-input" accept="image/*,video/*">
+                        <input type="text" class="variant-media-url" placeholder="Medya URL'si girin" value="${media.url || ''}" style="flex-grow: 1; margin-left: 10px;">
                         <button type="button" class="btn btn-danger btn-sm remove-media-btn">Sil</button>
                     </div>`;
             }
@@ -1117,7 +1109,7 @@
                 }); 
                 
                 document.querySelectorAll('#color-variants-container .variant-color-block').forEach(block => { 
-                    const variantColorName = {}; // Renk adlarını tutacak obje
+                    const variantColorName = {}; 
                     block.querySelectorAll('.variant-color-input').forEach(input => {
                         variantColorName[input.dataset.lang] = input.value.trim();
                     });
@@ -1125,10 +1117,10 @@
                     const variant = { colorName: variantColorName, media: [] }; 
                     block.querySelectorAll('.media-input-group').forEach(mediaEl => { 
                         const urlInput = mediaEl.querySelector('.variant-media-url'); 
-                        if (urlInput.value.trim()) 
+                        if (urlInput.value.trim()) { // Sadece URL alanı doluysa medyayı ekle
                             variant.media.push({ type: mediaEl.querySelector('.variant-media-type').value, url: urlInput.value.trim() }); 
+                        }
                     }); 
-                    // Sadece en az bir dilde adı olan veya medyası olan varyantları ekle
                     if (Object.values(variant.colorName).some(name => name) || variant.media.length > 0) {
                         productData.variants.push(variant);
                     }
@@ -1172,6 +1164,7 @@
             });
 
             // Medya URL veya tip değiştiğinde önizlemeyi güncelle
+            // Sadece URL input'u dinleyecek şekilde basitleştirildi
             productForm.addEventListener('input', e => {
                 if (e.target.classList.contains('variant-media-url') || e.target.classList.contains('variant-media-type')) {
                     const mediaInputGroup = e.target.closest('.media-input-group');
@@ -1200,49 +1193,8 @@
                 }
             });
 
-            // Dosya yükleme dinleyicisi
-            productForm.addEventListener('change', async e => {
-                if (e.target.classList.contains('variant-media-file-input')) {
-                    const fileInput = e.target;
-                    const file = fileInput.files[0];
-                    if (!file) return;
-
-                    showLoading();
-                    try {
-                        const storageRef = storage.ref();
-                        const filePath = `product_media/${generateUniqueId()}-${file.name}`;
-                        const fileRef = storageRef.child(filePath);
-                        await fileRef.put(file);
-                        const downloadURL = await fileRef.getDownloadURL();
-
-                        const mediaInputGroup = fileInput.closest('.media-input-group');
-                        const urlInput = mediaInputGroup.querySelector('.variant-media-url');
-                        const typeSelect = mediaInputGroup.querySelector('.variant-media-type');
-
-                        urlInput.value = downloadURL;
-                        // Dosya uzantısına göre tipi otomatik belirle
-                        if (file.type.startsWith('image/')) {
-                            typeSelect.value = 'image';
-                        } else if (file.type.startsWith('video/')) {
-                            typeSelect.value = 'video';
-                        }
-                        
-                        fileInput.style.display = 'none'; // Dosya yüklenince file input'u gizle
-                        urlInput.style.display = 'block'; // URL input'u göster
-
-                        // Önizlemeyi güncellemek için trigger
-                        const event = new Event('input', { bubbles: true });
-                        urlInput.dispatchEvent(event);
-
-                        alert('Dosya başarıyla yüklendi!');
-                    } catch (error) {
-                        console.error("Dosya yükleme hatası:", error);
-                        alert('Dosya yüklenirken bir hata oluştu: ' + error.message);
-                    } finally {
-                        hideLoading();
-                    }
-                }
-            });
+            // Dosya yükleme dinleyicisi kaldırıldı - artık doğrudan URL girişi var
+            // productForm.addEventListener('change', async e => { ... });
             
             homepageForm.addEventListener('submit', async e => { 
                 e.preventDefault(); 
