@@ -13,7 +13,7 @@
         :root {
             --primary-color: #2c3e50;
             --secondary-color: #e74c3c;
-            --background-color: #f9f9f9;
+            --background-color: #f9f9f9; /* Ürün detay sayfası için arka plan rengi */
             --text-color: #2c3e50;
             --light-text-color: #ffffff;
             --card-bg-color: #ffffff;
@@ -335,7 +335,7 @@
             border-radius: 12px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.05);
             max-width: 1100px;
-            grid-column: 1 / -1;
+            /* grid-column: 1 / -1; Sadece product.html'de olduğunda bu gerekli değil ama kalsın. */
         }
         .description-section h2 { margin-bottom: 15px; font-size: 1.5rem; border-bottom: 2px solid var(--secondary-color); display: inline-block; }
 
@@ -574,6 +574,10 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
 
     <script type="module">
+        // Firestore'dan getDoc fonksiyonunu import et (Eğer getDoc kullanıyorsan)
+        // Eğer hala firebase-firestore-compat.js kullanıyorsan, bu import'a gerek yok.
+        // const { getDoc, doc } = await import("https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js");
+
         const firebaseConfig = {
             apiKey: "AIzaSyDYkzZzNXB22U4oEXxOoPh-puwuE8kz0g4",
             authDomain: "pufemo-com.firebaseapp.com",
@@ -586,13 +590,16 @@
         let db;
         try {
             firebase.initializeApp(firebaseConfig);
-            db = firebase.firestore();
+            db = firebase.firestore(); // firebase-firestore-compat.js için doğru kullanım
         } catch (e) {
             console.error("Firebase başlatma hatası!", e);
-            // Firebase başlatılamazsa yükleme ekranını gizle ve hata mesajı göster
-            if (loadingOverlay) loadingOverlay.classList.add('hidden');
-            if (productTitleEl) productTitleEl.textContent = "Hata: Site yüklenemedi.";
-            if (productDescriptionEl) productDescriptionEl.textContent = "Lütfen internet bağlantınızı kontrol edin veya daha sonra tekrar deneyin.";
+            if (document.getElementById('loading-overlay')) document.getElementById('loading-overlay').classList.add('hidden');
+            if (document.getElementById('product-title')) document.getElementById('product-title').textContent = "Hata: Ürün yüklenemedi!";
+            if (document.getElementById('product-description')) document.getElementById('product-description').textContent = "Lütfen internet bağlantınızı kontrol edin veya daha sonra tekrar deneyin.";
+            if (document.getElementById('btn-cart')) document.getElementById('btn-cart').disabled = true;
+            if (document.getElementById('btn-buy')) document.getElementById('btn-buy').disabled = true;
+            if (document.getElementById('decrease-quantity')) document.getElementById('decrease-quantity').disabled = true;
+            if (document.getElementById('increase-quantity')) document.getElementById('increase-quantity').disabled = true;
         }
 
         if (db) {
@@ -674,7 +681,7 @@
             const totalPriceLabelEl = document.getElementById('total-price-label');
             const calculatedTotalPriceEl = document.getElementById('calculated-total-price');
 
-            let currentProductData = null;
+            let currentProductData = null; // Mevcut ürün verisini tutmak için
 
 
             const fetchData = async () => {
@@ -795,8 +802,12 @@
                 if (productId) {
                     loadProductDetails(productId); // ID varsa o ürünü yükle
                 } else {
-                    // ID yoksa varsayılan bir ürün yükle veya hata mesajı göster
-                    loadProductDetails("your_default_product_id_here"); // Lütfen burayı Firebase'deki gerçek bir ürün ID'si ile DEĞİŞTİRİN!
+                    // ID yoksa veya geçersizse bir hata mesajı göster
+                    if (productTitleEl) productTitleEl.textContent = staticTranslations['product_not_found_title'][currentLang];
+                    if (productDescriptionEl) productDescriptionEl.textContent = staticTranslations['product_not_found_desc'][currentLang];
+                    if (calculatedTotalPriceEl) calculatedTotalPriceEl.textContent = '';
+                    if (decreaseQuantityBtn) decreaseQuantityBtn.disabled = true;
+                    if (increaseQuantityBtn) increaseQuantityBtn.disabled = true;
                 }
             };
 
@@ -981,6 +992,11 @@
 
 
                 try {
+                    // Firestore'dan belgeyi getir (getDoc ve doc kullanımı)
+                    // const docRef = doc(db, "pufemo-products", productId);
+                    // const doc = await getDoc(docRef);
+
+                    // Firestore-compat için eski yöntemle devam edelim:
                     const doc = await db.collection("pufemo-products").doc(productId).get();
 
                     if (!doc.exists) {
@@ -993,12 +1009,13 @@
 
                     const data = doc.data();
                     currentProductData = data;
-                    // !!! BURADA KRİTİK DÜZELTME YAPILDI: Firebase yapısına göre dil objesini alıyoruz.
-                    // Ekran görüntünüzde "tr" veya "en" gibi alanlar doğrudan belgenin kök seviyesinde.
+                    
+                    // Firebase veri yapınıza göre dil objesini doğrudan alın
+                    // Ekran görüntünüzdeki yapıya göre 'tr' veya 'en' gibi alanlar doğrudan belgenin kök seviyesinde.
                     const productContent = data[currentLang] || data.tr || {}; 
 
                     if (productTitleEl) productTitleEl.textContent = productContent.name || staticTranslations['product_title_default'][currentLang];
-                    // !!! BURADA AÇIKLAMA İÇİN DÜZELTME YAPILDI !!! Eğer açıklama boşsa "no_info" metnini kullan
+                    // Açıklama alanı için: eğer boşsa "no_info" metnini kullan
                     if (productDescriptionEl) productDescriptionEl.textContent = productContent.description || staticTranslations['product_description_no_info'][currentLang];
 
                     const basePrice = data.basePriceTL || 0;
@@ -1172,7 +1189,6 @@
                     }
 
                     updateCalculatedTotalPrice(); // Ürün yüklendikten sonra toplam fiyatı güncelle
-                    // Ürün yüklendikten sonra adet butonlarını etkinleştir
                     if (decreaseQuantityBtn) decreaseQuantityBtn.disabled = false;
                     if (increaseQuantityBtn) increaseQuantityBtn.disabled = false;
 
@@ -1182,7 +1198,6 @@
                     if (productTitleEl) productTitleEl.textContent = staticTranslations['error_loading_product_title'][currentLang];
                     if (productDescriptionEl) productDescriptionEl.textContent = staticTranslations['error_loading_product_desc'][currentLang];
                     if (calculatedTotalPriceEl) calculatedTotalPriceEl.textContent = '';
-                    // Hata durumunda adet butonlarını devre dışı bırak
                     if (decreaseQuantityBtn) decreaseQuantityBtn.disabled = true;
                     if (increaseQuantityBtn) increaseQuantityBtn.disabled = true;
                 }
@@ -1280,7 +1295,7 @@
             };
 
             async function init() {
-                // Yükleme ekranını göster ve sayfa yüklenmeden önce dom referanslarını al
+                // Sadece ürün detay sayfasında yükleme ekranı göster
                 if (loadingOverlay) loadingOverlay.classList.remove('hidden');
 
                 // Firebase'den veri çekme ve render etme
@@ -1294,15 +1309,14 @@
             // Sayfa yüklendiğinde init fonksiyonunu çağır
             init();
         } else {
-            // Firebase başlatılamazsa (db objesi null ise)
-            if (loadingOverlay) loadingOverlay.classList.add('hidden'); // Yükleme ekranını gizle
-            if (productTitleEl) productTitleEl.textContent = "Hata: Site içeriği yüklenemedi.";
-            if (productDescriptionEl) productDescriptionEl.textContent = "Lütfen internet bağlantınızı kontrol edin veya daha sonra tekrar deneyin.";
-            // Butonları da devre dışı bırak
-            if (btnCartEl) btnCartEl.disabled = true;
-            if (btnBuyEl) btnBuyEl.disabled = true;
-            if (decreaseQuantityBtn) decreaseQuantityBtn.disabled = true;
-            if (increaseQuantityBtn) increaseQuantityBtn.disabled = true;
+            // Firebase başlatılamazsa genel hata mesajı göster
+            if (document.getElementById('loading-overlay')) document.getElementById('loading-overlay').classList.add('hidden');
+            if (document.getElementById('product-title')) document.getElementById('product-title').textContent = "Hata: Ürün yüklenemedi!";
+            if (document.getElementById('product-description')) document.getElementById('product-description').textContent = "Lütfen internet bağlantınızı kontrol edin veya daha sonra tekrar deneyin.";
+            if (document.getElementById('btn-cart')) document.getElementById('btn-cart').disabled = true;
+            if (document.getElementById('btn-buy')) document.getElementById('btn-buy').disabled = true;
+            if (document.getElementById('decrease-quantity')) document.getElementById('decrease-quantity').disabled = true;
+            if (document.getElementById('increase-quantity')) document.getElementById('increase-quantity').disabled = true;
         }
     </script>
 </body>
