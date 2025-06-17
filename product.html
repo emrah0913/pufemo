@@ -507,11 +507,11 @@
                 'product_not_found_desc': { tr: 'Aradığınız ürün bulunamamaktadır.', en: 'The product you are looking for cannot be found.', el: 'Το προϊόν που αναζητάτε δεν μπορεί να βρεθεί.', ru: 'Искомый товар не найден.' },
                 'error_loading_product_title': { tr: 'Hata Oluştu', en: 'Error Occurred', el: 'Σφάλμα παρουσιάστηκε', ru: 'Произошла ошибка' },
                 'error_loading_product_desc': { tr: 'Ürün bilgileri yüklenemedi. Lütfen daha sonra tekrar deneyin.', en: 'Product information could not be loaded. Please try again later.', el: 'Δεν ήταν δυνατή η φόρτωση των πληροφοριών προϊόντος. Παρακαλώ δοκιμάστε ξανά αργότερα.', ru: 'Не удалось загрузить информацию о товаре. Пожалуйста, попробуйте еще раз позже.' },
-                'add_to_cart_button': { tr: 'Sepete Ekle', en: 'Add to Cart', el: 'Προσθήκη στο καλάθι', ru: 'Добавить в корзиνα' },
+                'add_to_cart_button': { tr: 'Sepete Ekle', en: 'Add to Cart', el: 'Προσθήκη στο καλάθι', ru: 'Добавить в корзина' },
                 'buy_now_button': { tr: 'Satın Al', en: 'Buy Now', el: 'Αγορά τώρα', ru: 'Купить сейчас' },
                 'product_details_heading': { tr: 'Ürün Detayları', en: 'Product Details', el: 'Λεπτομέρειες προϊόντος', ru: 'Информация о продукте' },
                 'variant_selection_label': { tr: 'Renk Seçimi', en: 'Color Selection', el: 'Επιλογή Χρώματος', ru: 'Выбор цвета' },
-                'unknown_color': { tr: 'Bilinmeyen Renk', en: 'Unknown Color', el: 'Άγνωστο Χρώμα', ru: 'Неизвестный цвет' }
+                'unknown_color': { tr: 'Bilinmeyen Renk', en: 'Unknown Color', el: 'Άγνωστο Χρώμα', ru: 'Неизвестный χρώμα' } // Son eklenen çeviri
             };
 
             const loadingOverlay = document.getElementById('loading-overlay');
@@ -526,7 +526,7 @@
                 categories: { tree: [] }
             };
 
-            let currentLang = localStorage.getItem('pufemo-language') || 'en';
+            let currentLang = localStorage.getItem('pufemo-language') || 'tr'; // Varsayılan dili 'tr' olarak değiştirdim
             let currentCurrency = localStorage.getItem('pufemo-currency') || 'USD';
             let currentCountryCode = localStorage.getItem('pufemo-country') || '';
 
@@ -543,7 +543,7 @@
             const promoBarEl = document.querySelector('.promo-bar');
             const promoTextContentEl = document.getElementById('promo-text-content');
             const btnCartEl = document.querySelector('.btn-cart');
-            const btnBuyEl = document.querySelector('.btn-buy');
+            const btnBuyEl = document.getElementById('btn-buy'); // ID'yi yakalamak için
             const descriptionSectionTitleEl = document.querySelector('.description-section h2');
             const variantSelectorLabelEl = document.getElementById('variant-selector-label');
 
@@ -670,7 +670,7 @@
                 renderCategories();
                 renderGeneralSiteElements();
                 // URL'den ürün ID'sini al, yoksa varsayılanı kullan
-                const defaultProductId = new URLSearchParams(window.location.search).get('id') || "your_default_product_id_here";
+                const defaultProductId = new URLSearchParams(window.location.search).get('id') || "your_default_product_id_here"; // Lütfen burayı Firebase'deki gerçek bir ürün ID'si ile DEĞİŞTİRİN!
                 loadProductDetails(defaultProductId);
             };
 
@@ -860,6 +860,7 @@
                     };
 
                     const variants = data.variants || [];
+                    
                     // Varyant varsa etiketi göster, yoksa gizle
                     if (variants.length > 0) {
                         variantSelectorLabelEl.style.display = 'block';
@@ -884,13 +885,14 @@
                             const variantImageUrl = variant.media?.[0]?.url || 'https://via.placeholder.com/60x60/cccccc/000000?text=NoImg';
                             const img = document.createElement('img');
                             img.src = variantImageUrl;
-                            img.alt = (typeof variant.name === 'object' && variant.name?.[currentLang]) || variant.name?.tr || staticTranslations['unknown_color'][currentLang];
+                            // **BURADA DÜZELTME YAPILDI:** variant.colorName'i oku, yoksa unknown_color kullan
+                            img.alt = variant.colorName || staticTranslations['unknown_color'][currentLang];
                             colorCircleDiv.appendChild(img);
 
                             const colorNameSpan = document.createElement('span');
                             colorNameSpan.className = 'color-name';
-                            // Varyant adını doğru dilde almaya çalış, yoksa varsayılan veya "Bilinmeyen Renk" kullan
-                            colorNameSpan.textContent = (typeof variant.name === 'object' && variant.name?.[currentLang]) || variant.name?.tr || staticTranslations['unknown_color'][currentLang];
+                            // **BURADA DÜZELTME YAPILDI:** variant.colorName'i oku, yoksa unknown_color kullan
+                            colorNameSpan.textContent = variant.colorName || staticTranslations['unknown_color'][currentLang];
                             colorOptionDiv.title = colorNameSpan.textContent; // Tooltip olarak da ekle
 
                             if (index === 0) {
