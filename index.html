@@ -678,7 +678,7 @@
                     el: 'Φέρνουμε την άνεση και την αισθητική των ονείρων σας στο σπίτι σας.',
                     ru: 'Мы приносим комфорт и эстетику в ваш дом.',
                     de: 'Wir bringen den Komfort und die Ästhetik Ihrer Träume in Ihr Zuhause.',
-                    fr: 'Nous apportons le confort et l\'esthétique de vos rêves à votre maison.',
+                    fr: 'Nous apportamos el confort et l\'estetica de vos rêves à votre maison.',
                     it: 'Portiamo il comfort e l\'estetica dei vostri sogni nella vostra casa.'
                 },
                 'footer-title-fast-links': {
@@ -828,8 +828,7 @@
             };
 
             const loadingOverlay = document.getElementById('loading-overlay');
-            // Yeni çeviri için 'loading-text' id'li p elementini tanımla
-            const loadingTextP = document.getElementById('loading-text'); // Bu zaten vardı, ama emin olmak için burada dursun.
+            const loadingTextP = document.getElementById('loading-text');
 
             let siteData = {
                 settings: {
@@ -853,9 +852,7 @@
             const welcomeModalConfirmButton = document.getElementById('welcomeModalConfirmButton');
             const welcomeModalTitle = document.getElementById('welcome-modal-title');
             const welcomeModalMessage = document.getElementById('welcome-modal-message');
-            // const welcomeModalButtonText = document.getElementById('welcomeModalConfirmButton'); // Bu satır gereksiz, welcomeModalConfirmButton zaten tanımlı
 
-            // Yeni eklenen element referansları
             const mainSectionTitleEl = document.getElementById('main-section-title');
             const cartPageLinkEl = document.getElementById('cart-page-link');
 
@@ -870,22 +867,31 @@
 
                     if (settingsDoc.exists) {
                         siteData.settings = { ...siteData.settings, ...settingsDoc.data() };
+                        // Debug: settings verisini kontrol edelim
+                        console.log('Firebase settings yüklendi:', siteData.settings);
+                        // Debug: banner.slides dizisini kontrol edelim
+                        console.log('Banner slides (fetchData içinde):', siteData.settings.banner?.slides);
+                    } else {
+                        console.log('Settings belgesi mevcut değil!');
                     }
                     if (categoriesDoc.exists) {
                         siteData.categories = { ...siteData.categories, ...categoriesDoc.data() };
+                        console.log('Firebase kategorileri yüklendi:', siteData.categories);
+                    } else {
+                        console.log('Kategoriler belgesi mevcut değil!');
                     }
                     siteData.products = productsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    console.log('Firebase ürünleri yüklendi:', siteData.products);
 
                     const availableCountries = Object.keys(siteData.settings.countryPricing);
                     
-                    // fetch sırasında varsayılan veya kaydedilmiş ülkeyi ayarla
                     if (localStorage.getItem('pufemo-country') && availableCountries.includes(localStorage.getItem('pufemo-country'))) {
                         currentCountryCode = localStorage.getItem('pufemo-country');
                     } else if (availableCountries.length > 0) {
-                        currentCountryCode = availableCountries[0]; // Firebase'deki ilk ülkeyi varsayılan yap
+                        currentCountryCode = availableCountries[0];
                         localStorage.setItem('pufemo-country', currentCountryCode);
                     } else {
-                        currentCountryCode = 'US'; // Firebase'de hiç ülke yoksa sabit bir varsayılan ata
+                        currentCountryCode = 'US';
                         localStorage.setItem('pufemo-country', currentCountryCode);
                     }
 
@@ -975,7 +981,7 @@
                 renderStaticText();
                 setupControls();
                 renderCategories();
-                renderBanner();
+                renderBanner(); // Render banner here
                 renderProducts();
                 renderGeneralSiteElements();
             };
@@ -996,12 +1002,10 @@
                 if (document.getElementById('footer-copyright')) document.getElementById('footer-copyright').innerHTML = translate('footer-copyright');
                 if (document.getElementById('country-selector-label')) document.getElementById('country-selector-label').textContent = translate('country_selector_label');
 
-                // Welcome Modal metinleri için düzeltme
                 if (welcomeModalTitle) welcomeModalTitle.textContent = translate('welcome_modal_title');
                 if (welcomeModalMessage) welcomeModalMessage.textContent = translate('welcome_modal_message');
                 if (welcomeModalConfirmButton) welcomeModalConfirmButton.textContent = translate('welcome_modal_confirm_button');
                 
-                // Sepet linki title
                 if (cartPageLinkEl) cartPageLinkEl.title = translate('cart_page_link_title');
             };
 
@@ -1083,18 +1087,22 @@
                 const bannerContainer = document.getElementById('hero-banner-container');
                 const slides = siteData.settings?.banner?.slides || [];
 
+                // Debug: renderBanner fonksiyonunun başında slides dizisini tekrar kontrol edelim
+                console.log('renderBanner içinde slides:', slides);
+
                 bannerContainer.innerHTML = '';
                 if (slides.length === 0) {
                     bannerContainer.style.display = 'none';
+                    console.log('Banner gizlendi çünkü slides boş.');
                     return;
                 }
                 bannerContainer.style.display = 'block';
+                console.log('Banner gösterildi çünkü slides dolu.');
 
                 slides.forEach((slideData, index) => {
                     const slideEl = document.createElement('div');
                     slideEl.className = 'slide' + (index === 0 ? ' active' : '');
                     
-                    // Banner içeriğini Firebase'den alırken dil desteği
                     const content = slideData.content?.[currentLang] || slideData.content?.tr || {};
                     const defaultButtonText = staticTranslations['default_button_text']?.[currentLang] || staticTranslations['default_button_text']?.['tr'];
                     const buttonText = content.button_text || defaultButtonText;
@@ -1161,9 +1169,7 @@
                 products.forEach(product => {
                     const card = document.createElement('div');
                     card.className = 'product-card';
-                    // Ürün görseli için varsayılan metin de çeviriden gelecek
                     const firstImage = product.variants?.[0]?.media?.[0]?.url || `https://placehold.co/400x300/ccc/fff?text=${staticTranslations['no_image'][currentLang] || staticTranslations['no_image']['tr']}`;
-                    // Ürün adı için varsayılan metin de çeviriden gelecek
                     const name = product.content?.[currentLang]?.name || product.content?.tr?.name || staticTranslations['untitled_product'][currentLang] || staticTranslations['untitled_product']['tr'];
                     
                     const originalPrice = product.basePriceTL;
@@ -1291,8 +1297,7 @@
                         window.applyCountryAndRender(selectedCountry);
                         welcomeModalOverlay.classList.remove('active');
                     } else {
-                        // Alert mesajı da çevrilebilir hale getirilmeli
-                        alert(staticTranslations['welcome_modal_message'][currentLang].replace('Please select your country below.', translate('welcome_modal_message').replace('Please select your country below.', 'Please select a country to continue.')));
+                        alert(staticTranslations['welcome_modal_message'][currentLang].replace('Please select your country below.', 'Please select a country to continue.'));
                     }
                 });
 
@@ -1309,27 +1314,26 @@
             
             async function init() {
                 loadingOverlay.classList.remove('hidden');
-                // Ensure loading text is translated immediately
                 if (loadingTextP) loadingTextP.textContent = staticTranslations['loading_text'][currentLang];
 
                 await fetchData();
+                
+                // Debug: fetchData sonrası siteData.settings.banner.slides değerini kontrol edelim
+                console.log('init sonrası siteData.settings.banner.slides:', siteData.settings.banner?.slides);
 
-                // Yeni Mantık: Eğer localStorage'da 'pufemo-country' yoksa veya Firebase'de tanımlı bir ülke yoksa modalı göster.
+
                 const availableCountries = Object.keys(siteData.settings.countryPricing);
                 const storedCountry = localStorage.getItem('pufemo-country');
                 
                 if (!storedCountry || !availableCountries.includes(storedCountry)) {
-                    // Modal'ı göster ve çevirilerini yükle
-                    if (availableCountries.length > 0) { // Sadece ülkeler tanımlıysa modalı göster
+                    if (availableCountries.length > 0) {
                         welcomeModalOverlay.classList.add('active');
-                        renderStaticText(); // Modal metinleri için
-                        setupControls(); // Modalın içindeki ülke seçici için
+                        renderStaticText();
+                        setupControls();
                     } else {
-                        // Hiç ülke tanımlı değilse modalı gösterme, direkt render et
                         renderAll();
                     }
                 } else {
-                    // Ülke zaten seçiliyse ve geçerliyse direkt render et
                     renderAll();
                 }
                 
@@ -1342,9 +1346,6 @@
             if (document.getElementById('loading-overlay')) document.getElementById('loading-overlay').classList.add('hidden');
             if (document.getElementById('loading-text')) document.getElementById('loading-text').textContent = "Hata: Sayfa yüklenemedi! Lütfen internet bağlantınızı kontrol edin.";
             if (document.getElementById('main-section-title')) document.getElementById('main-section-title').textContent = "Ürünler Yüklenemedi";
-            // Diğer sabit elementler için de benzer şekilde varsayılan hata metinleri atayabilirsiniz.
-            // Örneğin:
-            // if (document.getElementById('footer-title-pufemo')) document.getElementById('footer-title-pufemo').textContent = "PUFEMO (Hata)";
         }
     </script>
 </body>
