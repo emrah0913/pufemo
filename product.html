@@ -119,8 +119,7 @@
             padding: 30px 20px;
             display: grid;
             grid-template-columns: 0.8fr 1fr; /* Sol (görsel) dar, Sağ (bilgi) geniş */
-            /* GÜNCELLEME: Gap değeri azaltıldı */
-            gap: 20px; /* Önceden 40px idi */
+            gap: 20px;
             align-items: start;
         }
 
@@ -132,7 +131,8 @@
             align-items: flex-start;
         }
 
-        .main-image {
+        /* Video elementleri için stil */
+        .image-gallery .main-media {
             width: 100%;
             aspect-ratio: 4/3;
             object-fit: cover;
@@ -142,13 +142,14 @@
 
         .thumbnail-row {
             display: flex;
-            /* GÜNCELLEME: Gap değeri azaltıldı */
-            gap: 5px; /* Önceden 10px idi */
+            gap: 5px;
             overflow-x: auto;
             justify-content: flex-start;
             padding-top: 10px;
         }
-        .thumbnail-row img {
+
+        /* Thumbnail video/resim ayrımı için yeni stil */
+        .thumbnail-row .thumbnail-item {
             width: 60px;
             height: 60px;
             object-fit: cover;
@@ -156,8 +157,30 @@
             cursor: pointer;
             border: 2px solid transparent;
             transition: 0.2s;
+            display: flex; /* İçeriği ortalamak için */
+            justify-content: center;
+            align-items: center;
+            position: relative; /* Video iconu için */
         }
-        .thumbnail-row img.active { border-color: var(--secondary-color); }
+        .thumbnail-row .thumbnail-item.active { border-color: var(--secondary-color); }
+        .thumbnail-row .thumbnail-item img,
+        .thumbnail-row .thumbnail-item video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 8px; /* Köşeleri yuvarla */
+        }
+        /* Video thumbnail için play icon */
+        .thumbnail-row .thumbnail-item.video-thumb::after {
+            content: "\f04b"; /* FontAwesome play icon kodu */
+            font-family: "Font Awesome 6 Free";
+            font-weight: 900;
+            position: absolute;
+            color: white;
+            font-size: 1.5rem;
+            text-shadow: 0 0 5px rgba(0,0,0,0.8);
+        }
+
 
         .details {
             display: flex;
@@ -171,11 +194,11 @@
         .old-price { text-decoration: line-through; color: #888; font-size: 1.1rem; }
         .new-price { font-size: 1.6rem; font-weight: bold; color: var(--secondary-color); }
 
-        /* Varyant Seçicileri Stilleri - GÜNCELLEME: Gap değeri azaltıldı */
+        /* Varyant Seçicileri Stilleri */
         .variant-selectors {
             display: flex;
             flex-wrap: wrap;
-            gap: 8px; /* Önceden 15px idi */
+            gap: 8px;
             align-items: center;
         }
 
@@ -293,9 +316,9 @@
                 margin-bottom: 15px;
                 align-items: center;
             }
-            .main-image { border-radius: 10px; }
+            .image-gallery .main-media { border-radius: 10px; }
             .thumbnail-row { justify-content: center; }
-            .thumbnail-row img { width: 50px; height: 50px; border-radius: 6px; }
+            .thumbnail-row .thumbnail-item { width: 50px; height: 50px; border-radius: 6px; }
             .details h1 { font-size: 1.8rem; }
             .new-price { font-size: 1.4rem; }
             .old-price { font-size: 1rem; }
@@ -324,8 +347,8 @@
                 padding: 15px 10px;
                 gap: 15px;
             }
-            .main-image { border-radius: 8px; }
-            .thumbnail-row img { width: 45px; height: 45px; border-radius: 5px; }
+            .image-gallery .main-media { border-radius: 8px; }
+            .thumbnail-row .thumbnail-item { width: 45px; height: 45px; border-radius: 5px; }
             .details h1 { font-size: 1.6rem; }
             .new-price { font-size: 1.2rem; }
             .old-price { font-size: 0.9rem; }
@@ -398,7 +421,7 @@
 
     <main class="product-detail-container">
         <div class="image-gallery">
-            <img id="main-image" class="main-image" src="" alt="Ürün görseli" />
+            <div id="main-media-display"></div>
             <div class="thumbnail-row" id="thumbnail-row"></div>
         </div>
 
@@ -480,7 +503,6 @@
         }
 
         if (db) {
-            // Ülke kodunu emojiye çeviren fonksiyon
             function countryCodeToEmoji(code) {
                 if (!code || code.length !== 2) {
                     return '';
@@ -490,7 +512,6 @@
                 ).join('');
             }
 
-            // Statik Çeviriler ve Metinler
             const staticTranslations = {
                 'loading_text': { tr: 'PUFEMO Yükleniyor...', en: 'Loading PUFEMO...', el: 'Φόρτωση PUFEMO...', ru: 'Загрузка PUFEMO...' },
                 'mobile_menu_title': { tr: 'Kategoriler', en: 'Categories', el: 'Κατηγορίες', ru: 'Категории' },
@@ -534,7 +555,7 @@
 
             // DOM Element Referansları
             const productDetailContainer = document.querySelector('.product-detail-container');
-            const mainImageEl = document.getElementById("main-image");
+            const mainMediaDisplayEl = document.getElementById("main-media-display"); // Ana görsel/video için yeni referans
             const thumbnailRowEl = document.getElementById("thumbnail-row");
             const productTitleEl = document.getElementById("product-title");
             const productOldPriceEl = document.getElementById("product-old-price");
@@ -545,7 +566,7 @@
             const promoBarEl = document.querySelector('.promo-bar');
             const promoTextContentEl = document.getElementById('promo-text-content');
             const btnCartEl = document.querySelector('.btn-cart');
-            const btnBuyEl = document.getElementById('btn-buy'); // Şimdi doğru ID ile alıyoruz
+            const btnBuyEl = document.getElementById('btn-buy');
             const descriptionSectionTitleEl = document.querySelector('.description-section h2');
             const variantSelectorLabelEl = document.getElementById('variant-selector-label');
 
@@ -665,7 +686,7 @@
                 setupControls();
                 renderCategories();
                 renderGeneralSiteElements();
-                const defaultProductId = new URLSearchParams(window.location.search).get('id') || "your_default_product_id_here";
+                const defaultProductId = new URLSearchParams(window.location.search).get('id') || "your_default_product_id_here"; // Lütfen burayı Firebase'deki gerçek bir ürün ID'si ile DEĞİŞTİRİN!
                 loadProductDetails(defaultProductId);
             };
 
@@ -673,7 +694,6 @@
                 document.documentElement.lang = currentLang;
                 const translate = (key) => staticTranslations[key]?.[currentLang] || staticTranslations[key]?.['en'] || staticTranslations[key]?.['tr'] || '';
 
-                // Bu elementlerin varlığını kontrol ederek textContent atamasını yap
                 const loadingOverlayP = document.querySelector('#loading-overlay p');
                 if (loadingOverlayP) loadingOverlayP.textContent = translate('loading_text');
                 
@@ -704,11 +724,8 @@
                 const countrySelectorLabel = document.getElementById('country-selector-label');
                 if (countrySelectorLabel) countrySelectorLabel.textContent = translate('country_selector_label');
 
-                // Buradaki kontroller zaten elemanların var olduğunu varsaydığı için, null kontrolünü ekledim.
-                // Eğer bu elemanlar DOM'da yoksa veya ID'leri yanlışsa yine de sorun çıkabilir,
-                // ama artık hata vermeyecek.
                 if (btnCartEl) btnCartEl.textContent = translate('add_to_cart_button');
-                if (btnBuyEl) btnBuyEl.textContent = translate('buy_now_button'); // Bu satırda hata çözüldü
+                if (btnBuyEl) btnBuyEl.textContent = translate('buy_now_button');
                 if (descriptionSectionTitleEl) descriptionSectionTitleEl.textContent = translate('product_details_heading');
                 if (variantSelectorLabelEl) variantSelectorLabelEl.textContent = translate('variant_selection_label');
             };
@@ -812,7 +829,6 @@
             };
 
             const loadProductDetails = async (productId) => {
-                // Ensure elements exist before setting textContent
                 if (productTitleEl) productTitleEl.textContent = staticTranslations['product_title_default'][currentLang];
                 if (productDescriptionEl) productDescriptionEl.textContent = staticTranslations['product_description_loading'][currentLang];
 
@@ -850,37 +866,94 @@
                         }
                     }
 
-
                     const setImages = (media) => {
-                        if (!mainImageEl || !thumbnailRowEl) return; // Add null check for mainImageEl and thumbnailRowEl
+                        if (!mainMediaDisplayEl || !thumbnailRowEl) return;
+
+                        // Clear previous content
+                        mainMediaDisplayEl.innerHTML = '';
+                        thumbnailRowEl.innerHTML = '';
 
                         if (!media || media.length === 0) {
-                            mainImageEl.src = 'https://via.placeholder.com/600x450?text=Görsel+Yok';
-                            mainImageEl.alt = productContent.name + " - Görsel Yok";
-                            thumbnailRowEl.innerHTML = '';
+                            const imgPlaceholder = document.createElement('img');
+                            imgPlaceholder.src = 'https://via.placeholder.com/600x450?text=Görsel+Yok';
+                            imgPlaceholder.alt = productContent.name + " - Görsel Yok";
+                            imgPlaceholder.classList.add('main-media'); // Add main-media class for styling
+                            mainMediaDisplayEl.appendChild(imgPlaceholder);
                             return;
                         }
-                        mainImageEl.src = media[0].url;
-                        mainImageEl.alt = productContent.name + " - Ana Görsel";
-                        thumbnailRowEl.innerHTML = '';
+
+                        // Display the first media item in the main display area
+                        const firstMedia = media[0];
+                        if (firstMedia.url.endsWith('.mp4')) {
+                            const videoEl = document.createElement('video');
+                            videoEl.src = firstMedia.url;
+                            videoEl.controls = true; // Show controls
+                            videoEl.autoplay = true; // Autoplay for main display
+                            videoEl.muted = true; // Muted for autoplay
+                            videoEl.loop = true; // Loop for videos
+                            videoEl.playsInline = true; // Plays inline on iOS
+                            videoEl.classList.add('main-media'); // Add main-media class for styling
+                            mainMediaDisplayEl.appendChild(videoEl);
+                        } else {
+                            const imgEl = document.createElement('img');
+                            imgEl.src = firstMedia.url;
+                            imgEl.alt = productContent.name + " - Ana Görsel";
+                            imgEl.classList.add('main-media'); // Add main-media class for styling
+                            mainMediaDisplayEl.appendChild(imgEl);
+                        }
+
+                        // Populate thumbnails
                         media.forEach((m, i) => {
-                            const thumb = document.createElement('img');
-                            thumb.src = m.url;
-                            thumb.alt = productContent.name + " - Küçük Resim " + (i + 1);
-                            thumb.loading = "lazy";
-                            if (i === 0) thumb.classList.add('active');
-                            thumb.onclick = () => {
-                                document.querySelectorAll('.thumbnail-row img').forEach(el => el.classList.remove('active'));
-                                thumb.classList.add('active');
-                                mainImageEl.src = m.url;
+                            const thumbnailItem = document.createElement('div');
+                            thumbnailItem.classList.add('thumbnail-item');
+                            if (i === 0) thumbnailItem.classList.add('active');
+
+                            if (m.url.endsWith('.mp4')) {
+                                const videoThumb = document.createElement('video');
+                                videoThumb.src = m.url;
+                                videoThumb.muted = true;
+                                videoThumb.playsInline = true;
+                                videoThumb.preload = "metadata"; // Yalnızca metadata yükle
+                                thumbnailItem.appendChild(videoThumb);
+                                thumbnailItem.classList.add('video-thumb'); // Video iconu için sınıf
+                            } else {
+                                const imgThumb = document.createElement('img');
+                                imgThumb.src = m.url;
+                                imgThumb.loading = "lazy";
+                                thumbnailItem.appendChild(imgThumb);
+                            }
+                            
+                            thumbnailItem.onclick = () => {
+                                document.querySelectorAll('.thumbnail-item').forEach(el => el.classList.remove('active'));
+                                thumbnailItem.classList.add('active');
+                                // Update main display based on clicked thumbnail
+                                mainMediaDisplayEl.innerHTML = ''; // Clear main display
+
+                                if (m.url.endsWith('.mp4')) {
+                                    const videoEl = document.createElement('video');
+                                    videoEl.src = m.url;
+                                    videoEl.controls = true;
+                                    videoEl.autoplay = true;
+                                    videoEl.muted = true;
+                                    videoEl.loop = true;
+                                    videoEl.playsInline = true;
+                                    videoEl.classList.add('main-media');
+                                    mainMediaDisplayEl.appendChild(videoEl);
+                                } else {
+                                    const imgEl = document.createElement('img');
+                                    imgEl.src = m.url;
+                                    imgEl.alt = productContent.name + " - " + (m.alt || "Görsel");
+                                    imgEl.classList.add('main-media');
+                                    mainMediaDisplayEl.appendChild(imgEl);
+                                }
                             };
-                            thumbnailRowEl.appendChild(thumb);
+                            thumbnailRowEl.appendChild(thumbnailItem);
                         });
                     };
 
                     const variants = data.variants || [];
                     
-                    if (variantSelectorLabelEl) { // Null check for label
+                    if (variantSelectorLabelEl) {
                         if (variants.length > 0) {
                             variantSelectorLabelEl.style.display = 'block';
                         } else {
@@ -888,13 +961,11 @@
                         }
                     }
 
-
-                    if (variantSelectorsEl) { // Null check for the parent container
-                        while (variantSelectorsEl.children.length > 1) { // İlk çocuk (label) hariç
+                    if (variantSelectorsEl) {
+                        while (variantSelectorsEl.children.length > 1) {
                             variantSelectorsEl.removeChild(variantSelectorsEl.lastChild);
                         }
                     }
-
 
                     if (variants.length > 0) {
                         variants.forEach((variant, index) => {
@@ -929,7 +1000,7 @@
                             };
                             colorOptionDiv.appendChild(colorCircleDiv);
                             colorOptionDiv.appendChild(colorNameSpan);
-                            if (variantSelectorsEl) { // Ensure parent exists before appending
+                            if (variantSelectorsEl) {
                                 variantSelectorsEl.appendChild(colorOptionDiv);
                             }
 
@@ -956,9 +1027,8 @@
                 const mobileNav = document.getElementById('mobile-nav');
                 const mobileNavOverlay = document.getElementById('mobile-nav-overlay');
 
-                // Dil Seçimi
                 const languagesFromDB = siteData.settings.languages || [];
-                if (languageSelector) { // Null check
+                if (languageSelector) {
                     languageSelector.innerHTML = languagesFromDB.map(l => `<option value="${l.code}">${countryCodeToEmoji(l.flag)} ${l.name}</option>`).join('');
                     if (languagesFromDB.length > 0) {
                         languageSelector.value = currentLang;
@@ -968,11 +1038,9 @@
                     }
                 }
 
-
-                // Para Birimi Seçimi
                 const currencies = siteData.settings?.currencySymbols || {};
                 const availableCurrencies = Object.keys(currencies);
-                if (currencySelector) { // Null check
+                if (currencySelector) {
                     currencySelector.innerHTML = availableCurrencies.map(c => {
                         const symbol = currencies[c] || c;
                         return `<option value="${c}">${symbol} ${c}</option>`;
@@ -985,15 +1053,13 @@
                     }
                 }
 
-
-                // Ülke Seçimi
                 const countries = siteData.settings.countryPricing || {};
                 const countryOptionsHtml = Object.entries(countries).map(([code, data]) => {
                     const countryName = data.name?.[currentLang] || data.name?.['tr'] || code.toUpperCase();
                     return `<option value="${code}">${countryCodeToEmoji(data.flag)} ${countryName}</option>`;
                 }).join('');
 
-                if (countrySelector && countrySelector.parentElement) { // Null check for both selector and its parent
+                if (countrySelector && countrySelector.parentElement) {
                     if (Object.keys(countries).length > 0) {
                         countrySelector.innerHTML = countryOptionsHtml;
                         countrySelector.value = currentCountryCode;
@@ -1003,14 +1069,11 @@
                     }
                 }
 
-
-                // Event Listenerlar
                 if (languageSelector) { languageSelector.onchange = (e) => { currentLang = e.target.value; localStorage.setItem('pufemo-language', currentLang); renderAll(); }; }
                 if (currencySelector) { currencySelector.onchange = (e) => { currentCurrency = e.target.value; localStorage.setItem('pufemo-currency', currentCurrency); renderAll(); }; }
                 if (countrySelector) { countrySelector.onchange = (e) => { window.applyCountryAndRender(e.target.value); }; }
 
-                // Hamburger Menü İşlevselliği
-                if (hamburgerBtn && mobileNav && mobileNavOverlay) { // Null checks for hamburger menu elements
+                if (hamburgerBtn && mobileNav && mobileNavOverlay) {
                     const toggleMenu = () => {
                         hamburgerBtn.classList.toggle('open');
                         mobileNav.classList.toggle('open');
