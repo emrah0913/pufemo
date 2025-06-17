@@ -368,7 +368,7 @@
             justify-content: center; /* Kartları ortala */
         }
 
-        /* index.html'den gelen ürün kartı stilleri */
+        /* index.html'den alınan ürün kartı stilleri - related-variant-card yerine product-card */
         .product-card {
             background-color: var(--card-bg-color);
             border-radius: var(--border-radius);
@@ -549,7 +549,7 @@
                 font-size: 1.6rem;
             }
 
-            /* Benzer Varyantlar Responsive */
+            /* Benzer Ürün Kartları Responsive */
             .related-variants-grid {
                 grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
                 gap: 15px;
@@ -603,7 +603,7 @@
                 font-size: 0.75rem;
             }
 
-            /* Benzer Varyantlar Responsive */
+            /* Benzer Ürün Kartları Responsive */
             .related-variants-grid {
                 grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
                 gap: 10px;
@@ -802,7 +802,7 @@
                 'footer-link-privacy': { tr: 'Gizlilik Politikası', en: 'Privacy Policy', el: 'Πολιτική Απορρήτου', ru: 'Политика конфиденциальности' },
                 'footer-title-follow-us': { tr: 'Bizi Takip Edin', en: 'Follow Us', el: 'Ακολουθήστε μας', ru: 'Следите за нами' },
                 'footer-copyright': { tr: '&copy; 2025 PUFEMO.COM | Tüm Hakları Saklıdır.', en: '&copy; 2025 PUFEMO.COM | All Rights Reserved.', el: '&copy; 2025 PUFEMO.COM | Με την επιφύλαξη παντός δικαιώματος.', ru: '&copy; 2025 PUFEMO.COM | Все права защищены.' },
-                'country_selector_label': { tr: 'Ülke Seçimi:', en: 'Select Country:', el: 'Επιλέξτε Χώρα:', ru: 'Выбрать страну:' },
+                'country_selector_label': { tr: 'Ülke Seçimi:', en: 'Select Country:', el: 'Επιλέξτε Χώρα:', ru: 'Выбрать την χώρα σας:' },
                 'product_title_default': { tr: 'Ürün Başlığı', en: 'Product Title', el: 'Τίτλος Προϊόντος', ru: 'Название продукта' },
                 'product_description_loading': { tr: 'Yükleniyor...', en: 'Loading...', el: 'Φορτώνεται...', ru: 'Загрузка...' },
                 'product_description_no_info': { tr: 'Bu ürün hakkında detaylı bilgi bulunmamaktadır.', en: 'No detailed information is available for this product.', el: 'Δεν υπάρχουν διαθέσιμες λεπτομέρειες για αυτό το προϊόν.', ru: 'Подробная информация об этом продукте отсутствует.' },
@@ -1252,10 +1252,10 @@
             };
 
             // Benzer varyantları render et
-            const renderRelatedVariants = (allVariants) => { // productContentGlobal'e erişmek için productContent parametresi kaldırıldı
+            const renderRelatedVariants = (allVariants) => {
                 if (!relatedVariantsGridEl || !relatedVariantsTitleEl) return;
 
-                relatedVariantsTitleEl.textContent = staticTranslations['related_products_title'][currentLang]; // Başlık çevirisi
+                relatedVariantsTitleEl.textContent = staticTranslations['related_products_title'][currentLang];
 
                 relatedVariantsGridEl.innerHTML = ''; // Önceki kartları temizle
 
@@ -1271,26 +1271,22 @@
 
                 allVariants.forEach(variant => {
                     // Ürün adı için, ana ürünün adını kullanıyoruz, varyantın adını değil.
-                    // productContentGlobal kullanarak ürün adını al
                     const productName = productContentGlobal.name || staticTranslations['product_title_default'][currentLang];
                     const variantImageUrl = variant.media?.[0]?.url || 'https://via.placeholder.com/150x150/cccccc/000000?text=NoImg'; // Kart için default resim
 
-                    // Fiyatlar dinamik olarak hesaplanacak
-                    // Eğer varyantın kendi fiyatları varsa onları kullan (şu anki Firebase yapınızda yok gibi)
-                    // Yoksa, ana ürünün fiyatlarını kullanmaya devam et
-                    const currentPrice = currentProductData.baseDiscountedPriceTL !== undefined && currentProductData.baseDiscountedPriceTL < currentProductData.basePriceTL
-                        ? currentProductData.baseDiscountedPriceTL
-                        : currentProductData.basePriceTL;
+                    // Fiyatlar dinamik olarak hesaplanacak (ana ürün fiyatından alınır)
+                    const originalPrice = currentProductData.basePriceTL;
+                    const discountedPrice = currentProductData.baseDiscountedPriceTL;
 
                     let priceHTML = '';
-                    if (currentProductData.baseDiscountedPriceTL !== undefined && currentProductData.baseDiscountedPriceTL < currentProductData.basePriceTL) {
+                    if (discountedPrice !== undefined && discountedPrice < originalPrice) {
                         priceHTML = `
                             <div class="price-container">
-                                <span class="original-price">${formatPrice(currentProductData.basePriceTL)}</span>
-                                <span class="discounted-price">${formatPrice(currentProductData.basePriceTL, currentProductData.baseDiscountedPriceTL)}</span>
+                                <span class="original-price">${formatPrice(originalPrice)}</span>
+                                <span class="discounted-price">${formatPrice(originalPrice, discountedPrice)}</span>
                             </div>`;
                     } else {
-                        priceHTML = `<div class="price-container"><span class="discounted-price">${formatPrice(currentProductData.basePriceTL)}</span></div>`;
+                        priceHTML = `<div class="price-container"><span class="discounted-price">${formatPrice(originalPrice)}</span></div>`;
                     }
 
                     // Free shipping etiketi
@@ -1313,8 +1309,8 @@
                     `;
                     
                     card.onclick = () => {
-                        // Tıklanan varyantın tüm medyalarını ana ekrana ve thumbnail'lara yükle
-                        setImages(variant.media); 
+                        // Ana görseli ve varyant seçicileri bu varyanta göre güncelle
+                        setImages(variant.media); // setImages artık global
 
                         // Varyant seçicilerdeki aktif sınıfı güncelle
                         document.querySelectorAll('.color-option').forEach(el => el.classList.remove('active'));
@@ -1327,14 +1323,6 @@
                             clickedColorOption.classList.add('active');
                             clickedColorOption.querySelector('.color-circle').classList.add('active');
                         }
-
-                        // Ürünün başlığını, açıklamasını ve fiyatını güncelle (bu varyantın fiyatı değişmese de, tutarlılık için)
-                        // Note: varyantın kendi açıklama/fiyatı yoksa, ana ürünün bilgileri gösterilir.
-                        if (productTitleEl) productTitleEl.textContent = productContentGlobal.name || staticTranslations['product_title_default'][currentLang];
-                        if (productDescriptionEl) productDescriptionEl.textContent = productContentGlobal.description || staticTranslations['description_not_found_fallback'][currentLang];
-                        
-                        // Fiyatları ve genel toplamı tekrar güncelle
-                        updateCalculatedTotalPrice();
                         
                         // Sayfayı ürün detaylarının başına kaydır (smooth scroll)
                         productDetailContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1368,7 +1356,7 @@
                         if (productDescriptionEl) productDescriptionEl.textContent = staticTranslations['product_not_found_desc'][currentLang];
                         if (calculatedTotalPriceEl) calculatedTotalPriceEl.textContent = '';
                         // Hata durumunda benzer varyantlar bölümünü gizle
-                        if (relatedVariantsGridEl) relatedVariantsGridEl.innerHTML = ''; // Temizle
+                        if (relatedVariantsGridEl) relatedVariantsGridEl.innerHTML = '';
                         const relatedSection = document.querySelector('.related-variants-section');
                         if (relatedSection) relatedSection.style.display = 'none';
                         return;
@@ -1377,7 +1365,7 @@
                     const data = docSnap.data();
                     currentProductData = data;
                     
-                    // KRİTİK DÜZELTME: productContent'i data.content altından al ve global değişkene ata
+                    // !!! KRİTİK DÜZELTME: productContent'i data.content altından al ve global değişkene ata
                     productContentGlobal = data.content?.[currentLang] || data.content?.tr || {}; 
 
                     if (productTitleEl) productTitleEl.textContent = productContentGlobal.name || staticTranslations['product_title_default'][currentLang];
@@ -1472,12 +1460,12 @@
                         setImages(data.media);
                     }
 
-                    updateCalculatedTotalPrice(); // Ürün yüklendikten sonra toplam fiyatı güncelle
+                    updateCalculatedTotalPrice();
                     if (decreaseQuantityBtn) decreaseQuantityBtn.disabled = false;
                     if (increaseQuantityBtn) increaseQuantityBtn.disabled = false;
 
                     // Benzer varyantları render et
-                    renderRelatedVariants(variants); // productContentGlobal'i gönder
+                    renderRelatedVariants(variants); // productContentGlobal'i renderRelatedVariants içinde kullanabiliriz.
 
 
                 } catch (error) {
