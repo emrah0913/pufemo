@@ -842,8 +842,7 @@
                 productForm.style.display = 'block';
             }
             
-            // Renk varyantları için medya inputu oluşturma (önizleme dahil)
-            // SADECE URL GİRİŞİ İÇİN GÜNCELLENDİ
+            // Renk varyantları için medya inputu oluşturma (önizleme dahil, hem URL hem dosya seçeneği)
             function createMediaInputHTML(media = { type: 'image', url: '' }) {
                 const previewHTML = media.url ?
                     (media.type === 'image' ?
@@ -858,7 +857,8 @@
                             <option value="image" ${media.type === 'image' ? 'selected' : ''}>Resim</option>
                             <option value="video" ${media.type === 'video' ? 'selected' : ''}>Video</option>
                         </select>
-                        <input type="text" class="variant-media-url" placeholder="Medya URL'si girin" value="${media.url || ''}" style="flex-grow: 1; margin-left: 10px;">
+                        <input type="text" class="variant-media-url" placeholder="Medya URL'si (Örn: http://...) VEYA Dosya Yükle" value="${media.url || ''}" style="flex-grow: 1; margin-left: 10px;">
+                        <input type="file" class="variant-media-file-input" accept="image/*,video/*" style="width: 150px; flex-shrink: 0; margin-left: 10px;">
                         <button type="button" class="btn btn-danger btn-sm remove-media-btn">Sil</button>
                     </div>`;
             }
@@ -1117,7 +1117,8 @@
                     const variant = { colorName: variantColorName, media: [] }; 
                     block.querySelectorAll('.media-input-group').forEach(mediaEl => { 
                         const urlInput = mediaEl.querySelector('.variant-media-url'); 
-                        if (urlInput.value.trim()) { // Sadece URL alanı doluysa medyayı ekle
+                        // Sadece URL alanı doluysa medyayı ekle
+                        if (urlInput.value.trim()) { 
                             variant.media.push({ type: mediaEl.querySelector('.variant-media-type').value, url: urlInput.value.trim() }); 
                         }
                     }); 
@@ -1164,7 +1165,6 @@
             });
 
             // Medya URL veya tip değiştiğinde önizlemeyi güncelle
-            // Sadece URL input'u dinleyecek şekilde basitleştirildi
             productForm.addEventListener('input', e => {
                 if (e.target.classList.contains('variant-media-url') || e.target.classList.contains('variant-media-type')) {
                     const mediaInputGroup = e.target.closest('.media-input-group');
@@ -1193,8 +1193,46 @@
                 }
             });
 
-            // Dosya yükleme dinleyicisi kaldırıldı - artık doğrudan URL girişi var
-            // productForm.addEventListener('change', async e => { ... });
+            // Dosya yükleme dinleyicisi: Dosya seçildiğinde yükle ve URL alanını doldur
+            productForm.addEventListener('change', async e => {
+                if (e.target.classList.contains('variant-media-file-input')) {
+                    const fileInput = e.target;
+                    const file = fileInput.files[0];
+                    if (!file) return;
+
+                    showLoading();
+                    try {
+                        const storageRef = storage.ref();
+                        const filePath = `product_media/${generateUniqueId()}-${file.name}`;
+                        const fileRef = storageRef.child(filePath);
+                        await fileRef.put(file);
+                        const downloadURL = await fileRef.getDownloadURL();
+
+                        const mediaInputGroup = fileInput.closest('.media-input-group');
+                        const urlInput = mediaInputGroup.querySelector('.variant-media-url');
+                        const typeSelect = mediaInputGroup.querySelector('.variant-media-type');
+
+                        urlInput.value = downloadURL;
+                        // Dosya uzantısına göre tipi otomatik belirle
+                        if (file.type.startsWith('image/')) {
+                            typeSelect.value = 'image';
+                        } else if (file.type.startsWith('video/')) {
+                            typeSelect.value = 'video';
+                        }
+                        
+                        // Önizlemeyi güncellemek için URL input'unun 'input' olayını tetikle
+                        const event = new Event('input', { bubbles: true });
+                        urlInput.dispatchEvent(event);
+
+                        alert('Dosya başarıyla yüklendi!');
+                    } catch (error) {
+                        console.error("Dosya yükleme hatası:", error);
+                        alert('Dosya yüklenirken bir hata oluştu: ' + error.message);
+                    } finally {
+                        hideLoading();
+                    }
+                }
+            });
             
             homepageForm.addEventListener('submit', async e => { 
                 e.preventDefault(); 
