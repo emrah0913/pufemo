@@ -474,8 +474,7 @@
             .dashboard-widgets, .settings-grid {
                 grid-template-columns: 1fr; /* Tek sütun */
             }
-        }
-    </style>
+        </style>
 </head>
 <body>
     <div class="admin-wrapper">
@@ -692,9 +691,9 @@
         const db = getFirestore(app); 
 
         // Global data storage for currently loaded settings and products
-        let siteSettings = {}; // All settings from 'settings' document
-        let allProducts = []; // All products from 'products' collection
-        let currentEditedProduct = null; // Currently edited product object
+        let siteSettings = {}; 
+        let allProducts = []; 
+        let currentEditedProduct = null; 
 
         // --- DOM Element Referansları ---
         const adminSidebar = document.getElementById('adminSidebar');
@@ -822,12 +821,17 @@
                     siteSettings = {
                         languages: [
                             { code: "tr", name: "Türkçe", flag: "tr" },
-                            { code: "en", name: "English", flag: "us" }
+                            { code: "en", name: "English", flag: "us" },
+                            { code: "el", name: "Ελληνικά", flag: "gr" }, // Varsayılan ayarlara eklendi
+                            { code: "ru", name: "Русский", flag: "ru" }, // Varsayılan ayarlara eklendi
+                            { code: "de", name: "Deutsch", flag: "de" }  // Varsayılan ayarlara eklendi
                         ],
-                        currencySymbols: { "TRY": "₺", "USD": "$" },
-                        exchangeRates: { "TRY": 1, "USD": 0.031 }, 
+                        currencySymbols: { "TRY": "₺", "USD": "$", "EUR": "€", "GBP": "£", "RUB": "₽" }, // Varsayılan ayarlara eklendi
+                        exchangeRates: { "TRY": 1, "USD": 0.031, "EUR": 0.029, "GBP": 0.025, "RUB": 2.7 }, // Örnek oranlar
                         countryPricing: {
-                            "TR": { name: { tr: "Türkiye", en: "Turkey" }, defaultLanguage: "tr", currencySymbol: "₺", adjustment: 0, flag: "tr" }
+                            "TR": { name: { tr: "Türkiye", en: "Turkey" }, defaultLanguage: "tr", currencySymbol: "₺", adjustment: 0, flag: "tr" },
+                            "US": { name: { tr: "Amerika Birleşik Devletleri", en: "United States" }, defaultLanguage: "en", currencySymbol: "$", adjustment: 0, flag: "us" },
+                            "GR": { name: { tr: "Yunanistan", en: "Greece", el: "Ελλάδα" }, defaultLanguage: "el", currencySymbol: "€", adjustment: 5, flag: "gr" }
                         },
                         general: { storeName: "PUFEMO Mağazası", adminEmail: "admin@pufemo.com" }
                     };
@@ -836,15 +840,21 @@
             } catch (error) {
                 console.error("Ayarlar çekilirken hata oluştu:", error); 
                 alert("Ayarlar yüklenirken hata oluştu: " + error.message); 
+                // Hata durumunda da varsayılan değerleri kullanarak uygulamanın çökmesini engelle
                 siteSettings = {
                     languages: [
                         { code: "tr", name: "Türkçe", flag: "tr" },
-                        { code: "en", name: "English", flag: "us" }
+                        { code: "en", name: "English", flag: "us" },
+                        { code: "el", name: "Ελληνικά", flag: "gr" },
+                        { code: "ru", name: "Русский", flag: "ru" },
+                        { code: "de", name: "Deutsch", flag: "de" }
                     ],
-                    currencySymbols: { "TRY": "₺", "USD": "$" },
-                    exchangeRates: { "TRY": 1, "USD": 0.031 },
+                    currencySymbols: { "TRY": "₺", "USD": "$", "EUR": "€", "GBP": "£", "RUB": "₽" },
+                    exchangeRates: { "TRY": 1, "USD": 0.031, "EUR": 0.029, "GBP": 0.025, "RUB": 2.7 },
                     countryPricing: {
-                        "TR": { name: { tr: "Türkiye", en: "Turkey" }, defaultLanguage: "tr", currencySymbol: "₺", adjustment: 0, flag: "tr" }
+                        "TR": { name: { tr: "Türkiye", en: "Turkey" }, defaultLanguage: "tr", currencySymbol: "₺", adjustment: 0, flag: "tr" },
+                        "US": { name: { tr: "Amerika Birleşik Devletleri", en: "United States" }, defaultLanguage: "en", currencySymbol: "$", adjustment: 0, flag: "us" },
+                        "GR": { name: { tr: "Yunanistan", en: "Greece", el: "Ελλάδα" }, defaultLanguage: "el", currencySymbol: "€", adjustment: 5, flag: "gr" }
                     },
                     general: { storeName: "PUFEMO Mağazası", adminEmail: "admin@pufemo.com" }
                 };
@@ -908,7 +918,9 @@
             currentEditedProduct = product ? JSON.parse(JSON.stringify(product)) : null; 
             
             // Reset form fields
-            document.querySelector('#productEditContainer h2').textContent = product ? translateAdminText('add_edit_product') : translateAdminText('add_new_product');
+            const h2Element = document.querySelector('#productEditContainer h2');
+            if (h2Element) h2Element.textContent = product ? translateAdminText('add_edit_product') : translateAdminText('add_new_product');
+            
             productNameEnInput.value = product?.content?.en?.name || '';
             productNameTrInput.value = product?.content?.tr?.name || '';
             productDescriptionEnTextarea.value = product?.content?.en?.description || '';
@@ -920,21 +932,35 @@
             imagePreviewsContainer.innerHTML = '';
             productVariantsList.innerHTML = '';
 
-            // Update form labels
-            document.querySelector('label[for="productNameEn"]').textContent = translateAdminText('product_name') + ' (İngilizce)';
-            document.querySelector('label[for="productNameTr"]').textContent = translateAdminText('product_name') + ' (Türkçe)';
-            document.querySelector('label[for="productDescriptionEn"]').textContent = translateAdminText('description') + ' (İngilizce)';
-            document.querySelector('label[for="productDescriptionTr"]').textContent = translateAdminText('description') + ' (Türkçe)';
-            document.querySelector('label[for="productBasePrice"]').textContent = translateAdminText('base_price');
-            document.querySelector('label[for="productDiscountedPrice"]').textContent = translateAdminText('discounted_price_optional');
-            document.querySelector('label[for="productStock"]').textContent = translateAdminText('stock_quantity');
-            document.querySelector('label[for="productImageInput"]').textContent = translateAdminText('product_images_videos');
-            addImageUrlBtn.textContent = translateAdminText('add_url');
-            document.querySelector('label[for="isFreeShipping"]').textContent = translateAdminText('free_shipping');
-            document.querySelector('.product-variants-section h3').textContent = translateAdminText('product_variants_eg_colors');
-            addVariantBtn.querySelector('span').textContent = translateAdminText('add_new_variant'); 
-            saveProductBtn.querySelector('span').textContent = translateAdminText('save_product');
-            cancelProductEditBtn.querySelector('span').textContent = translateAdminText('cancel');
+            // Update form labels and button texts
+            // Her elementin var olup olmadığını kontrol ederek null hatasını önlüyoruz
+            const updateLabelText = (selector, textKey, suffix = '') => {
+                const label = document.querySelector(selector);
+                if (label) label.textContent = translateAdminText(textKey) + suffix;
+            };
+
+            updateLabelText('label[for="productNameEn"]', 'product_name', ' (İngilizce)');
+            updateLabelText('label[for="productNameTr"]', 'product_name', ' (Türkçe)');
+            updateLabelText('label[for="productDescriptionEn"]', 'description', ' (İngilizce)');
+            updateLabelText('label[for="productDescriptionTr"]', 'description', ' (Türkçe)');
+            updateLabelText('label[for="productBasePrice"]', 'base_price');
+            updateLabelText('label[for="productDiscountedPrice"]', 'discounted_price_optional');
+            updateLabelText('label[for="productStock"]', 'stock_quantity');
+            updateLabelText('label[for="productImageInput"]', 'product_images_videos');
+            if (addImageUrlBtn) addImageUrlBtn.textContent = translateAdminText('add_url');
+            updateLabelText('label[for="isFreeShipping"]', 'free_shipping');
+            
+            const productVariantsSectionH3 = document.querySelector('.product-variants-section h3');
+            if(productVariantsSectionH3) productVariantsSectionH3.textContent = translateAdminText('product_variants_eg_colors');
+            
+            const addVariantBtnSpan = addVariantBtn.querySelector('span');
+            if(addVariantBtnSpan) addVariantBtnSpan.textContent = translateAdminText('add_new_variant'); 
+            
+            const saveProductBtnSpan = saveProductBtn.querySelector('span');
+            if(saveProductBtnSpan) saveProductBtnSpan.textContent = translateAdminText('save_product');
+            
+            const cancelProductEditBtnSpan = cancelProductEditBtn.querySelector('span');
+            if(cancelProductEditBtnSpan) cancelProductEditBtnSpan.textContent = translateAdminText('cancel');
 
 
             // Render existing images/videos
@@ -983,14 +1009,10 @@
             deleteButton.style.height = '20px';
             deleteButton.style.cursor = 'pointer';
             deleteButton.onclick = () => {
-                // Find index based on URL to delete
                 const indexToRemove = currentEditedProduct.media.findIndex(m => m.url === url);
                 if(indexToRemove > -1) {
                     currentEditedProduct.media.splice(indexToRemove, 1);
                     previewDiv.remove();
-                    // Optional: Re-render all previews if indices are critical for later operations
-                    // imagePreviewsContainer.innerHTML = '';
-                    // currentEditedProduct.media.forEach((item, idx) => renderMediaPreview(item.url, item.type, idx));
                 }
             };
             previewDiv.appendChild(deleteButton);
@@ -1060,14 +1082,14 @@
             // General Settings
             storeNameInput.value = siteSettings.general?.storeName || '';
             adminEmailInput.value = siteSettings.general?.adminEmail || '';
-            document.querySelector('#settings .form-card:first-child h3').textContent = translateAdminText('general_settings');
+            document.querySelector('.form-card:first-child h3').textContent = translateAdminText('general_settings');
             document.querySelector('label[for="storeName"]').textContent = translateAdminText('store_name');
             document.querySelector('label[for="adminEmail"]').textContent = translateAdminText('admin_email');
             saveGeneralSettingsBtn.textContent = translateAdminText('save_general_settings');
 
 
             // Language Settings
-            const languageSettingsCard = document.querySelector('#settings .form-card:nth-of-type(2)');
+            const languageSettingsCard = document.querySelector('.form-card:nth-of-type(2)');
             languageSettingsCard.querySelector('h3').textContent = translateAdminText('language_settings');
             languageSettingsCard.querySelector('label[for="defaultLanguage"]').textContent = translateAdminText('default_language');
             languageSettingsCard.querySelector('p').textContent = translateAdminText('manage_languages'); 
@@ -1078,28 +1100,26 @@
                     ${countryCodeToEmoji(lang.flag)} ${lang.name}
                 </option>`
             ).join('');
-            // defaultLanguageSelect'in değerini, siteSettings.countryPricing.TR'den çekiyoruz, aksi takdirde 'tr'
             defaultLanguageSelect.value = siteSettings.countryPricing['TR']?.defaultLanguage || 'tr';
 
 
             // Currency Settings
-            const currencySettingsCard = document.querySelector('#settings .form-card:nth-of-type(3)');
+            const currencySettingsCard = document.querySelector('.form-card:nth-of-type(3)');
             currencySettingsCard.querySelector('h3').textContent = translateAdminText('currency_settings');
             currencySettingsCard.querySelector('label[for="baseCurrency"]').textContent = translateAdminText('base_currency');
             currencySettingsCard.querySelector('p').textContent = translateAdminText('define_exchange_rates');
             manageCurrenciesBtn.textContent = translateAdminText('manage_currencies');
 
             baseCurrencySelect.innerHTML = Object.keys(siteSettings.currencySymbols).map(currencyCode => 
-                `<option value="${currencyCode}" ${currencyCode === Object.keys(siteSettings.currencySymbols)[0] ? 'selected' : ''}>
+                `<option value="${currencyCode}" ${currencyCode === (siteSettings.countryPricing['TR']?.currencySymbol || Object.keys(siteSettings.currencySymbols)[0]) ? 'selected' : ''}>
                     ${siteSettings.currencySymbols[currencyCode]} ${currencyCode}
                 </option>`
             ).join('');
-            // baseCurrencySelect'in değerini, siteSettings.currencySymbols'taki ilk para birimi olarak ayarlıyoruz.
-            baseCurrencySelect.value = Object.keys(siteSettings.currencySymbols)[0] || 'TRY';
+            baseCurrencySelect.value = siteSettings.countryPricing['TR']?.currencySymbol || Object.keys(siteSettings.currencySymbols)[0] || 'TRY';
 
 
             // Country Specific Pricing & Language
-            const countryPricingCard = document.querySelector('#settings .form-card.full-width-card');
+            const countryPricingCard = document.querySelector('.form-card.full-width-card');
             countryPricingCard.querySelector('h3').textContent = translateAdminText('country_pricing_language');
             countryPricingCard.querySelector('p').textContent = translateAdminText('set_country_options');
             saveCountrySettingsBtn.textContent = translateAdminText('save_country_settings');
@@ -1114,7 +1134,7 @@
             tableHeaders[5].textContent = translateAdminText('actions');
 
 
-            countrySettingsTableBody.innerHTML = ''; // Clear table
+            countrySettingsTableBody.innerHTML = ''; 
             Object.entries(siteSettings.countryPricing).forEach(([code, data]) => {
                 const tr = document.createElement('tr');
                 const countryNameDisplay = data.name?.[adminLang] || data.name?.['en'] || code;
@@ -1302,10 +1322,9 @@
                     } else if (targetSectionId === 'settings') {
                         await renderSettingsSection(); 
                     } else if (targetSectionId === 'dashboard') {
-                        // Firebase'den dashboard verilerini çekme (şimdilik simüle edildi)
-                        totalSalesWidget.textContent = "₺12,345.67"; // Placeholder
-                        newOrdersWidget.textContent = "42"; // Placeholder
-                        totalCustomersWidget.textContent = "1,234"; // Placeholder
+                        totalSalesWidget.textContent = "₺12,345.67"; 
+                        newOrdersWidget.textContent = "42"; 
+                        totalCustomersWidget.textContent = "1,234"; 
                     }
                 }
 
@@ -1390,18 +1409,15 @@
             await fetchSettings(); 
             renderAdminSidebarNav();
             
-            // Initial render of sections based on URL hash or default
             const hash = window.location.hash.substring(1);
             if (hash) {
                 const targetLink = document.querySelector(`.sidebar-nav a[data-section="${hash}"]`);
                 if (targetLink) {
                     targetLink.click(); 
                 } else {
-                    // If hash doesn't match a section, default to dashboard
                     document.querySelector('.sidebar-nav a[data-section="dashboard"]').click();
                 }
             } else {
-                 // Varsayılan olarak Dashboard'u aktif hale getir
                  document.querySelector('.sidebar-nav a[data-section="dashboard"]').click();
             }
         });
