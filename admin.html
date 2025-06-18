@@ -924,6 +924,10 @@
             <div id="category-management" class="page">
                 <h1>Kategori Yönetimi</h1>
                 <div class="form-section">
+                    <h2>Kategori Linki Ekle/Düzenle</h2>
+                    <p style="font-size: 0.9em; color: #777; margin-bottom: 1rem;">
+                        Her kategori için ana sayfada tıklanabilir bir URL belirleyebilirsiniz. Örn: `/koltuklar` veya `product.html?category=koltuklar`.
+                    </p>
                     <button id="add-main-category-btn" class="btn btn-primary">Yeni Ana Kategori Ekle</button>
                 </div>
                 <div id="category-tree-container" class="form-section"></div>
@@ -1493,10 +1497,19 @@
                     </div>
                 `).join('');
 
+                // Kategori URL input'u buraya eklendi
+                const urlInputHTML = `
+                    <div class="form-group" style="flex: 1; min-width: 120px;">
+                        <label>URL Yolu</label>
+                        <input type="text" class="category-url-input" value="${category.url || ''}" placeholder="/kategoriler/urun">
+                    </div>
+                `;
+
                 li.innerHTML = `
                     <div class="category-item">
                         <div class="category-name-inputs">
                             ${nameInputsHTML}
+                            ${urlInputHTML} 
                         </div>
                         <div class="category-controls">
                             <button class="add-subcategory-btn" title="Alt Kategori Ekle"><i class="fa-solid fa-plus"></i></button>
@@ -1524,10 +1537,19 @@
                     </div>
                 `).join('');
 
+                // Yeni kategori formu için URL input'u buraya eklendi
+                const newUrlInputHTML = `
+                    <div class="form-group" style="flex: 1; min-width: 120px;">
+                        <label>URL Yolu</label>
+                        <input type="text" class="new-category-url-input" placeholder="/yeni-kategori">
+                    </div>
+                `;
+
                 formLi.innerHTML = `
                     <form style="width: 100%;">
                         <div class="category-name-inputs">
                             ${nameInputsHTML}
+                            ${newUrlInputHTML}
                         </div>
                         <div class="form-actions" style="margin-top: 1rem;">
                             <button type="button" class="btn btn-danger btn-sm cancel-new-category">İptal</button>
@@ -1546,6 +1568,10 @@
                         newCategory.name[input.dataset.lang] = input.value.trim();
                     });
                     if (!hasName) { alert('Lütfen en az bir dilde kategori adı girin.'); return; }
+                    
+                    // Yeni kategori URL'sini al ve kaydet
+                    newCategory.url = formLi.querySelector('.new-category-url-input').value.trim();
+
                     parentCategoryArray.push(newCategory);
                     await saveData('categories', localState.categories);
                     refreshCategoryView();
@@ -1612,7 +1638,6 @@
                 const existingProduct = localState.products.find(p => p.id === id);
                 // currentProductData her zaman tanımlı olacak şekilde ayarlandı
                 const currentProductData = existingProduct || { seo: { slug: '', title: {}, description: {} } }; 
-
 
                 const productData = {
                     sku: productForm.querySelector('#productSKU').value,
@@ -1795,9 +1820,12 @@
             });
 
             saveCategoriesBtn.addEventListener('click', async () => {
-                updateLocalCategoriesFromDOM(localState.categories, categoryTreeContainer.querySelector('ul'));
+                // DOM'daki güncel kategori verilerini localState'e yansıt
+                // Bu çağrı artık gerekli değil çünkü input'taki her değişiklikte güncelliyoruz.
+                // updateLocalCategoriesFromDOM(localState.categories, categoryTreeContainer.querySelector('ul'));
+
                 await saveData('categories', localState.categories);
-                refreshCategoryView();
+                refreshCategoryView(); // Değişiklikleri kaydettikten sonra listeyi yenile
             });
 
             categoryTreeContainer.addEventListener('click', async e => {
@@ -1819,26 +1847,35 @@
                 } else if (btn && btn.matches('.delete-category-btn, .delete-category-btn *')) {
                     if (confirm('Bu kategoriyi ve tüm alt kategorilerini silmek istediğinizden emin misiniz?')) {
                         findAndRemoveCategory(localState.categories, id);
-                        await saveData('categories', localState.categories);
+                        await saveData('categories', localState.categories); // Silme işlemini kaydet
                         refreshCategoryView();
                     }
                 }
             });
 
-            categoryTreeContainer.addEventListener('change', async e => {
-                if (e.target.matches('.category-name-input')) {
-                    const li = e.target.closest('li');
-                    const id = li?.dataset.id;
-                    const lang = e.target.dataset.lang;
-                    const value = e.target.value.trim();
-
+            // Input değişikliklerini anında localState'e yansıt
+            categoryTreeContainer.addEventListener('input', async e => {
+                const target = e.target;
+                const li = target.closest('li');
+                const id = li?.dataset.id;
+                
+                if (target.classList.contains('category-name-input')) {
+                    const lang = target.dataset.lang;
+                    const value = target.value.trim();
                     const categoryToUpdate = findCategoryInTree(localState.categories, id);
                     if (categoryToUpdate) {
                         if (!categoryToUpdate.name) categoryToUpdate.name = {};
                         categoryToUpdate.name[lang] = value;
                     }
+                } else if (target.classList.contains('category-url-input')) {
+                    const value = target.value.trim();
+                    const categoryToUpdate = findCategoryInTree(localState.categories, id);
+                    if (categoryToUpdate) {
+                        categoryToUpdate.url = value;
+                    }
                 }
             });
+
 
             function findCategoryInTree(categories, id) {
                 for (const cat of categories) {
@@ -1862,10 +1899,13 @@
                 return false;
             }
 
+            // `updateLocalCategoriesFromDOM` fonksiyonu artık `saveCategoriesBtn` içinde manuel çağrıya ihtiyaç duymuyor
+            // Çünkü `categoryTreeContainer.addEventListener('input', ...)` ile anlık güncelleniyor.
+            // Ancak, DOM'dan veriyi çekmek için genel bir yardımcı fonksiyon olarak tutulabilir.
             function updateLocalCategoriesFromDOM(categoriesArray, ulElement) {
                 if (!ulElement) return;
 
-                Array.from(ulElement.querySelectorAll('.category-item')).forEach(li => {
+                Array.from(ulElement.children).forEach(li => { // li.querySelectorAll yerine ul.children daha doğrudan
                     const categoryId = li.dataset.id;
                     const category = findCategoryInTree(categoriesArray, categoryId);
 
@@ -1875,6 +1915,10 @@
                             if (!category.name) category.name = {};
                             category.name[lang] = input.value.trim();
                         });
+                        // URL değerini al
+                        const urlInput = li.querySelector('.category-url-input');
+                        category.url = urlInput ? urlInput.value.trim() : '';
+
                         const subUl = li.querySelector('ul');
                         if (subUl) {
                             updateLocalCategoriesFromDOM(category.children, subUl);
@@ -2601,7 +2645,7 @@
                             <button type="button" class="btn btn-info apply-saved-template-btn" data-template-index="${index}" style="margin-right: 10px;">Uygula</button>
                             <button type="button" class="btn btn-danger delete-saved-template-btn" data-template-index="${index}">Sil</button>
                         </div>
-                    `;
+                        `;
                     savedSeoTemplatesContainer.appendChild(templateDiv);
                 });
             }
