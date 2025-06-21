@@ -1,0 +1,1496 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PUFEMO - Sepetim & Siparişlerim</title>
+    <meta name="description" content="Sepetinizi yönetin ve geçmiş siparişlerinizi takip edin.">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet">
+
+    <style>
+        /* General Variables and Base Styles (Copied from your index.html/product.html for consistency) */
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #e74c3c;
+            --background-color: #f9f9f9; /* Consistent with product detail page */
+            --text-color: #2c3e50;
+            --light-text-color: #ffffff;
+            --card-bg-color: #ffffff;
+            --border-radius: 8px;
+            --box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            /* New status colors - Adjusted to match similar colors in your previous CSS */
+            --status-pending-bg: #ffeeba; /* Light yellow */
+            --status-pending-text: #856404; /* Dark yellow */
+            --status-processing-bg: #d1ecf1; /* Light cyan */
+            --status-processing-text: #0c5460; /* Dark cyan */
+            --status-shipped-bg: #cfe2ff; /* Light blue */
+            --status-shipped-text: #073167; /* Darker blue */
+            --status-delivered-bg: #d4edda; /* Light green */
+            --status-delivered-text: #155724; /* Dark green */
+            --status-cancelled-bg: #f8d7da; /* Light red */
+            --status-cancelled-text: #721c24; /* Dark red */
+            --status-unknown-bg: #e2e3e5; /* Light gray */
+            --status-unknown-text: #383d41; /* Dark gray */
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
+        html { scroll-behavior: smooth; }
+        body { background-color: var(--background-color); color: var(--text-color); line-height: 1.6; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+        a { text-decoration: none; color: inherit; }
+
+        /* Loading Overlay Styles (from index.html) */
+        .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.95); z-index: 10000; display: flex; justify-content: center; align-items: center; flex-direction: column; }
+        .loading-overlay p { font-size: 1.5rem; margin-top: 1.5rem; color: var(--primary-color); }
+        .loading-overlay.hidden { opacity: 0; pointer-events: none; transition: opacity 0.5s ease; }
+
+        /* Promo Bar Styles (from index.html) */
+        .promo-bar {
+            background-color: var(--secondary-color);
+            color: var(--light-text-color);
+            text-align: center;
+            padding: 8px 0;
+            font-size: 0.95rem;
+            font-weight: 600;
+            overflow: hidden;
+            white-space: nowrap;
+            position: relative;
+            z-index: 1001;
+        }
+        .promo-text {
+            display: inline-block;
+            padding-left: 100%;
+            animation: scroll-text 20s linear infinite;
+        }
+        @keyframes scroll-text {
+            0% { transform: translateX(0%); }
+            100% { transform: translateX(-100%); }
+        }
+
+        /* Main Header (from index.html) */
+        .main-header {
+            background-color: var(--card-bg-color);
+            box-shadow: var(--box-shadow);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            padding-bottom: 0.5rem;
+        }
+        .header-top {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 0.8rem 0;
+        }
+        .main-header .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 20px;
+        }
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+        }
+        .logo i {
+            color: var(--secondary-color);
+            margin-right: 5px;
+        }
+        .logo img { max-width: 100%; height: auto; }
+        .header-controls { display: flex; align-items: center; gap: 1rem; }
+        .control-select { background-color: #f8f9fa; border: 1px solid #ddd; padding: 5px; border-radius: 5px; font-size: 0.9rem; cursor: pointer; }
+        .cart-icon { font-size: 1.5rem; position: relative; }
+        .cart-badge { position: absolute; top: -5px; right: -10px; background-color: var(--secondary-color); color: var(--light-text-color); border-radius: 50%; padding: 2px 6px; font-size: 0.7rem; font-weight: 600; }
+        
+        /* Hamburger Menu (from index.html) */
+        .hamburger-menu { display: none; cursor: pointer; width: 30px; height: 25px; flex-direction: column; justify-content: space-between; background: transparent; border: none; z-index: 1003; }
+        .hamburger-menu span { display: block; width: 100%; height: 3px; background-color: var(--primary-color); border-radius: 3px; transition: all 0.3s ease-in-out; }
+        .hamburger-menu.open span { background-color: var(--light-text-color); }
+        .hamburger-menu.open span:nth-child(1) { transform: translateY(11px) rotate(45deg); }
+        .hamburger-menu.open span:nth-child(2) { opacity: 0; }
+        .hamburger-menu.open span:nth-child(3) { transform: translateY(-11px) rotate(-45deg); }
+        .mobile-nav { position: fixed; top: 0; left: -100%; width: 300px; height: 100vh; background-color: var(--primary-color); color: var(--light-text-color); z-index: 1002; transition: left 0.4s ease-in-out; box-shadow: 5px 0 15px rgba(0,0,0,0.2); overflow-y: auto; padding: 1.5rem; }
+        .mobile-nav.open { left: 0; }
+        .mobile-nav-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); z-index: 1001; opacity: 0; visibility: hidden; transition: opacity 0.4s ease, visibility 0.4s ease; }
+        .mobile-nav-overlay.open { opacity: 1; visibility: visible; }
+        .mobile-nav .mobile-nav-header { padding-bottom: 1rem; margin-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.2); font-size: 1.5rem; font-weight: 600; color: var(--light-text-color); }
+        .mobile-nav ul { list-style: none; }
+        .mobile-nav ul a { display: block; padding: 15px 0; color: var(--light-text-color); border-bottom: 1px solid rgba(255,255,255,0.1); font-weight: 500; transition: background-color 0.3s ease; }
+        .mobile-nav ul a:hover { background-color: rgba(255,255,255,0.1); }
+        .mobile-nav ul ul a { padding-left: 20px; font-size: 0.9em; }
+        .mobile-nav ul ul ul a { padding-left: 40px; }
+        .category-nav { background-color: var(--primary-color); padding: 0.8rem 0; }
+        .category-nav ul { list-style: none; display: flex; justify-content: center; gap: 2.5rem; flex-wrap: wrap; }
+        .category-nav a { color: var(--light-text-color); font-weight: 500; padding: 5px 10px; border-radius: 5px; transition: background-color 0.3s ease; }
+        .category-nav a:hover { background-color: rgba(255,255,255,0.1); }
+
+        /* Page specific styles for Cart & Orders */
+        main {
+            padding: 30px 20px;
+        }
+
+        .section-header {
+            font-size: 2rem;
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 1.5rem;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--secondary-color);
+        }
+
+        .card {
+            background-color: var(--card-bg-color);
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        /* Cart Item Styles */
+        .cart-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .cart-item:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+        .cart-item-image {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 8px;
+            flex-shrink: 0;
+        }
+        .cart-item-details {
+            flex-grow: 1;
+        }
+        .cart-item-name {
+            font-size: 1.1rem;
+            font-weight: 500;
+            margin-bottom: 5px;
+            color: var(--primary-color);
+        }
+        .cart-item-variant {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        .cart-item-price {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--secondary-color);
+        }
+        .quantity-control {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            flex-shrink: 0;
+        }
+        .quantity-button {
+            background-color: var(--primary-color);
+            color: var(--light-text-color);
+            border: none;
+            border-radius: 4px;
+            width: 30px;
+            height: 30px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        .quantity-button:hover { background-color: #1a242f; }
+        .quantity-button:disabled { background-color: #ccc; cursor: not-allowed; }
+        .quantity-input {
+            width: 50px;
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            text-align: center;
+            -moz-appearance: textfield;
+        }
+        .quantity-input::-webkit-outer-spin-button,
+        .quantity-input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        .remove-item-btn {
+            background: none;
+            border: none;
+            color: var(--secondary-color);
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: color 0.2s ease;
+        }
+        .remove-item-btn:hover { color: #c0392b; }
+
+        /* Order Summary Styles */
+        .order-summary .summary-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px dashed #eee;
+        }
+        .order-summary .summary-row:last-of-type {
+            border-bottom: none;
+            font-weight: 600;
+            font-size: 1.2rem;
+            color: var(--primary-color);
+            padding-top: 15px;
+            margin-top: 10px;
+            border-top: 1px solid #ddd;
+        }
+        .order-summary .summary-row span:last-child {
+            color: var(--secondary-color);
+            font-weight: 700;
+        }
+        .btn-checkout {
+            background-color: var(--primary-color);
+            color: var(--light-text-color);
+            padding: 12px 20px;
+            border: none;
+            border-radius: var(--border-radius);
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 20px;
+            transition: background-color 0.3s ease;
+        }
+        .btn-checkout:hover { background-color: #1a242f; }
+        .btn-checkout:disabled { background-color: #ccc; cursor: not-allowed; }
+
+        /* Payment Selection */
+        .payment-option-label {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-bottom: 10px;
+        }
+        .payment-option-label:hover {
+            border-color: var(--primary-color);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        .payment-option-label input[type="radio"] {
+            margin-right: 15px;
+            transform: scale(1.2);
+            accent-color: var(--primary-color);
+        }
+        .payment-details {
+            margin-top: 10px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border: 1px dashed #ccc;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+        .payment-details input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-top: 5px;
+        }
+        .payment-details .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .payment-details p { margin-bottom: 5px; }
+
+        /* Past Orders */
+        .order-card {
+            background-color: var(--card-bg-color);
+            border-radius: var(--border-radius);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+            flex-wrap: wrap; /* Added for responsiveness */
+            gap: 10px; /* Added for responsiveness */
+        }
+        .order-header div {
+            min-width: 120px; /* Ensures columns don't get too small */
+        }
+        .order-header p {
+            font-size: 0.85rem;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        .order-header span {
+            font-weight: 600;
+            font-size: 1rem;
+            color: var(--primary-color);
+        }
+        .status-badge {
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            display: inline-block;
+            white-space: nowrap;
+        }
+        /* Status specific colors */
+        .status-pending-payment { background-color: var(--status-pending-bg); color: var(--status-pending-text); }
+        .status-pending { background-color: var(--status-pending-bg); color: var(--status-pending-text); }
+        .status-processing { background-color: var(--status-processing-bg); color: var(--status-processing-text); }
+        .status-shipped { background-color: var(--status-shipped-bg); color: var(--status-shipped-text); }
+        .status-delivered { background-color: var(--status-delivered-bg); color: var(--status-delivered-text); }
+        .status-cancelled { background-color: var(--status-cancelled-bg); color: var(--status-cancelled-text); }
+        .status-unknown { background-color: var(--status-unknown-bg); color: var(--status-unknown-text); }
+
+        .order-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 10px 0;
+            border-top: 1px dashed #eee;
+        }
+        .order-item:first-of-type { border-top: none; }
+        .order-item-image {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 4px;
+            flex-shrink: 0;
+        }
+        .order-item-details { flex-grow: 1; }
+        .order-item-name { font-size: 0.95rem; font-weight: 500; }
+        .order-item-qty-price { font-size: 0.85rem; color: #666; }
+        .order-grand-total {
+            text-align: right;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #ddd;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--secondary-color);
+        }
+
+        /* Empty States */
+        .empty-state {
+            text-align: center;
+            padding: 50px 20px;
+            background-color: var(--card-bg-color);
+            border-radius: var(--border-radius);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-top: 2rem;
+        }
+        .empty-state i {
+            font-size: 4rem;
+            color: #ccc;
+            margin-bottom: 1rem;
+        }
+        .empty-state p {
+            font-size: 1.1rem;
+            color: #777;
+            margin-bottom: 1.5rem;
+        }
+        .empty-state .btn-shop-now {
+            background-color: var(--primary-color);
+            color: var(--light-text-color);
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-weight: 600;
+            transition: background-color 0.3s;
+        }
+        .empty-state .btn-shop-now:hover { background-color: #1a242f; }
+
+        /* Order Success Modal */
+        .order-success-modal-overlay {
+            position: fixed;
+            inset: 0; /* top:0; left:0; right:0; bottom:0; */
+            background-color: rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10002; /* Higher than loading overlay */
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        .order-success-modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        .order-success-modal-content {
+            background-color: #fff;
+            padding: 2rem;
+            border-radius: var(--border-radius);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+            transform: translateY(-20px);
+            transition: transform 0.3s ease;
+        }
+        .order-success-modal-overlay.active .order-success-modal-content {
+            transform: translateY(0);
+        }
+        .order-success-modal-content .icon-circle {
+            width: 80px;
+            height: 80px;
+            background-color: var(--status-delivered-bg);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem auto;
+        }
+        .order-success-modal-content .icon-circle i {
+            color: var(--status-delivered-text);
+            font-size: 3rem;
+        }
+        .order-success-modal-content h2 {
+            font-size: 1.8rem;
+            color: var(--primary-color);
+            margin-bottom: 0.8rem;
+        }
+        .order-success-modal-content p {
+            color: var(--text-color);
+            margin-bottom: 1.5rem;
+        }
+        .order-success-modal-content strong {
+            color: var(--secondary-color);
+            font-weight: 700;
+        }
+        .order-success-modal-content .info-message {
+            background-color: var(--status-pending-bg);
+            color: var(--status-pending-text);
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1.5rem;
+            font-size: 0.9rem;
+        }
+        .order-success-modal-content .modal-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 2rem;
+        }
+        .order-success-modal-content .modal-actions .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: var(--border-radius);
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        .order-success-modal-content .modal-actions .btn-primary {
+            background-color: var(--primary-color);
+            color: var(--light-text-color);
+        }
+        .order-success-modal-content .modal-actions .btn-primary:hover {
+            background-color: #1a242f;
+        }
+        .order-success-modal-content .modal-actions .btn-secondary {
+            background-color: #eee;
+            color: var(--text-color);
+        }
+        .order-success-modal-content .modal-actions .btn-secondary:hover {
+            background-color: #ddd;
+        }
+
+        /* Responsive Adjustments (from index.html/product.html for consistency) */
+        @media (max-width: 992px) {
+            .category-nav { display: none; }
+            .hamburger-menu { display: flex; }
+            .main-header { padding-bottom: 0.5rem; }
+            .header-top { padding: 0.5rem 0; }
+            .logo { font-size: 1.5rem; }
+            .main-header .container { padding: 0.5rem 20px; }
+            
+            /* Cart specific responsive */
+            .cart-item {
+                flex-wrap: wrap;
+                justify-content: center;
+                text-align: center;
+            }
+            .cart-item-image {
+                width: 60px;
+                height: 60px;
+            }
+            .cart-item-details {
+                flex-basis: 100%; /* Take full width */
+                margin-top: 10px;
+            }
+            .quantity-control {
+                margin: 10px auto; /* Center it */
+            }
+            .remove-item-btn {
+                position: absolute; /* Allows placing it top-right */
+                top: 10px;
+                right: 10px;
+            }
+            .order-header {
+                grid-template-columns: repeat(2, 1fr); /* 2 columns on tablet */
+            }
+        }
+
+        @media (max-width: 767px) {
+            main { padding: 15px 10px; }
+            .card { padding: 1.5rem; }
+            .section-header { font-size: 1.8rem; }
+            .cart-item-name { font-size: 1rem; }
+            .cart-item-variant { font-size: 0.8rem; }
+            .cart-item-price { font-size: 0.9rem; }
+            .quantity-button { width: 25px; height: 25px; font-size: 1rem; }
+            .quantity-input { width: 40px; padding: 3px; font-size: 0.9rem; }
+            .remove-item-btn { font-size: 1rem; }
+            .order-summary .summary-row { font-size: 0.95rem; }
+            .order-summary .summary-row:last-of-type { font-size: 1.1rem; }
+            .btn-checkout { padding: 10px 15px; font-size: 0.95rem; }
+            .order-header {
+                grid-template-columns: 1fr; /* Stack columns on mobile */
+                text-align: center;
+            }
+            .order-header div {
+                min-width: unset; /* Remove min-width for stacking */
+            }
+            .status-badge { font-size: 0.75rem; padding: 4px 8px; }
+            .order-item-image { width: 50px; height: 50px; }
+            .order-item-name { font-size: 0.9rem; }
+            .order-item-qty-price { font-size: 0.75rem; }
+            .order-grand-total { font-size: 1rem; }
+            .empty-state { padding: 30px 15px; }
+            .empty-state i { font-size: 3rem; }
+            .empty-state p { font-size: 1rem; }
+            .empty-state .btn-shop-now { padding: 8px 15px; font-size: 0.9rem; }
+            .order-success-modal-content h2 { font-size: 1.5rem; }
+            .order-success-modal-content .icon-circle { width: 60px; height: 60px; margin-bottom: 1rem; }
+            .order-success-modal-content .icon-circle i { font-size: 2.5rem; }
+            .order-success-modal-content .info-message { padding: 0.8rem; font-size: 0.85rem; }
+            .order-success-modal-content .modal-actions .btn { padding: 8px 15px; font-size: 0.9rem; }
+        }
+    </style>
+</head>
+<body>
+    <div id="loading-overlay" class="loading-overlay">
+        <i class="fa-solid fa-couch fa-bounce" style="font-size: 3rem;"></i>
+        <p id="loading-text">Yükleniyor...</p>
+    </div>
+
+    <div id="mobile-nav-overlay" class="mobile-nav-overlay"></div>
+
+    <header class="main-header">
+        <div class="header-top">
+            <a href="index.html" class="logo" id="main-logo-link">
+                </a>
+        </div>
+        <div class="container">
+            <button class="hamburger-menu" id="hamburger-menu-btn" aria-label="Menüyü aç/kapat"><span></span><span></span><span></span></button>
+            <div class="header-controls">
+                <select id="language-selector" class="control-select"></select>
+                <select id="currency-selector" class="control-select"></select>
+                <a href="cart.html" class="cart-icon" id="cart-page-link" title="">
+                    <i class="fa-solid fa-cart-shopping"></i><span class="cart-badge">0</span>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <nav id="mobile-nav" class="mobile-nav"></nav>
+
+    <nav class="category-nav"><div class="container"><ul id="category-menu-container"></ul></div></nav>
+
+    <main class="container">
+        <section id="cart-section">
+            <h1 class="section-header" id="cart-section-title">Sepetim</h1>
+            <div id="cart-items-container" class="card">
+                <div id="cart-items-list">
+                    </div>
+                <div id="empty-cart-message" class="empty-state hidden">
+                    <i class="ri-shopping-cart-2-line"></i>
+                    <p id="empty-cart-text">Sepetinizde henüz ürün bulunmuyor.</p>
+                    <a href="index.html" class="btn-shop-now" id="shop-now-btn-cart">Alışverişe Başla</a>
+                </div>
+            </div>
+            
+            <div id="order-summary-card" class="card order-summary">
+                <h2 class="section-header" id="order-summary-title">Sipariş Özeti</h2>
+                <div class="summary-row">
+                    <span id="subtotal-label">Ürünler Toplamı</span>
+                    <span id="subtotal">0.00 ₺</span>
+                </div>
+                <div class="summary-row">
+                    <span id="grand-total-label">Genel Toplam</span>
+                    <span id="grand-total">0.00 ₺</span>
+                </div>
+                <button id="proceed-to-payment-btn" class="btn-checkout" disabled>Ödeme Adımına Geç</button>
+            </div>
+
+            <div id="payment-section-card" class="card hidden">
+                <h2 class="section-header" id="payment-method-title">Ödeme Yöntemi</h2>
+                <div class="payment-options">
+                    <label class="payment-option-label">
+                        <input type="radio" name="payment-method" value="transfer" checked>
+                        <span>Havale / EFT</span>
+                    </label>
+                    <div id="transfer-details" class="payment-details">
+                        <p><strong id="account-owner-label">Hesap Sahibi:</strong> [Banka Hesap Sahibinin Adı]</p>
+                        <p><strong id="iban-label">IBAN:</strong> [TRXX XXXX XXXX XXXX XXXX XXXX XX]</p>
+                        <p class="highlight-info" id="whatsapp-payment-info">Lütfen ödeme dekontunu WhatsApp ile iletin.</p>
+                    </div>
+
+                    <label class="payment-option-label">
+                        <input type="radio" name="payment-method" value="card">
+                        <span>Kredi Kartı</span>
+                    </label>
+                    <div id="card-details" class="payment-details hidden">
+                        <p class="warning-message" id="test-card-info">Bu bölüm test amaçlıdır. Gerçek kart bilgisi girmeyiniz.</p>
+                        <input type="text" id="card-number" placeholder="Kart Numarası">
+                        <div class="grid">
+                            <input type="text" id="card-expiry" placeholder="AA/YY">
+                            <input type="text" id="card-cvc" placeholder="CVC">
+                        </div>
+                    </div>
+                </div>
+                <button id="confirm-order-btn" class="btn-checkout">Siparişi Onayla</button>
+            </div>
+        </section>
+
+        <section id="past-orders-section">
+            <h1 class="section-header" id="past-orders-title">Geçmiş Siparişlerim</h1>
+            <div id="orders-list-container" class="card">
+                <div id="orders-list">
+                    </div>
+                <div id="no-orders-message" class="empty-state hidden">
+                    <i class="ri-file-list-3-line"></i>
+                    <p id="no-orders-text">Henüz hiç sipariş vermediniz.</p>
+                    <a href="index.html" class="btn-shop-now" id="shop-now-btn-orders">Alışverişe Başla</a>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="main-footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4 id="footer-title-pufemo"></h4>
+                    <p id="footer-desc-pufemo"></p>
+                </div>
+                <div class="footer-section">
+                    <h4 id="footer-title-fast-links"></h4>
+                    <ul>
+                        <li><a href="#" id="footer-link-about"></a></li>
+                        <li><a href="#" id="footer-link-contact"></a></li>
+                        <li><a href="#" id="footer-link-privacy"></a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4 id="footer-title-follow-us"></h4>
+                    <ul>
+                        <li><a href="#">Facebook</a></li>
+                        <li><a href="#">Instagram</a></li>
+                        <li><a href="#">Pinterest</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="country-selector-container">
+                <label for="country-selector" id="country-selector-label"></label>
+                <select id="country-selector" class="control-select"></select>
+            </div>
+            <div class="footer-bottom" id="footer-copyright"></div>
+        </div>
+    </footer>
+
+    <div id="order-success-modal-overlay" class="order-success-modal-overlay">
+        <div class="order-success-modal-content">
+            <div class="icon-circle">
+                <i class="ri-checkbox-circle-line"></i>
+            </div>
+            <h2 id="success-modal-title">Siparişiniz Başarıyla Alındı!</h2>
+            <p id="success-modal-message">Sipariş kodunuz: <strong id="success-order-id"></strong></p>
+            <div id="success-transfer-info" class="info-message hidden">
+                <p>Siparişinizin işleme alınabilmesi için lütfen ödeme dekontunu WhatsApp üzerinden bize iletmeyi unutmayın.</p>
+            </div>
+            <div class="modal-actions">
+                <a href="index.html" class="btn btn-primary" id="success-modal-home-btn">Ana Sayfaya Dön</a>
+                <a href="cart.html" class="btn btn-secondary" id="success-modal-close-btn">Sepet Sayfasını Yenile</a>
+            </div>
+        </div>
+    </div>
+    
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, collection, onSnapshot, query, where, orderBy, updateDoc, deleteDoc, writeBatch, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+
+        // --- Firebase Configuration (from your admin.html/index.html) ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyDYkzZzNXB22U4oEXxOoPh-puwuE8kz0g4",
+            authDomain: "pufemo-com.firebaseapp.com",
+            projectId: "pufemo-com",
+            storageBucket: "pufemo-com.appspot.com",
+            messagingSenderId: "983352837227",
+            appId: "1:983352837227:web:defaa8dae215776e2e1d2e",
+        };
+        
+        // --- Initialize Firebase Services ---
+        let app;
+        let auth;
+        let db;
+        try {
+            app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+        } catch (e) {
+            console.error("Firebase initialization error:", e);
+            if (document.getElementById('loading-overlay')) document.getElementById('loading-overlay').classList.add('hidden');
+            // Show a generic error message if Firebase fails to initialize
+            alert("Uygulama yüklenirken bir hata oluştu. Lütfen daha sonra tekrar deneyin.");
+            return; // Stop script execution if Firebase isn't initialized
+        }
+
+        // --- Static Translations and Global State ---
+        const staticTranslations = {
+            'loading_text': { tr: 'PUFEMO Yükleniyor...', en: 'Loading PUFEMO...', el: 'Φόρτωση PUFEMΟ...' },
+            'mobile_menu_title': { tr: 'Kategoriler', en: 'Categories', el: 'Κατηγορίες' },
+            'footer-title-pufemo': { tr: 'PUFEMO', en: 'PUFEMO', el: 'PUFEMO' },
+            'footer-desc-pufemo': { tr: 'Hayallerinizdeki konforu ve estetiği evinize taşıyoruz.', en: 'We bring the comfort and aesthetics of your dreams to your home.', el: 'Φέρνουμε την άνεση και την αισθητική των ονείρων σας στο σπίτι σας.' },
+            'footer-title-fast-links': { tr: 'Hızlı Bağlantılar', en: 'Quick Links', el: 'Γρήγοροι Σύνδεσμοι' },
+            'footer-link-about': { tr: 'Hakkımızda', en: 'About Us', el: 'Σχετικά με εμάς' },
+            'footer-link-contact': { tr: 'İletişim', en: 'Contact', el: 'Επικοινωνία' },
+            'footer-link-privacy': { tr: 'Gizlilik Politikası', en: 'Privacy Policy', el: 'Πολιτική Απορρήτου' },
+            'footer-title-follow-us': { tr: 'Bizi Takip Edin', en: 'Follow Us', el: 'Ακολουθήστε μας' },
+            'footer-copyright': { tr: '&copy; 2025 PUFEMO.COM | Tüm Hakları Saklıdır.', en: '&copy; 2025 PUFEMO.COM | All Rights Reserved.', el: '&copy; 2025 PUFEMO.COM | Με την επιφύλαξη παντός δικαιώματος.' },
+            'country_selector_label': { tr: 'Ülke Seçimi:', en: 'Select Country:', el: 'Επιλέξτε Χώρα:' },
+            'cart_page_link_title': { tr: 'Sepetim', en: 'My Cart', el: 'Το καλάθι μου' },
+            'empty_cart_text': { tr: 'Sepetinizde henüz ürün bulunmuyor.', en: 'Your cart is empty.', el: 'Το καλάθι σας είναι άδειο.' },
+            'shop_now_btn': { tr: 'Alışverişe Başla', en: 'Shop Now', el: 'Αγοράστε τώρα' },
+            'cart_section_title': { tr: 'Sepetim', en: 'My Cart', el: 'Το καλάθι μου' },
+            'order_summary_title': { tr: 'Sipariş Özeti', en: 'Order Summary', el: 'Σύνοψη Παραγγελίας' },
+            'subtotal_label': { tr: 'Ürünler Toplamı', en: 'Subtotal', el: 'Υποσύνολο' },
+            'grand_total_label': { tr: 'Genel Toplam', en: 'Grand Total', el: 'Γενικό Σύνολο' },
+            'proceed_to_payment_btn': { tr: 'Ödeme Adımına Geç', en: 'Proceed to Payment', el: 'Προχωρήστε στην πληρωμή' },
+            'payment_method_title': { tr: 'Ödeme Yöntemi', en: 'Payment Method', el: 'Μέθοδος πληρωμής' },
+            'transfer_payment_method': { tr: 'Havale / EFT', en: 'Bank Transfer', el: 'Τραπεζική Μεταφορά' },
+            'card_payment_method': { tr: 'Kredi Kartı', en: 'Credit Card', el: 'Πιστωτική Κάρτα' },
+            'account_owner_label': { tr: 'Hesap Sahibi:', en: 'Account Owner:', el: 'Κάτοχος Λογαριασμού:' },
+            'iban_label': { tr: 'IBAN:', en: 'IBAN:', el: 'IBAN:' },
+            'whatsapp_payment_info': { tr: 'Lütfen ödeme dekontunu WhatsApp ile iletin.', en: 'Please send payment receipt via WhatsApp.', el: 'Παρακαλώ στείλτε την απόδειξη πληρωμής μέσω WhatsApp.' },
+            'test_card_info': { tr: 'Bu bölüm test amaçlıdır. Gerçek kart bilgisi girmeyiniz.', en: 'This section is for testing purposes only. Do not enter real card details.', el: 'Αυτή η ενότητα είναι μόνο για δοκιμαστικούς σκοπούς. Μην εισάγετε πραγματικά στοιχεία κάρτας.' },
+            'confirm_order_btn': { tr: 'Siparişi Onayla', en: 'Confirm Order', el: 'Επιβεβαίωση Παραγγελίας' },
+            'processing_text': { tr: 'İşleniyor...', en: 'Processing...', el: 'Επεξεργασία...' },
+            'past_orders_title': { tr: 'Geçmiş Siparişlerim', en: 'My Past Orders', el: 'Οι προηγούμενες παραγγελίες μου' },
+            'no_orders_text': { tr: 'Henüz hiç sipariş vermediniz.', en: 'You have not placed any orders yet.', el: 'Δεν έχετε κάνει καμία παραγγελία ακόμα.' },
+            'order_code_label': { tr: 'Sipariş Kodu', en: 'Order Code', el: 'Κωδικός Παραγγελίας' },
+            'order_date_label': { tr: 'Tarih', en: 'Date', el: 'Ημερομηνία' },
+            'delivery_type_label': { tr: 'Teslimat', en: 'Delivery', el: 'Παράδοση' },
+            'status_label': { tr: 'Durum', en: 'Status', el: 'Κατάσταση' },
+            'product_link_label': { tr: 'Ürün Linki', en: 'Product Link', el: 'Σύνδεσμος Προϊόντος' },
+            'price_label': { tr: 'Fiyat', en: 'Price', el: 'Τιμή' },
+            'grand_total_order_label': { tr: 'Genel Toplam', en: 'Grand Total', el: 'Γενικό Σύνολο' },
+            'order_success_title': { tr: 'Siparişiniz Başarıyla Alındı!', en: 'Order Successfully Placed!', el: 'Η παραγγελία σας καταχωρήθηκε επιτυχώς!' },
+            'order_success_message': { tr: 'Sipariş kodunuz:', en: 'Your order code is:', el: 'Ο κωδικός παραγγελίας σας είναι:' },
+            'order_success_home_btn': { tr: 'Ana Sayfaya Dön', en: 'Return to Homepage', el: 'Επιστροφή στην αρχική σελίδα' },
+            'order_success_close_btn': { tr: 'Sepet Sayfasını Yenile', en: 'Refresh Cart Page', el: 'Ανανέωση σελίδας καλαθιού' },
+            'delivery_method_default': { tr: 'Kapıya Teslim', en: 'Doorstep Delivery', el: 'Παράδοση στην πόρτα' },
+            'unit_price_label': { tr: 'Birim Fiyatı:', en: 'Unit Price:', el: 'Τιμή Μονάδας:' },
+            'item_total_label': { tr: 'Ara Toplam:', en: 'Item Total:', el: 'Σύνολο Τεμαχίου:' },
+            'total_items_price_label': { tr: 'Ürünler Toplamı', en: 'Total Items Price', el: 'Συνολική τιμή προϊόντων' },
+            'unknown_product_name': { tr: 'Bilinmeyen Ürün', en: 'Unknown Product', el: 'Άγνωστο προϊόν' },
+            'unknown_color': { tr: 'Bilinmeyen Renk', en: 'Unknown Color', el: 'Άγνωστο Χρώμα' },
+        };
+
+        const statusDescriptions = {
+            pending_payment: { tr: 'Ödeme Bekleniyor', en: 'Pending Payment', el: 'Αναμονή Πληρωμής' },
+            processing: { tr: 'İşleniyor', en: 'Processing', el: 'Επεξεργασία' },
+            shipped: { tr: 'Kargoya Verildi', en: 'Shipped', el: 'Αποστάλθηκε' },
+            delivered: { tr: 'Teslim Edildi', en: 'Delivered', el: 'Παραδόθηκε' },
+            cancelled: { tr: 'İptal Edildi', en: 'Cancelled', el: 'Ακυρώθηκε' },
+            // Add other statuses as needed, e.g., 'pending', 'tr_warehouse', 'cyprus_warehouse'
+            // For now, mapping some to existing simplified ones
+            pending: { tr: 'Beklemede', en: 'Pending', el: 'Σε Αναμονή' },
+            tr_warehouse: { tr: 'TR Depoda', en: 'At TR Warehouse', el: 'Στην Αποθήκη Τουρκίας' },
+            cyprus_warehouse: { tr: 'Kıbrıs Depoda', en: 'At Cyprus Warehouse', el: 'Στην Αποθήκη Κύπρου' },
+            unknown: { tr: 'Bilinmiyor', en: 'Unknown', el: 'Άγνωστο' }
+        };
+
+        // DOM Elements
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const loadingTextP = document.getElementById('loading-text');
+        const mainContent = document.querySelector('main.container'); // Select main content area
+        const cartItemsListEl = document.getElementById('cart-items-list');
+        const emptyCartMessageEl = document.getElementById('empty-cart-message');
+        const orderSummaryCardEl = document.getElementById('order-summary-card');
+        const paymentSectionCardEl = document.getElementById('payment-section-card');
+        const subtotalEl = document.getElementById('subtotal');
+        const grandTotalEl = document.getElementById('grand-total');
+        const proceedToPaymentBtn = document.getElementById('proceed-to-payment-btn');
+        const confirmOrderBtn = document.getElementById('confirm-order-btn');
+        const pastOrdersListEl = document.getElementById('orders-list');
+        const noOrdersMessageEl = document.getElementById('no-orders-message');
+        const orderSuccessModalOverlayEl = document.getElementById('order-success-modal-overlay');
+        const successOrderIdEl = document.getElementById('success-order-id');
+        const successTransferInfoEl = document.getElementById('success-transfer-info');
+
+        // Global State Variables
+        let cartItems = [];
+        let pastOrders = [];
+        let currentUser = null;
+        let siteData = { // Mimic your index.html's siteData structure
+            settings: {
+                languages: [],
+                general: { logo: {}, promoBar: {} },
+                countryPricing: {},
+                currencySymbols: {},
+                exchangeRates: {} // Assuming exchange rates are fetched or set somewhere
+            },
+            categories: { tree: [] }
+        };
+        let currentLang = localStorage.getItem('pufemo-language') || 'tr';
+        let currentCurrency = localStorage.getItem('pufemo-currency') || 'TRY'; // Default to TRY for Cyprus context
+        let currentCountryCode = localStorage.getItem('pufemo-country') || 'TR'; // Default to TR if not set, or a specific country code for Cyprus
+
+        // --- Utility Functions ---
+
+        // Function to translate text based on currentLang
+        const translate = (key) => staticTranslations[key]?.[currentLang] || staticTranslations[key]?.['en'] || staticTranslations[key]?.['tr'] || key;
+
+        // Function to convert country code to emoji flag
+        function countryCodeToEmoji(code) {
+            if (!code || code.length !== 2) {
+                return '';
+            }
+            return code.toUpperCase().split('').map(char =>
+                String.fromCodePoint(char.charCodeAt(0) + 127397)
+            ).join('');
+        }
+
+        // Function to format prices based on current currency and country pricing
+        const formatPrice = (basePrice) => {
+            const symbols = siteData.settings?.currencySymbols || {};
+            const selectedCountryData = siteData.settings.countryPricing[currentCountryCode];
+            let priceToFormat = basePrice; // No category-based service fee
+
+            if (selectedCountryData && typeof selectedCountryData.adjustment === 'number') {
+                const adjustmentPercentage = selectedCountryData.adjustment / 100;
+                priceToFormat = priceToFormat * (1 + adjustmentPercentage);
+            }
+
+            const rates = siteData.settings?.exchangeRates || {};
+            const rate = rates[currentCurrency] || 1; // Assuming TRY is base for exchangeRates if not explicitly set
+            priceToFormat = priceToFormat * rate;
+
+            const symbol = symbols[currentCurrency] || currentCurrency;
+
+            const numberFormatOptions = currentCurrency === 'TRY'
+                ? { maximumFractionDigits: 0 }
+                : { minimumFractionDigits: 2, maximumFractionDigits: 2 };
+            
+            const formattedPrice = new Intl.NumberFormat(currentLang, numberFormatOptions).format(priceToFormat);
+            
+            return `${symbol} ${formattedPrice}`;
+        };
+
+        // --- Data Fetching ---
+
+        // Fetches general settings and categories from Firestore
+        const fetchData = async () => {
+            try {
+                const [settingsDoc, categoriesDoc] = await Promise.all([
+                    getDoc(doc(db, 'pufemo', 'settings')),
+                    getDoc(doc(db, 'pufemo', 'categories'))
+                ]);
+
+                if (settingsDoc.exists()) {
+                    siteData.settings = { ...settingsDoc.data() };
+                }
+                if (categoriesDoc.exists()) {
+                    siteData.categories = { ...categoriesDoc.data() };
+                }
+
+                // Ensure currentCountryCode, currentLang, currentCurrency are set based on loaded data
+                const availableCountries = Object.keys(siteData.settings.countryPricing);
+                const storedCountry = localStorage.getItem('pufemo-country');
+                
+                if (storedCountry && availableCountries.includes(storedCountry)) {
+                    currentCountryCode = storedCountry;
+                } else if (availableCountries.length > 0) {
+                    currentCountryCode = availableCountries[0];
+                    localStorage.setItem('pufemo-country', currentCountryCode);
+                } else {
+                    currentCountryCode = 'TR'; // Fallback if no country pricing is defined
+                    localStorage.setItem('pufemo-country', currentCountryCode);
+                }
+
+                const selectedCountryData = siteData.settings.countryPricing[currentCountryCode];
+                if (selectedCountryData) {
+                    currentLang = selectedCountryData.defaultLanguage || 'tr';
+                    const currencyCodeFromSymbol = Object.keys(siteData.settings.currencySymbols || {}).find(key => 
+                        siteData.settings.currencySymbols[key] === selectedCountryData.currencySymbol
+                    );
+                    currentCurrency = currencyCodeFromSymbol || 'TRY';
+                    localStorage.setItem('pufemo-language', currentLang);
+                    localStorage.setItem('pufemo-currency', currentCurrency);
+                } else {
+                    currentLang = 'tr';
+                    currentCurrency = 'TRY';
+                    localStorage.setItem('pufemo-language', currentLang);
+                    localStorage.setItem('pufemo-currency', currentCurrency);
+                }
+                
+                // Set page title dynamically
+                document.title = translate('cart_page_link_title') + ' | PUFEMO';
+
+            } catch (e) {
+                console.error("Failed to fetch general site data:", e);
+                // Fallback to defaults if data fetching fails
+                currentLang = 'tr';
+                currentCurrency = 'TRY';
+                currentCountryCode = 'TR';
+                localStorage.setItem('pufemo-language', currentLang);
+                localStorage.setItem('pufemo-currency', currentCurrency);
+                localStorage.setItem('pufemo-country', currentCountryCode);
+            }
+        };
+
+        // --- Real-time Listeners (for Cart and Orders) ---
+
+        function listenToCart(userId) {
+            const cartRef = collection(db, 'users', userId, 'cart');
+            onSnapshot(cartRef, (snapshot) => {
+                cartItems = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderCart();
+                updateSummary();
+                checkContentVisibility();
+            }, (error) => console.error("Error listening to cart: ", error));
+        }
+
+        function listenToOrders(userId) {
+            const ordersRef = collection(db, 'orders');
+            const q = query(ordersRef, where("userId", "==", userId), orderBy("orderDate", "desc"));
+            onSnapshot(q, (snapshot) => {
+                pastOrders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderOrders();
+                checkContentVisibility();
+            }, (error) => console.error("Error listening to orders: ", error));
+        }
+
+        // --- Render Functions ---
+
+        // Renders static text elements based on currentLang
+        const renderStaticText = () => {
+            document.documentElement.lang = currentLang;
+            loadingTextP.textContent = translate('loading_text');
+            document.getElementById('cart-section-title').textContent = translate('cart_section_title');
+            document.getElementById('empty-cart-text').textContent = translate('empty_cart_text');
+            document.getElementById('shop-now-btn-cart').textContent = translate('shop_now_btn');
+            document.getElementById('order-summary-title').textContent = translate('order_summary_title');
+            document.getElementById('subtotal-label').textContent = translate('subtotal_label');
+            document.getElementById('grand-total-label').textContent = translate('grand_total_label');
+            document.getElementById('proceed-to-payment-btn').textContent = translate('proceed_to_payment_btn');
+            document.getElementById('payment-method-title').textContent = translate('payment_method_title');
+            document.querySelector('input[name="payment-method"][value="transfer"]').nextElementSibling.textContent = translate('transfer_payment_method');
+            document.querySelector('input[name="payment-method"][value="card"]').nextElementSibling.textContent = translate('card_payment_method');
+            document.getElementById('account-owner-label').textContent = translate('account_owner_label');
+            document.getElementById('iban-label').textContent = translate('iban_label');
+            document.getElementById('whatsapp-payment-info').textContent = translate('whatsapp_payment_info');
+            document.getElementById('test-card-info').textContent = translate('test_card_info');
+            document.getElementById('confirm-order-btn').textContent = translate('confirm_order_btn');
+            document.getElementById('past-orders-title').textContent = translate('past_orders_title');
+            document.getElementById('no-orders-text').textContent = translate('no_orders_text');
+            document.getElementById('shop-now-btn-orders').textContent = translate('shop_now_btn');
+
+            // Footer translations
+            document.getElementById('footer-title-pufemo').textContent = translate('footer-title-pufemo');
+            document.getElementById('footer-desc-pufemo').textContent = translate('footer-desc-pufemo');
+            document.getElementById('footer-title-fast-links').textContent = translate('footer-title-fast-links');
+            document.getElementById('footer-link-about').textContent = translate('footer-link-about');
+            document.getElementById('footer-link-contact').textContent = translate('footer-link-contact');
+            document.getElementById('footer-link-privacy').textContent = translate('footer-link-privacy');
+            document.getElementById('footer-title-follow-us').textContent = translate('footer-title-follow-us');
+            document.getElementById('footer-copyright').innerHTML = translate('footer-copyright');
+            document.getElementById('country-selector-label').textContent = translate('country_selector_label');
+
+            // Modal translations
+            document.getElementById('success-modal-title').textContent = translate('order_success_title');
+            document.getElementById('success-modal-message').innerHTML = translate('order_success_message') + ' <strong id="success-order-id"></strong>';
+            document.getElementById('success-transfer-info').querySelector('p').textContent = translate('whatsapp_payment_info');
+            document.getElementById('success-modal-home-btn').textContent = translate('order_success_home_btn');
+            document.getElementById('success-modal-close-btn').textContent = translate('order_success_close_btn');
+            document.getElementById('cart-page-link').title = translate('cart_page_link_title'); // Set title for cart link
+        };
+
+        // Renders dynamic elements in the header (logo, language, currency, country selectors)
+        const renderGeneralSiteElements = () => {
+            const generalSettings = siteData.settings.general || {};
+            const logoLink = document.getElementById('main-logo-link');
+
+            if (logoLink) {
+                logoLink.innerHTML = '';
+                if (generalSettings.logo?.type === 'image' && generalSettings.logo.imageUrl) {
+                    const img = document.createElement('img');
+                    img.src = generalSettings.logo.imageUrl;
+                    img.alt = generalSettings.logo.text || 'PUFEMO Logo';
+                    if (generalSettings.logo.imageWidth) img.style.width = `${generalSettings.logo.imageWidth}px`;
+                    if (generalSettings.logo.imageHeight) img.style.height = `${generalSettings.logo.imageHeight}px`;
+                    logoLink.appendChild(img);
+                } else {
+                    const icon = document.createElement('i');
+                    icon.className = generalSettings.logo?.icon || 'fa-solid fa-couch';
+                    icon.style.color = generalSettings.logo?.iconColor || 'var(--secondary-color)';
+                    logoLink.appendChild(icon);
+                    const textNode = document.createTextNode(generalSettings.logo?.text ? ` ${generalSettings.logo.text}` : ' PUFEMO');
+                    logoLink.appendChild(textNode);
+                    logoLink.style.color = generalSettings.logo?.textColor || 'var(--primary-color)';
+                }
+            }
+
+            const promoBar = document.querySelector('.promo-bar');
+            const promoTextContent = document.getElementById('promo-text-content');
+            if (promoBar && promoTextContent) {
+                promoBar.style.backgroundColor = generalSettings.promoBar?.bgColor || 'var(--secondary-color)';
+                promoBar.style.color = generalSettings.promoBar?.textColor || 'var(--light-text-color)';
+                promoBar.style.fontSize = generalSettings.promoBar?.fontSize || '0.95rem';
+
+                const scrollSpeed = generalSettings.promoBar?.scrollSpeed || '20s';
+                promoTextContent.style.animationDuration = scrollSpeed;
+                
+                const promoText = generalSettings.promoBar?.text?.[currentLang] || staticTranslations['promo_bar_text'][currentLang] || staticTranslations['promo_bar_text']['tr'];
+                promoTextContent.textContent = promoText;
+                promoBar.style.display = generalSettings.promoBar?.enabled ? 'block' : 'none';
+            }
+        };
+
+        // Renders main and mobile category menus
+        const renderCategories = () => {
+            const desktopContainer = document.getElementById('category-menu-container');
+            const mobileContainer = document.getElementById('mobile-nav');
+            const categories = siteData.categories?.tree || [];
+            
+            desktopContainer.innerHTML = '';
+            mobileContainer.innerHTML = '';
+            
+            if (categories.length === 0) return;
+
+            const mobileMenuTitle = translate('mobile_menu_title');
+            mobileContainer.innerHTML += `<div class="mobile-nav-header">${mobileMenuTitle}</div>`;
+            
+            const createMenu = (categoryArray) => {
+                const ul = document.createElement('ul');
+                categoryArray.forEach(cat => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `<a href="#">${cat.name[currentLang] || cat.name.tr}</a>`;
+                    if (cat.children && cat.children.length > 0) li.appendChild(createMenu(cat.children));
+                    ul.appendChild(li);
+                });
+                return ul;
+            };
+            
+            categories.forEach(cat => {
+                const li = document.createElement('li');
+                li.innerHTML = `<a href="#">${cat.name[currentLang] || cat.name.tr}</a>`;
+                desktopContainer.appendChild(li);
+            });
+
+            mobileContainer.appendChild(createMenu(categories));
+        };
+
+        // Renders cart items in the UI
+        function renderCart() {
+            cartItemsListEl.innerHTML = '';
+            if (cartItems.length === 0) {
+                emptyCartMessageEl.classList.remove('hidden');
+                orderSummaryCardEl.classList.add('hidden');
+                paymentSectionCardEl.classList.add('hidden');
+                proceedToPaymentBtn.disabled = true;
+                return;
+            }
+            emptyCartMessageEl.classList.add('hidden');
+            orderSummaryCardEl.classList.remove('hidden');
+            // Payment section might be hidden/shown based on user interaction, not just cart content
+            
+            const cartHtml = cartItems.map(item => {
+                const productName = item.productName?.[currentLang] || item.productName?.tr || translate('unknown_product_name');
+                const variantName = item.variantName?.[currentLang] || item.variantName?.tr || translate('unknown_color');
+                const itemImage = item.productImage || 'https://via.placeholder.com/80x80?text=No+Image'; // Fallback image
+                
+                // item.basePriceTL is the original base price, not necessarily discounted
+                const priceToUse = item.baseDiscountedPriceTL !== undefined && item.baseDiscountedPriceTL < item.basePriceTL 
+                                   ? item.baseDiscountedPriceTL : item.basePriceTL;
+
+                const formattedUnitPrice = formatPrice(priceToUse);
+                const formattedItemTotal = formatPrice(priceToUse * item.quantity);
+
+                return `
+                    <div class="cart-item">
+                        <img src="${itemImage}" alt="${productName}" class="cart-item-image">
+                        <div class="cart-item-details">
+                            <h3 class="cart-item-name"><a href="product.html?id=${item.productId}">${productName}</a></h3>
+                            <p class="cart-item-variant">${translate('unit_price_label')} ${formattedUnitPrice}</p>
+                            <p class="cart-item-variant">${translate('item_total_label')} ${formattedItemTotal}</p>
+                            ${item.isFreeShipping ? `<p class="cart-item-variant" style="color: #27ae60;">${translate('free_shipping_tag')}</p>` : ''}
+                        </div>
+                        <div class="quantity-control">
+                            <button type="button" class="quantity-button decrease-quantity" data-id="${item.id}">-</button>
+                            <input type="number" class="quantity-input" value="${item.quantity}" min="1" max="99" data-id="${item.id}" readonly>
+                            <button type="button" class="quantity-button increase-quantity" data-id="${item.id}">+</button>
+                        </div>
+                        <button type="button" class="remove-item-btn" data-id="${item.id}"><i class="fa-solid fa-trash-can"></i></button>
+                    </div>
+                `;
+            }).join('');
+            
+            cartItemsListEl.innerHTML = cartHtml;
+            proceedToPaymentBtn.disabled = false; // Enable if there are items
+        }
+
+        // Updates the order summary totals
+        function updateSummary() {
+            if (cartItems.length === 0) {
+                subtotalEl.textContent = formatPrice(0);
+                grandTotalEl.textContent = formatPrice(0);
+                return;
+            }
+
+            const subtotal = cartItems.reduce((acc, item) => {
+                // Use actual item prices from the cart, not category rates
+                const priceToUse = item.baseDiscountedPriceTL !== undefined && item.baseDiscountedPriceTL < item.basePriceTL 
+                                   ? item.baseDiscountedPriceTL : item.basePriceTL;
+                return acc + (priceToUse * item.quantity);
+            }, 0);
+
+            // No delivery fee
+            const grandTotal = subtotal;
+
+            subtotalEl.textContent = formatPrice(subtotal);
+            grandTotalEl.textContent = formatPrice(grandTotal);
+        }
+
+        // Renders past orders in the UI
+        function renderOrders() {
+            pastOrdersListEl.innerHTML = '';
+            if (pastOrders.length === 0) {
+                noOrdersMessageEl.classList.remove('hidden');
+                return;
+            }
+            noOrdersMessageEl.classList.add('hidden');
+
+            const ordersHtml = pastOrders.map(order => {
+                const orderDate = order.orderDate ? new Date(order.orderDate.seconds * 1000).toLocaleDateString(currentLang) : translate('unknown');
+                const orderStatus = statusDescriptions[order.status]?.[currentLang] || statusDescriptions['unknown'][currentLang];
+                const statusClass = `status-${order.status || 'unknown'}`; // Class for styling badge
+                const grandTotalDisplay = formatPrice(order.totals?.grandTotal || 0);
+
+                const itemsHtml = (order.items || []).map(item => {
+                    const productName = item.productName?.[currentLang] || item.productName?.tr || translate('unknown_product_name');
+                    const variantName = item.variantName?.[currentLang] || item.variantName?.tr || translate('unknown_color');
+                    const itemImage = item.productImage || 'https://via.placeholder.com/60x60?text=No+Image'; // Fallback image
+
+                    // Use item's price directly, no service fee
+                    const priceToUse = item.baseDiscountedPriceTL !== undefined && item.baseDiscountedPriceTL < item.basePriceTL 
+                                       ? item.baseDiscountedPriceTL : item.basePriceTL;
+                    const formattedItemPrice = formatPrice(priceToUse * item.quantity);
+
+                    return `
+                        <div class="order-item">
+                            <img src="${itemImage}" alt="${productName}" class="order-item-image">
+                            <div class="order-item-details">
+                                <p class="order-item-name">${productName} (${variantName})</p>
+                                <p class="order-item-qty-price">${item.quantity} x ${formatPrice(priceToUse)} = ${formattedItemPrice}</p>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                return `
+                    <div class="order-card">
+                        <div class="order-header">
+                            <div>
+                                <p>${translate('order_code_label')}</p>
+                                <span>${order.id.toUpperCase().substring(0, 8)}</span>
+                            </div>
+                            <div>
+                                <p>${translate('order_date_label')}</p>
+                                <span>${orderDate}</span>
+                            </div>
+                            <div>
+                                <p>${translate('delivery_type_label')}</p>
+                                <span>${translate('delivery_method_default')}</span> </div>
+                            <div>
+                                <p>${translate('status_label')}</p>
+                                <span class="status-badge ${statusClass}">${orderStatus}</span>
+                            </div>
+                        </div>
+                        <div class="order-items-list">
+                            ${itemsHtml}
+                        </div>
+                        <div class="order-grand-total">
+                            ${translate('grand_total_order_label')}: ${grandTotalDisplay}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            pastOrdersListEl.innerHTML = ordersHtml;
+        }
+
+        // Checks if there's any content to display and hides loader
+        function checkContentVisibility() {
+            loadingOverlay.classList.add('hidden');
+            mainContent.classList.remove('hidden');
+        }
+
+        // --- Event Listeners and Control Logic ---
+
+        // Setup common header controls (language, currency, country, mobile nav)
+        const setupControls = () => {
+            const languageSelector = document.getElementById('language-selector');
+            const currencySelector = document.getElementById('currency-selector');
+            const countrySelector = document.getElementById('country-selector');
+            const hamburgerBtn = document.getElementById('hamburger-menu-btn');
+            const mobileNav = document.getElementById('mobile-nav');
+            const mobileNavOverlay = document.getElementById('mobile-nav-overlay');
+
+            // Populate Language Selector
+            const languagesFromDB = siteData.settings.languages || [];
+            languageSelector.innerHTML = languagesFromDB.map(l => `<option value="${l.code}">${countryCodeToEmoji(l.flag)} ${l.name}</option>`).join('');
+            languageSelector.value = currentLang;
+            languageSelector.style.display = languagesFromDB.length > 0 ? 'block' : 'none';
+
+            // Populate Currency Selector
+            const currencies = siteData.settings?.currencySymbols || {};
+            const availableCurrencies = Object.keys(currencies);
+            currencySelector.innerHTML = availableCurrencies.map(c => {
+                const symbol = currencies[c] || c;
+                return `<option value="${c}">${symbol} ${c}</option>`;
+            }).join('');
+            currencySelector.value = currentCurrency;
+            currencySelector.style.display = availableCurrencies.length > 0 ? 'block' : 'none';
+
+            // Populate Country Selector
+            const countries = siteData.settings.countryPricing || {};
+            const countryOptionsHtml = Object.entries(countries).map(([code, data]) => {
+                const countryName = data.name?.[currentLang] || data.name?.['tr'] || code.toUpperCase();
+                return `<option value="${code}">${countryCodeToEmoji(data.flag)} ${countryName}</option>`;
+            }).join('');
+            if (countrySelector && countrySelector.parentElement) {
+                countrySelector.innerHTML = countryOptionsHtml;
+                countrySelector.value = currentCountryCode;
+                countrySelector.parentElement.style.display = Object.keys(countries).length > 0 ? 'block' : 'none';
+            }
+
+            // Event Listeners for Selects
+            languageSelector.onchange = (e) => {
+                currentLang = e.target.value;
+                localStorage.setItem('pufemo-language', currentLang);
+                renderAll();
+            };
+            currencySelector.onchange = (e) => {
+                currentCurrency = e.target.value;
+                localStorage.setItem('pufemo-currency', currentCurrency);
+                renderAll();
+            };
+            countrySelector.onchange = (e) => {
+                currentCountryCode = e.target.value;
+                localStorage.setItem('pufemo-country', currentCountryCode);
+                // When country changes, default language and currency might change based on settings
+                const selectedCountryData = siteData.settings.countryPricing[currentCountryCode];
+                if (selectedCountryData) {
+                    currentLang = selectedCountryData.defaultLanguage || 'tr';
+                    const currencyCodeFromSymbol = Object.keys(siteData.settings.currencySymbols || {}).find(key => 
+                        siteData.settings.currencySymbols[key] === selectedCountryData.currencySymbol
+                    );
+                    currentCurrency = currencyCodeFromSymbol || 'TRY';
+                    localStorage.setItem('pufemo-language', currentLang);
+                    localStorage.setItem('pufemo-currency', currentCurrency);
+                }
+                renderAll();
+            };
+
+            // Hamburger Menu Toggle
+            const toggleMenu = () => {
+                hamburgerBtn.classList.toggle('open');
+                mobileNav.classList.toggle('open');
+                mobileNavOverlay.classList.toggle('open');
+                document.body.classList.toggle('mobile-menu-open'); // To prevent scrolling on body
+            };
+            hamburgerBtn.onclick = toggleMenu;
+            mobileNavOverlay.onclick = toggleMenu;
+            mobileNav.onclick = (e) => { if (e.target.tagName === 'A') toggleMenu(); };
+
+            // Render general site elements (logo, promo bar)
+            renderGeneralSiteElements();
+        };
+
+        // Event listener for quantity changes and item removal in cart
+        cartItemsListEl.addEventListener('click', async (e) => {
+            const target = e.target;
+            const button = target.closest('button');
+
+            if (!button || !currentUser) return;
+
+            const itemId = button.dataset.id;
+            const itemRef = doc(db, 'users', currentUser.uid, 'cart', itemId);
+            const item = cartItems.find(i => i.id === itemId);
+
+            if (!item) return;
+
+            if (button.classList.contains('increase-quantity')) {
+                await updateDoc(itemRef, { quantity: item.quantity + 1 });
+            } else if (button.classList.contains('decrease-quantity')) {
+                if (item.quantity > 1) {
+                    await updateDoc(itemRef, { quantity: item.quantity - 1 });
+                }
+            } else if (button.classList.contains('remove-item-btn')) {
+                if (confirm(translate('confirm_remove_item'))) { // Add this to staticTranslations
+                    await deleteDoc(itemRef);
+                }
+            }
+        });
+
+        // Event listeners for checkout process
+        proceedToPaymentBtn.addEventListener('click', () => {
+            orderSummaryCardEl.classList.add('hidden');
+            paymentSectionCardEl.classList.remove('hidden');
+            paymentSectionCardEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+
+        // Toggle payment details visibility
+        document.querySelectorAll('input[name="payment-method"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                document.getElementById('transfer-details').classList.add('hidden');
+                document.getElementById('card-details').classList.add('hidden');
+                if (e.target.value === 'transfer') {
+                    document.getElementById('transfer-details').classList.remove('hidden');
+                } else if (e.target.value === 'card') {
+                    document.getElementById('card-details').classList.remove('hidden');
+                }
+            });
+        });
+
+        confirmOrderBtn.addEventListener('click', async () => {
+            if (cartItems.length === 0) return;
+
+            const selectedMethod = document.querySelector('input[name="payment-method"]:checked').value;
+            if (selectedMethod === 'card') {
+                const cardNumber = document.getElementById('card-number').value.trim();
+                const cardExpiry = document.getElementById('card-expiry').value.trim();
+                const cardCvc = document.getElementById('card-cvc').value.trim();
+                if (!cardNumber || !cardExpiry || !cardCvc) {
+                    alert(translate('missing_card_details')); // Add this to staticTranslations
+                    return;
+                }
+            }
+
+            confirmOrderBtn.disabled = true;
+            confirmOrderBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i><span> ${translate('processing_text')}</span>`; // Updated spinner
+
+            const orderData = {
+                userId: currentUser.uid,
+                userEmail: currentUser.email, // Store user email for admin
+                userDisplayName: currentUser.displayName || 'Guest', // Store user display name
+                status: selectedMethod === 'card' ? 'processing' : 'pending_payment',
+                paymentMethod: selectedMethod,
+                orderDate: serverTimestamp(),
+                deliveryMethod: translate('delivery_method_default'), // Fixed delivery method
+                items: cartItems.map(item => ({
+                    productId: item.productId,
+                    productName: item.productName,
+                    productImage: item.productImage,
+                    variantName: item.variantName,
+                    basePriceTL: item.basePriceTL,
+                    baseDiscountedPriceTL: item.baseDiscountedPriceTL,
+                    isFreeShipping: item.isFreeShipping,
+                    quantity: item.quantity,
+                })),
+                totals: {
+                    subtotal: cartItems.reduce((sum, item) => {
+                        const priceToUse = item.baseDiscountedPriceTL !== undefined && item.baseDiscountedPriceTL < item.basePriceTL 
+                                            ? item.baseDiscountedPriceTL : item.basePriceTL;
+                        return sum + (priceToUse * item.quantity);
+                    }, 0),
+                    grandTotal: cartItems.reduce((sum, item) => {
+                        const priceToUse = item.baseDiscountedPriceTL !== undefined && item.baseDiscountedPriceTL < item.basePriceTL 
+                                            ? item.baseDiscountedPriceTL : item.basePriceTL;
+                        return sum + (priceToUse * item.quantity);
+                    }, 0) // No delivery fee, so grandTotal is same as subtotal
+                }
+            };
+
+            try {
+                const orderRef = await addDoc(collection(db, 'orders'), orderData);
+                
+                // Clear cart using a batch write for efficiency
+                const batch = writeBatch(db);
+                cartItems.forEach(item => {
+                    const itemRef = doc(db, 'users', currentUser.uid, 'cart', item.id);
+                    batch.delete(itemRef);
+                });
+                await batch.commit();
+
+                // Show success modal
+                successOrderIdEl.textContent = orderRef.id.substring(0, 8).toUpperCase();
+                successTransferInfoEl.classList.toggle('hidden', selectedMethod !== 'transfer');
+                orderSuccessModalOverlayEl.classList.add('active');
+                
+            } catch (error) {
+                console.error("Error placing order:", error);
+                alert(translate('order_placement_error') + error.message); // Add this to staticTranslations
+            } finally {
+                confirmOrderBtn.disabled = false;
+                confirmOrderBtn.innerHTML = translate('confirm_order_btn');
+            }
+        });
+
+        // --- Initialisation ---
+
+        async function init() {
+            loadingOverlay.classList.remove('hidden');
+            renderStaticText(); // Render static text immediately for a better loading experience
+            await fetchData(); // Fetch dynamic site data
+            setupControls(); // Setup header controls
+            renderCategories(); // Render categories
+
+            // Check authentication state for cart and orders
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    currentUser = user;
+                    // Listen to cart and orders only after user is authenticated and data is fetched
+                    listenToCart(currentUser.uid);
+                    listenToOrders(currentUser.uid);
+                } else {
+                    // Redirect to login or home if not authenticated
+                    // For now, simply hide relevant sections
+                    cartItemsListEl.innerHTML = '';
+                    emptyCartMessageEl.classList.remove('hidden');
+                    orderSummaryCardEl.classList.add('hidden');
+                    paymentSectionCardEl.classList.add('hidden');
+                    pastOrdersListEl.innerHTML = '';
+                    noOrdersMessageEl.classList.remove('hidden');
+                    loadingOverlay.classList.add('hidden'); // Hide loading overlay when authentication is confirmed
+                    mainContent.classList.remove('hidden'); // Show main content
+                    // Optional: alert('Please log in to view your cart and orders.');
+                    // window.location.href = 'index.html'; // Or redirect to a login page
+                }
+                checkContentVisibility(); // Ensure correct visibility after auth check
+            });
+            loadingOverlay.classList.add('hidden');
+        }
+
+        init();
+    </script>
+</body>
+</html>
