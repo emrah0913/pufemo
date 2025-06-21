@@ -757,7 +757,7 @@
         let app;
         let auth;
         let db;
-        let currentUser = null; // Bu artık hem kayıtlı kullanıcı hem de anonim kullanıcı olabilir.
+        let currentUser = null; // Global olarak zaten tanımlı
 
         // --- Static Translations and Global State ---
         const staticTranslations = {
@@ -771,7 +771,7 @@
             'footer-link-privacy': { tr: 'Gizlilik Politikası', en: 'Privacy Policy', el: 'Πολιτική Απορρήτου' },
             'footer-title-follow-us': { tr: 'Bizi Takip Edin', en: 'Follow Us', el: 'Ακολουθήστε μας' },
             'footer-copyright': { tr: '&copy; 2025 PUFEMO.COM | Tüm Hakları Saklıdır.', en: '&copy; 2025 PUFEMO.COM | All Rights Reserved.', el: '&copy; 2025 PUFEMO.COM | Με την επιφύλαξη παντός δικαιώματος.' },
-            'country_selector_label': { tr: 'Ülke Seçimi:', en: 'Select Country:', el: 'Επιλέψτε Χώρα:' },
+            'country_selector_label': { tr: 'Ülke Seçimi:', en: 'Select Country:', el: 'Επιλέξτε Χώρα:' },
             'cart_page_link_title': { tr: 'Sepetim', en: 'My Cart', el: 'Το καλάθι μου' },
             'empty_cart_text': { tr: 'Sepetinizde henüz ürün bulunmuyor.', en: 'Your cart is empty.', el: 'Το καλάθι σας είναι άδειο.' },
             'shop_now_btn': { tr: 'Alışverişe Başla', en: 'Shop Now', el: 'Αγοράστε τώρα' },
@@ -812,7 +812,7 @@
             'confirm_remove_item': { tr: 'Bu ürünü sepetten kaldırmak istediğinize emin misiniz?', en: 'Are you sure you want to remove this item from your cart?' },
             'missing_card_details': { tr: 'Lütfen tüm kart bilgilerini girin.', en: 'Please enter all card details.' },
             'order_placement_error': { tr: 'Sipariş oluşturulurken bir hata oluştu: ', en: 'An error occurred while placing the order: ' },
-            'guest_user_display_name': { tr: 'Misafir Kullanıcı', en: 'Guest User', el: 'Επισκέπτης Χρήστης' }
+            'guest_user_display_name': { tr: 'Misafir Kullanıcı', en: 'Guest User', el: 'Επισκέptis Χρήστης' }
         };
 
         const statusDescriptions = {
@@ -848,7 +848,7 @@
         // Global State Variables
         let cartItems = [];
         let pastOrders = [];
-        let currentUser = null;
+        let currentUser = null; // Global olarak zaten tanımlı
         let siteData = {
             settings: {
                 languages: [],
@@ -905,6 +905,10 @@
 
         const fetchData = async () => {
             try {
+                if (!db) { // db'nin başlatıldığından emin olun
+                    console.warn("Firestore DB not initialized for fetchData. Skipping data fetch.");
+                    return;
+                }
                 const [settingsDoc, categoriesDoc] = await Promise.all([
                     getDoc(doc(db, 'pufemo', 'settings')),
                     getDoc(doc(db, 'pufemo', 'categories'))
@@ -912,9 +916,13 @@
 
                 if (settingsDoc.exists()) {
                     siteData.settings = { ...settingsDoc.data() };
+                } else {
+                    console.warn("Settings document not found. Using default settings.");
                 }
                 if (categoriesDoc.exists()) {
                     siteData.categories = { ...categoriesDoc.data() };
+                } else {
+                    console.warn("Categories document not found. Using empty categories.");
                 }
 
                 const availableCountries = Object.keys(siteData.settings.countryPricing);
@@ -926,6 +934,7 @@
                     currentCountryCode = availableCountries[0];
                     localStorage.setItem('pufemo-country', currentCountryCode);
                 } else {
+                    // Eğer hiç ülke verisi yoksa, varsayılan değerleri zorunlu kıl
                     currentCountryCode = 'TR';
                     localStorage.setItem('pufemo-country', currentCountryCode);
                 }
@@ -945,24 +954,20 @@
                     localStorage.setItem('pufemo-language', currentLang);
                     localStorage.setItem('pufemo-currency', currentCurrency);
                 }
-                
+
                 document.title = translate('cart_page_link_title') + ' | PUFEMO';
 
             } catch (e) {
                 console.error("Failed to fetch general site data:", e);
-                currentLang = 'tr';
-                currentCurrency = 'TRY';
-                currentCountryCode = 'TR';
-                localStorage.setItem('pufemo-language', currentLang);
-                localStorage.setItem('pufemo-currency', currentCurrency);
-                localStorage.setItem('pufemo-country', currentCountryCode);
+                // Hata durumunda varsayılan değerler zaten atanmış olacaktır.
+                // Kullanıcıya bilgi vermek isterseniz burada bir UI mesajı gösterebilirsiniz.
             }
         };
 
         // --- Real-time Listeners (for Cart and Orders) ---
 
         function listenToCart(userId) {
-            if (!db) { // Firebase DB'nin başlatıldığından emin olun
+            if (!db) {
                 console.error("Firestore DB not initialized for cart listener.");
                 return;
             }
@@ -971,13 +976,13 @@
                 cartItems = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderCart();
                 updateSummary();
-                updateCartBadge(); // Update badge on cart change
+                updateCartBadge();
                 checkContentVisibility();
             }, (error) => console.error("Error listening to cart: ", error));
         }
 
         function listenToOrders(userId) {
-            if (!db) { // Firebase DB'nin başlatıldığından emin olun
+            if (!db) {
                 console.error("Firestore DB not initialized for orders listener.");
                 return;
             }
@@ -995,24 +1000,19 @@
         // renderAll fonksiyonunu burada global olarak tanımlayın
         const renderAll = async () => {
             renderStaticText();
-            setupControls();
+            setupControls(); // Kontrolleri yeniden ayarla (seçicilerin değerlerini güncelle)
             renderCategories();
-            renderGeneralSiteElements();
+            renderGeneralSiteElements(); // Logo ve promosyon çubuğunu yeniden render et
 
-            // Sadece currentUser mevcutsa sepet ve siparişleri dinlemeye başla
-            // onAuthStateChanged tarafından tetiklendiği için burada doğrudan çağrılmıyor
-            // ancak dil/para birimi değiştiğinde UI'yi güncellemek için renderCart/renderOrders'ı çağırmak mantıklı olabilir.
-            // Ancak onSnapshot zaten değişiklikleri dinlediği için bu genellikle fazladan bir çağrı olacaktır.
-            // Yine de, herhangi bir veri değişikliği olmadan sadece dil değiştiğinde mevcut verileri yeniden render etmek için faydalı olabilir.
-            if (currentUser) {
-                // Eğer onSnapshot dinleyicileri zaten ayarlıysa, bu çağrılar fazladan tetikleme yapabilir.
-                // Ancak, sadece UI'nin güncel dil/para birimi ayarlarıyla yeniden çizilmesi için kullanışlıdır.
+            if (currentUser && db) { // currentUser ve db mevcutsa sepet/siparişleri yeniden render et
+                // onSnapshot dinleyicileri zaten otomatik günceller,
+                // ancak dil/para birimi değiştiğinde mevcut verileri yeniden çizmek için çağrılır.
                 renderCart();
                 updateSummary();
                 renderOrders();
             }
 
-            checkContentVisibility(); // Yükleme ekranını gizle
+            checkContentVisibility();
         };
 
 
@@ -1136,7 +1136,7 @@
             if (cartItems.length === 0) {
                 emptyCartMessageEl.classList.remove('hidden');
                 orderSummaryCardEl.classList.add('hidden');
-                paymentSectionCardEl.classList.add('hidden'); // Ensure payment section is hidden
+                paymentSectionCardEl.classList.add('hidden');
                 proceedToPaymentBtn.disabled = true;
                 return;
             }
@@ -1315,19 +1315,19 @@
             }
 
             // Event Listeners for Selects
-            languageSelector.onchange = async (e) => { // Added async
+            languageSelector.onchange = async (e) => {
                 currentLang = e.target.value;
                 localStorage.setItem('pufemo-language', currentLang);
-                await fetchData(); // Fetch data again to update based on new language/country settings if needed
-                renderAll();
+                await fetchData();
+                await renderAll(); // await kullanıldı
             };
-            currencySelector.onchange = async (e) => { // Added async
+            currencySelector.onchange = async (e) => {
                 currentCurrency = e.target.value;
                 localStorage.setItem('pufemo-currency', currentCurrency);
-                await fetchData(); // Fetch data again to update based on new currency settings if needed
-                renderAll();
+                await fetchData();
+                await renderAll(); // await kullanıldı
             };
-            countrySelector.onchange = async (e) => { // Added async
+            countrySelector.onchange = async (e) => {
                 currentCountryCode = e.target.value;
                 localStorage.setItem('pufemo-country', currentCountryCode);
                 const selectedCountryData = siteData.settings.countryPricing[currentCountryCode];
@@ -1340,8 +1340,8 @@
                     localStorage.setItem('pufemo-language', currentLang);
                     localStorage.setItem('pufemo-currency', currentCurrency);
                 }
-                await fetchData(); // Fetch data again to update based on new country/currency/language settings
-                renderAll();
+                await fetchData();
+                await renderAll(); // await kullanıldı
             };
 
             // Hamburger Menu Toggle
@@ -1422,8 +1422,8 @@
             confirmOrderBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i><span> ${translate('processing_text')}</span>`;
 
             const orderData = {
-                userId: currentUser.uid, // Anonim kullanıcı UID'si kullanılacak
-                userEmail: currentUser.isAnonymous ? 'anonymous@pufemo.com' : currentUser.email, // Misafir ise varsayılan email
+                userId: currentUser.uid,
+                userEmail: currentUser.isAnonymous ? 'anonymous@pufemo.com' : currentUser.email,
                 userDisplayName: currentUser.displayName || (currentUser.isAnonymous ? translate('guest_user_display_name') : 'Kayıtlı Kullanıcı'),
                 status: selectedMethod === 'card' ? 'processing' : 'pending_payment',
                 paymentMethod: selectedMethod,
@@ -1480,36 +1480,30 @@
 
         async function init() {
             loadingOverlay.classList.remove('hidden');
-            renderStaticText(); // İlk yüklemede statik metinleri göster
+            renderStaticText();
 
             try {
-                // Firebase başlatma logic'i
                 app = initializeApp(firebaseConfig);
                 auth = getAuth(app);
                 db = getFirestore(app);
             } catch (e) {
                 console.error("Firebase initialization error:", e);
-                // Eğer Firebase başlatılamazsa, yükleme ekranını gizle ve hata mesajı göster
                 if (document.getElementById('loading-overlay')) document.getElementById('loading-overlay').classList.add('hidden');
                 alert("Uygulama yüklenirken bir hata oluştu. Lütfen daha sonra tekrar deneyin.");
-                return; // init() fonksiyonundan çık
+                return;
             }
 
-            await fetchData(); // Dinamik site verilerini çek
-            setupControls(); // Header kontrollerini ayarla
-            renderCategories(); // Kategorileri render et
+            await fetchData();
+            setupControls();
+            renderCategories();
+            renderGeneralSiteElements();
 
-            // Kullanıcı oturum durumunu dinle (anonim dahil)
             onAuthStateChanged(auth, async (user) => {
+                // currentUser'a doğrudan atama yapılıyor, 'let' veya 'const' kullanılmıyor
+                currentUser = user;
+
                 if (user) {
-                    currentUser = user;
-                    // Eğer kullanıcı anonimse ve UID'si LocalStorage'da yoksa veya farklıysa
-                    // LocalStorage'daki anonim UID'yi günceller.
-                    if (user.isAnonymous && localStorage.getItem('pufemo_anon_uid') !== user.uid) {
-                        localStorage.setItem('pufemo_anon_uid', user.uid);
-                    }
                     // Kullanıcı belgesinin Firebase'de olup olmadığını kontrol edin ve oluşturun
-                    // Bu çağrıyı sadece Auth durumunda değil, aynı zamanda Firestore kuralları için de güvenliği sağlamak adına yapıyoruz.
                     try {
                         const userDocRef = doc(db, 'users', currentUser.uid);
                         const userDocSnap = await getDoc(userDocRef);
@@ -1523,7 +1517,6 @@
                         }
                     } catch (createUserError) {
                         console.error("Error creating/checking user document:", createUserError);
-                        // Hata durumunda, kullanıcıyla ilgili işlemleri devre dışı bırakmayı düşünebilirsiniz.
                     }
 
                     listenToCart(currentUser.uid);
@@ -1534,6 +1527,7 @@
                         const anonUserCredential = await signInAnonymously(auth);
                         currentUser = anonUserCredential.user;
                         localStorage.setItem('pufemo_anon_uid', currentUser.uid); // Yeni UID'yi kaydet
+                        
                         // Anonim kullanıcı için de belgeyi oluştur/kontrol et
                         try {
                             const userDocRef = doc(db, 'users', currentUser.uid);
@@ -1555,7 +1549,6 @@
                     } catch (anonError) {
                         console.error("Anonim oturum açma hatası:", anonError);
                         alert("Misafir olarak alışveriş yaparken bir hata oluştu. Lütfen sayfayı yenileyin.");
-                        // Hata durumunda sepet ve sipariş bölümlerini gizle
                         cartItemsListEl.innerHTML = '';
                         emptyCartMessageEl.classList.remove('hidden');
                         orderSummaryCardEl.classList.add('hidden');
@@ -1564,8 +1557,8 @@
                         noOrdersMessageEl.classList.remove('hidden');
                     }
                 }
-                updateCartBadge(); // Update the cart badge based on the *current* user
-                checkContentVisibility(); // Yükleme ekranını gizle
+                updateCartBadge();
+                checkContentVisibility();
             });
         }
 
