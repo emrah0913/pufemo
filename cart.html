@@ -757,7 +757,7 @@
         let app;
         let auth;
         let db;
-        let currentUser = null; // Global olarak tanımlı
+        let currentUser = null; // Global olarak sadece bir kez tanımlı
 
         // --- Static Translations and Global State ---
         const staticTranslations = {
@@ -848,7 +848,7 @@
         // Global State Variables
         let cartItems = [];
         let pastOrders = [];
-        let currentUser = null; // Global olarak zaten tanımlı
+        let currentUser = null; // Global olarak sadece bir kez tanımlı
         let siteData = {
             settings: {
                 languages: [],
@@ -1319,13 +1319,13 @@
                 currentLang = e.target.value;
                 localStorage.setItem('pufemo-language', currentLang);
                 await fetchData();
-                await renderAll(); // await kullanıldı
+                await renderAll();
             };
             currencySelector.onchange = async (e) => {
                 currentCurrency = e.target.value;
                 localStorage.setItem('pufemo-currency', currentCurrency);
                 await fetchData();
-                await renderAll(); // await kullanıldı
+                await renderAll();
             };
             countrySelector.onchange = async (e) => {
                 currentCountryCode = e.target.value;
@@ -1341,7 +1341,7 @@
                     localStorage.setItem('pufemo-currency', currentCurrency);
                 }
                 await fetchData();
-                await renderAll(); // await kullanıldı
+                await renderAll();
             };
 
             // Hamburger Menu Toggle
@@ -1363,7 +1363,7 @@
             const target = e.target;
             const button = target.closest('button');
 
-            if (!button || !currentUser) return; // currentUser'ın null olma ihtimaline karşı kontrol
+            if (!button || !currentUser) return;
 
             const itemId = button.dataset.id;
             const itemRef = doc(db, 'users', currentUser.uid, 'cart', itemId);
@@ -1493,14 +1493,13 @@
                 return;
             }
 
-            await fetchData();
-            setupControls();
-            renderCategories();
-            renderGeneralSiteElements();
+            await fetchData(); // Genel site ayarları çekilir.
+            setupControls(); // Header ve diğer kontroller ayarlanır.
+            renderCategories(); // Kategoriler render edilir.
+            renderGeneralSiteElements(); // Logo, promo bar render edilir.
 
             onAuthStateChanged(auth, async (user) => {
-                // currentUser'a sadece atama yapılıyor, tekrar 'let' veya 'const' kullanılmıyor.
-                currentUser = user;
+                currentUser = user; // Sadece değer atanır, tekrar tanımlanmaz.
 
                 if (user) {
                     // Kullanıcı belgesinin Firebase'de olup olmadığını kontrol edin ve oluşturun
@@ -1519,8 +1518,8 @@
                         console.error("Error creating/checking user document:", createUserError);
                     }
 
-                    listenToCart(currentUser.uid);
-                    listenToOrders(currentUser.uid);
+                    listenToCart(currentUser.uid); // Sepet dinleyicisi başlatılır.
+                    listenToOrders(currentUser.uid); // Sipariş dinleyicisi başlatılır.
                 } else {
                     // Kullanıcı oturum açmamışsa (veya çıkış yapmışsa), anonim olarak oturum açmaya çalış
                     try {
@@ -1544,11 +1543,12 @@
                             console.error("Error creating/checking anonymous user document:", createUserError);
                         }
 
-                        listenToCart(currentUser.uid);
-                        listenToOrders(currentUser.uid);
+                        listenToCart(currentUser.uid); // Sepet dinleyicisi başlatılır.
+                        listenToOrders(currentUser.uid); // Sipariş dinleyicisi başlatılır.
                     } catch (anonError) {
                         console.error("Anonim oturum açma hatası:", anonError);
                         alert("Misafir olarak alışveriş yaparken bir hata oluştu. Lütfen sayfayı yenileyin.");
+                        // Hata durumunda sepet ve sipariş bölümlerini gizle
                         cartItemsListEl.innerHTML = '';
                         emptyCartMessageEl.classList.remove('hidden');
                         orderSummaryCardEl.classList.add('hidden');
@@ -1557,8 +1557,8 @@
                         noOrdersMessageEl.classList.remove('hidden');
                     }
                 }
-                updateCartBadge();
-                checkContentVisibility();
+                updateCartBadge(); // Sepet rozeti güncellenir.
+                checkContentVisibility(); // Yükleme ekranı gizlenir.
             });
         }
 
