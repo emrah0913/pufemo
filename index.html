@@ -270,7 +270,7 @@
 
         .country-selector-container label {
             font-size: 1.1rem;
-            color: var(--light-text-color);
+            color: var(--light-text-color); /* Footer ile uyumlu renk */
             margin-right: 10px;
             font-weight: 500;
         }
@@ -294,42 +294,80 @@
         }
 
         /* Login/Logout Section Styles */
-        .auth-section {
+        .auth-controls { /* Changed to match header-controls, not a separate section */
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 10px; /* Space between auth elements */
         }
 
-        .auth-button {
-            background-color: var(--primary-color);
-            color: var(--light-text-color);
-            padding: 8px 15px;
-            border: none;
-            border-radius: 5px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-            font-size: 0.9rem;
-        }
-        .auth-button:hover {
-            background-color: #1a242f;
-        }
-
-        .profile-info {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            color: var(--text-color);
-            font-size: 0.9rem;
-        }
-        .profile-info img {
-            width: 30px;
-            height: 30px;
+        .auth-profile-toggle {
+            width: 35px; /* Adjust size as needed */
+            height: 35px;
             border-radius: 50%;
-            object-fit: cover;
-            border: 1px solid #ddd;
+            background-color: var(--primary-color); /* Default background for guest user */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            overflow: hidden; /* For profile image */
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
-        .profile-info .display-name {
+        .auth-profile-toggle:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+        .auth-profile-toggle img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .auth-profile-toggle i {
+            color: var(--light-text-color);
+            font-size: 1.2rem;
+        }
+
+        /* Dropdown menu for login/logout */
+        .auth-dropdown-menu {
+            position: absolute;
+            top: calc(100% + 10px); /* Position below the icon */
+            right: 0;
+            background-color: var(--card-bg-color);
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            min-width: 150px;
+            padding: 10px 0;
+            z-index: 1000;
+            display: none;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .auth-dropdown-menu.active {
+            display: flex;
+        }
+        .auth-dropdown-menu button {
+            background: none;
+            border: none;
+            padding: 8px 15px;
+            text-align: left;
+            width: 100%;
+            cursor: pointer;
+            color: var(--text-color);
+            font-size: 0.95rem;
+            transition: background-color 0.2s ease;
+        }
+        .auth-dropdown-menu button:hover {
+            background-color: #f0f0f0;
+        }
+        .auth-dropdown-menu .user-email {
+            font-size: 0.85rem;
+            color: #777;
+            padding: 5px 15px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            border-bottom: 1px solid #eee;
+            margin-bottom: 5px;
             font-weight: 500;
         }
 
@@ -449,11 +487,37 @@
                 .product-card {
                     padding-bottom: 25px;
                 }
+                /* Small screen modal adjustments */
+                .welcome-modal-content {
+                    padding: 20px;
+                }
+                .welcome-modal-content h2 {
+                    font-size: 1.5rem;
+                }
+                .welcome-modal-content p {
+                    font-size: 1rem;
+                }
+                .welcome-modal-content .control-select {
+                    width: 100%;
+                }
+                .welcome-modal-content button {
+                    padding: 10px 20px;
+                    font-size: 1rem;
+                }
             }
         }
     </style>
 </head>
 <body>
+    <div id="welcomeModalOverlay" class="welcome-modal-overlay">
+        <div class="welcome-modal-content">
+            <h2 id="welcome-modal-title"></h2>
+            <p id="welcome-modal-message"></p>
+            <select id="welcomeCountrySelect" class="control-select"></select>
+            <button id="welcomeModalConfirmButton"></button>
+        </div>
+    </div>
+
     <div class="promo-bar">
         <span id="promo-text-content" class="promo-text"></span>
     </div>
@@ -472,18 +536,21 @@
         <div class="container">
             <button class="hamburger-menu" id="hamburger-menu-btn" aria-label="Menüyü aç/kapat"><span></span><span></span><span></span></button>
             <div class="header-controls">
-                <div id="auth-controls" class="auth-section">
-                    <button id="login-button" class="auth-button">Giriş Yap</button>
-                    <div id="profile-area" class="profile-info hidden">
-                        <img id="profile-img" src="" alt="Profil" class="w-8 h-8 rounded-full">
-                        <span id="display-name" class="display-name"></span>
-                        <button id="logout-button" class="auth-button">Çıkış Yap</button>
-                    </div>
-                </div>
-
                 <select id="language-selector" class="control-select"></select>
                 <select id="currency-selector" class="control-select"></select>
                 <a href="cart.html" class="cart-icon" id="cart-page-link" title=""><i class="fa-solid fa-cart-shopping"></i><span class="cart-badge">0</span></a>
+                
+                <div id="auth-container" style="position: relative; display: flex;">
+                    <div id="profile-toggle" class="auth-profile-toggle">
+                        <img id="profile-img" src="" alt="Profil">
+                        <i id="guest-icon" class="fa-solid fa-user"></i>
+                    </div>
+                    <div id="auth-dropdown-menu" class="auth-dropdown-menu">
+                        <span id="user-email-display" class="user-email"></span>
+                        <button id="google-login-btn">Google ile Giriş Yap</button>
+                        <button id="logout-btn">Çıkış Yap</button>
+                    </div>
+                </div>
             </div>
         </div>
     </header>
@@ -577,8 +644,6 @@
             document.getElementById('footer-copyright').innerHTML = "&copy; 2025 PUFEMO.COM | Tüm Hakları Saklıdır.";
             // Burada init() fonksiyonundan return yapmıyoruz, çünkü bu try-catch global kapsamda.
             // Hata sonrası scriptin geri kalanı çalışmaya devam etmeli ancak Firebase işlemleri başarısız olacaktır.
-            // Eğer Firebase başlatılamazsa tüm scriptin durmasını istiyorsanız,
-            // bu global try-catch bloğunu bir fonksiyona sarmalısınız.
         }
 
         // --- Static Translations (Updated to include auth related texts) ---
@@ -605,10 +670,12 @@
             'untitled_product': { tr: 'İsimsiz Ürün', en: 'Untitled Product', el: 'Προϊόν χωρίς τίτλο' },
             'no_image': { tr: 'Resim Yok', en: 'No Image', el: 'Χωρίς Εικόνα' },
             // New for Authentication
-            'login_button': { tr: 'Giriş Yap', en: 'Login', el: 'Είσοδος' },
-            'logout_button': { tr: 'Çıkış Yap', en: 'Logout', el: 'Έξοδος' },
+            'login_button': { tr: 'Giriş Yap', en: 'Login', el: 'Είσοδος' }, // This will not be used in this version but kept for consistency.
+            'logout_button': { tr: 'Çıkış Yap', en: 'Logout', el: 'Έξοδος' }, // This will not be used in this version but kept for consistency.
             'google_signin_button': { tr: 'Google ile Giriş Yap', en: 'Sign in with Google', el: 'Σύνδεση με Google' },
-            'guest_user_display_name': { tr: 'Misafir', en: 'Guest', el: 'Επισκέπτης' }
+            'guest_user_display_name': { tr: 'Misafir', en: 'Guest', el: 'Επισκέπτης' },
+            'profile_menu_logout': { tr: 'Çıkış Yap', en: 'Logout', el: 'Έξοδος' },
+            'profile_menu_login_google': { tr: 'Google ile Giriş Yap', en: 'Sign In with Google', el: 'Σύνδεση με Google' }
         };
 
         let siteData = {
@@ -632,16 +699,18 @@
         const loadingTextP = document.getElementById('loading-text');
 
         // Auth related DOM elements
-        const loginButton = document.getElementById('login-button');
-        const logoutButton = document.getElementById('logout-button');
-        const profileArea = document.getElementById('profile-area');
+        const authContainer = document.getElementById('auth-container');
+        const profileToggle = document.getElementById('profile-toggle');
         const profileImg = document.getElementById('profile-img');
-        const displayNameSpan = document.getElementById('display-name');
+        const guestIcon = document.getElementById('guest-icon');
+        const authDropdownMenu = document.getElementById('auth-dropdown-menu');
+        const userEmailDisplay = document.getElementById('user-email-display');
+        const googleLoginBtn = document.getElementById('google-login-btn');
+        const logoutBtn = document.getElementById('logout-btn');
 
         const mainSectionTitleEl = document.getElementById('main-section-title');
         const cartPageLinkEl = document.getElementById('cart-page-link');
 
-        // Welcome Modal (kept for consistency, though not strictly for auth here)
         const welcomeModalOverlay = document.getElementById('welcomeModalOverlay');
         const welcomeCountrySelect = document.getElementById('welcomeCountrySelect');
         const welcomeModalConfirmButton = document.getElementById('welcomeModalConfirmButton');
@@ -649,7 +718,6 @@
         const welcomeModalMessage = document.getElementById('welcome-modal-message');
 
         // --- Utility Functions ---
-
         function countryCodeToEmoji(code) {
             if (!code || code.length !== 2) {
                 return '';
@@ -663,10 +731,10 @@
         
         const fetchData = async () => {
             try {
-                const [settingsDoc, categoriesDocSnap, productsSnap] = await Promise.all([ // Renamed categoriesDoc to categoriesDocSnap for clarity
+                const [settingsDoc, categoriesDocSnap, productsSnap] = await Promise.all([
                     getDoc(doc(db, 'pufemo', 'settings')),
-                    getDoc(doc(db, 'pufemo', 'categories')), // Fetched separately as it's a document
-                    getDocs(query(collection(db, 'pufemo-products'), where('isInShowcase', '==', true))) // Use query for products
+                    getDoc(doc(db, 'pufemo', 'categories')),
+                    getDocs(query(collection(db, 'pufemo-products'), where('isInShowcase', '==', true)))
                 ]);
                 
                 if (settingsDoc.exists()) {
@@ -675,7 +743,7 @@
                     console.warn('Settings document not found. Using default settings.');
                 }
                 
-                if (categoriesDocSnap.exists()) { // Use categoriesDocSnap here
+                if (categoriesDocSnap.exists()) {
                     siteData.categories = { ...categoriesDocSnap.data() };
                 } else {
                     console.warn('Categories document not found. Using empty categories.');
@@ -729,7 +797,6 @@
             }
         };
         
-        // --- Price Formatting Function (from your product.html) ---
         const formatPrice = (basePrice, discountPrice = null) => {
             const symbols = siteData.settings?.currencySymbols || {};
             const selectedCountryData = siteData.settings.countryPricing[currentCountryCode];
@@ -755,8 +822,6 @@
             return `${symbol} ${formattedPrice}`;
         };
 
-        // --- Render Functions ---
-
         const renderAll = () => {
             renderStaticText();
             setupControls();
@@ -764,7 +829,7 @@
             renderBanner();
             renderProducts();
             renderGeneralSiteElements();
-            updateCartBadge(); // Ensure badge is updated on page load
+            updateCartBadge();
         };
 
         const renderStaticText = () => {
@@ -772,7 +837,6 @@
             loadingTextP.textContent = translate('loading_text');
             mainSectionTitleEl.textContent = translate('main_section_title');
             
-            // Footer translations
             document.getElementById('footer-title-pufemo').textContent = translate('footer-title-pufemo');
             document.getElementById('footer-desc-pufemo').textContent = translate('footer-desc-pufemo');
             document.getElementById('footer-title-fast-links').textContent = translate('footer-title-fast-links');
@@ -783,14 +847,13 @@
             document.getElementById('footer-copyright').innerHTML = translate('footer-copyright');
             document.getElementById('country-selector-label').textContent = translate('country_selector_label');
 
-            // Welcome Modal (still here for consistency if you decide to use it later)
             if (welcomeModalTitle) welcomeModalTitle.textContent = translate('welcome_modal_title');
             if (welcomeModalMessage) welcomeModalMessage.textContent = translate('welcome_modal_message');
             if (welcomeModalConfirmButton) welcomeModalConfirmButton.textContent = translate('welcome_modal_confirm_button');
             
             if (cartPageLinkEl) cartPageLinkEl.title = translate('cart_page_link_title');
-            if (loginButton) loginButton.textContent = translate('login_button');
-            if (logoutButton) logoutButton.textContent = translate('logout_button');
+            if (googleLoginBtn) googleLoginBtn.textContent = translate('google_signin_button');
+            if (logoutBtn) logoutBtn.textContent = translate('profile_menu_logout');
         };
 
         const renderGeneralSiteElements = () => {
@@ -976,7 +1039,7 @@
 
             const dots = navContainer.querySelectorAll('.nav-dot');
             let currentSlide = 0;
-            let slideInterval = setInterval(nextSlide, 5000); // Changed to 5 seconds
+            let slideInterval = setInterval(nextSlide, 5000);
             function setSlide(index) { slides.forEach((s, i) => s.classList.toggle('active', i === index)); dots.forEach((d, i) => d.classList.toggle('active', i === index)); currentSlide = index; }
             function nextSlide() { setSlide((currentSlide + 1) % slides.length); }
             dots.forEach(dot => dot.addEventListener('click', () => { setSlide(parseInt(dot.dataset.index)); clearInterval(slideInterval); slideInterval = setInterval(nextSlide, 5000); }));
@@ -990,7 +1053,6 @@
             }
 
             try {
-                // Real-time listener for the cart items count
                 const cartRef = collection(db, 'users', currentUser.uid, 'cart');
                 onSnapshot(cartRef, (snapshot) => {
                     const totalItems = snapshot.docs.reduce((sum, doc) => sum + doc.data().quantity, 0);
@@ -1011,13 +1073,11 @@
             const mobileNav = document.getElementById('mobile-nav');
             const mobileNavOverlay = document.getElementById('mobile-nav-overlay');
 
-            // Populate Language Selector
             const languagesFromDB = siteData.settings.languages || [];
             languageSelector.innerHTML = languagesFromDB.map(l => `<option value="${l.code}">${countryCodeToEmoji(l.flag)} ${l.name}</option>`).join('');
             languageSelector.value = currentLang;
             languageSelector.style.display = languagesFromDB.length > 0 ? 'block' : 'none';
             
-            // Populate Currency Selector
             const currencies = siteData.settings?.currencySymbols || {};
             const availableCurrencies = Object.keys(currencies);
             currencySelector.innerHTML = availableCurrencies.map(c => {
@@ -1027,7 +1087,6 @@
             currencySelector.value = currentCurrency;
             currencySelector.style.display = availableCurrencies.length > 0 ? 'block' : 'none';
             
-            // Populate Country Selector
             const countries = siteData.settings.countryPricing || {};
             const countryOptionsHtml = Object.entries(countries).map(([code, data]) => {
                 const countryName = data.name?.[currentLang] || data.name?.['tr'] || code.toUpperCase();
@@ -1039,18 +1098,16 @@
                 countrySelector.value = currentCountryCode;
                 countrySelector.parentElement.style.display = 'block';
 
-                // Welcome Modal (still here for consistency if you decide to use it later)
-                if (welcomeCountrySelect) { // Check if element exists
+                if (welcomeCountrySelect) { 
                     welcomeCountrySelect.innerHTML = countryOptionsHtml;
                     welcomeCountrySelect.value = currentCountryCode;
                 }
-                if (welcomeModalOverlay) welcomeModalOverlay.style.display = 'none'; // Hide it by default
+                if (welcomeModalOverlay) welcomeModalOverlay.style.display = 'none'; 
             } else {
                 if (countrySelector && countrySelector.parentElement) countrySelector.parentElement.style.display = 'none';
                 if (welcomeModalOverlay) welcomeModalOverlay.style.display = 'none';
             }
 
-            // Event Listeners for Selects
             languageSelector.onchange = (e) => {
                 currentLang = e.target.value;
                 localStorage.setItem('pufemo-language', currentLang);
@@ -1079,12 +1136,11 @@
                 renderAll();
             };
             
-            // Welcome Modal confirmation button
-            if (welcomeModalConfirmButton) { // Check if element exists
+            if (welcomeModalConfirmButton) { 
                 welcomeModalConfirmButton.addEventListener('click', function() {
                     const selectedCountry = welcomeCountrySelect.value;
                     if (selectedCountry) {
-                        window.applyCountryAndRender(selectedCountry); // Assuming this function is global from external script or defined here.
+                        window.applyCountryAndRender(selectedCountry); 
                         if (welcomeModalOverlay) welcomeModalOverlay.classList.remove('active');
                     } else {
                         alert(translate('welcome_modal_message').replace('Please select your country below.', 'Please select a country to continue.'));
@@ -1092,7 +1148,6 @@
                 });
             }
 
-            // Hamburger Menu Toggle
             const toggleMenu = () => {
                 hamburgerBtn.classList.toggle('open');
                 mobileNav.classList.toggle('open');
@@ -1105,77 +1160,108 @@
         };
 
         // --- Authentication Functions ---
-        // Firebase Auth initialization (moved inside init)
         const googleProvider = new GoogleAuthProvider();
 
-        if (loginButton) { // Check if button exists
-            loginButton.addEventListener('click', async () => {
-                try {
-                    await signInWithPopup(auth, googleProvider);
-                    // Google login successful, onAuthStateChanged will handle UI update
-                } catch (error) {
-                    console.error("Google giriş hatası:", error);
-                    alert("Google ile giriş yapılırken bir hata oluştu: " + error.message);
-                }
-            });
-        }
+        // Toggle dropdown on profile icon click
+        profileToggle.addEventListener('click', () => {
+            authDropdownMenu.classList.toggle('active');
+        });
 
-        if (logoutButton) { // Check if button exists
-            logoutButton.addEventListener('click', async () => {
-                try {
-                    await signOut(auth);
-                    // After signOut, onAuthStateChanged listener will fire with user=null,
-                    // which will then attempt signInAnonymously.
-                } catch (error) {
-                    console.error("Çıkış hatası:", error);
-                    alert("Çıkış yapılırken bir hata oluştu: " + error.message);
-                }
-            });
-        }
+        // Close dropdown if clicked outside
+        document.addEventListener('click', (event) => {
+            if (!authContainer.contains(event.target) && authDropdownMenu.classList.contains('active')) {
+                authDropdownMenu.classList.remove('active');
+            }
+        });
 
-        // Listen for authentication state changes
+        // Google Login
+        googleLoginBtn.addEventListener('click', async () => {
+            try {
+                const userCredential = await signInWithPopup(auth, googleProvider);
+                // If the user was anonymous, Firebase automatically links the account.
+                // onAuthStateChanged will handle UI update.
+                console.log("Google ile giriş başarılı:", userCredential.user);
+                authDropdownMenu.classList.remove('active'); // Close dropdown
+            } catch (error) {
+                console.error("Google giriş hatası:", error);
+                alert("Google ile giriş yapılırken bir hata oluştu: " + error.message);
+                authDropdownMenu.classList.remove('active'); // Close dropdown
+            }
+        });
+
+        // Logout
+        logoutBtn.addEventListener('click', async () => {
+            try {
+                await signOut(auth);
+                // After signOut, onAuthStateChanged listener will fire with user=null,
+                // which will then attempt signInAnonymously.
+                console.log("Başarıyla çıkış yapıldı.");
+                authDropdownMenu.classList.remove('active'); // Close dropdown
+            } catch (error) {
+                console.error("Çıkış hatası:", error);
+                alert("Çıkış yapılırken bir hata oluştu: " + error.message);
+                authDropdownMenu.classList.remove('active'); // Close dropdown
+            }
+        });
+
+        // Listen for authentication state changes and update UI
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 currentUser = user;
-                if (profileArea) profileArea.classList.remove('hidden');
-                if (loginButton) loginButton.style.display = 'none';
-
-                if (user.isAnonymous) {
-                    if (displayNameSpan) displayNameSpan.textContent = translate('guest_user_display_name');
-                    if (profileImg) profileImg.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(translate('guest_user_display_name'))}&background=ccc&color=fff`; 
-                } else {
-                    if (displayNameSpan) displayNameSpan.textContent = user.displayName || user.email;
-                    if (profileImg) profileImg.src = user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName || user.email || '')}&background=2c3e50&color=fff`;
-                }
-                updateCartBadge(); // Update badge when auth state changes
+                // Show profile picture/icon
+                profileToggle.style.display = 'flex';
+                guestIcon.style.display = 'none';
                 
+                if (user.isAnonymous) {
+                    profileImg.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(translate('guest_user_display_name'))}&background=ccc&color=fff`; 
+                    userEmailDisplay.textContent = translate('guest_user_display_name');
+                    googleLoginBtn.style.display = 'block'; // Show Google login option for guests
+                    logoutBtn.style.display = 'none'; // Hide logout for guests (they can just close browser or upgrade)
+                } else {
+                    profileImg.src = user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName || user.email || '')}&background=2c3e50&color=fff`;
+                    userEmailDisplay.textContent = user.email || user.displayName;
+                    googleLoginBtn.style.display = 'none'; // Hide Google login if already logged in with Google/Email
+                    logoutBtn.style.display = 'block'; // Show logout for registered users
+                }
             } else {
                 currentUser = null;
-                if (profileArea) profileArea.classList.add('hidden');
-                if (loginButton) loginButton.style.display = 'block';
-
-                // If no user is authenticated, try to sign in anonymously
+                // Hide profile picture, show guest icon
+                profileToggle.style.display = 'flex'; // Keep toggle visible
+                profileImg.style.display = 'none';
+                guestIcon.style.display = 'block'; // Show a generic user icon
+                userEmailDisplay.textContent = ""; // Clear email display
+                googleLoginBtn.style.display = 'block'; // Always show Google login if not logged in
+                logoutBtn.style.display = 'none'; // No logout option if not logged in
+                
+                // If no user is authenticated, try to sign in anonymously to maintain cart/orders
                 try {
                     let anonUid = localStorage.getItem('pufemo_anon_uid');
-                    if (!anonUid) { // If no stored anon UID, try to sign in anonymously for the first time
+                    if (anonUid) {
+                        // Attempt to re-authenticate with the stored anonymous UID.
+                        // If the session is still valid, onAuthStateChanged will be triggered again with the user object.
+                        // If not, signInAnonymously will likely create a *new* anonymous user.
+                        // This behavior might lead to losing old anonymous carts if the session truly expires/invalidates
+                        // and a new anonymous UID is generated. For full persistence across long periods for guests,
+                        // you might need a more complex solution (e.g., storing custom tokens securely).
+                        // For this basic setup, we rely on Firebase's default persistence for anonymous users.
+                        
+                        // To ensure `currentUser` is set even if persistence is flaky, we sign in anonymously here.
+                        // Firebase handles linking if the existing session is still valid.
                         const anonUserCredential = await signInAnonymously(auth);
-                        localStorage.setItem('pufemo_anon_uid', anonUserCredential.user.uid);
+                        currentUser = anonUserCredential.user;
+                        localStorage.setItem('pufemo_anon_uid', currentUser.uid); // Update with the new UID if it changed
                     } else {
-                        // If there's a stored UID, Firebase Auth should automatically re-authenticate.
-                        // We don't need to call signInAnonymously if there's a valid persistent session.
-                        // If 'user' is null here despite a stored UID, it might mean the session expired/invalidated.
-                        // In that case, calling signInAnonymously will create a *new* anonymous user if the old one is invalid.
-                        // This leads to a new empty cart for the guest. For continuity, a proper account linking
-                        // or re-authentication of the anonymous user should be implemented, but it's more complex.
-                        // For this setup, we rely on Firebase's persistence for anonymous users.
+                        // No stored anonymous UID, create a new one
+                        const anonUserCredential = await signInAnonymously(auth);
+                        currentUser = anonUserCredential.user;
+                        localStorage.setItem('pufemo_anon_uid', currentUser.uid);
                     }
                 } catch (anonError) {
                     console.error("Anonim oturum açma hatası:", anonError);
                 }
-                updateCartBadge(); // Update badge when auth state changes (e.g., reset to 0 if anonymous session changes)
             }
+            updateCartBadge(); // Update badge based on current user (or lack thereof)
         });
-
 
         // --- Initialisation ---
         async function init() {
@@ -1183,7 +1269,6 @@
             renderStaticText(); 
 
             try {
-                // Firebase başlatma logic'i (sadece bir kez başlatılmalı)
                 if (!app) { 
                     app = initializeApp(firebaseConfig);
                     db = getFirestore(app);
@@ -1193,7 +1278,7 @@
                 console.error("Firebase initialization error:", e);
                 if (document.getElementById('loading-overlay')) document.getElementById('loading-overlay').classList.add('hidden');
                 alert("Uygulama yüklenirken bir hata oluştu. Lütfen daha sonra tekrar deneyin.");
-                return; // Firebase başlatılamazsa init() fonksiyonundan çık.
+                return; 
             }
 
             await fetchData(); 
@@ -1202,11 +1287,11 @@
             renderBanner();
             renderProducts();
             
-            // `onAuthStateChanged` dinleyicisi otomatik olarak kullanıcıyı yönetecek ve `updateCartBadge`'i çağıracak.
+            // onAuthStateChanged dinleyicisi Firebase Auth'un oturum durumunu yönetecek ve diğer tüm renderları tetikleyecek.
             loadingOverlay.classList.add('hidden');
         }
 
-        init(); // Uygulamayı başlat
+        init(); 
     </script>
 </body>
 </html>
