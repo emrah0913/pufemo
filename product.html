@@ -91,6 +91,84 @@
         .control-select { background-color: #f8f9fa; border: 1px solid #ddd; padding: 5px; border-radius: 5px; font-size: 0.9rem; cursor: pointer; }
         .cart-icon { font-size: 1.5rem; position: relative; }
         .cart-badge { position: absolute; top: -5px; right: -10px; background-color: var(--secondary-color); color: var(--light-text-color); border-radius: 50%; padding: 2px 6px; font-size: 0.7rem; font-weight: 600; }
+
+        /* Auth Controls (from index.html - added for cart functionality) */
+        .auth-controls { /* Changed to match header-controls, not a separate section */
+            display: flex;
+            align-items: center;
+            gap: 10px; /* Space between auth elements */
+        }
+        .auth-profile-toggle {
+            width: 35px; /* Adjust size as needed */
+            height: 35px;
+            border-radius: 50%;
+            background-color: var(--primary-color); /* Default background for guest user */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            overflow: hidden; /* For profile image */
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .auth-profile-toggle:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+        .auth-profile-toggle img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .auth-profile-toggle i {
+            color: var(--light-text-color);
+            font-size: 1.2rem;
+        }
+        /* Dropdown menu for login/logout */
+        .auth-dropdown-menu {
+            position: absolute;
+            top: calc(100% + 10px); /* Position below the icon */
+            right: 0;
+            background-color: var(--card-bg-color);
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            min-width: 150px;
+            padding: 10px 0;
+            z-index: 1000;
+            display: none;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .auth-dropdown-menu.active {
+            display: flex;
+        }
+        .auth-dropdown-menu button {
+            background: none;
+            border: none;
+            padding: 8px 15px;
+            text-align: left;
+            width: 100%;
+            cursor: pointer;
+            color: var(--text-color);
+            font-size: 0.95rem;
+            transition: background-color 0.2s ease;
+        }
+        .auth-dropdown-menu button:hover {
+            background-color: #f0f0f0;
+        }
+        .auth-dropdown-menu .user-email {
+            font-size: 0.85rem;
+            color: #777;
+            padding: 5px 15px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            border-bottom: 1px solid #eee;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        /* End Auth Controls */
+
         .hamburger-menu { display: none; cursor: pointer; width: 30px; height: 25px; flex-direction: column; justify-content: space-between; background: transparent; border: none; z-index: 1003; }
         .hamburger-menu span { display: block; width: 100%; height: 3px; background-color: var(--primary-color); border-radius: 3px; transition: all 0.3s ease-in-out; }
         .hamburger-menu.open span { background-color: var(--light-text-color); }
@@ -508,6 +586,7 @@
             .header-top { padding: 0.5rem 0; }
             .logo { font-size: 1.5rem; }
             .main-header .container { padding: 0.5rem 20px; }
+
             /* Ürün detay kısmı için responsive düzenlemeler - TEK SÜTUN */
             .product-detail-container {
                 grid-template-columns: 1fr;
@@ -714,7 +793,17 @@
                 <a href="cart.html" class="cart-icon" id="cart-page-link" title="">
                     <i class="fa-solid fa-cart-shopping"></i><span class="cart-badge">0</span>
                 </a>
-            </div>
+                <div id="auth-container" style="position: relative; display: flex;">
+                    <div id="profile-toggle" class="auth-profile-toggle">
+                        <img id="profile-img" src="" alt="Profil" style="display: none;"> <i id="guest-icon" class="fa-solid fa-user"></i>
+                    </div>
+                    <div id="auth-dropdown-menu" class="auth-dropdown-menu">
+                        <span id="user-email-display" class="user-email"></span>
+                        <button id="google-login-btn"></button>
+                        <button id="logout-btn"></button>
+                    </div>
+                </div>
+                </div>
         </div>
     </header>
 
@@ -808,9 +897,8 @@
     <script type="module">
         // Yeni modüler SDK importları
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
-        // Auth gerekliyse aşağıdaki satırı uncomment edin ve global let auth; tanımını yapın
-        // import { getAuth } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, collection, setDoc, query, where, getDocs, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut, signInAnonymously } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
 
 
         const firebaseConfig = {
@@ -824,7 +912,8 @@
 
         let app; // 'app' değişkenini burada tanımla
         let db;
-        // let auth; // Eğer bu sayfada Firebase Auth kullanacaksanız uncomment edin
+        let auth; // 'auth' değişkenini burada tanımla
+        let currentUser = null; // Aktif kullanıcıyı tutacak değişken
 
         // Statik Çeviriler ve Metinler (Bu obje zaten kodunuzda vardı, buraya tekrar yapıştırdım)
         const staticTranslations = {
@@ -969,7 +1058,7 @@
                 el: 'Το προϊόν που αναζητάτε δεν μπορεί να βρεθεί.',
                 ru: 'Искомый товар не найден.',
                 de: 'Das gesuchte Produkt konnte nicht gefunden werden.',
-                fr: 'Le produit que you are looking for is untraceable.',
+                fr: 'Le produit que vous recherchez est introuvable.',
                 it: 'Il prodotto che stai cercando non è stato trovato.'
             },
             'error_loading_product_title': {
@@ -1000,7 +1089,7 @@
                 it: 'Aggiungi al carrello'
             },
             'buy_now_button': {
-                tr: 'Satın Al',
+                tr: 'Şimdi Al',
                 en: 'Buy Now',
                 el: 'Αγορά τώρα',
                 ru: 'Купить сейчас',
@@ -1124,7 +1213,15 @@
                 de: 'Mein Warenkorb',
                 fr: 'Mon Panier',
                 it: 'Il mio Carrello'
-            }
+            },
+            'guest_user_display_name': { tr: 'Misafir', en: 'Guest', el: 'Επισκέπτης' },
+            'login_button': { tr: 'Giriş Yap', en: 'Login', el: 'Είσοδος' },
+            'logout_button': { tr: 'Çıkış Yap', en: 'Logout', el: 'Έξοδος' },
+            'google_signin_button': { tr: 'Google ile Giriş Yap', en: 'Sign in with Google', el: 'Σύνδεση με Google' },
+            'profile_menu_logout': { tr: 'Çıkış Yap', en: 'Logout', el: 'Έξοδος' },
+            'profile_menu_login_google': { tr: 'Google ile Giriş Yap', en: 'Sign In with Google', el: 'Σύνδεση με Google' },
+            'item_added_to_cart': {tr: 'Ürün sepete eklendi!', en: 'Item added to cart!', el: 'Το προϊόν προστέθηκε στο καλάθι!'},
+            'error_adding_to_cart': {tr: 'Ürün sepete eklenirken hata oluştu:', en: 'Error adding item to cart:', el: 'Σφάλμα κατά την προσθήκη προϊόντος στο καλάθι:'}
         };
 
 
@@ -1165,6 +1262,17 @@
         const welcomeModalConfirmButtonEl = document.getElementById('welcomeModalConfirmButton');
         const cartPageLinkEl = document.getElementById('cart-page-link');
 
+        // Auth related elements
+        const authContainer = document.getElementById('auth-container');
+        const profileToggle = document.getElementById('profile-toggle');
+        const profileImg = document.getElementById('profile-img');
+        const guestIcon = document.getElementById('guest-icon');
+        const authDropdownMenu = document.getElementById('auth-dropdown-menu');
+        const userEmailDisplay = document.getElementById('user-email-display');
+        const googleLoginBtn = document.getElementById('google-login-btn');
+        const logoutBtn = document.getElementById('logout-btn');
+        const cartBadge = document.querySelector('.cart-badge'); // For updating cart count in header
+
 
         const variantSectionEl = document.querySelector('.variant-section');
         const variantTitleEl = document.getElementById('variant-selector-label');
@@ -1182,6 +1290,7 @@
 
         let currentProductData = null;
         let productContentGlobal = {};
+        let currentSelectedVariant = null; // Track currently selected variant for "Add to Cart"
 
 
         // Ülke kodunu emojiye çeviren fonksiyon
@@ -1193,6 +1302,9 @@
                 String.fromCodePoint(char.charCodeAt(0) + 127397)
             ).join('');
         }
+
+        const translate = (key) => staticTranslations[key]?.[currentLang] || staticTranslations[key]?.['en'] || staticTranslations[key]?.['tr'] || key;
+
 
         const fetchData = async () => {
             try {
@@ -1326,9 +1438,7 @@
 
         const renderStaticText = () => {
             document.documentElement.lang = currentLang;
-            const translate = (key) => staticTranslations[key]?.[currentLang] || staticTranslations[key]?.['en'] || staticTranslations[key]?.['tr'] || '';
-
-            if (loadingTextP) loadingTextP.textContent = translate('loading_text');
+            loadingTextP.textContent = translate('loading_text');
 
             if (welcomeModalTitleEl) welcomeModalTitleEl.textContent = translate('welcome_modal_title');
             if (welcomeModalMessageEl) welcomeModalMessageEl.textContent = translate('welcome_modal_message');
@@ -1371,6 +1481,11 @@
             if (freeShippingEl) freeShippingEl.textContent = translate('free_shipping_tag');
 
             if (cartPageLinkEl) cartPageLinkEl.title = translate('cart_page_link_title');
+
+            // Auth specific translations
+            if (googleLoginBtn) googleLoginBtn.textContent = translate('profile_menu_login_google');
+            if (logoutBtn) logoutBtn.textContent = translate('profile_menu_logout');
+            if (userEmailDisplay) userEmailDisplay.textContent = ""; // Default empty
         };
 
         const renderGeneralSiteElements = () => {
@@ -1423,7 +1538,7 @@
 
             if (categories.length === 0) return;
 
-            const mobileMenuTitle = staticTranslations['mobile_menu_title']?.[currentLang] || staticTranslations['mobile_menu_title']?.['tr'];
+            const mobileMenuTitle = translate('mobile_menu_title');
             mobileContainer.innerHTML += `<div class="mobile-nav-header">${mobileMenuTitle}</div>`;
 
             const createMenu = (categoryArray) => {
@@ -1643,6 +1758,7 @@
                         clickedColorOption.classList.add('active');
                         clickedColorOption.querySelector('.color-circle').classList.add('active');
                     }
+                    currentSelectedVariant = variant; // Update the globally selected variant
 
                     if (productOldPriceEl) {
                         productOldPriceEl.textContent = (discountedPriceForVariant !== undefined && discountedPriceForVariant < basePriceForVariant) ? formatPrice(basePriceForVariant) : '';
@@ -1767,6 +1883,7 @@
                         if (index === 0) {
                             colorCircleDiv.classList.add('active');
                             colorOptionDiv.classList.add('active');
+                            currentSelectedVariant = variant; // Set initial selected variant
                         }
 
                         colorOptionDiv.onclick = () => {
@@ -1793,6 +1910,7 @@
                             currentProductData.basePriceTL = basePriceMain;
                             currentProductData.baseDiscountedPriceTL = discountedPriceMain;
                             currentProductData.isFreeShipping = (variant.isFreeShipping || data.isFreeShipping);
+                            currentSelectedVariant = variant; // Update the globally selected variant
 
                             updateCalculatedTotalPrice();
                             window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1809,6 +1927,13 @@
                     });
                 } else {
                     setImages(data.media);
+                    currentSelectedVariant = { // If no variants, the main product data acts as the selected variant
+                        media: data.media,
+                        isFreeShipping: data.isFreeShipping,
+                        basePriceTL: data.basePriceTL,
+                        baseDiscountedPriceTL: data.baseDiscountedPriceTL,
+                        colorName: { [currentLang]: "Varsayılan", en: "Default" } // A default name for the "variant"
+                    };
                 }
 
                 updateCalculatedTotalPrice();
@@ -1916,7 +2041,7 @@
                     hamburgerBtn.classList.toggle('open');
                     mobileNav.classList.toggle('open');
                     mobileNavOverlay.classList.toggle('open');
-                    document.querySelector('body').classList.toggle('mobile-menu-open');
+                    document.body.classList.toggle('mobile-menu-open');
                 };
                 hamburgerBtn.onclick = toggleMenu;
                 mobileNavOverlay.onclick = toggleMenu;
@@ -1946,19 +2071,173 @@
                     }
                 });
             }
+
+            // --- Authentication Functions (from index.html, needed for cart) ---
+            const googleProvider = new GoogleAuthProvider();
+
+            // Toggle dropdown on profile icon click
+            if (profileToggle) { // Check if element exists
+                profileToggle.addEventListener('click', () => {
+                    if (authDropdownMenu) authDropdownMenu.classList.toggle('active');
+                });
+            }
+
+            // Close dropdown if clicked outside
+            document.addEventListener('click', (event) => {
+                if (authContainer && !authContainer.contains(event.target) && authDropdownMenu && authDropdownMenu.classList.contains('active')) {
+                    authDropdownMenu.classList.remove('active');
+                }
+            });
+
+            // Google Login
+            if (googleLoginBtn) { // Check if element exists
+                googleLoginBtn.addEventListener('click', async () => {
+                    try {
+                        const userCredential = await signInWithPopup(auth, googleProvider);
+                        console.log("Google ile giriş başarılı:", userCredential.user);
+                        if (authDropdownMenu) authDropdownMenu.classList.remove('active');
+                    } catch (error) {
+                        console.error("Google giriş hatası:", error);
+                        alert("Google ile giriş yapılırken bir hata oluştu: " + error.message);
+                        if (authDropdownMenu) authDropdownMenu.classList.remove('active');
+                    }
+                });
+            }
+
+            // Logout
+            if (logoutBtn) { // Check if element exists
+                logoutBtn.addEventListener('click', async () => {
+                    try {
+                        await signOut(auth);
+                        console.log("Başarıyla çıkış yapıldı.");
+                        if (authDropdownMenu) authDropdownMenu.classList.remove('active');
+                    } catch (error) {
+                        console.error("Çıkış hatası:", error);
+                        alert("Çıkış yapılırken bir hata oluştu: " + error.message);
+                        if (authDropdownMenu) authDropdownMenu.classList.remove('active');
+                    }
+                });
+            }
+            // --- End Authentication Functions ---
         };
 
-        async function init() {
-            if (loadingOverlay) loadingOverlay.classList.remove('hidden');
-            if (loadingTextP) loadingTextP.textContent = staticTranslations['loading_text'][currentLang];
+        // Helper function to create user document if it doesn't exist (from index.html)
+        async function createUserIfNotExists(user) {
+            if (!db) {
+                console.error("Firestore DB is not initialized. Cannot create user document.");
+                return;
+            }
+            const userRef = doc(db, "users", user.uid);
+            const userSnap = await getDoc(userRef);
+
+            if (!userSnap.exists()) {
+                await setDoc(userRef, {
+                    uid: user.uid,
+                    email: user.email || 'misafir@pufemo.com', // Default email for anonymous
+                    displayName: user.displayName || translate('guest_user_display_name'), // Default name
+                    createdAt: new Date(), // Use new Date() for client-side timestamp for simplicity here
+                    role: user.isAnonymous ? 'guest' : 'user'
+                });
+                console.log("User document created for:", user.uid);
+            }
+        }
+
+        // Function to update cart badge (from index.html, modified to be used here)
+        function updateCartBadge() {
+            if (!cartBadge || !currentUser) {
+                cartBadge.style.display = 'none';
+                return;
+            }
+
+            // Listen to cart collection for the current user
+            const cartRef = collection(db, 'users', currentUser.uid, 'cart');
+            onSnapshot(cartRef, (snapshot) => {
+                const totalItems = snapshot.docs.reduce((sum, doc) => sum + doc.data().quantity, 0);
+                cartBadge.textContent = totalItems;
+                cartBadge.style.display = totalItems > 0 ? 'block' : 'none';
+            }, (error) => {
+                console.error("Error updating cart badge:", error);
+                cartBadge.style.display = 'none';
+            });
+        }
+
+        // --- Add to Cart Logic ---
+        btnCartEl.addEventListener('click', async () => {
+            if (!currentUser || !currentProductData) {
+                alert("Lütfen önce oturum açın veya sayfa yüklenmesini bekleyin.");
+                return;
+            }
+
+            const productId = new URLSearchParams(window.location.search).get('id');
+            const quantity = parseInt(quantityInputEl.value);
+
+            if (isNaN(quantity) || quantity <= 0) {
+                alert("Lütfen geçerli bir miktar girin.");
+                return;
+            }
+
+            // Determine which variant is selected. If no variants, use main product data as the "variant".
+            const selectedVariantData = currentSelectedVariant || {
+                // Fallback to main product if no explicit variant is selected or available
+                media: currentProductData.media,
+                isFreeShipping: currentProductData.isFreeShipping,
+                basePriceTL: currentProductData.basePriceTL,
+                baseDiscountedPriceTL: currentProductData.baseDiscountedPriceTL,
+                colorName: { [currentLang]: "Varsayılan", en: "Default" } // A default name for the "variant"
+            };
+
+            // Construct item data for cart
+            const cartItemData = {
+                productId: productId,
+                productName: currentProductData.content || {}, // Use content object for multi-lang
+                productImage: selectedVariantData.media?.[0]?.url || currentProductData.media?.[0]?.url || 'https://via.placeholder.com/80x80?text=No+Image',
+                variantName: selectedVariantData.colorName || {}, // Use content object for multi-lang for variant name
+                basePriceTL: selectedVariantData.basePriceTL || currentProductData.basePriceTL,
+                baseDiscountedPriceTL: selectedVariantData.baseDiscountedPriceTL || currentProductData.baseDiscountedPriceTL,
+                isFreeShipping: selectedVariantData.isFreeShipping || currentProductData.isFreeShipping,
+                quantity: quantity
+            };
+
+            // Generate a unique ID for the cart item.
+            // Using a combination of productId and selectedVariant identifier for uniqueness.
+            // If `colorName` can be empty, generate a more robust ID.
+            const cartItemId = `${productId}_${selectedVariantData.colorName?.tr || 'default'}`;
+            const cartItemRef = doc(db, 'users', currentUser.uid, 'cart', cartItemId);
 
             try {
-                // 'app' değişkenini sadece burada başlatıyoruz, dışarıda tanımladığımız 'let app;' değişkenine atıyoruz.
-                if (!app) { // Sadece henüz başlatılmamışsa başlat
-                    app = initializeApp(firebaseConfig);
-                    db = getFirestore(app);
-                    // if (auth) auth = getAuth(app); // Eğer kullanacaksanız uncomment edin
+                // Check if item already exists in cart
+                const existingCartItemSnap = await getDoc(cartItemRef);
+
+                if (existingCartItemSnap.exists()) {
+                    // Update quantity if item exists
+                    const existingQuantity = existingCartItemSnap.data().quantity;
+                    await updateDoc(cartItemRef, {
+                        quantity: existingQuantity + quantity
+                    });
+                } else {
+                    // Add new item to cart
+                    await setDoc(cartItemRef, cartItemData);
                 }
+
+                alert(translate('item_added_to_cart'));
+                // Cart badge will be updated automatically by the onSnapshot listener from init()
+            } catch (error) {
+                console.error("Error adding item to cart:", error);
+                alert(translate('error_adding_to_cart') + error.message);
+            }
+        });
+
+
+        // --- Initialisation ---
+
+        async function init() {
+            loadingOverlay.classList.remove('hidden');
+            renderStaticText();
+
+            try {
+                app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
             } catch (e) {
                 console.error("Firebase initialization error:", e);
                 if (document.getElementById('loading-overlay')) document.getElementById('loading-overlay').classList.add('hidden');
@@ -1967,9 +2246,60 @@
             }
 
             await fetchData();
-            renderAll();
+            setupControls();
+            renderCategories();
+            renderGeneralSiteElements(); // Ensure header elements are rendered
 
-            if (loadingOverlay) loadingOverlay.classList.add('hidden');
+            // Auth state listener to handle user (including anonymous) and load cart/orders
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    currentUser = user;
+                    await createUserIfNotExists(currentUser); // Ensure user document exists
+                    // Update UI for logged-in user
+                    if (profileImg) {
+                        profileImg.style.display = 'block';
+                        profileImg.src = user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName || user.email || '')}&background=2c3e50&color=fff`;
+                    }
+                    if (guestIcon) guestIcon.style.display = 'none';
+                    if (userEmailDisplay) userEmailDisplay.textContent = user.email || user.displayName;
+                    if (googleLoginBtn) googleLoginBtn.style.display = 'none';
+                    if (logoutBtn) logoutBtn.style.display = 'block';
+                } else {
+                    // User is signed out, try to sign in anonymously
+                    try {
+                        const anonUserCredential = await signInAnonymously(auth);
+                        currentUser = anonUserCredential.user;
+                        localStorage.setItem('pufemo_anon_uid', currentUser.uid); // Store new anon UID
+                        await createUserIfNotExists(currentUser); // Ensure guest user doc exists
+                        console.log("Anonim oturum açıldı:", currentUser.uid);
+                    } catch (anonError) {
+                        console.error("Anonim oturum açma hatası:", anonError);
+                        alert("Misafir olarak alışveriş yaparken bir hata oluştu. Lütfen sayfayı yenileyin.");
+                        // Handle UI for no user (e.g., disable cart, show login buttons)
+                        if (profileImg) profileImg.style.display = 'none';
+                        if (guestIcon) guestIcon.style.display = 'block';
+                        if (userEmailDisplay) userEmailDisplay.textContent = "";
+                        if (googleLoginBtn) googleLoginBtn.style.display = 'block';
+                        if (logoutBtn) logoutBtn.style.display = 'none';
+                        // Disable cart/buy buttons if no user session
+                        if (btnCartEl) btnCartEl.disabled = true;
+                        if (btnBuyEl) btnBuyEl.disabled = true;
+                    }
+                }
+                // Once currentUser is set (either real or anonymous), then proceed to load product details and update cart badge
+                const productId = new URLSearchParams(window.location.search).get('id');
+                if (productId) {
+                    loadProductDetails(productId);
+                } else {
+                    if (productTitleEl) productTitleEl.textContent = staticTranslations['product_not_found_title'][currentLang];
+                    if (productDescriptionEl) productDescriptionEl.textContent = staticTranslations['product_not_found_desc'][currentLang];
+                    if (calculatedTotalPriceEl) calculatedTotalPriceEl.textContent = '';
+                    if (decreaseQuantityBtn) decreaseQuantityBtn.disabled = true;
+                    if (increaseQuantityBtn) increaseQuantityBtn.disabled = true;
+                }
+                updateCartBadge(); // Update the cart badge based on the *current* user
+                loadingOverlay.classList.add('hidden');
+            });
         }
 
         init();
