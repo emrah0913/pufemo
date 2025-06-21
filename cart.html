@@ -23,6 +23,7 @@
             --card-bg-color: #ffffff;
             --border-radius: 8px;
             --box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            /* New status colors */
             --status-pending-bg: #ffeeba;
             --status-pending-text: #856404;
             --status-processing-bg: #d1ecf1;
@@ -358,7 +359,7 @@
             display: inline-block;
             white-space: nowrap;
         }
-        /* Status specific colors (from :root variables) */
+        /* Status specific colors */
         .status-pending-payment { background-color: var(--status-pending-bg); color: var(--status-pending-text); }
         .status-processing { background-color: var(--status-processing-bg); color: var(--status-processing-text); }
         .status-shipped { background-color: var(--status-shipped-bg); color: var(--status-shipped-text); }
@@ -744,7 +745,7 @@
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, collection, onSnapshot, query, where, orderBy, updateDoc, deleteDoc, writeBatch, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 
-        // --- Firebase Configuration ---
+        // --- Firebase Configuration (from your admin.html/index.html) ---
         const firebaseConfig = {
             apiKey: "AIzaSyDYkzZzNXB22U4oEXxOoPh-puwuE8kz0g4",
             authDomain: "pufemo-com.firebaseapp.com",
@@ -824,6 +825,7 @@
             'order_placement_error': { tr: 'Sipariş oluşturulurken bir hata oluştu: ', en: 'An error occurred while placing the order: ' },
         };
 
+        // Static object for order status descriptions and their associated CSS classes
         const statusDescriptions = {
             pending_payment: { tr: 'Ödeme Bekleniyor', en: 'Pending Payment', el: 'Αναμονή Πληρωμής' },
             processing: { tr: 'İşleniyor', en: 'Processing', el: 'Επεξεργασία' },
@@ -1119,9 +1121,6 @@
             }
             emptyCartMessageEl.classList.add('hidden');
             orderSummaryCardEl.classList.remove('hidden');
-            // Re-show payment section if it was previously hidden and cart is now populated
-            // but don't automatically show it unless user proceeded to payment
-            // paymentSectionCardEl.classList.remove('hidden'); 
             
             const cartHtml = cartItems.map(item => {
                 const productName = item.productName?.[currentLang] || item.productName?.tr || translate('unknown_product_name');
