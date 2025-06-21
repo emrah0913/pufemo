@@ -745,7 +745,7 @@
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, collection, onSnapshot, query, where, orderBy, updateDoc, deleteDoc, writeBatch, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 
-        // --- Firebase Configuration (from your admin.html/index.html) ---
+        // --- Firebase Configuration ---
         const firebaseConfig = {
             apiKey: "AIzaSyDYkzZzNXB22U4oEXxOoPh-puwuE8kz0g4",
             authDomain: "pufemo-com.firebaseapp.com",
@@ -755,20 +755,9 @@
             appId: "1:983352837227:web:defaa8dae215776e2e1d2e",
         };
         
-        // --- Initialize Firebase Services ---
         let app;
         let auth;
         let db;
-        try {
-            app = initializeApp(firebaseConfig);
-            auth = getAuth(app);
-            db = getFirestore(app);
-        } catch (e) {
-            console.error("Firebase initialization error:", e);
-            if (document.getElementById('loading-overlay')) document.getElementById('loading-overlay').classList.add('hidden');
-            alert("Uygulama yüklenirken bir hata oluştu. Lütfen daha sonra tekrar deneyin.");
-            return;
-        }
 
         // --- Static Translations and Global State ---
         const staticTranslations = {
@@ -825,7 +814,6 @@
             'order_placement_error': { tr: 'Sipariş oluşturulurken bir hata oluştu: ', en: 'An error occurred while placing the order: ' },
         };
 
-        // Static object for order status descriptions and their associated CSS classes
         const statusDescriptions = {
             pending_payment: { tr: 'Ödeme Bekleniyor', en: 'Pending Payment', el: 'Αναμονή Πληρωμής' },
             processing: { tr: 'İşleniyor', en: 'Processing', el: 'Επεξεργασία' },
@@ -1456,10 +1444,23 @@
 
         async function init() {
             loadingOverlay.classList.remove('hidden');
-            renderStaticText();
-            await fetchData();
-            setupControls();
-            renderCategories();
+            renderStaticText(); // Render static text immediately for a better loading experience
+            
+            try {
+                // Firebase başlatma logic'i burada. Eğer bir sorun olursa bu bloğu terk eder.
+                app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+            } catch (e) {
+                console.error("Firebase initialization error:", e);
+                if (document.getElementById('loading-overlay')) document.getElementById('loading-overlay').classList.add('hidden');
+                alert("Uygulama yüklenirken bir hata oluştu. Lütfen daha sonra tekrar deneyin.");
+                return; // Hata durumunda init() fonksiyonundan çık.
+            }
+
+            await fetchData(); // Fetch dynamic site data
+            setupControls(); // Setup header controls
+            renderCategories(); // Render categories
             updateCartBadge(); // Initial cart badge render
 
             onAuthStateChanged(auth, async (user) => {
@@ -1468,9 +1469,8 @@
                     listenToCart(currentUser.uid);
                     listenToOrders(currentUser.uid);
                 } else {
-                    // Redirect to index or show login message if not authenticated
                     alert("Sepetinizi ve siparişlerinizi görüntülemek için lütfen giriş yapın veya kayıt olun.");
-                    window.location.href = 'index.html'; // Redirect to homepage
+                    window.location.href = 'index.html'; // Redirect to homepage if not authenticated
                 }
                 checkContentVisibility();
             });
