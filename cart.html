@@ -742,7 +742,7 @@
     
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+        import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js"; // signInAnonymously eklendi
         import { getFirestore, doc, getDoc, collection, onSnapshot, query, where, orderBy, updateDoc, deleteDoc, writeBatch, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 
         // --- Firebase Configuration ---
@@ -812,6 +812,7 @@
             'confirm_remove_item': { tr: 'Bu ürünü sepetten kaldırmak istediğinize emin misiniz?', en: 'Are you sure you want to remove this item from your cart?' },
             'missing_card_details': { tr: 'Lütfen tüm kart bilgilerini girin.', en: 'Please enter all card details.' },
             'order_placement_error': { tr: 'Sipariş oluşturulurken bir hata oluştu: ', en: 'An error occurred while placing the order: ' },
+            'guest_user_display_name': { tr: 'Misafir Kullanıcı', en: 'Guest User', el: 'Επισκέπτης Χρήστης' }
         };
 
         const statusDescriptions = {
@@ -847,7 +848,7 @@
         // Global State Variables
         let cartItems = [];
         let pastOrders = [];
-        let currentUser = null;
+        let currentUser = null; // Bu artık hem kayıtlı kullanıcı hem de anonim kullanıcı olabilir.
         let siteData = {
             settings: {
                 languages: [],
@@ -973,6 +974,7 @@
 
         function listenToOrders(userId) {
             const ordersRef = collection(db, 'orders');
+            // Sadece mevcut kullanıcının siparişlerini çek
             const q = query(ordersRef, where("userId", "==", userId), orderBy("orderDate", "desc"));
             onSnapshot(q, (snapshot) => {
                 pastOrders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -1327,7 +1329,7 @@
             const target = e.target;
             const button = target.closest('button');
 
-            if (!button || !currentUser) return;
+            if (!button || !currentUser) return; // currentUser'ın null olma ihtimaline karşı kontrol
 
             const itemId = button.dataset.id;
             const itemRef = doc(db, 'users', currentUser.uid, 'cart', itemId);
@@ -1386,18 +1388,18 @@
             confirmOrderBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i><span> ${translate('processing_text')}</span>`;
 
             const orderData = {
-                userId: currentUser.uid,
-                userEmail: currentUser.email,
-                userDisplayName: currentUser.displayName || 'Misafir Kullanıcı', 
+                userId: currentUser.uid, // Anonim kullanıcı UID'si kullanılacak
+                userEmail: currentUser.isAnonymous ? 'anonymous@pufemo.com' : currentUser.email, // Misafir ise varsayılan email
+                userDisplayName: currentUser.displayName || (currentUser.isAnonymous ? translate('guest_user_display_name') : 'Kayıtlı Kullanıcı'), 
                 status: selectedMethod === 'card' ? 'processing' : 'pending_payment',
                 paymentMethod: selectedMethod,
                 orderDate: serverTimestamp(),
-                deliveryMethod: translate('delivery_method_default'), // Fixed delivery method
+                deliveryMethod: translate('delivery_method_default'),
                 items: cartItems.map(item => ({
                     productId: item.productId,
-                    productName: item.productName, // Multilingual object
+                    productName: item.productName,
                     productImage: item.productImage,
-                    variantName: item.variantName, // Multilingual object
+                    variantName: item.variantName,
                     basePriceTL: item.basePriceTL,
                     baseDiscountedPriceTL: item.baseDiscountedPriceTL,
                     isFreeShipping: item.isFreeShipping,
@@ -1444,33 +1446,71 @@
 
         async function init() {
             loadingOverlay.classList.remove('hidden');
-            renderStaticText(); // Render static text immediately for a better loading experience
-            
+            renderStaticText(); // İlk yüklemede statik metinleri göster
+
             try {
-                // Firebase başlatma logic'i burada. Eğer bir sorun olursa bu bloğu terk eder.
+                // Firebase başlatma logic'i
                 app = initializeApp(firebaseConfig);
                 auth = getAuth(app);
                 db = getFirestore(app);
             } catch (e) {
                 console.error("Firebase initialization error:", e);
+                // Eğer Firebase başlatılamazsa, yükleme ekranını gizle ve hata mesajı göster
                 if (document.getElementById('loading-overlay')) document.getElementById('loading-overlay').classList.add('hidden');
                 alert("Uygulama yüklenirken bir hata oluştu. Lütfen daha sonra tekrar deneyin.");
-                return; // Hata durumunda init() fonksiyonundan çık.
+                return; // init() fonksiyonundan çık
             }
 
-            await fetchData(); // Fetch dynamic site data
-            setupControls(); // Setup header controls
-            renderCategories(); // Render categories
-            updateCartBadge(); // Initial cart badge render
+            await fetchData(); // Dinamik site verilerini çek
+            setupControls(); // Header kontrollerini ayarla
+            renderCategories(); // Kategorileri render et
 
+            // Kullanıcı oturum durumunu dinle (anonim dahil)
             onAuthStateChanged(auth, async (user) => {
                 if (user) {
                     currentUser = user;
+                    // Eğer kullanıcı anonimse ve UID'si LocalStorage'da yoksa veya farklıysa
+                    // LocalStorage'daki anonim UID'yi günceller.
+                    if (user.isAnonymous && localStorage.getItem('pufemo_anon_uid') !== user.uid) {
+                        localStorage.setItem('pufemo_anon_uid', user.uid);
+                    }
                     listenToCart(currentUser.uid);
                     listenToOrders(currentUser.uid);
                 } else {
-                    alert("Sepetinizi ve siparişlerinizi görüntülemek için lütfen giriş yapın veya kayıt olun.");
-                    window.location.href = 'index.html'; // Redirect to homepage if not authenticated
+                    // Kullanıcı oturum açmamışsa (veya çıkış yapmışsa), anonim olarak oturum açmaya çalış
+                    try {
+                        let anonUid = localStorage.getItem('pufemo_anon_uid');
+                        if (anonUid) {
+                            // Mevcut anonim oturumu sürdürmek için özel bir yol yok,
+                            // ancak `signInAnonymously` aynı cihazda genelde aynı UID'yi üretir.
+                            // Güvenlik kuralları UID'ye dayalı olduğundan, LocalStorage'daki UID'yi kullanarak
+                            // Firebase'e sorgu yapmaya devam edebiliriz.
+                            // Ancak, onSnapshot için geçerli bir `currentUser.uid` gereklidir.
+                            // Bu nedenle her zaman anonim oturum açmaya zorlamalıyız.
+                            const anonUserCredential = await signInAnonymously(auth);
+                            currentUser = anonUserCredential.user;
+                            localStorage.setItem('pufemo_anon_uid', currentUser.uid); // Yeni UID'yi kaydet
+                            listenToCart(currentUser.uid);
+                            listenToOrders(currentUser.uid);
+                        } else {
+                            // Hiç anonim oturum yoksa, yeni bir tane başlat
+                            const anonUserCredential = await signInAnonymously(auth);
+                            currentUser = anonUserCredential.user;
+                            localStorage.setItem('pufemo_anon_uid', currentUser.uid); // Yeni UID'yi kaydet
+                            listenToCart(currentUser.uid);
+                            listenToOrders(currentUser.uid);
+                        }
+                    } catch (anonError) {
+                        console.error("Anonim oturum açma hatası:", anonError);
+                        alert("Misafir olarak alışveriş yaparken bir hata oluştu. Lütfen sayfayı yenileyin.");
+                        // Hata durumunda sepet ve sipariş bölümlerini gizle
+                        cartItemsListEl.innerHTML = '';
+                        emptyCartMessageEl.classList.remove('hidden');
+                        orderSummaryCardEl.classList.add('hidden');
+                        paymentSectionCardEl.classList.add('hidden');
+                        pastOrdersListEl.innerHTML = '';
+                        noOrdersMessageEl.classList.remove('hidden');
+                    }
                 }
                 checkContentVisibility();
             });
