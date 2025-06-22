@@ -735,7 +735,7 @@
             const userControlsContainer = document.getElementById('user-controls-container');
             const languageSelector = document.getElementById('language-selector');
             const currencySelector = document.getElementById('currency-selector');
-            const countrySelector = document.getElementById('country-selector');
+            const countrySelector = document.getElementById('country-selector'); // For footer country selector
             const hamburgerBtn = document.getElementById('hamburger-menu-btn');
             const mobileNav = document.getElementById('mobile-nav');
             const mobileNavOverlay = document.getElementById('mobile-nav-overlay');
@@ -866,7 +866,7 @@
                     en: 'Free Shipping Available! Furniture at Your Doorstep Anywhere in Turkey!',
                     el: 'Διαθέσιμη δωρεάν αποστολή! Έπιπλα στην πόρτα σας οπουδήποτε στην Ελλάδα!',
                     ru: 'Доступна бесплатная доставка! Мебель доставим до вашей двери в любую точку России!',
-                    de: 'Kostenloser Versand möglich! Möbel direkt vor Ihre Haustür in ganz Deutschland!',
+                    de: 'Kostenloser Versand mümkün! Möbel direkt vor Ihre Haustür in ganz Deutschland!',
                     fr: 'Livraison Gratuite Disponible ! Vos meubles à votre porte partout en France !',
                     it: 'Spedizione Gratuita Disponibile! I tuoi mobili a casa tua in tutta Italia!'
                 },
@@ -992,7 +992,7 @@
             // --- Utility Functions ---
 
             // Helper to get translated text
-            const translate = (key) => staticTranslations[key]?.[currentLang] || staticTranslations[key]?.['en'] || staticTranslations[key]?.['tr'] || '';
+            const translate = (key) => staticTranslations[key]?.[currentLang] || staticTranslations[key]?.[Object.keys(staticTranslations[key])[0]] || '';
 
             // Convert country code to emoji flag
             function countryCodeToEmoji(code) {
@@ -1350,7 +1350,7 @@
                     currencySelector.style.display = 'none';
                 }
                 
-                // Country Selector
+                // Country Selector (Header and Footer)
                 const countries = siteData.settings.countryPricing || {};
                 const countryOptionsHtml = Object.entries(countries).map(([code, data]) => {
                     const countryName = data.name?.[currentLang] || data.name?.['tr'] || code.toUpperCase();
@@ -1358,15 +1358,21 @@
                 }).join('');
 
                 if (Object.keys(countries).length > 0) {
-                    countrySelector.innerHTML = countryOptionsHtml;
-                    countrySelector.value = currentCountryCode;
-                    countrySelector.parentElement.style.display = 'block';
-
-                    welcomeCountrySelect.innerHTML = countryOptionsHtml;
-                    welcomeCountrySelect.value = currentCountryCode;
+                    // Apply to main country selector in header (if it exists)
+                    if (document.getElementById('country-selector')) {
+                        document.getElementById('country-selector').innerHTML = countryOptionsHtml;
+                        document.getElementById('country-selector').value = currentCountryCode;
+                        document.getElementById('country-selector').parentElement.style.display = 'block';
+                    }
+                    // Apply to welcome modal country selector
+                    if (welcomeCountrySelect) {
+                        welcomeCountrySelect.innerHTML = countryOptionsHtml;
+                        welcomeCountrySelect.value = currentCountryCode;
+                    }
                 } else {
-                    countrySelector.parentElement.style.display = 'none';
-                    welcomeModalOverlay.style.display = 'none';
+                    // Hide if no countries configured
+                    if (document.getElementById('country-selector')) document.getElementById('country-selector').parentElement.style.display = 'none';
+                    if (welcomeModalOverlay) welcomeModalOverlay.style.display = 'none';
                 }
 
                 // Event Listeners for Selectors
@@ -1380,9 +1386,12 @@
                     localStorage.setItem('pufemo-currency', currentCurrency);
                     renderAll();
                 };
-                countrySelector.onchange = (e) => {
-                    window.applyCountryAndRender(e.target.value);
-                };
+                // Attach event listener to the actual country selector element, if it exists
+                if (document.getElementById('country-selector')) {
+                    document.getElementById('country-selector').onchange = (e) => {
+                        window.applyCountryAndRender(e.target.value);
+                    };
+                }
                 
                 // Welcome Modal Confirm Button
                 welcomeModalConfirmButton.addEventListener('click', function() {
@@ -1434,7 +1443,7 @@
                         }
                     }
                 }
-                document.getElementById('cart-badge').textContent = cartItemCount;
+                document.querySelector('.cart-badge').textContent = cartItemCount;
             };
 
             const mergeCarts = async (anonymousCart, userUid) => {
@@ -1488,8 +1497,27 @@
                          myAccountLink.textContent = translate('my_account');
                          dropdownContent.appendChild(myAccountLink);
                     } else {
-                        // For anonymous users, the button itself says "Continue as Guest", no dropdown item needed.
-                        // Or you can put a header like "Guest User" here.
+                        // Guest user can still log in or sign up
+                        const googleLoginButton = document.createElement('button');
+                        googleLoginButton.className = 'user-btn'; // Use user-btn style for consistency
+                        googleLoginButton.innerHTML = `<i class="fa-brands fa-google"></i> ${translate('login_google')}`;
+                        googleLoginButton.style.display = 'block'; // Ensure it's a block element in dropdown
+                        googleLoginButton.style.width = '100%';
+                        googleLoginButton.style.textAlign = 'left';
+                        googleLoginButton.style.background = 'none';
+                        googleLoginButton.style.color = 'var(--text-color)';
+                        googleLoginButton.style.padding = '12px 16px';
+                        googleLoginButton.onclick = async () => {
+                            const provider = new GoogleAuthProvider();
+                            try {
+                                await signInWithPopup(auth, provider);
+                                alert("Google ile başarıyla giriş yapıldı!");
+                            } catch (error) {
+                                console.error("Google login error:", error);
+                                alert("Google ile giriş yapılırken bir hata oluştu.");
+                            }
+                        };
+                        dropdownContent.appendChild(googleLoginButton);
                     }
 
                     const logoutButton = document.createElement('button');
@@ -1508,7 +1536,7 @@
                     userControlsContainer.appendChild(dropdownContent);
 
                     dropdownBtn.onclick = (e) => {
-                        e.stopPropagation(); // Prevent document click from closing immediately
+                        e.stopPropagation(); 
                         userControlsContainer.classList.toggle('active');
                     };
                     document.onclick = (e) => {
@@ -1592,6 +1620,11 @@
                     renderAll(); // Render remaining UI elements
                     updateCartBadge(); // Ensure cart badge is updated for current user/anon
                     loadingOverlay.classList.add('hidden');
+                    // Show welcome modal if no country is set in localStorage (or if it's invalid)
+                    const availableCountries = Object.keys(siteData.settings.countryPricing);
+                    if (!localStorage.getItem('pufemo-country') && availableCountries.length > 0) {
+                        welcomeModalOverlay.classList.add('active'); // Modalı göster
+                    }
                 });
             }
             
