@@ -272,7 +272,7 @@
             display: inline-block;
             font-size: 0.9em;
         }
-        .status-pending { background-color: #f39c12; color: white; } /* Ödeme Bekliyor */
+        .status-payment-pending { background-color: #f39c12; color: white; } /* Ödeme Bekliyor */
         .status-processing { background-color: #3498db; color: white; } /* Onaylanıyor */
         .status-in-production { background-color: #9b59b6; color: white; } /* Üretimde */
         .status-shipped { background-color: #27ae60; color: white; } /* Kargoda */
@@ -433,15 +433,15 @@
             <div class="cart-summary" id="cart-summary">
                 <h2>Sipariş Özeti</h2>
                 <div class="summary-line">
-                    <span>Ara Toplam:</span>
+                    <span id="subtotal-label">Ara Toplam:</span>
                     <span id="cart-subtotal"></span>
                 </div>
                 <div class="summary-line">
-                    <span>Kargo:</span>
+                    <span id="shipping-label">Kargo:</span>
                     <span id="cart-shipping-cost"></span>
                 </div>
                 <div class="summary-line total">
-                    <span>Genel Toplam:</span>
+                    <span id="total-label">Genel Toplam:</span>
                     <span id="cart-total"></span>
                 </div>
                 <button class="btn-checkout" id="btn-checkout">Ödeme Yap</button>
@@ -578,6 +578,9 @@
             const countrySelector = document.getElementById('country-selector');
             const mainLogoLink = document.getElementById('main-logo-link');
             const cartPageLink = document.getElementById('cart-page-link');
+            const promoBarEl = document.querySelector('.promo-bar');
+            const promoTextContentEl = document.getElementById('promo-text-content');
+
 
             // Welcome Modal (should be hidden on cart.html)
             const welcomeModalOverlay = document.getElementById('welcomeModalOverlay');
@@ -607,7 +610,7 @@
                 'footer-link-about': { tr: 'Hakkımızda', en: 'About Us', el: 'Σχετικά με εμάς', ru: 'О нас', de: 'Über Uns', fr: 'À Propos', it: 'Chi Siamo' },
                 'footer-link-contact': { tr: 'İletişim', en: 'Contact', el: 'Επικοινωνία', ru: 'Контакт', de: 'Kontakt', fr: 'Contact', it: 'Contatti' },
                 'footer-link-privacy': { tr: 'Gizlilik Politikası', en: 'Privacy Policy', el: 'Πολιτική Απορρήτου', ru: 'Политика конфиденциальности', de: 'Datenschutzbestimmungen', fr: 'Politique de Confidentialité', it: 'Informativa sulla Privacy' },
-                'footer-title-follow-us': { tr: 'Bizi Takip Edin', en: 'Follow Us', el: 'Ακολουθήστε μας', ru: 'Следите за нами', de: 'Folgen Sie Uns', fr: 'Suivez-nous', it: 'Seguici' },
+                'footer-title-follow-us': { tr: 'Bizi Takip Edin', en: 'Follow Us', el: 'Ακολουθήστε μας', ru: 'Следите за нами', de: 'Folgen Sie Uns', fr: 'Suivez-nos', it: 'Seguici' },
                 'footer-copyright': { tr: '&copy; 2025 PUFEMO.COM | Tüm Hakları Saklıdır.', en: '&copy; 2025 PUFEMO.COM | All Rights Reserved.', el: '&copy; 2025 PUFEMO.COM | Με την επιφύλαξη παντός δικαιώματος.', ru: '&copy; 2025 PUFEMO.COM | Все права защищены.', de: '&copy; 2025 PUFEMO.COM | Alle Rechte vorbehalten.', fr: '&#169; 2025 PUFEMO.COM | Tous droits réservés.', it: '&#169; 2025 PUFEMO.COM | Tutti i diritti riservati.' },
                 'country_selector_label': {
                     tr: 'Ülke Seçimi:', en: 'Select Country:', el: 'Επιλέξτε Χώρα:', ru: 'Выбрать страну:',
@@ -636,13 +639,13 @@
                 'past_orders_title': { tr: 'Geçmiş Siparişlerim', en: 'My Past Orders', el: 'Οι Προηγούμενες Παραγγελίες μου', ru: 'Мои прошлые заказы', de: 'Meine vergangenen Bestellungen', fr: 'Mes commandes passées', it: 'I miei Ordini Passati' },
                 'no_past_orders': { tr: 'Henüz bir siparişiniz bulunmuyor.', en: 'You have no past orders yet.', el: 'Δεν έχετε προηγούμενες παραγγελίες ακόμα.', ru: 'У вас пока нет прошлых заказов.', de: 'Sie haben noch keine vergangenen Bestellungen.', fr: 'Vous n\'avez pas encore de commandes passées.', it: 'Non hai ancora ordini passati.' },
                 'order_table_header_code': { tr: 'Sipariş Kodu', en: 'Order Code', el: 'Κωδικός Παραγγελίας', ru: 'Код заказа', de: 'Bestellcode', fr: 'Code de commande', it: 'Codice Ordine' },
-                'order_table_header_date': { tr: 'Tarih', en: 'Date', el: 'Ημερομηνία', ru: 'Дата', de: 'Datum', fr: 'Date', it: 'Data' },
-                'order_table_header_total': { tr: 'Toplam Tutar', en: 'Total Amount', el: 'Συνολικό Ποσό', ru: 'Общая сумма', de: 'Gesamtbetrag', fr: 'Montant total', it: 'Importo Totale' },
-                'order_table_header_status': { tr: 'Durum', en: 'Status', el: 'Κατάσταση', ru: 'Статус', de: 'Status', fr: 'Statut', it: 'Stato' },
-                'order_table_header_actions': { tr: 'İşlemler', en: 'Actions', el: 'Ενέργειες', ru: 'Действия', de: 'Aktionen', fr: 'Actions', it: 'Azioni' },
-                'status_pending': { tr: 'Ödeme Bekliyor', en: 'Payment Pending', el: 'Αναμονή Πληρωμής', ru: 'Ожидание оплаты', de: 'Zahlung ausstehend', fr: 'Paiement en attente', it: 'Pagamento in Sospeso' },
+                'order_table_header-date': { tr: 'Tarih', en: 'Date', el: 'Ημερομηνία', ru: 'Дата', de: 'Datum', fr: 'Date', it: 'Data' },
+                'order_table-header-total': { tr: 'Toplam Tutar', en: 'Total Amount', el: 'Συνολικό Ποσό', ru: 'Общая сумма', de: 'Gesamtbetrag', fr: 'Montant total', it: 'Importo Totale' },
+                'order_table-header-status': { tr: 'Durum', en: 'Status', el: 'Κατάσταση', ru: 'Статус', de: 'Status', fr: 'Statut', it: 'Stato' },
+                'order_table-header-actions': { tr: 'İşlemler', en: 'Actions', el: 'Ενέργειες', ru: 'Действия', de: 'Aktionen', fr: 'Actions', it: 'Azioni' },
+                'status_payment-pending': { tr: 'Ödeme Bekliyor', en: 'Payment Pending', el: 'Αναμονή Πληρωμής', ru: 'Ожидание оплаты', de: 'Zahlung ausstehend', fr: 'Paiement en attente', it: 'Pagamento in Sospeso' },
                 'status_processing': { tr: 'Onaylanıyor', en: 'Processing', el: 'Υπό επεξεργασία', ru: 'В обработке', de: 'In Bearbeitung', fr: 'En cours de traitement', it: 'In Elaborazione' },
-                'status_in_production': { tr: 'Üretimde', en: 'In Production', el: 'Σε Παραγωγή', ru: 'В производстве', de: 'In Produktion', fr: 'En production', it: 'In Produzione' },
+                'status_in-production': { tr: 'Üretimde', en: 'In Production', el: 'Σε Παραγωγή', ru: 'В производстве', de: 'In Produktion', fr: 'En production', it: 'In Produzione' },
                 'status_shipped': { tr: 'Kargoda', en: 'Shipped', el: 'Απεστάλη', ru: 'Отправлено', de: 'Versandt', fr: 'Expédié', it: 'Spedito' },
                 'status_delivered': { tr: 'Teslim Edildi', en: 'Delivered', el: 'Παραδόθηκε', ru: 'Доставлено', de: 'Geliefert', fr: 'Livré', it: 'Consegnato' },
                 'status_cancelled': { tr: 'İptal Edildi', en: 'Cancelled', el: 'Ακυρώθηκε', ru: 'Отменено', de: 'Storniert', fr: 'Annulé', it: 'Annullato' },
@@ -650,14 +653,22 @@
                 'my_account': { tr: 'Hesabım', en: 'My Account', el: 'Ο λογαριασμός μου', ru: 'Мой аккаунт', de: 'Mein Konto', fr: 'Mon compte', it: 'Il mio account' },
                 'logout': { tr: 'Çıkış Yap', en: 'Logout', el: 'Αποσύνδεση', ru: 'Выйти', de: 'Abmelden', fr: 'Déconnexion', it: 'Esci' },
                 'continue_as_guest': { tr: 'Misafir Olarak Devam Et', en: 'Continue as Guest', el: 'Συνέχιση ως επισκέπτης', ru: 'Продолжить как гость', de: 'Als Gast fortfahren', fr: 'Continuer en tant qu\'invité', it: 'Continua come ospite' },
-                'no_image': { tr: 'Resim Yok', en: 'No Image', el: 'Χωρίς Εικόνα', ru: 'Нет изображения', de: 'Kein Bild', fr: 'Pas d\'image', it: 'Nessuna immagine' },
+                'no_image': { tr: 'Resim Yok', en: 'No Image', el: 'Χωρίς Εικόνα', ru: 'Нет изображения', de: 'Kein Bild', fr: 'Pas d\'image', it: 'Nessuna görüntü' },
                 'untitled_product': { tr: 'İsimsiz Ürün', en: 'Untitled Product', el: 'Προϊόν χωρίς τίτλο', ru: 'Товар без названия', de: 'Unbenanntes Produkt', fr: 'Produit sans titre', it: 'Prodotto senza titolo' },
+                'login_google': {
+                    tr: 'Google ile Giriş Yap', en: 'Login with Google', el: 'Σύνδεση με Google', ru: 'Войти через Google',
+                    de: 'Mit Google anmelden', fr: 'Se connecter avec Google', it: 'Accedi con Google'
+                },
+                'login_anonymous': {
+                    tr: 'Misafir Olarak Giriş Yap', en: 'Login as Guest', el: 'Σύνδεση ως επισκέπτης', ru: 'Войти как гость',
+                    de: 'Als Gast anmelden', fr: 'Se connecter en tant qu\'invité', it: 'Accedi come ospite'
+                }
             };
 
             // --- Utility Functions ---
 
             // Helper to get translated text
-            const translate = (key) => staticTranslations[key]?.[currentLang] || staticTranslations[key]?.['en'] || staticTranslations[key]?.['tr'] || '';
+            const translate = (key) => staticTranslations[key]?.[currentLang] || staticTranslations[key]?.[Object.keys(staticTranslations[key])[0]] || '';
 
             // Convert country code to emoji flag
             function countryCodeToEmoji(code) {
@@ -692,9 +703,7 @@
             };
 
             // Calculate shipping cost (simple placeholder for now)
-            // In a real app, this would involve complex logic based on country, weight, product type etc.
             const calculateShippingCost = () => {
-                // For simplicity, let's assume a fixed shipping cost or free shipping based on a threshold
                 const totalItemsPrice = cartItems.reduce((acc, item) => {
                     const product = siteData.products.find(p => p.id === item.productId);
                     if (!product) return acc;
@@ -703,14 +712,13 @@
                     return acc + (price * item.quantity);
                 }, 0);
 
-                // Example: Free shipping if total over X, otherwise a fixed amount
-                // This would need to be dynamic based on selected country
                 const selectedCountryData = siteData.settings.countryPricing[currentCountryCode];
-                if (selectedCountryData && selectedCountryData.isFreeShippingThreshold && totalItemsPrice >= selectedCountryData.isFreeShippingThreshold) {
+                // Check if global free shipping is enabled or if country-specific threshold is met
+                if (siteData.settings.general?.isFreeShippingGlobally || (selectedCountryData && selectedCountryData.isFreeShippingThreshold && totalItemsPrice >= selectedCountryData.isFreeShippingThreshold)) {
                     return 0; // Free shipping
                 }
-                // Placeholder: Fixed shipping cost for now, adjust based on your logic
-                return 50; // Example fixed cost in base currency
+                
+                return 50; // Example fixed cost in base currency (TRY)
             };
 
             // --- Data Fetching and Initialization ---
@@ -720,14 +728,14 @@
                     const [settingsDoc, categoriesDoc, productsSnap] = await Promise.all([
                         getDoc(doc(db, 'pufemo', 'settings')),
                         getDoc(doc(db, 'pufemo', 'categories')),
-                        getDocs(collection(db, 'pufemo-products')) // Fetch all products for cart details
+                        getDocs(collection(db, 'pufemo-products')) // Fetch all products for cart item details
                     ]);
 
                     if (settingsDoc.exists()) { siteData.settings = { ...settingsDoc.data() }; } else { console.warn('Settings document not found.'); }
                     if (categoriesDoc.exists()) { siteData.categories = { ...categoriesDoc.data() }; } else { console.warn('Categories document not found.'); }
                     siteData.products = productsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-                    // Ensure currencySymbols has default if empty (as it might be if Firestore is new)
+                    // Ensure currencySymbols has default if empty
                     if (!siteData.settings.currencySymbols || Object.keys(siteData.settings.currencySymbols).length === 0) {
                         siteData.settings.currencySymbols = { "TRY": "₺", "USD": "$", "EUR": "€", "GBP": "£" };
                     }
@@ -815,16 +823,16 @@
                 loadingTextP.textContent = translate('loading_text');
                 document.getElementById('cart-page-title').textContent = translate('cart_page_title');
                 document.getElementById('cart-summary').querySelector('h2').textContent = translate('order_summary_title');
-                document.getElementById('cart-subtotal').previousElementSibling.textContent = translate('subtotal_label');
-                document.getElementById('cart-shipping-cost').previousElementSibling.textContent = translate('shipping_label');
-                document.getElementById('cart-total').previousElementSibling.textContent = translate('total_label');
+                document.getElementById('subtotal-label').textContent = translate('subtotal_label');
+                document.getElementById('shipping-label').textContent = translate('shipping_label');
+                document.getElementById('total-label').textContent = translate('total_label');
                 btnCheckout.textContent = translate('checkout_button');
                 emptyCartMessage.textContent = translate('empty_cart_message');
                 document.getElementById('past-orders-title').textContent = translate('past_orders_title');
                 noPastOrdersMessage.textContent = translate('no_past_orders');
 
                 document.getElementById('order-table-header-code').textContent = translate('order_table_header_code');
-                document.getElementById('order-table-header-date').textContent = translate('order_table_header_date');
+                document.getElementById('order-table-header-date').textContent = translate('order_table_header-date');
                 document.getElementById('order-table-header-total').textContent = translate('order_table-header-total');
                 document.getElementById('order-table-header-status').textContent = translate('order_table-header-status');
                 document.getElementById('order-table-header-actions').textContent = translate('order_table-header-actions');
@@ -840,7 +848,7 @@
                 document.getElementById('footer-title-follow-us').textContent = translate('footer-title-follow-us');
                 document.getElementById('footer-copyright').innerHTML = translate('footer-copyright');
                 document.getElementById('country-selector-label').textContent = translate('country_selector_label');
-                cartPageLink.title = translate('cart_page_title'); // Set title for cart link
+                cartPageLink.title = translate('cart_page_link_title'); 
             };
 
             const renderGeneralSiteElements = () => {
@@ -941,7 +949,7 @@
                     const imageUrl = variant?.media?.[0]?.url || product.variants?.[0]?.media?.[0]?.url || `https://via.placeholder.com/100x100?text=${translate('no_image')}`;
                     
                     // Use item's stored basePrice and discountedPrice
-                    const itemPrice = item.discountedPrice !== null && item.discountedPrice < item.basePrice
+                    const itemPrice = item.discountedPrice !== null && item.discountedPrice < item.basePrice 
                                     ? item.discountedPrice : item.basePrice;
                     
                     subtotal += itemPrice * item.quantity;
@@ -958,9 +966,9 @@
                             ${variantName ? `<p class="cart-item-variant">${variantName}</p>` : ''}
                             <div class="quantity-control">
                                 <span class="quantity-label">${translate('quantity_label')}</span>
-                                <button type="button" class="quantity-button decrease-quantity">-</button>
+                                <button type="button" class="quantity-button decrease-quantity" data-product-id="${item.productId}" data-variant-id="${item.variantId || ''}">-</button>
                                 <input type="number" class="quantity-input" value="${item.quantity}" min="1" max="99" data-product-id="${item.productId}" data-variant-id="${item.variantId || ''}">
-                                <button type="button" class="quantity-button increase-quantity">+</button>
+                                <button type="button" class="quantity-button increase-quantity" data-product-id="${item.productId}" data-variant-id="${item.variantId || ''}">+</button>
                             </div>
                             <span class="cart-item-price">${formatPrice(itemPrice, item.discountedPrice)}</span>
                         </div>
@@ -1024,14 +1032,16 @@
                         const orderDate = order.orderDate?.toDate ? order.orderDate.toDate().toLocaleDateString(currentLang) : new Date(order.orderDate).toLocaleDateString(currentLang);
                         const totalAmount = formatPrice(order.totalAmount);
                         
+                        // Ensure status translation key matches Firestore data (e.g., 'Payment Pending' -> 'status_payment-pending')
+                        const statusKey = `status_${order.status.toLowerCase().replace(/\s/g, '-')}`;
                         const statusClass = `status-${order.status.toLowerCase().replace(/\s/g, '-')}`;
-                        const statusText = translate(`status_${order.status.toLowerCase().replace(/\s/g, '-')}`);
+                        const statusText = translate(statusKey);
 
                         row.insertCell().textContent = order.orderCode;
                         row.insertCell().textContent = orderDate;
                         row.insertCell().textContent = totalAmount;
                         row.insertCell().innerHTML = `<span class="order-status ${statusClass}">${statusText}</span>`;
-                        row.insertCell().innerHTML = `<button class="btn btn-info btn-sm view-order-details" data-order-id="${orderId}">Detaylar</button>`;
+                        row.insertCell().innerHTML = `<button class="btn btn-info btn-sm view-order-details" data-order-id="${orderId}">${translate('order_details_button') || 'Detaylar'}</button>`; // Added details button translation
                     });
 
                     // Add event listeners for "Detaylar" buttons
@@ -1123,6 +1133,9 @@
                 if (welcomeModalOverlay) {
                     welcomeModalOverlay.style.display = 'none';
                 }
+
+                // User authentication UI elements
+                updateUserUI();
             };
 
             // --- Cart Management Functions ---
@@ -1148,8 +1161,14 @@
                     // Anonymous user: load from localStorage
                     const localCart = localStorage.getItem('pufemo-cart');
                     if (localCart) {
-                        cartItems = JSON.parse(localCart);
-                        console.log("Cart loaded from localStorage:", cartItems);
+                        try {
+                            cartItems = JSON.parse(localCart);
+                            console.log("Cart loaded from localStorage:", cartItems);
+                        } catch (e) {
+                            console.error("Error parsing local cart:", e);
+                            localStorage.removeItem('pufemo-cart'); // Clear corrupt cart
+                            cartItems = [];
+                        }
                     } else {
                         console.log("No cart in localStorage.");
                     }
@@ -1174,6 +1193,7 @@
                     console.log("Cart saved to localStorage.");
                 }
                 renderCart(); // Re-render cart to update UI
+                updateCartBadge(); // Update badge
             };
 
             const updateCartItemQuantity = (productId, variantId, change, specificQuantity = null) => {
@@ -1232,7 +1252,7 @@
                 });
 
                 cartItems = mergedCart;
-                await saveCart(); // Save merged cart to Firestore
+                await setDoc(firestoreCartDocRef, { items: cartItems }); // Save merged cart to Firestore
                 localStorage.removeItem('pufemo-cart'); // Clear anonymous cart
                 console.log("Carts merged successfully!");
             };
@@ -1243,12 +1263,12 @@
                 userControlsContainer.innerHTML = '';
                 if (currentUser) {
                     // User is logged in (Google or Anonymous)
-                    let userEmail = currentUser.isAnonymous ? "Misafir" : currentUser.email || currentUser.uid;
-                    if (userEmail.length > 20) userEmail = userEmail.substring(0, 17) + "..."; // Truncate long emails
+                    let userDisplay = currentUser.isAnonymous ? translate('continue_as_guest') : (currentUser.email || currentUser.uid);
+                    if (!currentUser.isAnonymous && userDisplay.length > 20) userDisplay = userDisplay.substring(0, 17) + "..."; // Truncate long emails
 
                     const dropdownBtn = document.createElement('button');
                     dropdownBtn.className = 'user-btn';
-                    dropdownBtn.innerHTML = `<i class="fa-solid fa-user-circle"></i> <span>${userEmail}</span>`;
+                    dropdownBtn.innerHTML = `<i class="fa-solid fa-user-circle"></i> <span>${userDisplay}</span>`;
                     userControlsContainer.appendChild(dropdownBtn);
 
                     const dropdownContent = document.createElement('div');
@@ -1260,13 +1280,27 @@
                          myAccountLink.textContent = translate('my_account');
                          dropdownContent.appendChild(myAccountLink);
                     } else {
-                        const guestOption = document.createElement('span');
-                        guestOption.textContent = translate('continue_as_guest');
-                        guestOption.style.padding = '12px 16px';
-                        guestOption.style.fontSize = '0.95rem';
-                        guestOption.style.fontWeight = 'bold';
-                        guestOption.style.color = '#555';
-                        dropdownContent.appendChild(guestOption);
+                        // Guest user can still log in or sign up
+                        const googleLoginButton = document.createElement('button');
+                        googleLoginButton.className = 'user-btn'; // Use user-btn style for consistency
+                        googleLoginButton.innerHTML = `<i class="fa-brands fa-google"></i> ${translate('login_google')}`;
+                        googleLoginButton.style.display = 'block'; // Ensure it's a block element in dropdown
+                        googleLoginButton.style.width = '100%';
+                        googleLoginButton.style.textAlign = 'left';
+                        googleLoginButton.style.background = 'none';
+                        googleLoginButton.style.color = 'var(--text-color)';
+                        googleLoginButton.style.padding = '12px 16px';
+                        googleLoginButton.onclick = async () => {
+                            const provider = new GoogleAuthProvider();
+                            try {
+                                await signInWithPopup(auth, provider);
+                                alert("Google ile başarıyla giriş yapıldı!");
+                            } catch (error) {
+                                console.error("Google login error:", error);
+                                alert("Google ile giriş yapılırken bir hata oluştu.");
+                            }
+                        };
+                        dropdownContent.appendChild(googleLoginButton);
                     }
 
                     const logoutButton = document.createElement('button');
@@ -1295,25 +1329,15 @@
                     };
 
                 } else {
-                    // User is not logged in
+                    // User is not logged in, show login/register options
                     const loginLink = document.createElement('a');
-                    loginLink.href = "index.html"; // Link back to homepage to show login options
+                    loginLink.href = "index.html"; // Redirect to homepage for login options
                     loginLink.className = 'user-btn';
                     loginLink.textContent = translate('login_register');
                     userControlsContainer.appendChild(loginLink);
                 }
             };
             
-            // --- Event Listeners ---
-            btnCheckout.addEventListener('click', () => {
-                if (cartItems.length > 0) {
-                    // Redirect to checkout page
-                    window.location.href = 'checkout.html';
-                } else {
-                    alert(translate('empty_cart_message'));
-                }
-            });
-
             // --- Initial Load ---
             const init = async () => {
                 loadingOverlay.classList.remove('hidden');
@@ -1350,6 +1374,7 @@
                         pastOrdersSection.style.display = 'none'; // Hide past orders if logged out
                     }
                     renderAll(); // Render remaining UI elements
+                    updateCartBadge(); // Ensure cart badge is updated for current user/anon
                     loadingOverlay.classList.add('hidden');
                 });
             };
