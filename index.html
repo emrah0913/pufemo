@@ -660,7 +660,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-        import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
         import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signInAnonymously, signOut } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
 
         const firebaseConfig = {
@@ -841,7 +841,7 @@
                     ru: '&copy; 2025 PUFEMO.COM | Все права защищены.',
                     de: '&copy; 2025 PUFEMO.COM | Alle Rechte vorbehalten.',
                     fr: '&#169; 2025 PUFEMO.COM | Tous droits réservés.',
-                    it: '&#169; 2025 PUFEMO.COM | Tutti i diritti riservati.'
+                    it: '&#169; 2025 PUFEMO.COM | Tutti o diritti riservati.'
                 },
                 'default_button_text': {
                     tr: 'Alışverişe Başla',
@@ -1030,10 +1030,13 @@
 
             const fetchData = async () => {
                 try {
+                    // Correct usage of query and where for modular SDK
+                    const productsQuery = query(collection(db, 'pufemo-products'), where('isInShowcase', '==', true));
+
                     const [settingsDoc, categoriesDoc, productsSnap] = await Promise.all([
                         getDoc(doc(db, 'pufemo', 'settings')),
                         getDoc(doc(db, 'pufemo', 'categories')),
-                        getDocs(collection(db, 'pufemo-products').where('isInShowcase', '==', true)) 
+                        getDocs(productsQuery) // Use the query here
                     ]);
 
                     if (settingsDoc.exists()) { siteData.settings = { ...settingsDoc.data() }; } else { console.warn('Settings document not found!'); }
