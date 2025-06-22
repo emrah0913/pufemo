@@ -9,17 +9,16 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <style>
-        /* Genel Değişkenler ve Temel Stiller */
+        /* General Variables and Base Styles (Copied from index.html/product.html for consistency) */
         :root {
             --primary-color: #2c3e50;
             --secondary-color: #e74c3c;
-            --background-color: #f9f9f9; /* Sepet sayfası için arka plan rengi */
-            --text-color: #2c3e50;
+            --background-color: #f4f7f9; /* Lighter background for cart page */
+            --text-color: #34495e;
             --light-text-color: #ffffff;
             --card-bg-color: #ffffff;
             --border-radius: 8px;
             --box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            --danger-color: #c0392b;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
         html { scroll-behavior: smooth; }
@@ -27,12 +26,12 @@
         .container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
         a { text-decoration: none; color: inherit; }
 
-        /* Yükleme Ekranı Stilleri */
+        /* Loading Overlay Styles (Copied) */
         .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.95); z-index: 10000; display: flex; justify-content: center; align-items: center; flex-direction: column; }
         .loading-overlay p { font-size: 1.5rem; margin-top: 1.5rem; color: var(--primary-color); }
         .loading-overlay.hidden { opacity: 0; pointer-events: none; transition: opacity 0.5s ease; }
 
-        /* Promosyon Çubuğu Stilleri */
+        /* Promo Bar Styles (Copied) */
         .promo-bar {
             background-color: var(--secondary-color);
             color: var(--light-text-color);
@@ -45,48 +44,15 @@
             position: relative;
             z-index: 1001;
         }
-        .promo-text {
-            display: inline-block;
-            padding-left: 100%;
-            animation: scroll-text 20s linear infinite;
-        }
-        @keyframes scroll-text {
-            0% { transform: translateX(0%); }
-            100% { transform: translateX(-100%); }
-        }
+        .promo-text { display: inline-block; padding-left: 100%; animation: scroll-text 20s linear infinite; }
+        @keyframes scroll-text { 0% { transform: translateX(0%); } 100% { transform: translateX(-100%); } }
 
-        /* Ana Başlık (Header) Stilleri */
-        .main-header {
-            background-color: var(--card-bg-color);
-            box-shadow: var(--box-shadow);
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-            padding-bottom: 0.5rem;
-        }
-        .header-top {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 0.8rem 0;
-        }
-        .main-header .container {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0.5rem 20px;
-        }
-        .logo {
-            font-size: 1.8rem;
-            font-weight: 700;
-            color: var(--primary-color);
-            display: flex;
-            align-items: center;
-        }
-        .logo i {
-            color: var(--secondary-color);
-            margin-right: 5px;
-        }
+        /* Main Header Styles (Copied) */
+        .main-header { background-color: var(--card-bg-color); box-shadow: var(--box-shadow); position: sticky; top: 0; z-index: 1000; padding-bottom: 0.5rem; }
+        .header-top { display: flex; justify-content: center; align-items: center; padding: 0.8rem 0; }
+        .main-header .container { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 20px; }
+        .logo { font-size: 1.8rem; font-weight: 700; color: var(--primary-color); display: flex; align-items: center; }
+        .logo i { color: var(--secondary-color); margin-right: 5px; }
         .logo img { max-width: 100%; height: auto; }
         .header-controls { display: flex; align-items: center; gap: 1rem; }
         .control-select { background-color: #f8f9fa; border: 1px solid #ddd; padding: 5px; border-radius: 5px; font-size: 0.9rem; cursor: pointer; }
@@ -112,276 +78,274 @@
         .category-nav ul { list-style: none; display: flex; justify-content: center; gap: 2.5rem; flex-wrap: wrap; }
         .category-nav a { color: var(--light-text-color); font-weight: 500; padding: 5px 10px; border-radius: 5px; transition: background-color 0.3s ease; }
         .category-nav a:hover { background-color: rgba(255,255,255,0.1); }
+        
+        /* Main Content Specific Styles for Cart Page */
+        main { padding: 3rem 0; }
+        .page-title { text-align: center; margin-bottom: 2.5rem; font-size: 2.2rem; font-weight: 600; color: var(--primary-color); }
 
-        /* Sepet Sayfası Stilleri */
-        .cart-container {
-            max-width: 900px;
-            margin: 30px auto;
-            padding: 30px;
+        .cart-layout {
+            display: grid;
+            grid-template-columns: 2fr 1fr; /* Cart items on left, summary on right */
+            gap: 2rem;
+            align-items: start;
+        }
+
+        .cart-items {
             background-color: var(--card-bg-color);
+            padding: 2rem;
             border-radius: var(--border-radius);
             box-shadow: var(--box-shadow);
         }
-        .cart-container h1 { font-size: 2rem; margin-bottom: 2rem; color: var(--primary-color); text-align: center; }
-        .cart-items { border-top: 1px solid #eee; margin-top: 20px; padding-top: 20px; }
+
         .cart-item {
             display: flex;
             align-items: center;
-            margin-bottom: 20px;
-            padding: 15px;
-            border: 1px solid #eee;
-            border-radius: var(--border-radius);
-            background-color: #fcfcfc;
+            gap: 1.5rem;
+            padding: 1rem 0;
+            border-bottom: 1px solid #eee;
+            position: relative;
         }
+        .cart-item:last-child { border-bottom: none; }
+
         .cart-item-image {
             width: 100px;
             height: 100px;
             object-fit: cover;
             border-radius: var(--border-radius);
-            margin-right: 15px;
             flex-shrink: 0;
         }
-        .cart-item-details { flex-grow: 1; }
-        .cart-item-details h3 { font-size: 1.2rem; margin-bottom: 5px; color: var(--primary-color); }
-        .cart-item-details p { font-size: 0.9rem; color: #7f8c8d; }
-        .cart-item-price { font-size: 1.1rem; font-weight: 600; color: var(--secondary-color); margin-left: 15px; flex-shrink: 0; }
-        .cart-item .quantity-control { margin-left: 15px; flex-shrink: 0; display: flex; align-items: center; gap: 5px;}
+
+        .cart-item-details {
+            flex-grow: 1;
+        }
+        .cart-item-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+        .cart-item-variant {
+            font-size: 0.9rem;
+            color: #777;
+            margin-bottom: 0.5rem;
+        }
+        .cart-item-price {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--secondary-color);
+        }
+
+        .quantity-control { /* From product.html, slightly modified */
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            margin-top: 0.5rem;
+        }
         .quantity-button {
             background-color: var(--primary-color);
             color: var(--light-text-color);
             border: none;
             border-radius: 8px;
-            width: 35px;
-            height: 35px;
+            width: 30px;
+            height: 30px;
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: 1.2rem;
+            font-size: 1rem;
             font-weight: 700;
             cursor: pointer;
             transition: background-color 0.2s ease;
             user-select: none;
         }
-        .quantity-button:hover {
-            background-color: #1a242f;
-        }
-        .quantity-button:disabled {
-            background-color: #ccc;
-            cursor: not-allowed;
-        }
+        .quantity-button:hover { background-color: #1a242f; }
+        .quantity-button:disabled { background-color: #ccc; cursor: not-allowed; }
         .quantity-input {
-            width: 60px;
-            padding: 8px 5px;
+            width: 50px;
+            padding: 5px 3px;
             border: 1px solid #ccc;
             border-radius: 8px;
-            font-size: 1rem;
+            font-size: 0.9rem;
             text-align: center;
             -moz-appearance: textfield;
         }
         .quantity-input::-webkit-outer-spin-button,
-        .quantity-input::-webkit-inner-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
-        }
+        .quantity-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 
         .remove-item-btn {
             background: none;
             border: none;
-            color: var(--danger-color);
+            color: var(--danger-color, #c0392b);
             font-size: 1.5rem;
             cursor: pointer;
-            margin-left: 15px;
-            flex-shrink: 0;
+            position: absolute;
+            top: 10px;
+            right: 0;
+            transition: color 0.2s;
         }
+        .remove-item-btn:hover { color: #e74c3c; }
+
         .cart-summary {
-            border-top: 2px solid var(--primary-color);
-            padding-top: 20px;
-            margin-top: 30px;
-            text-align: right;
-        }
-        .cart-summary p { font-size: 1.2rem; font-weight: 600; margin-bottom: 10px; }
-        .cart-summary span { color: var(--secondary-color); }
-        .cart-actions { display: flex; justify-content: flex-end; gap: 15px; margin-top: 20px; }
-        .btn { padding: 12px 20px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.3s; }
-        .btn-primary { background-color: var(--primary-color); color: var(--light-text-color); }
-        .btn-primary:hover { background-color: #1a242f; }
-        .btn-secondary { background-color: var(--secondary-color); color: var(--light-text-color); }
-        .btn-secondary:hover { background-color: #c0392b; }
-        .cart-empty-message { text-align: center; font-size: 1.2rem; color: #7f8c8d; padding: 50px 0; }
-
-        /* Yeni: Sipariş Geçmişi ve Durumu */
-        .order-history-section {
-            max-width: 900px;
-            margin: 30px auto;
-            padding: 30px;
             background-color: var(--card-bg-color);
+            padding: 2rem;
             border-radius: var(--border-radius);
             box-shadow: var(--box-shadow);
         }
-        .order-history-section h2 {
-            font-size: 1.8rem;
+        .cart-summary h2 {
+            font-size: 1.5rem;
+            color: var(--primary-color);
             margin-bottom: 1.5rem;
-            color: var(--primary-color);
-            text-align: center;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 1rem;
         }
-        .order-item {
-            border: 1px solid #eee;
-            border-radius: var(--border-radius);
-            padding: 15px;
-            margin-bottom: 15px;
-            background-color: #fcfcfc;
-        }
-        .order-item h3 {
-            font-size: 1.1rem;
-            margin-bottom: 10px;
-            color: var(--primary-color);
-        }
-        .order-item p {
-            font-size: 0.9rem;
-            color: #555;
-            margin-bottom: 5px;
-        }
-        .order-item .order-status {
-            font-weight: 600;
-            color: #27ae60; /* Default green for delivered/approved */
-        }
-        .order-item .order-status.pending { color: #f39c12; } /* Orange */
-        .order-item .order-status.shipped { color: #3498db; } /* Blue */
-        .order-item .order-status.cancelled { color: #e74c3c; } /* Red */
-        .order-item ul {
-            list-style: none;
-            padding-left: 0;
-            margin-top: 10px;
-            border-top: 1px dashed #eee;
-            padding-top: 10px;
-        }
-        .order-item ul li {
-            font-size: 0.85rem;
-            color: #666;
-            margin-bottom: 3px;
-        }
-        .order-history-empty {
-            text-align: center;
-            font-size: 1.1rem;
-            color: #7f8c8d;
-            padding: 30px 0;
-        }
-
-
-        /* Altbilgi (Footer) Stilleri */
-        .main-footer { background-color: var(--primary-color); color: var(--light-text-color); padding: 3rem 0 1rem 0; margin-top: 3rem; }
-        .footer-content { display: flex; justify-content: space-around; flex-wrap: wrap; gap: 2rem; text-align: center; }
-        .footer-section { flex: 1; min-width: 200px; }
-        .footer-section h4 { font-size: 1.2rem; margin-bottom: 1rem; border-bottom: 2px solid var(--secondary-color); padding-bottom: 0.5rem; display: inline-block; }
-        .footer-section ul { list-style: none; padding: 0;}
-        .footer-section a:hover { color: var(--secondary-color); }
-        .footer-bottom { text-align: center; margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.2); font-size: 0.9rem; }
-
-        /* Ülke Seçici Stilleri */
-        .country-selector-container { text-align: center; padding: 2rem 0; margin: 2rem 0 0 0; border-top: 1px solid rgba(255,255,255,0.15); }
-        .country-selector-container label { font-size: 1.1rem; color: var(--light-text-color); margin-right: 10px; font-weight: 500; }
-        .country-selector-container .control-select { padding: 8px 12px; font-size: 1rem; border-radius: var(--border-radius); border: 1px solid #ccc; background-color: var(--card-bg-color); color: var(--text-color); box-shadow: inset 0 1px 3px rgba(0,0,0,0.1); cursor: pointer; outline: none; transition: border-color 0.3s ease, box-shadow 0.3s ease; }
-        .country-selector-container .control-select:focus { border-color: var(--secondary-color); box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.2); }
-
-        /* Karşılama Modalı Gizli */
-        .welcome-modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.7); /* Koyu arka plan */
+        .summary-line {
             display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 10001; /* Loading overlay'den de yüksek */
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.3s ease, visibility 0.3s ease;
-        }
-        .welcome-modal-overlay.active { opacity: 1; visibility: visible; }
-        .welcome-modal-content {
-            background-color: var(--card-bg-color); /* Beyaz kart arkaplanı */
-            padding: 30px;
-            border-radius: var(--border-radius);
-            box-shadow: var(--box-shadow);
-            text-align: center;
-            max-width: 450px;
-            width: 90%;
-            transform: translateY(-20px);
-            transition: transform 0.3s ease;
-        }
-        .welcome-modal-overlay.active .welcome-modal-content { transform: translateY(0); }
-        .welcome-modal-content h2 { font-size: 2rem; color: var(--primary-color); margin-bottom: 15px; }
-        .welcome-modal-content p { font-size: 1.1rem; color: var(--text-color); margin-bottom: 25px; }
-        .welcome-modal-content .control-select {
-            width: 80%;
-            max-width: 300px;
-            padding: 10px 15px;
-            margin-bottom: 20px;
+            justify-content: space-between;
+            margin-bottom: 0.8rem;
             font-size: 1rem;
-            border-radius: var(--border-radius);
-            border: 1px solid #ccc;
-            background-color: #f8f9fa;
-            color: var(--text-color);
-            box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
-            outline: none;
-            cursor: pointer;
         }
-        .welcome-modal-content .control-select:focus { border-color: var(--secondary-color); box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.2); }
-        .welcome-modal-content button {
+        .summary-line.total {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--secondary-color);
+            margin-top: 1.5rem;
+            border-top: 1px solid #eee;
+            padding-top: 1.5rem;
+        }
+        .btn-checkout {
+            display: block;
+            width: 100%;
+            padding: 15px 20px;
             background-color: var(--secondary-color);
             color: var(--light-text-color);
-            padding: 12px 30px;
             border: none;
             border-radius: var(--border-radius);
             font-size: 1.1rem;
             font-weight: 600;
             cursor: pointer;
-            transition: background-color 0.3s ease, transform 0.2s ease;
+            transition: background-color 0.3s ease;
+            margin-top: 2rem;
         }
-        .welcome-modal-content button:hover { background-color: #c0392b; /* Slightly darker red */ transform: translateY(-2px); }
+        .btn-checkout:hover { background-color: #c0392b; }
+        .empty-cart-message {
+            text-align: center;
+            padding: 3rem;
+            font-size: 1.2rem;
+            color: #777;
+        }
 
-        /* Yeni: Kullanıcı Auth Durumu */
-        .auth-status-container {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-left: 1rem;
+        /* Past Orders Section */
+        .past-orders-section {
+            margin-top: 3rem;
+            background-color: var(--card-bg-color);
+            padding: 2rem;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
         }
-        .auth-status-text {
-            font-size: 0.9rem;
+        .past-orders-section h2 {
+            font-size: 1.5rem;
             color: var(--primary-color);
-            font-weight: 500;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 1rem;
         }
-        .auth-buttons {
-            display: flex;
-            gap: 8px;
+        .order-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
         }
-        .auth-button {
-            padding: 6px 12px;
-            border: 1px solid var(--primary-color);
+        .order-table th, .order-table td {
+            border: 1px solid #eee;
+            padding: 10px;
+            text-align: left;
+        }
+        .order-table th {
+            background-color: var(--background-color);
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+        .order-table tbody tr:nth-child(even) { background-color: #f9f9f9; }
+
+        .order-status {
+            padding: 5px 10px;
             border-radius: 5px;
-            background: none;
-            color: var(--primary-color);
-            cursor: pointer;
-            font-size: 0.85rem;
-            transition: all 0.3s ease;
+            font-weight: 500;
+            display: inline-block;
+            font-size: 0.9em;
         }
-        .auth-button:hover {
+        .status-pending { background-color: #f39c12; color: white; } /* Ödeme Bekliyor */
+        .status-processing { background-color: #3498db; color: white; } /* Onaylanıyor */
+        .status-in-production { background-color: #9b59b6; color: white; } /* Üretimde */
+        .status-shipped { background-color: #27ae60; color: white; } /* Kargoda */
+        .status-delivered { background-color: #1abc9c; color: white; } /* Teslim Edildi */
+        .status-cancelled { background-color: #e74c3c; color: white; } /* İptal Edildi */
+
+        /* Welcome Modal (Hidden by default, will be shown by JS if needed) */
+        .welcome-modal-overlay { display: none !important; }
+        .welcome-modal-content { display: none !important; }
+
+        /* User Controls (Header) */
+        .user-controls-dropdown {
+            position: relative;
+            display: inline-block;
+            margin-left: 1rem; /* Adjust as needed */
+        }
+
+        .user-controls-dropdown .user-btn {
             background-color: var(--primary-color);
             color: var(--light-text-color);
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 600;
+            border: none;
+            display: flex;
+            align-items: center;
+            gap: 5px;
         }
-        .auth-button.google {
-            background-color: #4285f4;
-            color: white;
-            border-color: #4285f4;
-        }
-        .auth-button.google:hover {
-            background-color: #357ae8;
+        .user-controls-dropdown .user-btn:hover {
+            background-color: #1a242f;
         }
 
-        /* Responsive Ayarlamalar */
+        .user-controls-dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: var(--card-bg-color);
+            min-width: 160px;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+            z-index: 1;
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            right: 0; /* Align to the right of the button */
+            top: 100%; /* Position below the button */
+            margin-top: 5px;
+        }
+
+        .user-controls-dropdown-content a,
+        .user-controls-dropdown-content button {
+            color: var(--text-color);
+            padding: 12px 16px;
+            text-decoration: none;
+            display: block;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .user-controls-dropdown-content a:hover,
+        .user-controls-dropdown-content button:hover {
+            background-color: var(--background-color);
+        }
+
+        .user-controls-dropdown.active .user-controls-dropdown-content {
+            display: block;
+        }
+
+        /* Responsive */
         @media (max-width: 992px) {
             .category-nav { display: none; }
             .hamburger-menu { display: flex; }
@@ -389,76 +353,28 @@
             .header-top { padding: 0.5rem 0; }
             .logo { font-size: 1.5rem; }
             .main-header .container { padding: 0.5rem 20px; }
-            /* Cart Page Responsive */
-            .cart-item { flex-wrap: wrap; }
-            .cart-item-image { margin-bottom: 10px; }
-            .cart-item-details { flex-basis: 100%; margin-left: 0; }
-            .cart-item-price, .cart-item .quantity-control, .remove-item-btn { margin-top: 10px; margin-left: 0; }
-            .cart-item-price { order: -1; margin-right: auto; } /* Fiyatı yukarı sola taşı */
-            .cart-item .quantity-control { order: 1; }
-            .remove-item-btn { order: 2; margin-left: auto; }
-            .cart-actions { flex-direction: column; align-items: flex-end; }
-            .cart-actions .btn { width: 100%; }
-
-            .header-controls { /* Sadece dil/para birimi/sepeti kapsar */
-                flex-grow: 1; /* Kontrollerin daha fazla yer kaplamasına izin ver */
-                justify-content: flex-end; /* Sağ tarafa hizala */
-                gap: 0.8rem;
-            }
-            .auth-status-container {
-                display: none; /* Mobil menüde gösterilecek */
-            }
+            .cart-layout { grid-template-columns: 1fr; gap: 1.5rem; } /* Single column on tablet */
+            .cart-item { flex-direction: column; align-items: flex-start; gap: 1rem; }
+            .remove-item-btn { position: static; margin-left: auto; }
+            .cart-summary h2, .past-orders-section h2 { text-align: center; }
+            .order-table th, .order-table td { padding: 8px; font-size: 0.9em; }
         }
 
-        @media (max-width: 767px) { /* Mobil ekranlar için */
-            .country-selector-container { padding: 1.5rem 0; }
-            .country-selector-container label { font-size: 1rem; display: block; margin-bottom: 5px; }
-            .country-selector-container .control-select { width: 80%; }
-            /* Cart Page Responsive */
+        @media (max-width: 767px) {
+            main { padding: 1.5rem 0; }
+            .page-title { font-size: 1.8rem; margin-bottom: 1.5rem; }
+            .cart-items, .cart-summary, .past-orders-section { padding: 1.5rem; }
+            .cart-item { gap: 1rem; padding: 0.8rem 0; }
             .cart-item-image { width: 80px; height: 80px; }
-            .cart-item-details h3 { font-size: 1rem; }
+            .cart-item-name { font-size: 1rem; }
             .cart-item-price { font-size: 1rem; }
-            .quantity-input { width: 50px; }
-            .quantity-button { width: 30px; height: 30px; font-size: 1rem; }
+            .quantity-button { width: 25px; height: 25px; font-size: 0.9rem; }
+            .quantity-input { width: 40px; padding: 3px 2px; font-size: 0.8rem; }
             .remove-item-btn { font-size: 1.2rem; }
-            .cart-summary p { font-size: 1rem; }
-            .cart-empty-message { font-size: 1rem; }
-            /* Küçük ekranlarda modal düzenlemesi */
-            @media (max-width: 480px) {
-                .welcome-modal-content { padding: 20px; }
-                .welcome-modal-content h2 { font-size: 1.5rem; }
-                .welcome-modal-content p { font-size: 1rem; }
-                .welcome-modal-content .control-select { width: 100%; }
-                .welcome-modal-content button { padding: 10px 20px; font-size: 1rem; }
-            }
-
-            .mobile-nav .auth-status-container {
-                display: flex; /* Mobil menüde göster */
-                flex-direction: column;
-                align-items: flex-start;
-                padding: 15px 0;
-                margin-top: 1rem;
-                border-top: 1px solid rgba(255,255,255,0.1);
-            }
-            .mobile-nav .auth-status-text {
-                color: var(--light-text-color);
-                margin-bottom: 10px;
-            }
-            .mobile-nav .auth-buttons {
-                flex-direction: column;
-                width: 100%;
-                gap: 10px;
-            }
-            .mobile-nav .auth-button {
-                width: 100%;
-                background-color: rgba(255,255,255,0.1);
-                border-color: rgba(255,255,255,0.2);
-                color: var(--light-text-color);
-            }
-            .mobile-nav .auth-button.google {
-                background-color: #4285f4;
-                border-color: #4285f4;
-            }
+            .btn-checkout { padding: 12px 15px; font-size: 1rem; }
+            .empty-cart-message { font-size: 1rem; padding: 2rem 1rem; }
+            .order-table th, .order-table td { font-size: 0.8em; }
+            .order-status { font-size: 0.7em; padding: 3px 6px; }
         }
     </style>
 </head>
@@ -486,7 +402,7 @@
     <header class="main-header">
         <div class="header-top">
             <a href="index.html" class="logo" id="main-logo-link">
-            </a>
+                </a>
         </div>
         <div class="container">
             <button class="hamburger-menu" id="hamburger-menu-btn" aria-label="Menüyü aç/kapat"><span></span><span></span><span></span></button>
@@ -494,56 +410,62 @@
                 <select id="language-selector" class="control-select"></select>
                 <select id="currency-selector" class="control-select"></select>
                 <a href="cart.html" class="cart-icon" id="cart-page-link" title="">
-                    <i class="fa-solid fa-cart-shopping"></i><span class="cart-badge">0</span>
+                    <i class="fa-solid fa-cart-shopping"></i><span class="cart-badge" id="cart-badge">0</span>
                 </a>
-            </div>
-            <div class="auth-status-container" id="auth-status-container">
-                <span id="auth-status-text">Misafir</span>
-                <div class="auth-buttons" id="auth-buttons">
-                    <button id="google-login-btn" class="auth-button google">Giriş Yap</button>
-                    <button id="anonymous-login-btn" class="auth-button">Anonim Devam</button>
-                    <button id="logout-btn" class="auth-button" style="display:none;">Çıkış Yap</button>
-                </div>
+                <div id="user-controls-container" class="user-controls-dropdown">
+                    </div>
             </div>
         </div>
     </header>
 
-    <nav id="mobile-nav" class="mobile-nav">
-        <div class="mobile-nav-header">Kategoriler</div> <ul id="mobile-category-menu-container"></ul> <div class="auth-status-container" id="mobile-auth-status-container">
-            <span id="mobile-auth-status-text">Misafir</span>
-            <div class="auth-buttons" id="mobile-auth-buttons">
-                <button id="mobile-google-login-btn" class="auth-button google">Giriş Yap</button>
-                <button id="mobile-anonymous-login-btn" class="auth-button">Anonim Devam</button>
-                <button id="mobile-logout-btn" class="auth-button" style="display:none;">Çıkış Yap</button>
-            </div>
-        </div>
-    </nav>
+    <nav id="mobile-nav" class="mobile-nav"></nav>
 
     <nav class="category-nav"><div class="container"><ul id="category-menu-container"></ul></div></nav>
 
     <main class="container">
-        <div class="cart-container">
-            <h1 id="cart-page-title"></h1>
+        <h1 class="page-title" id="cart-page-title">Sepetim</h1>
+
+        <div class="cart-layout">
             <div class="cart-items" id="cart-items-container">
-                </div>
-            <p id="cart-empty-message" class="cart-empty-message" style="display:none;"></p>
-            <div class="cart-summary">
-                <p id="cart-subtotal-label"></p>
-                <p id="cart-shipping-label"></p>
-                <p id="cart-total-label"></p>
+                <p id="empty-cart-message" class="empty-cart-message" style="display:none;"></p>
             </div>
-            <div class="cart-actions">
-                <button id="continue-shopping-btn" class="btn btn-primary"></button>
-                <button id="proceed-to-checkout-btn" class="btn btn-secondary"></button>
+
+            <div class="cart-summary" id="cart-summary">
+                <h2>Sipariş Özeti</h2>
+                <div class="summary-line">
+                    <span>Ara Toplam:</span>
+                    <span id="cart-subtotal"></span>
+                </div>
+                <div class="summary-line">
+                    <span>Kargo:</span>
+                    <span id="cart-shipping-cost"></span>
+                </div>
+                <div class="summary-line total">
+                    <span>Genel Toplam:</span>
+                    <span id="cart-total"></span>
+                </div>
+                <button class="btn-checkout" id="btn-checkout">Ödeme Yap</button>
             </div>
         </div>
 
-        <section class="order-history-section">
-            <h2 id="order-history-title"></h2>
-            <div id="order-history-container">
-                <p class="order-history-empty" id="order-history-empty"></p>
-            </div>
-        </section>
+        <div class="past-orders-section" id="past-orders-section" style="display:none;">
+            <h2 id="past-orders-title">Geçmiş Siparişlerim</h2>
+            <div id="no-past-orders-message" class="empty-cart-message" style="display:none;"></div>
+            <table class="order-table" id="past-orders-table">
+                <thead>
+                    <tr>
+                        <th id="order-table-header-code">Sipariş Kodu</th>
+                        <th id="order-table-header-date">Tarih</th>
+                        <th id="order-table-header-total">Toplam Tutar</th>
+                        <th id="order-table-header-status">Durum</th>
+                        <th id="order-table-header-actions">İşlemler</th>
+                    </tr>
+                </thead>
+                <tbody id="past-orders-table-body">
+                    </tbody>
+            </table>
+        </div>
+
     </main>
 
     <footer class="main-footer">
@@ -580,12 +502,11 @@
         </div>
     </footer>
 
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
-
     <script type="module">
-        // Firebase Config
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        import { getFirestore, doc, getDoc, setDoc, updateDoc, arrayRemove, arrayUnion, collection, query, where, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signInAnonymously, signOut } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+
         const firebaseConfig = {
             apiKey: "AIzaSyDYkzZzNXB22U4oEXxOoPh-puwuE8kz0g4",
             authDomain: "pufemo-com.firebaseapp.com",
@@ -595,266 +516,223 @@
             appId: "1:983352837227:web:defaa8dae215776e2e1d2e",
         };
         
+        let app;
         let db;
         let auth;
         try {
-            const app = firebase.initializeApp(firebaseConfig);
-            db = firebase.firestore();
-            auth = firebase.auth();
+            app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
         } catch (e) { 
             console.error("Firebase başlatma hatası!", e); 
             if (document.getElementById('loading-overlay')) document.getElementById('loading-overlay').classList.add('hidden');
-            const defaultLangOnError = 'tr';
-            if (document.getElementById('loading-text')) document.getElementById('loading-text').textContent = "Hata: Sayfa yüklenemedi!";
-            if (document.getElementById('cart-page-title')) document.getElementById('cart-page-title').textContent = "Sepet Yüklenemedi";
-             // Firebase başlatılamazsa tüm kontrolleri devre dışı bırak
-            document.querySelectorAll('button, select, input, a.cart-icon').forEach(el => {
-                if (el.tagName === 'A') { // Linkler için href'i kaldır
-                    el.removeAttribute('href');
-                } else {
-                    el.disabled = true;
-                }
-            });
+            // Fallback for static texts if Firebase init fails
+            // ... (Add relevant static text fallbacks here similar to other pages)
         }
 
-        if (db) {
-            function countryCodeToEmoji(code) {
-                if (!code || code.length !== 2) {
-                    return '';
-                }
-                return code.toUpperCase().split('').map(char =>
-                    String.fromCodePoint(char.charCodeAt(0) + 127397)
-                ).join('');
-            }
-
-            const staticTranslations = {
-                'loading_text': { tr: 'PUFEMO Yükleniyor...', en: 'Loading PUFEMO...', el: 'Φόρτωση PUFEMO...', ru: 'Загрузка PUFEMO...', de: 'PUFEMO wird geladen...', fr: 'Chargement de PUFEMO...', it: 'Caricamento PUFEMO...' },
-                'mobile_menu_title': { tr: 'Kategoriler', en: 'Categories', el: 'Κατηγορίες', ru: 'Категории', de: 'Kategorien', fr: 'Catégories', it: 'Categorie' },
-                'footer-title-pufemo': { tr: 'PUFEMO', en: 'PUFEMO', el: 'PUFEMO', ru: 'ПУΦΕΜΟ', de: 'PUFEMO', fr: 'PUFEMO', it: 'PUFEMO' },
-                'footer-desc-pufemo': { tr: 'Hayallerinizdeki konforu ve estetiği evinize taşıyoruz.', en: 'We bring the comfort and aesthetics of your dreams to your home.', el: 'Φέρνουμε την άνεση και την αισθητική των ονείρων σας στο σπίτι σας.', ru: 'Мы приносим комфорт и эстетику в ваш дом.', de: 'Wir bringen den Komfort und die Ästhetik Ihrer Träume in Ihr Zuhause.', fr: 'Nous apportamos el confort y la estética de tus sueños a tu hogar.', it: 'Portiamo il comfort e l\'estetica dei vostri sogni nella vostra casa.' },
-                'footer-title-fast-links': { tr: 'Hızlı Bağlantılar', en: 'Quick Links', el: 'Γρήγοροι Σύνδεσμοι', ru: 'Быстрые ссылки', de: 'Schnelllinks', fr: 'Liens Rapides', it: 'Link Veloci' },
-                'footer-link-about': { tr: 'Hakkımızda', en: 'About Us', el: 'Σχετικά με εμάς', ru: 'О нас', de: 'Über Uns', fr: 'À Propos', it: 'Chi Siamo' },
-                'footer-link-contact': { tr: 'İletişim', en: 'Contact', el: 'Επικοινωνία', ru: 'Контакт', de: 'Kontakt', fr: 'Contact', it: 'Contatti' },
-                'footer-link-privacy': { tr: 'Gizlilik Politikası', en: 'Privacy Policy', el: 'Πολιτική Απορρήτου', ru: 'Политика конфиденциальности', de: 'Datenschutzbestimmungen', fr: 'Politique de Confidentialité', it: 'Informativa sulla Privacy' },
-                'footer-title-follow-us': { tr: 'Bizi Takip Edin', en: 'Follow Us', el: 'Ακολουθήστε μας', ru: 'Следите за нами', de: 'Folgen Sie Uns', fr: 'Suivez-nous', it: 'Seguici' },
-                'footer-copyright': { tr: '&copy; 2025 PUFEMO.COM | Tüm Hakları Saklıdır.', en: '&copy; 2025 PUFEMO.COM | All Rights Reserved.', el: '&copy; 2025 PUFEMO.COM | Με την επιφύλαξη παντός δικαιώματος.', ru: '&copy; 2025 PUFEMO.COM | Все права защищены.', de: '&copy; 2025 PUFEMO.COM | Alle Rechte vorbehalten.', fr: '&copy; 2025 PUFEMO.COM | Tous droits réservés.', it: '&copy; 2025 PUFEMO.COM | Tutti i diritti riservati.' },
-                'country_selector_label': { tr: 'Ülke Seçimi:', en: 'Select Country:', el: 'Επιλέξτε Χώρα:', ru: 'Выбрать страну:', de: 'Land auswählen:', fr: 'Sélectionner le pays :', it: 'Seleziona Paese:' },
-                'welcome_modal_title': { tr: 'Hoş Geldiniz!', en: 'Welcome!', el: 'Καλώς ήρθατε!', ru: 'Добро пожаловать!', de: 'Willkommen!', fr: 'Bienvenue !', it: 'Benvenuto!' },
-                'welcome_modal_message': { tr: 'Lütfen ülkenizi seçin.', en: 'Please select your country below.', el: 'Παρακαλώ επιλέξτε τη χώρα σας παρακάτω.', ru: 'Пожалуйста, выберите свою страну ниже.', de: 'Bitte wählen Sie Ihr Land unten aus.', fr: 'Veuillez sélectionner votre pays ci-dessous.', it: 'Seleziona il tuo paese qui sotto.' },
-                'welcome_modal_confirm_button': { tr: 'Devam Et', en: 'Continue', el: 'Συνέχεια', ru: 'Продолжить', de: 'Weiter', fr: 'Continuer', it: 'Continua' },
-                'promo_bar_text': { tr: 'Ücretsiz Kargo Fırsatını Kaçırmayın!', en: 'Don\'t Miss Free Shipping!', el: 'Μην χάσετε τη δωρεάν αποστολή!', ru: 'Не пропустите бесплатную доставку!', de: 'Verpassen Sie nicht den kostenlosen Versand!', fr: 'Ne manquez pas la livraison gratuite !', it: 'Non perdere la spedizione gratuita!' },
-                'cart_page_link_title': { tr: 'Sepetim', en: 'My Cart', el: 'Το καλάθι μου', ru: 'Моя корзина', de: 'Mein Warenkorb', fr: 'Mon Panier', it: 'Il mio Carrello' },
-                'untitled_product': { tr: 'İsimsiz Ürün', en: 'Untitled Product', el: 'Προϊόν χωρίς τίτλο', ru: 'Товар без названия', de: 'Unbenanntes Produkt', fr: 'Produit sans titre', it: 'Prodotto senza titolo' },
-                'cart_page_title': { tr: 'Sepetim', en: 'My Cart', el: 'Το Καλάθι μου', ru: 'Моя Корзина', de: 'Mein Warenkorb', fr: 'Mon Panier', it: 'Il mio Carrello' },
-                'cart_empty_message': { tr: 'Sepetinizde ürün bulunmamaktadır.', en: 'Your cart is empty.', el: 'Το καλάθι σας είναι άδειο.', ru: 'Ваша корзина пуста.', de: 'Ihr Warenkorb is leer.', fr: 'Votre panier est vide.', it: 'Il tuo carrello è vuoto.' },
-                'cart_subtotal_label': { tr: 'Ara Toplam:', en: 'Subtotal:', el: 'Υποσύνολο:', ru: 'Подытог:', de: 'Zwischensumme:', fr: 'Sous-total :', it: 'Subtotale:' },
-                'cart_shipping_label': { tr: 'Kargo:', en: 'Shipping:', el: 'Μεταφορικά:', ru: 'Доставка:', de: 'Versand:', fr: 'Livraison :', it: 'Spedizione:' },
-                'cart_total_label': { tr: 'Toplam:', en: 'Total:', el: 'Σύνολο:', ru: 'Иστοτ:', de: 'Gesamtsumme:', fr: 'Total :', it: 'Totale:' },
-                'continue_shopping_button': { tr: 'Alışverişe Devam Et', en: 'Continue Shopping', el: 'Συνέχιση αγορών', ru: 'Продолжить покупки', de: 'Weiter einkaufen', fr: 'Continuer mes achats', it: 'Continua lo shopping' },
-                'proceed_to_checkout_button': { tr: 'Kasaya Git', en: 'Proceed to Checkout', el: 'Προχωρήστε στην πληρωμή', ru: 'Перейти к оформлению', de: 'Zur Kasse gehen', fr: 'Passer à la caisse', it: 'Procedi al checkout' },
-                'remove_item_button': { tr: 'Kaldır', en: 'Remove', el: 'Αφαίρεση', ru: 'Удалить', de: 'Entfernen', fr: 'Supprimer', it: 'Rimuovi' },
-                'order_history_title': { tr: 'Sipariş Geçmişi', en: 'Order History', el: 'Ιστορικό Παραγγελιών', ru: 'История заказов', de: 'Bestellverlauf', fr: 'Historique des commandes', it: 'Storico Ordini' },
-                'order_history_empty': { tr: 'Henüz bir siparişiniz bulunmamaktadır.', en: 'You have no orders yet.', el: 'Δεν έχετε παραγγελίες ακόμη.', ru: 'У вас пока нет заказов.', de: 'Sie haben noch keine Bestellungen.', fr: 'Vous n\'avez pas encore de commande.', it: 'Non hai ancora ordini.' },
-                'order_status_pending': { tr: 'Ödeme Bekleniyor', en: 'Payment Pending', el: 'Αναμονή Πληρωμής', ru: 'Ожидает оплаты', de: 'Zahlung ausstehend', fr: 'Paiement en attente', it: 'Pagamento in sospeso' },
-                'order_status_approved': { tr: 'Onaylandı', en: 'Approved', el: 'Εγκρίθηκε', ru: 'Подтверждено', de: 'Genehmigt', fr: 'Approuvé', it: 'Approvato' },
-                'order_status_shipped': { tr: 'Kargoda', en: 'Shipped', el: 'Σε αποστολή', ru: 'В пути', de: 'Versandt', fr: 'Expédié', it: 'Spedito' },
-                'order_status_delivered': { tr: 'Teslim Edildi', en: 'Delivered', el: 'Παραδόθηκε', ru: 'Доставлено', de: 'Geliefert', fr: 'Consegnato', it: 'Consegnato' },
-                'order_status_cancelled': { tr: 'İptal Edildi', en: 'Cancelled', el: 'Ακυρώθηκε', ru: 'Отменено', de: 'Storniert', fr: 'Annulé', it: 'Annullato' },
-                'order_id_label': { tr: 'Sipariş Kodu:', en: 'Order ID:', el: 'Κωδικός Παραγγελίας:', ru: 'Код заказа:', de: 'Bestell-ID:', fr: 'Numéro de commande :', it: 'ID Ordine:' },
-                'order_date_label': { tr: 'Tarih:', en: 'Date:', el: 'Ημερομηνία:', ru: 'Дата:', de: 'Datum:', fr: 'Date :', it: 'Data:' },
-                'order_total_label': { tr: 'Toplam Tutar:', en: 'Total Amount:', el: 'Συνολικό Ποσό:', ru: 'Общая сумма:', de: 'Gesamtbetrag:', fr: 'Montant total :', it: 'Importo totale:' },
-                'order_status_label': { tr: 'Durum:', en: 'Status:', el: 'Κατάσταση:', ru: 'Статус:', de: 'Status:', fr: 'Statut :', it: 'Stato:' },
-                'order_items_label': { tr: 'Ürünler:', en: 'Items:', el: 'Είδη:', ru: 'Товары:', de: 'Artikel:', fr: 'Articles :', it: 'Articoli:' },
-                'auth_login_button': { tr: 'Giriş Yap', en: 'Login', el: 'Σύνδεση', ru: 'Войти', de: 'Anmelden', fr: 'Connexion', it: 'Accedi' },
-                'auth_anonymous_button': { tr: 'Anonim Devam', en: 'Continue Anonymously', el: 'Συνέχεια ως ανώνυμος', ru: 'Продолжить анонимно', de: 'Anonym fortfahren', it: 'Continua come anonimo' },
-                'auth_logout_button': { tr: 'Çıkış Yap', en: 'Logout', el: 'Αποσύνδεση', ru: 'Выйти', de: 'Abmelden', fr: 'Déconnexion', it: 'Esci' },
-                'auth_welcome_text': { tr: 'Hoş Geldiniz, {displayName}', en: 'Welcome, {displayName}', el: 'Καλώς ήρθατε, {displayName}', ru: 'Добро пожаловать, {displayName}', de: 'Willkommen, {displayName}', fr: 'Bienvenue, {displayName}', it: 'Benvenuto, {displayName}' },
-                'auth_guest_text': { tr: 'Misafir', en: 'Guest', el: 'Επισκέπτης', ru: 'Гость', de: 'Gast', fr: 'Invité', it: 'Ospite' },
-                'auth_google_login': { tr: 'Google ile Giriş Yap', en: 'Sign in with Google', el: 'Σύνδεση με Google', ru: 'Войти через Google', de: 'Mit Google anmelden', fr: 'Se connecter avec Google', it: 'Accedi con Google' }
-
-            };
-
+        if (db && auth) {
+            // --- Global State & Elements ---
             let siteData = {
                 settings: {
                     languages: [],
                     general: { logo: {}, promoBar: {} },
                     countryPricing: {},
                     currencySymbols: {},
-                    exchangeRates: {}
+                    exchangeRates: {} // Not yet implemented for real rates, but structure is here
                 },
                 categories: { tree: [] },
-                products: [],
-                cart: []
+                products: [] // Will fetch all products initially for cart item details
             };
 
+            let currentUser = null; // Firebase Auth user object
             let currentLang = localStorage.getItem('pufemo-language') || 'tr';
             let currentCurrency = localStorage.getItem('pufemo-currency') || 'USD';
             let currentCountryCode = localStorage.getItem('pufemo-country') || '';
-            let currentUser = null; // Firebase Auth kullanıcısı
 
+            // Cart data structure: [{ productId: 'abc', variantId: 'xyz', quantity: 2, price: 100 }, ...]
+            let cartItems = []; 
+
+            // DOM Elements
             const loadingOverlay = document.getElementById('loading-overlay');
             const loadingTextP = document.getElementById('loading-text');
-
-            const welcomeModalOverlay = document.getElementById('welcomeModalOverlay');
-            const welcomeCountrySelect = document.getElementById('welcomeCountrySelect');
-            const welcomeModalConfirmButton = document.getElementById('welcomeModalConfirmButton');
-            const welcomeModalTitle = document.getElementById('welcome-modal-title');
-            const welcomeModalMessage = document.getElementById('welcome-modal-message');
-
-            const cartPageTitle = document.getElementById('cart-page-title');
             const cartItemsContainer = document.getElementById('cart-items-container');
-            const cartEmptyMessage = document.getElementById('cart-empty-message');
-            const cartSubtotalLabel = document.getElementById('cart-subtotal-label');
-            const cartShippingLabel = document.getElementById('cart-shipping-label');
-            const cartTotalLabel = document.getElementById('cart-total-label');
-            const continueShoppingBtn = document.getElementById('continue-shopping-btn');
-            const proceedToCheckoutBtn = document.getElementById('proceed-to-checkout-btn');
+            const emptyCartMessage = document.getElementById('empty-cart-message');
+            const cartSubtotalEl = document.getElementById('cart-subtotal');
+            const cartShippingCostEl = document.getElementById('cart-shipping-cost');
+            const cartTotalEl = document.getElementById('cart-total');
+            const btnCheckout = document.getElementById('btn-checkout');
+            const cartBadge = document.getElementById('cart-badge');
 
-            // Yeni: Sipariş Geçmişi DOM Elementleri
-            const orderHistoryTitle = document.getElementById('order-history-title');
-            const orderHistoryContainer = document.getElementById('order-history-container');
-            const orderHistoryEmpty = document.getElementById('order-history-empty');
+            // Past Orders Elements
+            const pastOrdersSection = document.getElementById('past-orders-section');
+            const pastOrdersTableBody = document.getElementById('past-orders-table-body');
+            const noPastOrdersMessage = document.getElementById('no-past-orders-message');
 
-            const mainLogoLink = document.getElementById('main-logo-link');
-            const languageSelector = document.getElementById('language-selector');
-            const currencySelector = document.getElementById('currency-selector');
-            const countrySelector = document.getElementById('country-selector');
-            const cartBadge = document.querySelector('.cart-badge');
+            // Header Controls
+            const userControlsContainer = document.getElementById('user-controls-container');
             const hamburgerBtn = document.getElementById('hamburger-menu-btn');
             const mobileNav = document.getElementById('mobile-nav');
             const mobileNavOverlay = document.getElementById('mobile-nav-overlay');
-            const promoBar = document.querySelector('.promo-bar');
-            const promoTextContent = document.getElementById('promo-text-content');
-            const categoryMenuContainer = document.getElementById('category-menu-container');
-            const mobileCategoryMenuContainer = document.getElementById('mobile-category-menu-container');
+            const languageSelector = document.getElementById('language-selector');
+            const currencySelector = document.getElementById('currency-selector');
+            const countrySelector = document.getElementById('country-selector');
+            const mainLogoLink = document.getElementById('main-logo-link');
+            const cartPageLink = document.getElementById('cart-page-link');
 
-            // Auth UI Elements
-            const authStatusContainer = document.getElementById('auth-status-container');
-            const authStatusText = document.getElementById('auth-status-text');
-            const authButtons = document.getElementById('auth-buttons');
-            const googleLoginBtn = document.getElementById('google-login-btn');
-            const anonymousLoginBtn = document.getElementById('anonymous-login-btn');
-            const logoutBtn = document.getElementById('logout-btn');
-
-            // Mobile Auth UI Elements
-            const mobileAuthStatusContainer = document.getElementById('mobile-auth-status-container');
-            const mobileAuthStatusText = document.getElementById('mobile-auth-status-text');
-            const mobileAuthButtons = document.getElementById('mobile-auth-buttons');
-            const mobileGoogleLoginBtn = document.getElementById('mobile-google-login-btn');
-            const mobileAnonymousLoginBtn = document.getElementById('mobile-anonymous-login-btn');
-            const mobileLogoutBtn = document.getElementById('mobile-logout-btn');
+            // Welcome Modal (should be hidden on cart.html)
+            const welcomeModalOverlay = document.getElementById('welcomeModalOverlay');
 
 
-            function showLoading() { loadingOverlay.classList.remove('hidden'); }
-            function hideLoading() { loadingOverlay.classList.add('hidden'); }
+            // --- Static Translations (Expanded for Cart/Orders) ---
+            const staticTranslations = {
+                'loading_text': {
+                    tr: 'PUFEMO Yükleniyor...', en: 'Loading PUFEMO...', el: 'Φόρτωση PUFEMO...', ru: 'Загрузка PUFEMO...',
+                    de: 'PUFEMO wird geladen...', fr: 'Chargement de PUFEMO...', it: 'Caricamento PUFEMO...'
+                },
+                'mobile_menu_title': {
+                    tr: 'Kategoriler', en: 'Categories', el: 'Κατηγορίες', ru: 'Категории',
+                    de: 'Kategorien', fr: 'Catégories', it: 'Categorie'
+                },
+                'footer-title-pufemo': { tr: 'PUFEMO', en: 'PUFEMO', el: 'PUFEMO', ru: 'ПУΦΕΜΟ', de: 'PUFEMO', fr: 'PUFEMO', it: 'PUFEMO' },
+                'footer-desc-pufemo': {
+                    tr: 'Hayallerinizdeki konforu ve estetiği evinize taşıyoruz.', en: 'We bring the comfort and aesthetics of your dreams to your home.',
+                    el: 'Φέρνουμε την άνεση και την αισθητική των ονείρων σας στο σπίτι σας.', ru: 'Мы приносим комфорт и эстетику в ваш дом.',
+                    de: 'Wir bringen den Komfort und die Ästhetik Ihrer Träume in Ihr Zuhause.', fr: 'Nous apportons le confort et l\'esthétique de vos rêves à votre maison.',
+                    it: 'Portiamo il comfort e l\'estetica dei vostri sogni nella vostra casa.'
+                },
+                'footer-title-fast-links': {
+                    tr: 'Hızlı Bağlantılar', en: 'Quick Links', el: 'Γρήγοροι Σύνδεσμοι', ru: 'Быстрые ссылки',
+                    de: 'Schnelllinks', fr: 'Liens Rapides', it: 'Link Veloci'
+                },
+                'footer-link-about': { tr: 'Hakkımızda', en: 'About Us', el: 'Σχετικά με εμάς', ru: 'О нас', de: 'Über Uns', fr: 'À Propos', it: 'Chi Siamo' },
+                'footer-link-contact': { tr: 'İletişim', en: 'Contact', el: 'Επικοινωνία', ru: 'Контакт', de: 'Kontakt', fr: 'Contact', it: 'Contatti' },
+                'footer-link-privacy': { tr: 'Gizlilik Politikası', en: 'Privacy Policy', el: 'Πολιτική Απορρήτου', ru: 'Политика конфиденциальности', de: 'Datenschutzbestimmungen', fr: 'Politique de Confidentialité', it: 'Informativa sulla Privacy' },
+                'footer-title-follow-us': { tr: 'Bizi Takip Edin', en: 'Follow Us', el: 'Ακολουθήστε μας', ru: 'Следите за нами', de: 'Folgen Sie Uns', fr: 'Suivez-nous', it: 'Seguici' },
+                'footer-copyright': { tr: '&copy; 2025 PUFEMO.COM | Tüm Hakları Saklıdır.', en: '&copy; 2025 PUFEMO.COM | All Rights Reserved.', el: '&copy; 2025 PUFEMO.COM | Με την επιφύλαξη παντός δικαιώματος.', ru: '&copy; 2025 PUFEMO.COM | Все права защищены.', de: '&copy; 2025 PUFEMO.COM | Alle Rechte vorbehalten.', fr: '&#169; 2025 PUFEMO.COM | Tous droits réservés.', it: '&#169; 2025 PUFEMO.COM | Tutti i diritti riservati.' },
+                'country_selector_label': {
+                    tr: 'Ülke Seçimi:', en: 'Select Country:', el: 'Επιλέξτε Χώρα:', ru: 'Выбрать страну:',
+                    de: 'Land auswählen:', fr: 'Sélectionner le pays :', it: 'Seleziona Paese:'
+                },
+                'cart_page_title': {
+                    tr: 'Sepetim', en: 'My Cart', el: 'Το καλάθι μου', ru: 'Моя корзина',
+                    de: 'Mein Warenkorb', fr: 'Mon Panier', it: 'Il mio Carrello'
+                },
+                'order_summary_title': {
+                    tr: 'Sipariş Özeti', en: 'Order Summary', el: 'Σύνοψη Παραγγελίας', ru: 'Сводка заказа',
+                    de: 'Bestellübersicht', fr: 'Récapitulatif de la commande', it: 'Riepilogo Ordine'
+                },
+                'subtotal_label': { tr: 'Ara Toplam:', en: 'Subtotal:', el: 'Υποσύνολο:', ru: 'Промежуточный итог:', de: 'Zwischensumme:', fr: 'Sous-total :', it: 'Subtotale:' },
+                'shipping_label': { tr: 'Kargo:', en: 'Shipping:', el: 'Μεταφορικά:', ru: 'Доставка:', de: 'Versand:', fr: 'Livraison :', it: 'Spedizione:' },
+                'total_label': { tr: 'Genel Toplam:', en: 'Total:', el: 'Σύνολο:', ru: 'Итого:', de: 'Gesamt:', fr: 'Totale:' },
+                'checkout_button': { tr: 'Ödeme Yap', en: 'Proceed to Checkout', el: 'Προχωρήστε στην πληρωμή', ru: 'Перейти к оформлению заказа', de: 'Zur Kasse gehen', fr: 'Passer à la caisse', it: 'Procedi al Pagamento' },
+                'empty_cart_message': {
+                    tr: 'Sepetiniz boş. Hadi alışverişe başlayalım!', en: 'Your cart is empty. Let\'s start shopping!',
+                    el: 'Το καλάθι σας είναι άδειο. Ας ξεκινήσουμε τις αγορές!', ru: 'Ваша корзина пуста. Давайте начнем покупки!',
+                    de: 'Ihr Warenkorb ist leer. Lass uns einkaufen gehen!', fr: 'Votre panier est vide. Commençons les achats !',
+                    it: 'Il carrello è vuoto. Iniziamo a fare acquisti!'
+                },
+                'remove_item_tooltip': { tr: 'Ürünü Sepetten Kaldır', en: 'Remove Item from Cart', el: 'Αφαίρεση προϊόντος από το καλάθι', ru: 'Удалить товар из корзины', de: 'Artikel aus dem Warenkorb entfernen', fr: 'Supprimer l\'article du panier', it: 'Rimuovi articolo dal carrello' },
+                'quantity_label': { tr: 'Adet:', en: 'Quantity:', el: 'Ποσότητα:', ru: 'Количество:', de: 'Menge:', fr: 'Quantité :', it: 'Quantità:' },
+                'past_orders_title': { tr: 'Geçmiş Siparişlerim', en: 'My Past Orders', el: 'Οι Προηγούμενες Παραγγελίες μου', ru: 'Мои прошлые заказы', de: 'Meine vergangenen Bestellungen', fr: 'Mes commandes passées', it: 'I miei Ordini Passati' },
+                'no_past_orders': { tr: 'Henüz bir siparişiniz bulunmuyor.', en: 'You have no past orders yet.', el: 'Δεν έχετε προηγούμενες παραγγελίες ακόμα.', ru: 'У вас пока нет прошлых заказов.', de: 'Sie haben noch keine vergangenen Bestellungen.', fr: 'Vous n\'avez pas encore de commandes passées.', it: 'Non hai ancora ordini passati.' },
+                'order_table_header_code': { tr: 'Sipariş Kodu', en: 'Order Code', el: 'Κωδικός Παραγγελίας', ru: 'Код заказа', de: 'Bestellcode', fr: 'Code de commande', it: 'Codice Ordine' },
+                'order_table_header_date': { tr: 'Tarih', en: 'Date', el: 'Ημερομηνία', ru: 'Дата', de: 'Datum', fr: 'Date', it: 'Data' },
+                'order_table_header_total': { tr: 'Toplam Tutar', en: 'Total Amount', el: 'Συνολικό Ποσό', ru: 'Общая сумма', de: 'Gesamtbetrag', fr: 'Montant total', it: 'Importo Totale' },
+                'order_table_header_status': { tr: 'Durum', en: 'Status', el: 'Κατάσταση', ru: 'Статус', de: 'Status', fr: 'Statut', it: 'Stato' },
+                'order_table_header_actions': { tr: 'İşlemler', en: 'Actions', el: 'Ενέργειες', ru: 'Действия', de: 'Aktionen', fr: 'Actions', it: 'Azioni' },
+                'status_pending': { tr: 'Ödeme Bekliyor', en: 'Payment Pending', el: 'Αναμονή Πληρωμής', ru: 'Ожидание оплаты', de: 'Zahlung ausstehend', fr: 'Paiement en attente', it: 'Pagamento in Sospeso' },
+                'status_processing': { tr: 'Onaylanıyor', en: 'Processing', el: 'Υπό επεξεργασία', ru: 'В обработке', de: 'In Bearbeitung', fr: 'En cours de traitement', it: 'In Elaborazione' },
+                'status_in_production': { tr: 'Üretimde', en: 'In Production', el: 'Σε Παραγωγή', ru: 'В производстве', de: 'In Produktion', fr: 'En production', it: 'In Produzione' },
+                'status_shipped': { tr: 'Kargoda', en: 'Shipped', el: 'Απεστάλη', ru: 'Отправлено', de: 'Versandt', fr: 'Expédié', it: 'Spedito' },
+                'status_delivered': { tr: 'Teslim Edildi', en: 'Delivered', el: 'Παραδόθηκε', ru: 'Доставлено', de: 'Geliefert', fr: 'Livré', it: 'Consegnato' },
+                'status_cancelled': { tr: 'İptal Edildi', en: 'Cancelled', el: 'Ακυρώθηκε', ru: 'Отменено', de: 'Storniert', fr: 'Annulé', it: 'Annullato' },
+                'login_register': { tr: 'Giriş Yap / Kayıt Ol', en: 'Login / Register', el: 'Σύνδεση / Εγγραφή', ru: 'Войти / Зарегистрироваться', de: 'Anmelden / Registrieren', fr: 'Connexion / Inscription', it: 'Accedi / Registrati' },
+                'my_account': { tr: 'Hesabım', en: 'My Account', el: 'Ο λογαριασμός μου', ru: 'Мой аккаунт', de: 'Mein Konto', fr: 'Mon compte', it: 'Il mio account' },
+                'logout': { tr: 'Çıkış Yap', en: 'Logout', el: 'Αποσύνδεση', ru: 'Выйти', de: 'Abmelden', fr: 'Déconnexion', it: 'Esci' },
+                'continue_as_guest': { tr: 'Misafir Olarak Devam Et', en: 'Continue as Guest', el: 'Συνέχιση ως επισκέπτης', ru: 'Продолжить как гость', de: 'Als Gast fortfahren', fr: 'Continuer en tant qu\'invité', it: 'Continua come ospite' },
+                'no_image': { tr: 'Resim Yok', en: 'No Image', el: 'Χωρίς Εικόνα', ru: 'Нет изображения', de: 'Kein Bild', fr: 'Pas d\'image', it: 'Nessuna immagine' },
+                'untitled_product': { tr: 'İsimsiz Ürün', en: 'Untitled Product', el: 'Προϊόν χωρίς τίτλο', ru: 'Товар без названия', de: 'Unbenanntes Produkt', fr: 'Produit sans titre', it: 'Prodotto senza titolo' },
+            };
 
+            // --- Utility Functions ---
+
+            // Helper to get translated text
             const translate = (key) => staticTranslations[key]?.[currentLang] || staticTranslations[key]?.['en'] || staticTranslations[key]?.['tr'] || '';
 
-            // --- Sepet ve Kullanıcı Sepeti Kalıcılığı ---
-            const CART_LOCAL_STORAGE_KEY = 'pufemo-cart'; // Geçmişte kullanılan genel sepet anahtarı
-            const ANONYMOUS_CART_PREFIX = 'pufemo-anon-cart-'; // Anonim sepet için UID tabanlı key
-            const AUTHED_CART_COLLECTION = 'userCarts'; // Giriş yapmış kullanıcılar için Firestore koleksiyonu
+            // Convert country code to emoji flag
+            function countryCodeToEmoji(code) {
+                if (!code || code.length !== 2) { return ''; }
+                return code.toUpperCase().split('').map(char => String.fromCodePoint(char.charCodeAt(0) + 127397)).join('');
+            }
 
-            async function loadCart() {
-                siteData.cart = []; // Sepeti sıfırla
+            // Price formatting function (from index.html/product.html)
+            const formatPrice = (basePrice, discountPrice = null) => {
+                const symbols = siteData.settings?.currencySymbols || {};
+                const selectedCountryData = siteData.settings.countryPricing[currentCountryCode];
+                let priceToFormat = discountPrice !== null ? discountPrice : basePrice;
 
-                if (currentUser && !currentUser.isAnonymous) {
-                    // Google ile giriş yapmış kullanıcı
-                    const cartRef = db.collection(AUTHED_CART_COLLECTION).doc(currentUser.uid);
-                    const docSnap = await cartRef.get();
-                    if (docSnap.exists) {
-                        siteData.cart = docSnap.data().items || [];
-                        console.log("Firestore'dan sepet yüklendi:", siteData.cart);
-                    }
-
-                    // LocalStorage'daki anonim sepeti taşı (bir kereye mahsus taşıma mantığı)
-                    const anonymousCartId = localStorage.getItem(ANONYMOUS_CART_PREFIX + 'id');
-                    if (anonymousCartId) {
-                         const anonCartItems = JSON.parse(localStorage.getItem(ANONYMOUS_CART_PREFIX + anonymousCartId)) || [];
-                         if (anonCartItems.length > 0) {
-                             // Firestore sepetiyle anonim sepeti birleştir (mevcut sepeti Firestore'dan yükledikten sonra)
-                             const mergedCart = mergeCarts(siteData.cart, anonCartItems);
-                             siteData.cart = mergedCart;
-                             await saveCart(currentUser.uid, mergedCart); // Birleştirilmiş sepeti Firestore'a kaydet
-                             localStorage.removeItem(ANONYMOUS_CART_PREFIX + anonymousCartId); // Anonim sepeti temizle
-                             localStorage.removeItem(ANONYMOUS_CART_PREFIX + 'id'); // Anonim sepet ID'sini temizle
-                             console.log("Anonim sepet Firestore'a taşındı ve birleştirildi.");
-                         }
-                    }
-
-                } else {
-                    // Anonim kullanıcı veya çıkış yapmış kullanıcı (tarayıcı LocalStorage)
-                    let anonymousCartId = localStorage.getItem(ANONYMOUS_CART_PREFIX + 'id');
-                    if (!anonymousCartId) {
-                        // Yeni anonim oturum, yeni bir ID oluştur
-                        anonymousCartId = `anon_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-                        localStorage.setItem(ANONYMOUS_CART_PREFIX + 'id', anonymousCartId);
-                    }
-                    siteData.cart = JSON.parse(localStorage.getItem(ANONYMOUS_CART_PREFIX + anonymousCartId)) || [];
-                    console.log("LocalStorage'dan anonim sepet yüklendi:", siteData.cart);
+                if (selectedCountryData && typeof selectedCountryData.adjustment === 'number') {
+                    const adjustmentPercentage = selectedCountryData.adjustment / 100;
+                    priceToFormat = priceToFormat * (1 + adjustmentPercentage);
                 }
-                updateCartBadge();
-            }
 
-            async function saveCart(uid, cartItems) {
-                if (uid && !currentUser.isAnonymous) {
-                    // Giriş yapmış kullanıcılar için Firestore
-                    await db.collection(AUTHED_CART_COLLECTION).doc(uid).set({ items: cartItems }, { merge: true });
-                    console.log("Sepet Firestore'a kaydedildi.");
-                } else {
-                    // Anonim kullanıcılar için LocalStorage
-                    const anonymousCartId = localStorage.getItem(ANONYMOUS_CART_PREFIX + 'id');
-                    if (anonymousCartId) {
-                        localStorage.setItem(ANONYMOUS_CART_PREFIX + anonymousCartId, JSON.stringify(cartItems));
-                        console.log("Sepet LocalStorage'a kaydedildi (anonim).");
-                    }
+                const rates = siteData.settings?.exchangeRates || {};
+                const rate = rates[currentCurrency] || 1; // Assuming 1 if no rate found
+                priceToFormat = priceToFormat * rate;
+
+                const symbol = symbols[currentCurrency] || currentCurrency;
+
+                const numberFormatOptions = currentCurrency === 'TRY'
+                    ? { maximumFractionDigits: 0 }
+                    : { minimumFractionDigits: 2, maximumFractionDigits: 2 };
+                
+                const formattedPrice = new Intl.NumberFormat(currentLang, numberFormatOptions).format(priceToFormat);
+                
+                return `${symbol} ${formattedPrice}`;
+            };
+
+            // Calculate shipping cost (simple placeholder for now)
+            // In a real app, this would involve complex logic based on country, weight, product type etc.
+            const calculateShippingCost = () => {
+                // For simplicity, let's assume a fixed shipping cost or free shipping based on a threshold
+                const totalItemsPrice = cartItems.reduce((acc, item) => {
+                    const product = siteData.products.find(p => p.id === item.productId);
+                    if (!product) return acc;
+                    const price = item.discountedPrice !== null && item.discountedPrice < item.basePrice 
+                                ? item.discountedPrice : item.basePrice;
+                    return acc + (price * item.quantity);
+                }, 0);
+
+                // Example: Free shipping if total over X, otherwise a fixed amount
+                // This would need to be dynamic based on selected country
+                const selectedCountryData = siteData.settings.countryPricing[currentCountryCode];
+                if (selectedCountryData && selectedCountryData.isFreeShippingThreshold && totalItemsPrice >= selectedCountryData.isFreeShippingThreshold) {
+                    return 0; // Free shipping
                 }
-                updateCartBadge();
-            }
+                // Placeholder: Fixed shipping cost for now, adjust based on your logic
+                return 50; // Example fixed cost in base currency
+            };
 
-            // Sepetleri birleştirme yardımcı fonksiyonu (ürün ID'si ve varyantına göre birleştirir)
-            function mergeCarts(cart1, cart2) {
-                const merged = [...cart1];
-                cart2.forEach(item2 => {
-                    const existingItem = merged.find(item1 => 
-                        item1.productId === item2.productId && 
-                        JSON.stringify(item1.selectedVariant?.colorName) === JSON.stringify(item2.selectedVariant?.colorName)
-                    );
-                    if (existingItem) {
-                        existingItem.quantity += item2.quantity;
-                    } else {
-                        merged.push(item2);
-                    }
-                });
-                return merged;
-            }
+            // --- Data Fetching and Initialization ---
 
-            // --- Temel Veri Çekme ---
-            async function fetchData() {
-                showLoading();
+            const fetchData = async () => {
                 try {
-                    const [settingsDoc, categoriesDoc] = await Promise.all([
-                        db.collection('pufemo').doc('settings').get(),
-                        db.collection('pufemo').doc('categories').get()
+                    const [settingsDoc, categoriesDoc, productsSnap] = await Promise.all([
+                        getDoc(doc(db, 'pufemo', 'settings')),
+                        getDoc(doc(db, 'pufemo', 'categories')),
+                        getDocs(collection(db, 'pufemo-products')) // Fetch all products for cart details
                     ]);
 
-                    if (settingsDoc.exists) { // Düzeltme: .exists() yerine .exists
-                        siteData.settings = { ...settingsDoc.data() };
-                    } else {
-                        console.warn('Settings document not found in Firebase.');
-                    }
-                    if (categoriesDoc.exists) { // Düzeltme: .exists() yerine .exists
-                        siteData.categories = { ...categoriesDoc.data() };
-                    } else {
-                        console.warn('Categories document not found in Firebase.');
-                    }
-                    
-                    // Sepet öğelerinin detaylarını (isim, resim) dinamik olarak çekmek için
-                    // Eğer sepet boş değilse, ürün ID'lerine göre ürün bilgilerini Firebase'den çekelim
-                    // Bu kısım renderCartPage'in içinde de tekrar çağırılabilir, burada sadece başlangıç için
-                    await loadCartProductDetails(); // Sepetteki ürünlerin detaylarını çek
+                    if (settingsDoc.exists()) { siteData.settings = { ...settingsDoc.data() }; } else { console.warn('Settings document not found.'); }
+                    if (categoriesDoc.exists()) { siteData.categories = { ...categoriesDoc.data() }; } else { console.warn('Categories document not found.'); }
+                    siteData.products = productsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-                    // Ülke, dil, para birimi ayarlarını belirle
+                    // Ensure currencySymbols has default if empty (as it might be if Firestore is new)
+                    if (!siteData.settings.currencySymbols || Object.keys(siteData.settings.currencySymbols).length === 0) {
+                        siteData.settings.currencySymbols = { "TRY": "₺", "USD": "$", "EUR": "€", "GBP": "£" };
+                    }
+
+                    // Set initial country/language/currency based on localStorage or defaults
                     const availableCountries = Object.keys(siteData.settings.countryPricing);
                     if (localStorage.getItem('pufemo-country') && availableCountries.includes(localStorage.getItem('pufemo-country'))) {
                         currentCountryCode = localStorage.getItem('pufemo-country');
@@ -862,64 +740,39 @@
                         currentCountryCode = availableCountries[0];
                         localStorage.setItem('pufemo-country', currentCountryCode);
                     } else {
-                        currentCountryCode = 'US';
+                        currentCountryCode = 'us'; // Default to US if no countries defined
                         localStorage.setItem('pufemo-country', currentCountryCode);
                     }
 
                     const selectedCountryData = siteData.settings.countryPricing[currentCountryCode];
                     if (selectedCountryData) {
                         currentLang = selectedCountryData.defaultLanguage || 'en';
-                        const selectedCountryCurrencySymbol = selectedCountryData.currencySymbol;
-                        currentCurrency = Object.keys(siteData.settings.currencySymbols || {}).find(key =>
-                            siteData.settings.currencySymbols[key] === selectedCountryCurrencySymbol
-                        ) || 'USD';
+                        const currencyCodeFromSymbol = Object.keys(siteData.settings.currencySymbols || {}).find(key => 
+                            siteData.settings.currencySymbols[key] === selectedCountryData.currencySymbol
+                        );
+                        currentCurrency = currencyCodeFromSymbol || 'USD';
+                        localStorage.setItem('pufemo-language', currentLang);
+                        localStorage.setItem('pufemo-currency', currentCurrency);
                     } else {
                         currentLang = 'en';
                         currentCurrency = 'USD';
+                        localStorage.setItem('pufemo-language', currentLang);
+                        localStorage.setItem('pufemo-currency', currentCurrency);
                     }
-                    localStorage.setItem('pufemo-language', currentLang);
-                    localStorage.setItem('pufemo-currency', currentCurrency);
 
                 } catch (e) {
                     console.error("Veri okuma hatası! Varsayılan ayarlar kullanılıyor.", e);
+                    // Set sensible defaults on error
                     currentLang = 'en';
                     currentCurrency = 'USD';
+                    currentCountryCode = 'us';
                     localStorage.setItem('pufemo-language', currentLang);
                     localStorage.setItem('pufemo-currency', currentCurrency);
-                    if (!localStorage.getItem('pufemo-country')) {
-                        localStorage.setItem('pufemo-country', 'US');
-                        currentCountryCode = 'US';
-                    }
-                } finally {
-                    hideLoading();
+                    localStorage.setItem('pufemo-country', currentCountryCode);
                 }
-            }
+            };
 
-            // Sepetteki ürünlerin detaylarını Firestore'dan çeken yardımcı fonksiyon
-            async function loadCartProductDetails() {
-                if (siteData.cart.length > 0) {
-                    const productIdsInCart = siteData.cart.map(item => item.productId);
-                    const uniqueProductIds = [...new Set(productIdsInCart)]; // Tekrar eden ID'leri kaldır
-
-                    if (uniqueProductIds.length > 0) {
-                         const productDocs = await Promise.all(
-                             uniqueProductIds.map(id => db.collection('pufemo-products').doc(id).get())
-                         );
-                         siteData.products = productDocs.map(doc => {
-                             if (doc.exists) { // Düzeltme: .exists() yerine .exists
-                                 return { id: doc.id, ...doc.data() };
-                             }
-                             return null;
-                         }).filter(Boolean); // null olanları filtrele
-                     } else {
-                         siteData.products = [];
-                     }
-                 } else {
-                     siteData.products = [];
-                 }
-            }
-
-
+            // Global function to apply country change from selectors
             window.applyCountryAndRender = (countryCode) => {
                 currentCountryCode = countryCode;
                 localStorage.setItem('pufemo-country', currentCountryCode);
@@ -927,10 +780,10 @@
                 const selectedCountryData = siteData.settings.countryPricing[currentCountryCode];
                 if (selectedCountryData) {
                     currentLang = selectedCountryData.defaultLanguage || 'en';
-                    const selectedCountryCurrencySymbol = selectedCountryData.currencySymbol;
-                    currentCurrency = Object.keys(siteData.settings.currencySymbols || {}).find(key =>
-                        siteData.settings.currencySymbols[key] === selectedCountryCurrencySymbol
-                    ) || 'USD';
+                    const currencyCodeFromSymbol = Object.keys(siteData.settings.currencySymbols || {}).find(key =>
+                        siteData.settings.currencySymbols[key] === selectedCountryData.currencySymbol
+                    );
+                    currentCurrency = currencyCodeFromSymbol || 'USD';
                     localStorage.setItem('pufemo-language', currentLang);
                     localStorage.setItem('pufemo-currency', currentCurrency);
                 } else {
@@ -940,29 +793,44 @@
                     localStorage.setItem('pufemo-currency', currentCurrency);
                 }
                 renderAll();
-                document.getElementById('language-selector').value = currentLang;
-                document.getElementById('currency-selector').value = currentCurrency;
-                document.getElementById('country-selector').value = currentCountryCode;
+                // Update selectors if they exist on the page
+                if (languageSelector) languageSelector.value = currentLang;
+                if (currencySelector) currencySelector.value = currentCurrency;
+                if (countrySelector) countrySelector.value = currentCountryCode;
             };
 
             const renderAll = () => {
                 renderStaticText();
-                setupControls();
-                renderCategories();
-                renderGeneralSiteElements();
-                renderCartPage(); // Sepet sayfasını render et
-                renderOrderHistory(); // Yeni: Sipariş Geçmişini Render Et
-                updateCartBadge();
+                renderGeneralSiteElements(); // Renders logo, promo bar
+                setupControls(); // Renders language/currency/country selectors
+                renderCategories(); // Renders main/mobile navigation
+                renderCart(); // Main cart content
+                renderPastOrders(); // Past orders for logged-in users
             };
+
+            // --- Render Functions ---
 
             const renderStaticText = () => {
                 document.documentElement.lang = currentLang;
-                
                 loadingTextP.textContent = translate('loading_text');
-                welcomeModalTitle.textContent = translate('welcome_modal_title');
-                welcomeModalMessage.textContent = translate('welcome_modal_message');
-                welcomeModalConfirmButton.textContent = translate('welcome_modal_confirm_button');
+                document.getElementById('cart-page-title').textContent = translate('cart_page_title');
+                document.getElementById('cart-summary').querySelector('h2').textContent = translate('order_summary_title');
+                document.getElementById('cart-subtotal').previousElementSibling.textContent = translate('subtotal_label');
+                document.getElementById('cart-shipping-cost').previousElementSibling.textContent = translate('shipping_label');
+                document.getElementById('cart-total').previousElementSibling.textContent = translate('total_label');
+                btnCheckout.textContent = translate('checkout_button');
+                emptyCartMessage.textContent = translate('empty_cart_message');
+                document.getElementById('past-orders-title').textContent = translate('past_orders_title');
+                noPastOrdersMessage.textContent = translate('no_past_orders');
 
+                document.getElementById('order-table-header-code').textContent = translate('order_table_header_code');
+                document.getElementById('order-table-header-date').textContent = translate('order_table_header_date');
+                document.getElementById('order-table-header-total').textContent = translate('order_table-header-total');
+                document.getElementById('order-table-header-status').textContent = translate('order_table-header-status');
+                document.getElementById('order-table-header-actions').textContent = translate('order_table-header-actions');
+
+
+                // Footer texts
                 document.getElementById('footer-title-pufemo').textContent = translate('footer-title-pufemo');
                 document.getElementById('footer-desc-pufemo').textContent = translate('footer-desc-pufemo');
                 document.getElementById('footer-title-fast-links').textContent = translate('footer-title-fast-links');
@@ -972,144 +840,221 @@
                 document.getElementById('footer-title-follow-us').textContent = translate('footer-title-follow-us');
                 document.getElementById('footer-copyright').innerHTML = translate('footer-copyright');
                 document.getElementById('country-selector-label').textContent = translate('country_selector_label');
-
-                cartPageTitle.textContent = translate('cart_page_title');
-                cartEmptyMessage.textContent = translate('cart_empty_message');
-                cartSubtotalLabel.textContent = translate('cart_subtotal_label');
-                cartShippingLabel.textContent = translate('cart_shipping_label');
-                cartTotalLabel.textContent = translate('cart_total_label');
-                continueShoppingBtn.textContent = translate('continue_shopping_button');
-                proceedToCheckoutBtn.textContent = translate('proceed_to_checkout_button');
-                
-                cartPageLink.title = translate('cart_page_link_title');
-
-                // Yeni: Sipariş Geçmişi Metinleri
-                orderHistoryTitle.textContent = translate('order_history_title');
-                orderHistoryEmpty.textContent = translate('order_history_empty');
-                
-                // Auth metinleri
-                googleLoginBtn.textContent = translate('auth_login_button');
-                anonymousLoginBtn.textContent = translate('auth_anonymous_button');
-                logoutBtn.textContent = translate('auth_logout_button');
-                mobileGoogleLoginBtn.textContent = translate('auth_login_button');
-                mobileAnonymousLoginBtn.textContent = translate('auth_anonymous_button');
-                mobileLogoutBtn.textContent = translate('auth_logout_button');
-                googleLoginBtn.querySelector('i')?.remove(); // Eski ikon varsa kaldır
-                googleLoginBtn.insertAdjacentHTML('afterbegin', `<i class="fab fa-google"></i> `); // İkon ekle
-                mobileGoogleLoginBtn.querySelector('i')?.remove(); // Eski ikon varsa kaldır
-                mobileGoogleLoginBtn.insertAdjacentHTML('afterbegin', `<i class="fab fa-google"></i> `); // İkon ekle
+                cartPageLink.title = translate('cart_page_title'); // Set title for cart link
             };
 
             const renderGeneralSiteElements = () => {
                 const generalSettings = siteData.settings.general || {};
-                const logoLink = document.getElementById('main-logo-link');
 
-                if (logoLink) {
-                    logoLink.innerHTML = '';
+                if (mainLogoLink) {
+                    mainLogoLink.innerHTML = '';
                     if (generalSettings.logo?.type === 'image' && generalSettings.logo.imageUrl) {
                         const img = document.createElement('img');
                         img.src = generalSettings.logo.imageUrl;
                         img.alt = generalSettings.logo.text || 'PUFEMO Logo';
                         if (generalSettings.logo.imageWidth) img.style.width = `${generalSettings.logo.imageWidth}px`;
                         if (generalSettings.logo.imageHeight) img.style.height = `${generalSettings.logo.imageHeight}px`;
-                        logoLink.appendChild(img);
+                        mainLogoLink.appendChild(img);
                     } else {
                         const icon = document.createElement('i');
                         icon.className = generalSettings.logo?.icon || 'fa-solid fa-couch';
                         icon.style.color = generalSettings.logo?.iconColor || 'var(--secondary-color)';
-                        logoLink.appendChild(icon);
+                        mainLogoLink.appendChild(icon);
                         const textNode = document.createTextNode(generalSettings.logo?.text ? ` ${generalSettings.logo.text}` : ' PUFEMO');
-                        logoLink.appendChild(textNode);
-                        logoLink.style.color = generalSettings.logo?.textColor || 'var(--primary-color)';
+                        mainLogoLink.appendChild(textNode);
+                        mainLogoLink.style.color = generalSettings.logo?.textColor || 'var(--primary-color)';
                     }
                 }
 
-                const promoBar = document.querySelector('.promo-bar');
-                const promoTextContent = document.getElementById('promo-text-content');
-                if (promoBar && promoTextContent) {
-                    promoBar.style.backgroundColor = generalSettings.promoBar?.bgColor || 'var(--secondary-color)';
-                    promoBar.style.color = generalSettings.promoBar?.textColor || 'var(--light-text-color)';
-                    promoBar.style.fontSize = generalSettings.promoBar?.fontSize || '0.95rem';
+                if (promoBarEl && promoTextContentEl) {
+                    promoBarEl.style.backgroundColor = generalSettings.promoBar?.bgColor || 'var(--secondary-color)';
+                    promoBarEl.style.color = generalSettings.promoBar?.textColor || 'var(--light-text-color)';
+                    promoBarEl.style.fontSize = generalSettings.promoBar?.fontSize || '0.95rem';
 
                     const scrollSpeed = generalSettings.promoBar?.scrollSpeed || '20s';
-                    promoTextContent.style.animationDuration = scrollSpeed;
+                    promoTextContentEl.style.animationDuration = scrollSpeed;
 
-                    const promoText = generalSettings.promoBar?.text?.[currentLang] || staticTranslations['promo_bar_text'][currentLang] || staticTranslations['promo_bar_text']['tr'];
-                    promoTextContent.textContent = promoText;
-                    promoBar.style.display = generalSettings.promoBar?.enabled ? 'block' : 'none';
+                    const promoText = generalSettings.promoBar?.text?.[currentLang] || staticTranslations['promo_bar_text']?.[currentLang] || 'Free Shipping!'; // Fallback text
+                    promoTextContentEl.textContent = promoText;
+                    promoBarEl.style.display = generalSettings.promoBar?.enabled ? 'block' : 'none';
                 }
             };
 
             const renderCategories = () => {
                 const desktopContainer = document.getElementById('category-menu-container');
-                const mobileContainer = document.getElementById('mobile-category-menu-container'); // Mobil menü kategorileri
-
+                const mobileContainer = document.getElementById('mobile-nav');
                 const categories = siteData.categories?.tree || [];
-
+                
                 desktopContainer.innerHTML = '';
                 mobileContainer.innerHTML = '';
-
+                
                 if (categories.length === 0) return;
 
+                const mobileMenuTitle = translate('mobile_menu_title');
+                mobileContainer.innerHTML += `<div class="mobile-nav-header">${mobileMenuTitle}</div>`;
+                
                 const createMenu = (categoryArray) => {
                     const ul = document.createElement('ul');
                     categoryArray.forEach(cat => {
                         const li = document.createElement('li');
-                        li.innerHTML = `<a href="index.html">${cat.name[currentLang] || cat.name.tr}</a>`; // Tıklanınca anasayfaya yönlendir
+                        li.innerHTML = `<a href="#">${cat.name[currentLang] || cat.name.tr}</a>`;
                         if (cat.children && cat.children.length > 0) li.appendChild(createMenu(cat.children));
                         ul.appendChild(li);
                     });
                     return ul;
                 };
-
+                
                 categories.forEach(cat => {
                     const li = document.createElement('li');
-                    li.innerHTML = `<a href="index.html">${cat.name[currentLang] || cat.name.tr}</a>`; // Tıklanınca anasayfaya yönlendir
+                    li.innerHTML = `<a href="#">${cat.name[currentLang] || cat.name.tr}</a>`;
                     desktopContainer.appendChild(li);
                 });
 
                 mobileContainer.appendChild(createMenu(categories));
             };
 
-            const formatPrice = (basePrice, discountPrice = null) => {
-                const symbols = siteData.settings?.currencySymbols || {};
-                const selectedCountryData = siteData.settings.countryPricing[currentCountryCode];
-                let priceToFormat;
+            const renderCart = () => {
+                cartItemsContainer.innerHTML = '';
+                let subtotal = 0;
 
-                if (discountPrice !== null && discountPrice < basePrice) {
-                    priceToFormat = discountPrice;
+                if (cartItems.length === 0) {
+                    emptyCartMessage.style.display = 'block';
+                    cartItemsContainer.appendChild(emptyCartMessage);
+                    btnCheckout.disabled = true;
+                    cartBadge.textContent = '0';
+                    cartSubtotalEl.textContent = formatPrice(0);
+                    cartShippingCostEl.textContent = formatPrice(0);
+                    cartTotalEl.textContent = formatPrice(0);
+                    return;
+                }
+
+                emptyCartMessage.style.display = 'none';
+                btnCheckout.disabled = false;
+
+                cartItems.forEach(item => {
+                    const product = siteData.products.find(p => p.id === item.productId);
+                    if (!product) return; // Skip if product data is not found
+
+                    const variant = product.variants?.find(v => v.id === item.variantId) || null; // Find the selected variant
+                    const productName = product.content?.[currentLang]?.name || product.content?.tr?.name || translate('untitled_product');
+                    const variantName = variant?.colorName?.[currentLang] || variant?.colorName?.tr || '';
+                    const imageUrl = variant?.media?.[0]?.url || product.variants?.[0]?.media?.[0]?.url || `https://via.placeholder.com/100x100?text=${translate('no_image')}`;
+                    
+                    // Use item's stored basePrice and discountedPrice
+                    const itemPrice = item.discountedPrice !== null && item.discountedPrice < item.basePrice
+                                    ? item.discountedPrice : item.basePrice;
+                    
+                    subtotal += itemPrice * item.quantity;
+
+                    const cartItemEl = document.createElement('div');
+                    cartItemEl.className = 'cart-item';
+                    cartItemEl.dataset.productId = item.productId;
+                    cartItemEl.dataset.variantId = item.variantId || ''; // Store variant ID if exists
+
+                    cartItemEl.innerHTML = `
+                        <img src="${imageUrl}" alt="${productName}" class="cart-item-image">
+                        <div class="cart-item-details">
+                            <a href="product.html?id=${product.id}" class="cart-item-name">${productName}</a>
+                            ${variantName ? `<p class="cart-item-variant">${variantName}</p>` : ''}
+                            <div class="quantity-control">
+                                <span class="quantity-label">${translate('quantity_label')}</span>
+                                <button type="button" class="quantity-button decrease-quantity">-</button>
+                                <input type="number" class="quantity-input" value="${item.quantity}" min="1" max="99" data-product-id="${item.productId}" data-variant-id="${item.variantId || ''}">
+                                <button type="button" class="quantity-button increase-quantity">+</button>
+                            </div>
+                            <span class="cart-item-price">${formatPrice(itemPrice, item.discountedPrice)}</span>
+                        </div>
+                        <button type="button" class="remove-item-btn" title="${translate('remove_item_tooltip')}" data-product-id="${item.productId}" data-variant-id="${item.variantId || ''}">&times;</button>
+                    `;
+                    cartItemsContainer.appendChild(cartItemEl);
+                });
+
+                const shippingCost = calculateShippingCost();
+                const total = subtotal + shippingCost;
+
+                cartSubtotalEl.textContent = formatPrice(subtotal);
+                cartShippingCostEl.textContent = formatPrice(shippingCost);
+                cartTotalEl.textContent = formatPrice(total);
+                cartBadge.textContent = cartItems.length;
+
+                // Add event listeners for quantity controls and remove buttons
+                cartItemsContainer.querySelectorAll('.quantity-button.decrease-quantity').forEach(button => {
+                    button.onclick = (e) => updateCartItemQuantity(e.target.dataset.productId, e.target.dataset.variantId, -1);
+                });
+                cartItemsContainer.querySelectorAll('.quantity-button.increase-quantity').forEach(button => {
+                    button.onclick = (e) => updateCartItemQuantity(e.target.dataset.productId, e.target.dataset.variantId, 1);
+                });
+                cartItemsContainer.querySelectorAll('.quantity-input').forEach(input => {
+                    input.onchange = (e) => updateCartItemQuantity(e.target.dataset.productId, e.target.dataset.variantId, 0, parseInt(e.target.value));
+                });
+                cartItemsContainer.querySelectorAll('.remove-item-btn').forEach(button => {
+                    button.onclick = (e) => removeCartItem(e.target.dataset.productId, e.target.dataset.variantId);
+                });
+            };
+
+            const renderPastOrders = async () => {
+                pastOrdersTableBody.innerHTML = '';
+                noPastOrdersMessage.style.display = 'none';
+
+                if (!currentUser || currentUser.isAnonymous) {
+                    pastOrdersSection.style.display = 'none'; // Hide if not logged in or anonymous
+                    return;
                 } else {
-                    priceToFormat = basePrice;
+                    pastOrdersSection.style.display = 'block';
                 }
 
-                if (selectedCountryData && typeof selectedCountryData.adjustment === 'number') {
-                    const adjustmentPercentage = selectedCountryData.adjustment / 100;
-                    priceToFormat = priceToFormat * (1 + adjustmentPercentage);
+                try {
+                    const q = query(collection(db, 'orders'), where('userId', '==', currentUser.uid));
+                    const querySnapshot = await getDocs(q);
+
+                    if (querySnapshot.empty) {
+                        noPastOrdersMessage.style.display = 'block';
+                        pastOrdersTableBody.style.display = 'none';
+                        return;
+                    }
+
+                    noPastOrdersMessage.style.display = 'none';
+                    pastOrdersTableBody.style.display = 'table-row-group';
+
+                    querySnapshot.forEach(doc => {
+                        const order = doc.data();
+                        const orderId = doc.id; // Firestore document ID
+                        const row = pastOrdersTableBody.insertRow();
+
+                        const orderDate = order.orderDate?.toDate ? order.orderDate.toDate().toLocaleDateString(currentLang) : new Date(order.orderDate).toLocaleDateString(currentLang);
+                        const totalAmount = formatPrice(order.totalAmount);
+                        
+                        const statusClass = `status-${order.status.toLowerCase().replace(/\s/g, '-')}`;
+                        const statusText = translate(`status_${order.status.toLowerCase().replace(/\s/g, '-')}`);
+
+                        row.insertCell().textContent = order.orderCode;
+                        row.insertCell().textContent = orderDate;
+                        row.insertCell().textContent = totalAmount;
+                        row.insertCell().innerHTML = `<span class="order-status ${statusClass}">${statusText}</span>`;
+                        row.insertCell().innerHTML = `<button class="btn btn-info btn-sm view-order-details" data-order-id="${orderId}">Detaylar</button>`;
+                    });
+
+                    // Add event listeners for "Detaylar" buttons
+                    pastOrdersTableBody.querySelectorAll('.view-order-details').forEach(button => {
+                        button.onclick = (e) => viewOrderDetails(e.target.dataset.orderId);
+                    });
+
+                } catch (error) {
+                    console.error("Error fetching past orders:", error);
+                    alert("Geçmiş siparişler yüklenirken bir hata oluştu.");
+                    noPastOrdersMessage.style.display = 'block';
                 }
+            };
 
-                const rates = siteData.settings?.exchangeRates || {};
-                const rate = rates[currentCurrency] || 1;
-                priceToFormat = priceToFormat * rate;
-
-                const symbol = symbols[currentCurrency] || currentCurrency;
-
-                const numberFormatOptions = currentCurrency === 'TRY'
-                    ? { maximumFractionDigits: 0 }
-                    : { minimumFractionDigits: 2, maximumFractionDigits: 2 };
-
-                const formattedPrice = new Intl.NumberFormat(currentLang, numberFormatOptions).format(priceToFormat);
-
-                return `${symbol} ${formattedPrice}`;
+            // This function would typically open a modal or navigate to a new page
+            const viewOrderDetails = async (orderId) => {
+                alert(`Sipariş Detayları Görüntüleniyor: ${orderId}`);
+                // Implement modal or page navigation here to show full order details
+                // You would fetch the order from Firebase by orderId and display its content
             };
 
             const setupControls = () => {
-                const languageSelector = document.getElementById('language-selector');
-                const currencySelector = document.getElementById('currency-selector');
-                const countrySelector = document.getElementById('country-selector');
-                const hamburgerBtn = document.getElementById('hamburger-menu-btn');
-                const mobileNav = document.getElementById('mobile-nav');
-                const mobileNavOverlay = document.getElementById('mobile-nav-overlay');
-
+                // Language Selector
                 const languagesFromDB = siteData.settings.languages || [];
                 languageSelector.innerHTML = languagesFromDB.map(l => `<option value="${l.code}">${countryCodeToEmoji(l.flag)} ${l.name}</option>`).join('');
                 if (languagesFromDB.length > 0) {
@@ -1119,6 +1064,7 @@
                     languageSelector.style.display = 'none';
                 }
                 
+                // Currency Selector
                 const currencies = siteData.settings?.currencySymbols || {};
                 const availableCurrencies = Object.keys(currencies);
                 currencySelector.innerHTML = availableCurrencies.map(c => {
@@ -1132,6 +1078,7 @@
                     currencySelector.style.display = 'none';
                 }
                 
+                // Country Selector
                 const countries = siteData.settings.countryPricing || {};
                 const countryOptionsHtml = Object.entries(countries).map(([code, data]) => {
                     const countryName = data.name?.[currentLang] || data.name?.['tr'] || code.toUpperCase();
@@ -1142,438 +1089,280 @@
                     countrySelector.innerHTML = countryOptionsHtml;
                     countrySelector.value = currentCountryCode;
                     countrySelector.parentElement.style.display = 'block';
-
-                    welcomeCountrySelect.innerHTML = countryOptionsHtml;
-                    welcomeCountrySelect.value = currentCountryCode;
                 } else {
                     countrySelector.parentElement.style.display = 'none';
-                    welcomeModalOverlay.classList.remove('active'); // Hide modal if no countries
                 }
 
-                languageSelector.onchange = (e) => { currentLang = e.target.value; localStorage.setItem('pufemo-language', currentLang); renderAll(); };
-                currencySelector.onchange = (e) => { currentCurrency = e.target.value; localStorage.setItem('pufemo-currency', currentCurrency); renderAll(); };
-                countrySelector.onchange = (e) => { window.applyCountryAndRender(e.target.value); };
+                // Event Listeners for Selectors
+                languageSelector.onchange = (e) => {
+                    currentLang = e.target.value;
+                    localStorage.setItem('pufemo-language', currentLang);
+                    renderAll();
+                };
+                currencySelector.onchange = (e) => {
+                    currentCurrency = e.target.value;
+                    localStorage.setItem('pufemo-currency', currentCurrency);
+                    renderAll();
+                };
+                countrySelector.onchange = (e) => {
+                    window.applyCountryAndRender(e.target.value);
+                };
                 
-                welcomeModalConfirmButton.addEventListener('click', function() {
-                    const selectedCountry = welcomeCountrySelect.value;
-                    if (selectedCountry) {
-                        window.applyCountryAndRender(selectedCountry);
-                        welcomeModalOverlay.classList.remove('active');
-                    } else {
-                        alert(translate('welcome_modal_message').replace('Please select your country below.', 'Lütfen devam etmek için bir ülke seçin.'));
-                    }
-                });
-
+                // Hamburger menu and mobile nav
                 const toggleMenu = () => {
                     hamburgerBtn.classList.toggle('open');
                     mobileNav.classList.toggle('open');
                     mobileNavOverlay.classList.toggle('open');
-                    document.body.classList.toggle('mobile-menu-open');
+                    document.querySelector('body').classList.toggle('mobile-menu-open');
                 };
                 hamburgerBtn.onclick = toggleMenu;
                 mobileNavOverlay.onclick = toggleMenu;
-                mobileNav.onclick = (e) => { if (e.target.tagName === 'A') toggleMenu(); }; // Close menu if a link is clicked
+                mobileNav.onclick = (e) => { if (e.target.tagName === 'A') toggleMenu(); };
 
-                // Cart Icon Link
-                document.getElementById('cart-page-link').href = "cart.html"; // Ensure link is correct
-                updateCartBadge();
+                // Hide welcome modal on cart page
+                if (welcomeModalOverlay) {
+                    welcomeModalOverlay.style.display = 'none';
+                }
             };
 
-            function updateCartBadge() {
-                const totalItems = siteData.cart.reduce((sum, item) => sum + item.quantity, 0);
-                cartBadge.textContent = totalItems;
-            }
+            // --- Cart Management Functions ---
 
-            // --- Sepet Sayfası Oluşturma ---
-            async function renderCartPage() {
-                cartItemsContainer.innerHTML = '';
-                let subtotal = 0;
-                let totalShipping = 0;
-                let hasFreeShippingItem = false;
-
-                // Sepet verilerini ve ilgili ürün detaylarını tekrar yükle (önbellekten veya Firebase'den)
-                await loadCartProductDetails(); 
-
-                if (siteData.cart.length === 0) {
-                    cartEmptyMessage.style.display = 'block';
-                    document.querySelector('.cart-summary').style.display = 'none';
-                    document.querySelector('.cart-actions').style.display = 'none';
-                    return;
-                } else {
-                    cartEmptyMessage.style.display = 'none';
-                    document.querySelector('.cart-summary').style.display = 'block';
-                    document.querySelector('.cart-actions').style.display = 'flex';
-                }
-
-                siteData.cart.forEach((item, index) => {
-                    const productDetails = siteData.products.find(p => p.id === item.productId);
-                    let displayItem = { ...item }; // Sepet item'ını kopyala
-                    
-                    // Eğer ürün detayları çekilebildiyse, sepet item'ını güncel bilgilerle birleştir
-                    if (productDetails) {
-                        // Eğer sepet öğesinde priceAtTimeOfAdding yoksa veya güncel fiyatı çekmek istiyorsak
-                        // Burada Firebase'den çekilen güncel fiyatı kullanmak daha doğru olabilir
-                        const currentProductBasePrice = productDetails.basePriceTL || 0;
-                        const currentProductDiscountedPrice = productDetails.baseDiscountedPriceTL;
-                        
-                        let currentItemPrice = currentProductBasePrice;
-                        if (currentProductDiscountedPrice !== undefined && currentProductDiscountedPrice < currentProductBasePrice) {
-                            currentItemPrice = currentProductDiscountedPrice;
-                        }
-
-                        // Eğer sepet öğesinin varyantı varsa, varyant fiyatını kullan
-                        if (item.selectedVariant) {
-                            const variantInProduct = productDetails.variants?.find(v => 
-                                JSON.stringify(v.colorName) === JSON.stringify(item.selectedVariant.colorName)
-                            );
-                            if (variantInProduct) {
-                                const currentVariantBasePrice = variantInProduct.basePriceTL !== undefined ? variantInProduct.basePriceTL : currentProductBasePrice;
-                                const currentVariantDiscountedPrice = variantInProduct.baseDiscountedPriceTL;
-
-                                currentItemPrice = (currentVariantDiscountedPrice !== undefined && currentVariantDiscountedPrice < currentVariantBasePrice)
-                                    ? currentVariantDiscountedPrice : currentVariantBasePrice;
-                                displayItem.isFreeShipping = variantInProduct.isFreeShipping || productDetails.isFreeShipping;
-                            } else {
-                                // Varyant üründe bulunamazsa, ürünün genel kargo durumunu kullan
-                                displayItem.isFreeShipping = productDetails.isFreeShipping;
-                            }
+            const loadCart = async () => {
+                cartItems = []; // Clear current cart items
+                if (currentUser) {
+                    // Logged in user: load from Firestore
+                    try {
+                        const cartDocRef = doc(db, 'users', currentUser.uid, 'cart', 'items');
+                        const cartDocSnap = await getDoc(cartDocRef);
+                        if (cartDocSnap.exists()) {
+                            cartItems = cartDocSnap.data().items || [];
+                            console.log("Cart loaded from Firestore:", cartItems);
                         } else {
-                            // Varyant yoksa, ürünün genel kargo durumunu kullan
-                            displayItem.isFreeShipping = productDetails.isFreeShipping;
+                            console.log("No cart in Firestore for this user.");
                         }
-                        
-                        // Güncel fiyatı sepet öğesine ata, böylece doğru hesaplama yapılır
-                        displayItem.priceAtTimeOfAdding = currentItemPrice;
-                        displayItem.name = productDetails.content?.[currentLang]?.name || productDetails.content?.tr?.name || item.name;
-                        displayItem.media = productDetails.media; // Ürünün genel medyası
-                        if(item.selectedVariant && productDetails.variants) {
-                            const foundVariant = productDetails.variants.find(v => JSON.stringify(v.colorName) === JSON.stringify(item.selectedVariant.colorName));
-                            if(foundVariant) {
-                                displayItem.selectedVariant.media = foundVariant.media; // Varyantın kendi medyası
+                    } catch (error) {
+                        console.error("Error loading cart from Firestore:", error);
+                        alert("Sepetiniz yüklenirken bir hata oluştu.");
+                    }
+                } else {
+                    // Anonymous user: load from localStorage
+                    const localCart = localStorage.getItem('pufemo-cart');
+                    if (localCart) {
+                        cartItems = JSON.parse(localCart);
+                        console.log("Cart loaded from localStorage:", cartItems);
+                    } else {
+                        console.log("No cart in localStorage.");
+                    }
+                }
+                renderCart(); // Render cart after loading
+            };
+
+            const saveCart = async () => {
+                if (currentUser) {
+                    // Logged in user: save to Firestore
+                    try {
+                        const cartDocRef = doc(db, 'users', currentUser.uid, 'cart', 'items');
+                        await setDoc(cartDocRef, { items: cartItems });
+                        console.log("Cart saved to Firestore.");
+                    } catch (error) {
+                        console.error("Error saving cart to Firestore:", error);
+                        alert("Sepetiniz kaydedilirken bir hata oluştu.");
+                    }
+                } else {
+                    // Anonymous user: save to localStorage
+                    localStorage.setItem('pufemo-cart', JSON.stringify(cartItems));
+                    console.log("Cart saved to localStorage.");
+                }
+                renderCart(); // Re-render cart to update UI
+            };
+
+            const updateCartItemQuantity = (productId, variantId, change, specificQuantity = null) => {
+                const itemIndex = cartItems.findIndex(item => 
+                    item.productId === productId && (item.variantId === variantId || (!item.variantId && !variantId))
+                );
+
+                if (itemIndex === -1) return;
+
+                let newQuantity;
+                if (specificQuantity !== null) {
+                    newQuantity = specificQuantity;
+                } else {
+                    newQuantity = cartItems[itemIndex].quantity + change;
+                }
+
+                // Basic quantity limits
+                newQuantity = Math.max(1, Math.min(newQuantity, 99)); 
+
+                if (newQuantity !== cartItems[itemIndex].quantity) {
+                    cartItems[itemIndex].quantity = newQuantity;
+                    saveCart();
+                }
+            };
+
+            const removeCartItem = (productId, variantId) => {
+                cartItems = cartItems.filter(item => 
+                    !(item.productId === productId && (item.variantId === variantId || (!item.variantId && !variantId)))
+                );
+                saveCart();
+            };
+
+            const mergeCarts = async (anonymousCart, userUid) => {
+                if (anonymousCart.length === 0) return;
+
+                let firestoreCart = [];
+                const firestoreCartDocRef = doc(db, 'users', userUid, 'cart', 'items');
+                const firestoreCartDocSnap = await getDoc(firestoreCartDocRef);
+                if (firestoreCartDocSnap.exists()) {
+                    firestoreCart = firestoreCartDocSnap.data().items || [];
+                }
+
+                const mergedCart = [...firestoreCart];
+
+                anonymousCart.forEach(anonItem => {
+                    const existingItemIndex = mergedCart.findIndex(item => 
+                        item.productId === anonItem.productId && (item.variantId === anonItem.variantId || (!item.variantId && !anonItem.variantId))
+                    );
+                    if (existingItemIndex > -1) {
+                        // Product already in Firestore cart, add quantities
+                        mergedCart[existingItemIndex].quantity += anonItem.quantity;
+                    } else {
+                        // Product not in Firestore cart, add it
+                        mergedCart.push(anonItem);
+                    }
+                });
+
+                cartItems = mergedCart;
+                await saveCart(); // Save merged cart to Firestore
+                localStorage.removeItem('pufemo-cart'); // Clear anonymous cart
+                console.log("Carts merged successfully!");
+            };
+
+            // --- User Authentication & UI Update ---
+
+            const updateUserUI = () => {
+                userControlsContainer.innerHTML = '';
+                if (currentUser) {
+                    // User is logged in (Google or Anonymous)
+                    let userEmail = currentUser.isAnonymous ? "Misafir" : currentUser.email || currentUser.uid;
+                    if (userEmail.length > 20) userEmail = userEmail.substring(0, 17) + "..."; // Truncate long emails
+
+                    const dropdownBtn = document.createElement('button');
+                    dropdownBtn.className = 'user-btn';
+                    dropdownBtn.innerHTML = `<i class="fa-solid fa-user-circle"></i> <span>${userEmail}</span>`;
+                    userControlsContainer.appendChild(dropdownBtn);
+
+                    const dropdownContent = document.createElement('div');
+                    dropdownContent.className = 'user-controls-dropdown-content';
+                    
+                    if (!currentUser.isAnonymous) {
+                         const myAccountLink = document.createElement('a');
+                         myAccountLink.href = "#"; // Replace with actual my account page
+                         myAccountLink.textContent = translate('my_account');
+                         dropdownContent.appendChild(myAccountLink);
+                    } else {
+                        const guestOption = document.createElement('span');
+                        guestOption.textContent = translate('continue_as_guest');
+                        guestOption.style.padding = '12px 16px';
+                        guestOption.style.fontSize = '0.95rem';
+                        guestOption.style.fontWeight = 'bold';
+                        guestOption.style.color = '#555';
+                        dropdownContent.appendChild(guestOption);
+                    }
+
+                    const logoutButton = document.createElement('button');
+                    logoutButton.textContent = translate('logout');
+                    logoutButton.onclick = async () => {
+                        try {
+                            await signOut(auth);
+                            alert("Başarıyla çıkış yapıldı!");
+                            // UI will be updated by onAuthStateChanged listener
+                        } catch (error) {
+                            console.error("Logout error:", error);
+                            alert("Çıkış yapılırken bir hata oluştu.");
+                        }
+                    };
+                    dropdownContent.appendChild(logoutButton);
+                    userControlsContainer.appendChild(dropdownContent);
+
+                    dropdownBtn.onclick = (e) => {
+                        e.stopPropagation(); // Prevent document click from closing immediately
+                        userControlsContainer.classList.toggle('active');
+                    };
+                    document.onclick = (e) => {
+                        if (!userControlsContainer.contains(e.target)) {
+                            userControlsContainer.classList.remove('active');
+                        }
+                    };
+
+                } else {
+                    // User is not logged in
+                    const loginLink = document.createElement('a');
+                    loginLink.href = "index.html"; // Link back to homepage to show login options
+                    loginLink.className = 'user-btn';
+                    loginLink.textContent = translate('login_register');
+                    userControlsContainer.appendChild(loginLink);
+                }
+            };
+            
+            // --- Event Listeners ---
+            btnCheckout.addEventListener('click', () => {
+                if (cartItems.length > 0) {
+                    // Redirect to checkout page
+                    window.location.href = 'checkout.html';
+                } else {
+                    alert(translate('empty_cart_message'));
+                }
+            });
+
+            // --- Initial Load ---
+            const init = async () => {
+                loadingOverlay.classList.remove('hidden');
+                loadingTextP.textContent = translate('loading_text');
+
+                await fetchData(); // Fetch general site settings and products
+
+                onAuthStateChanged(auth, async (user) => {
+                    currentUser = user;
+                    updateUserUI(); // Update header controls based on auth state
+
+                    if (user) {
+                        // User is signed in.
+                        console.log("User:", user.uid, "Anonymous:", user.isAnonymous);
+                        if (!user.isAnonymous) {
+                            // If a Google user logs in, merge local cart
+                            const localCartData = localStorage.getItem('pufemo-cart');
+                            if (localCartData) {
+                                try {
+                                    const anonymousCart = JSON.parse(localCartData);
+                                    await mergeCarts(anonymousCart, user.uid);
+                                } catch (e) {
+                                    console.error("Error parsing local cart:", e);
+                                    localStorage.removeItem('pufemo-cart'); // Clear corrupt cart
+                                }
                             }
                         }
-
+                        await loadCart(); // Load cart for the current user (from Firestore or localStorage)
+                        await renderPastOrders(); // Render past orders if logged in
                     } else {
-                        // Ürün Firebase'den çekilemediyse veya silinmişse, sepet öğesindeki mevcut verileri kullan
-                        displayItem.name = item.name || translate('untitled_product');
-                        displayItem.priceAtTimeOfAdding = item.priceAtTimeOfAdding || item.basePrice || 0;
-                        displayItem.isFreeShipping = item.isFreeShipping || false;
+                        // User is signed out.
+                        console.log("User is signed out.");
+                        await loadCart(); // Load cart from localStorage for anonymous
+                        pastOrdersSection.style.display = 'none'; // Hide past orders if logged out
                     }
-
-                    subtotal += displayItem.priceAtTimeOfAdding * displayItem.quantity;
-                    
-                    const itemIsFreeShipping = displayItem.isFreeShipping;
-                    
-                    if (!itemIsFreeShipping) {
-                        totalShipping += (displayItem.quantity * 5); // Örnek kargo maliyeti: ürün başına 5 birim (TL cinsinden)
-                    } else {
-                        hasFreeShippingItem = true; // Herhangi bir ürün ücretsiz kargo ise işaretle
-                    }
-
-                    const imageUrl = displayItem.selectedVariant?.media?.[0]?.url || displayItem.media?.[0]?.url || 'https://via.placeholder.com/100x100?text=NoImg';
-                    const productName = displayItem.name;
-                    const variantName = displayItem.selectedVariant?.colorName?.[currentLang] || displayItem.selectedVariant?.colorName?.tr || '';
-
-                    const cartItemEl = document.createElement('div');
-                    cartItemEl.className = 'cart-item';
-                    cartItemEl.innerHTML = `
-                        <img src="${imageUrl}" alt="${productName}" class="cart-item-image">
-                        <div class="cart-item-details">
-                            <h3><a href="product.html?id=${item.productId}">${productName}</a></h3>
-                            ${variantName ? `<p>${translate('variant_selection_label')}: ${variantName}</p>` : ''}
-                        </div>
-                        <div class="cart-item-price">${formatPrice(displayItem.priceAtTimeOfAdding * displayItem.quantity)}</div>
-                        <div class="quantity-control">
-                            <button type="button" class="quantity-button decrease-cart-quantity" data-index="${index}">-</button>
-                            <input type="number" class="quantity-input cart-quantity-input" value="${item.quantity}" min="1" max="99" data-index="${index}">
-                            <button type="button" class="quantity-button increase-cart-quantity" data-index="${index}">+</button>
-                        </div>
-                        <button type="button" class="remove-item-btn" data-index="${index}"><i class="fa-solid fa-trash"></i></button>
-                    `;
-                    cartItemsContainer.appendChild(cartItemEl);
+                    renderAll(); // Render remaining UI elements
+                    loadingOverlay.classList.add('hidden');
                 });
+            };
 
-                if (hasFreeShippingItem) {
-                    totalShipping = 0;
-                }
-                
-                const total = subtotal + totalShipping;
-
-                document.getElementById('cart-subtotal-label').innerHTML = `${translate('cart_subtotal_label')} <span>${formatPrice(subtotal)}</span>`;
-                document.getElementById('cart-shipping-label').innerHTML = `${translate('cart_shipping_label')} <span>${formatPrice(totalShipping)}</span>`;
-                document.getElementById('cart-total-label').innerHTML = `${translate('cart_total_label')} <span>${formatPrice(total)}</span>`;
-
-                // Sepet öğelerinin miktarını ve kaldırma işlemlerini yöneten event listener'lar
-                cartItemsContainer.querySelectorAll('.decrease-cart-quantity').forEach(btn => {
-                    btn.onclick = async (e) => { // async eklendi
-                        const index = parseInt(e.target.dataset.index);
-                        if (siteData.cart[index].quantity > 1) {
-                            siteData.cart[index].quantity--;
-                            await saveCart(currentUser?.uid, siteData.cart); // Sepeti kaydet
-                            renderCartPage(); // Sepeti yeniden çiz
-                        }
-                    };
-                });
-                cartItemsContainer.querySelectorAll('.increase-cart-quantity').forEach(btn => {
-                    btn.onclick = async (e) => { // async eklendi
-                        const index = parseInt(e.target.dataset.index);
-                        if (siteData.cart[index].quantity < 99) { // Max 99 adet
-                            siteData.cart[index].quantity++;
-                            await saveCart(currentUser?.uid, siteData.cart); // Sepeti kaydet
-                            renderCartPage(); // Sepeti yeniden çiz
-                        }
-                    };
-                });
-                cartItemsContainer.querySelectorAll('.cart-quantity-input').forEach(input => {
-                    input.onchange = async (e) => { // async eklendi
-                        const index = parseInt(e.target.dataset.index);
-                        let newQuantity = parseInt(e.target.value);
-                        if (isNaN(newQuantity) || newQuantity < 1) newQuantity = 1;
-                        if (newQuantity > 99) newQuantity = 99;
-                        siteData.cart[index].quantity = newQuantity;
-                        await saveCart(currentUser?.uid, siteData.cart); // Sepeti kaydet
-                        renderCartPage();
-                    };
-                });
-                cartItemsContainer.querySelectorAll('.remove-item-btn').forEach(btn => {
-                    btn.onclick = async (e) => { // async eklendi
-                        const index = parseInt(e.target.dataset.index);
-                        if (confirm(translate('remove_item_button') + " - " + siteData.cart[index].name + "?")) { // Onay mesajı eklendi
-                            siteData.cart.splice(index, 1);
-                            await saveCart(currentUser?.uid, siteData.cart); // Sepeti kaydet
-                            renderCartPage(); // Sepeti yeniden çiz
-                        }
-                    };
-                });
-
-                // Ürün isimlerine tıklayınca ürün sayfasına gitme
-                cartItemsContainer.querySelectorAll('.cart-item-details h3 a').forEach(link => {
-                    link.onclick = (e) => {
-                        // Eğer ürün detay sayfasına yönlendiriyorsa, varsayılan davranışı engelleme
-                        // ve linki product.html?id= olarak ayarladığımız için direkt gitmesine izin ver
-                        // e.preventDefault(); // Artık gerek yok
-                    };
-                });
-            }
-            
-            // --- Sipariş Geçmişi ---
-            async function renderOrderHistory() {
-                orderHistoryContainer.innerHTML = '';
-                orderHistoryEmpty.style.display = 'none';
-
-                if (!currentUser || currentUser.isAnonymous) {
-                    orderHistoryEmpty.style.display = 'block';
-                    orderHistoryEmpty.textContent = translate('order_history_empty'); // Misafirler için mesaj
-                    return;
-                }
-
-                showLoading();
-                try {
-                    const q = db.collection('orders').where('userUid', '==', currentUser.uid).orderBy('orderDate', 'desc');
-                    const querySnapshot = await q.get();
-
-                    if (querySnapshot.empty) {
-                        orderHistoryEmpty.style.display = 'block';
-                        orderHistoryEmpty.textContent = translate('order_history_empty');
-                        return;
-                    }
-
-                    querySnapshot.forEach(doc => {
-                        const order = doc.data();
-                        const orderId = doc.id; // Firestore tarafından atanan benzersiz ID
-                        const orderDate = order.orderDate ? new Date(order.orderDate.toDate()).toLocaleDateString(currentLang) : 'N/A';
-                        const totalAmount = formatPrice(order.totalAmount || 0);
-                        const statusKey = `order_status_${order.status.toLowerCase()}`;
-                        const translatedStatus = translate(statusKey) || order.status;
-
-                        let itemsHtml = order.items.map(item => `
-                            <li>${item.name || translate('untitled_product')} ${item.selectedVariant?.colorName?.[currentLang] ? `(${item.selectedVariant.colorName[currentLang]})` : ''} x ${item.quantity}</li>
-                        `).join('');
-
-                        const orderItemEl = document.createElement('div');
-                        orderItemEl.className = 'order-item';
-                        orderItemEl.innerHTML = `
-                            <h3>${translate('order_id_label')} ${orderId}</h3>
-                            <p>${translate('order_date_label')} ${orderDate}</p>
-                            <p>${translate('order_total_label')} ${totalAmount}</p>
-                            <p>${translate('order_status_label')} <span class="order-status ${order.status.toLowerCase()}">${translatedStatus}</span></p>
-                            <p>${translate('order_items_label')}</p>
-                            <ul>${itemsHtml}</ul>
-                        `;
-                        orderHistoryContainer.appendChild(orderItemEl);
-                    });
-
-                } catch (error) {
-                    console.error("Sipariş geçmişi yüklenirken hata:", error);
-                    orderHistoryEmpty.style.display = 'block';
-                    orderHistoryEmpty.textContent = "Sipariş geçmişi yüklenemedi: " + error.message;
-                } finally {
-                    hideLoading();
-                }
-            }
-            
-            // Sepet Sayfası Butonları
-            continueShoppingBtn.onclick = () => { window.location.href = 'index.html'; };
-            proceedToCheckoutBtn.onclick = () => { window.location.href = 'checkout.html'; };
-
-
-            // --- Kimlik Doğrulama İşlemleri ---
-            async function handleUserAuth(user) {
-                currentUser = user; // Global currentUser değişkenini ayarla
-                if (user) {
-                    let displayName = user.displayName || user.email;
-                    if (user.isAnonymous) {
-                        displayName = translate('auth_guest_text');
-                        authStatusText.textContent = displayName;
-                        googleLoginBtn.style.display = 'block';
-                        anonymousLoginBtn.style.display = 'none';
-                        logoutBtn.style.display = 'none'; // Anonim kullanıcının Logout'u olmaz
-                    } else {
-                        authStatusText.textContent = translate('auth_welcome_text').replace('{displayName}', displayName.split(' ')[0]);
-                        googleLoginBtn.style.display = 'none';
-                        anonymousLoginBtn.style.display = 'none';
-                        logoutBtn.style.display = 'block';
-                    }
-
-                    // Mobil menüdeki durumları da güncelle
-                    mobileAuthStatusText.textContent = authStatusText.textContent;
-                    mobileGoogleLoginBtn.style.display = googleLoginBtn.style.display;
-                    mobileAnonymousLoginBtn.style.display = anonymousLoginBtn.style.display;
-                    mobileLogoutBtn.style.display = logoutBtn.style.display;
-
-                    await loadCart(); // Kullanıcı değiştiğinde sepeti yükle
-                    if (!user.isAnonymous && siteData.cart.length > 0) {
-                        await saveCart(user.uid, siteData.cart); // Giriş yapmış kullanıcının sepetini Firestore'a kaydet
-                    }
-                    renderOrderHistory(); // Giriş yapıldığında sipariş geçmişini yükle
-                } else {
-                    // Kullanıcı çıkış yapmış veya anonim değil
-                    authStatusText.textContent = translate('auth_guest_text');
-                    googleLoginBtn.style.display = 'block';
-                    anonymousLoginBtn.style.display = 'block';
-                    logoutBtn.style.display = 'none';
-
-                    mobileAuthStatusText.textContent = authStatusText.textContent;
-                    mobileGoogleLoginBtn.style.display = googleLoginBtn.style.display;
-                    mobileAnonymousLoginBtn.style.display = anonymousLoginBtn.style.display;
-                    mobileLogoutBtn.style.display = logoutBtn.style.display;
-
-                    await loadCart(); // Çıkış yapıldığında anonim sepeti yükle
-                    renderOrderHistory(); // Çıkış yapıldığında sipariş geçmişini temizle/güncelle
-                }
-            }
-
-            // Firebase Auth durumu değiştiğinde tetiklenir
-            auth.onAuthStateChanged(handleUserAuth);
-
-            // Google ile giriş yap
-            googleLoginBtn.addEventListener('click', async () => {
-                showLoading();
-                try {
-                    const provider = new firebase.auth.GoogleAuthProvider();
-                    await auth.signInWithPopup(provider);
-                } catch (error) {
-                    console.error("Google giriş hatası:", error);
-                    alert("Google ile giriş yapılırken bir hata oluştu: " + error.message);
-                } finally {
-                    hideLoading();
-                }
-            });
-
-            mobileGoogleLoginBtn.addEventListener('click', async () => {
-                googleLoginBtn.click(); // Masaüstü butonun click eventini tetikle
-                // Mobil menüyü kapat
-                hamburgerBtn.classList.remove('open');
-                mobileNav.classList.remove('open');
-                mobileNavOverlay.classList.remove('open');
-                document.body.classList.remove('mobile-menu-open');
-            });
-
-
-            // Anonim giriş yap
-            anonymousLoginBtn.addEventListener('click', async () => {
-                showLoading();
-                try {
-                    await auth.signInAnonymously();
-                } catch (error) {
-                    console.error("Anonim giriş hatası:", error);
-                    alert("Anonim giriş yapılırken bir hata oluştu: " + error.message);
-                } finally {
-                    hideLoading();
-                }
-            });
-
-            mobileAnonymousLoginBtn.addEventListener('click', async () => {
-                anonymousLoginBtn.click(); // Masaüstü butonun click eventini tetikle
-                // Mobil menüyü kapat
-                hamburgerBtn.classList.remove('open');
-                mobileNav.classList.remove('open');
-                mobileNavOverlay.classList.remove('open');
-                document.body.classList.remove('mobile-menu-open');
-            });
-
-            // Çıkış yap
-            logoutBtn.addEventListener('click', async () => {
-                showLoading();
-                try {
-                    // Sepeti Firestore'dan LocalStorage'a geri taşı (sadece Google kullanıcısıysa)
-                    if (currentUser && !currentUser.isAnonymous) {
-                        const userCartRef = db.collection(AUTHED_CART_COLLECTION).doc(currentUser.uid);
-                        const userCartSnap = await userCartRef.get();
-                        if (userCartSnap.exists) { // Düzeltme: .exists() yerine .exists
-                            const currentCartItems = userCartSnap.data().items || [];
-                            const anonymousCartId = `anon_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-                            localStorage.setItem(ANONYMOUS_CART_PREFIX + 'id', anonymousCartId);
-                            localStorage.setItem(ANONYMOUS_CART_PREFIX + anonymousCartId, JSON.stringify(currentCartItems));
-                            console.log("Firestore sepeti LocalStorage'a geri taşındı.");
-                        }
-                        await userCartRef.delete(); // Firestore sepetini temizle
-                    }
-                    await auth.signOut();
-                    siteData.cart = []; // Sepeti sıfırla
-                    localStorage.removeItem(CART_LOCAL_STORAGE_KEY); // Eski genel sepeti temizle
-                    updateCartBadge();
-                } catch (error) {
-                    console.error("Çıkış hatası:", error);
-                    alert("Çıkış yapılırken bir hata oluştu: " + error.message);
-                } finally {
-                    hideLoading();
-                }
-            });
-
-            mobileLogoutBtn.addEventListener('click', async () => {
-                logoutBtn.click(); // Masaüstü butonun click eventini tetikle
-                // Mobil menüyü kapat
-                hamburgerBtn.classList.remove('open');
-                mobileNav.classList.remove('open');
-                mobileNavOverlay.classList.remove('open');
-                document.body.classList.remove('mobile-menu-open');
-            });
-
-
-            async function init() {
-                showLoading();
-                if (loadingTextP) loadingTextP.textContent = translate('loading_text');
-
-                await fetchData();
-                
-                const availableCountries = Object.keys(siteData.settings.countryPricing);
-                const storedCountry = localStorage.getItem('pufemo-country');
-                
-                if (availableCountries.length > 0 && (!storedCountry || !availableCountries.includes(storedCountry))) {
-                    welcomeModalOverlay.classList.add('active'); // Modalı göster
-                }
-                
-                renderAll();
-                
-                hideLoading();
-            }
-            
             init();
         } else {
-             if (document.getElementById('loading-overlay')) document.getElementById('loading-overlay').classList.add('hidden');
+             // Fallback if Firebase is not initialized
+            if (document.getElementById('loading-overlay')) document.getElementById('loading-overlay').classList.add('hidden');
             if (document.getElementById('loading-text')) document.getElementById('loading-text').textContent = "Hata: Sayfa yüklenemedi! Lütfen internet bağlantınızı kontrol edin.";
-            if (document.getElementById('cart-page-title')) document.getElementById('cart-page-title').textContent = "Sepet Yüklenemedi";
+            // Add other static text fallbacks for main elements
+            document.getElementById('cart-page-title').textContent = "Hata";
+            document.getElementById('empty-cart-message').textContent = "Sayfa yüklenirken bir hata oluştu.";
+            if (btnCheckout) btnCheckout.disabled = true;
         }
     </script>
 </body>
