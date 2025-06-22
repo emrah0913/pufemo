@@ -9,7 +9,17 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <style>
-        :root { --primary-color: #2c3e50; --secondary-color: #e74c3c; --background-color: #ecf0f1; --text-color: #34495e; --light-text-color: #ffffff; --card-bg-color: #ffffff; --border-radius: 8px; --box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        /* Genel Değişkenler ve Temel Stiller */
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #e74c3c;
+            --background-color: #ecf0f1;
+            --text-color: #34495e;
+            --light-text-color: #ffffff;
+            --card-bg-color: #ffffff;
+            --border-radius: 8px;
+            --box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
         html { scroll-behavior: smooth; }
         body { background-color: var(--background-color); color: var(--text-color); line-height: 1.6; }
@@ -55,7 +65,7 @@
             z-index: 1000;
             padding-bottom: 0.5rem;
         }
-        
+
         .header-top {
             display: flex;
             justify-content: center;
@@ -86,7 +96,7 @@
             height: auto;
         }
         
-        .header-controls { display: flex; align-items: center; gap: 1rem; }
+        .header-controls { display: flex; align-items: center; gap: 1rem; position: relative; /* Dropdown için */ }
         .control-select { background-color: #f8f9fa; border: 1px solid #ddd; padding: 5px; border-radius: 5px; font-size: 0.9rem; cursor: pointer; }
         .cart-icon { font-size: 1.5rem; position: relative; }
         .cart-badge { position: absolute; top: -5px; right: -10px; background-color: var(--secondary-color); color: var(--light-text-color); border-radius: 50%; padding: 2px 6px; font-size: 0.7rem; font-weight: 600; }
@@ -371,6 +381,78 @@
             font-weight: 500;
         }
 
+        /* Welcome Modal */
+        .welcome-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            z-index: 10005;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+
+        .welcome-modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .welcome-modal-content {
+            background-color: var(--card-bg-color);
+            padding: 30px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+            transform: translateY(-20px);
+            transition: transform 0.3s ease;
+        }
+
+        .welcome-modal-overlay.active .welcome-modal-content {
+            transform: translateY(0);
+        }
+
+        .welcome-modal-content h2 {
+            font-size: 2rem;
+            color: var(--primary-color);
+            margin-bottom: 15px;
+        }
+
+        .welcome-modal-content p {
+            font-size: 1.1rem;
+            color: var(--text-color);
+            margin-bottom: 20px;
+        }
+
+        .welcome-modal-content .control-select {
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        .welcome-modal-content button {
+            background-color: var(--secondary-color);
+            color: var(--light-text-color);
+            padding: 12px 25px;
+            border: none;
+            border-radius: 5px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .welcome-modal-content button:hover {
+            background-color: #c0392b;
+        }
+
+
         /* Mobile specific adjustments */
         @media (max-width: 992px) {
             .category-nav { display: none; }
@@ -542,10 +624,13 @@
                 
                 <div id="auth-container" style="position: relative; display: flex;">
                     <div id="profile-toggle" class="auth-profile-toggle">
-                        <img id="profile-img" src="" alt="Profil" style="display: none;"> <i id="guest-icon" class="fa-solid fa-user"></i> </div>
+                        <img id="profile-img" src="" alt="Profil" style="display: none;"> <i id="guest-icon" class="fa-solid fa-user"></i>
+                    </div>
                     <div id="auth-dropdown-menu" class="auth-dropdown-menu">
                         <span id="user-email-display" class="user-email"></span>
-                        <button id="google-login-btn"></button> <button id="logout-btn"></button> </div>
+                        <button id="google-login-btn"></button>
+                        <button id="logout-btn"></button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -595,18 +680,15 @@
         </div>
     </footer>
 
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js" type="module"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js" type="module"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js" type="module"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage.js" type="module"></script>
-
     <script type="module">
+        // Firebase SDK importları
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
         import { getFirestore, doc, getDoc, collection, query, where, getDocs, onSnapshot, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
-        import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut, signInAnonymously } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js"; // signInAnonymously eklendi
+        import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut, signInAnonymously } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
 
+        // Firebase Yapılandırması (Kendi anahtarlarınızla güncelleyin!)
         const firebaseConfig = {
-            apiKey: "AIzaSyDYkzZzNXB22U4oEXxOoPh-puwuE8kz0g4",
+            apiKey: "AIzaSyDYkzZzNXB22U4oEXxOoPh-puwuE8kz0g4", // Burayı kendi API anahtarınızla doldurun
             authDomain: "pufemo-com.firebaseapp.com",
             projectId: "pufemo-com",
             storageBucket: "pufemo-com.appspot.com",
@@ -614,33 +696,13 @@
             appId: "1:983352837227:web:defaa8dae215776e2e1d2e",
         };
         
+        // Global Firebase değişkenleri
         let app;
         let db;
         let auth;
         let currentUser = null; // Aktif kullanıcıyı tutacak değişken
 
-        try {
-            app = initializeApp(firebaseConfig);
-            db = getFirestore(app);
-            auth = getAuth(app);
-        } catch (e) {
-            console.error("Firebase başlatma hatası!", e);
-            document.getElementById('loading-overlay').classList.add('hidden');
-            document.getElementById('loading-text').textContent = "Hata: Sayfa yüklenemedi!";
-            document.getElementById('main-section-title').textContent = "Ürünler Yüklenemedi";
-            document.getElementById('footer-title-pufemo').textContent = "PUFEMO";
-            document.getElementById('footer-desc-pufemo').textContent = "Hayallerinizdeki konforu ve estetiği evinize taşıyoruz.";
-            document.getElementById('footer-title-fast-links').textContent = "Hızlı Bağlantılar";
-            document.getElementById('footer-link-about').textContent = "Hakkımızda";
-            document.getElementById('footer-link-contact').textContent = "İletişim";
-            document.getElementById('footer-link-privacy').textContent = "Gizlilik Politikası";
-            document.getElementById('footer-title-follow-us').textContent = "Bizi Takip Edin";
-            document.getElementById('footer-copyright').innerHTML = "&copy; 2025 PUFEMO.COM | Tüm Hakları Saklıdır.";
-            // Burada init() fonksiyonundan return yapmıyoruz, çünkü bu try-catch global kapsamda.
-            // Hata sonrası scriptin geri kalanı çalışmaya devam etmeli ancak Firebase işlemleri başarısız olacaktır.
-        }
-
-        // --- Static Translations (Updated to include auth related texts) ---
+        // --- Statik Çeviriler ve Global Durum ---
         const staticTranslations = {
             'loading_text': { tr: 'PUFEMO Yükleniyor...', en: 'Loading PUFEMO...', el: 'Φόρτωση PUFEMO...' },
             'mobile_menu_title': { tr: 'Kategoriler', en: 'Categories', el: 'Κατηγορίες' },
@@ -671,10 +733,11 @@
             'profile_menu_login_google': { tr: 'Google ile Giriş Yap', en: 'Sign In with Google', el: 'Σύνδεση με Google' }
         };
 
+        // Site verilerini tutacak obje
         let siteData = {
             settings: {
                 languages: [],
-                banner: [], 
+                banner: [],
                 general: { logo: {}, promoBar: {} },
                 countryPricing: {},
                 currencySymbols: {},
@@ -684,10 +747,12 @@
             products: []
         };
 
+        // Kullanıcı tercihleri ve mevcut durum
         let currentLang = localStorage.getItem('pufemo-language') || 'en';
         let currentCurrency = localStorage.getItem('pufemo-currency') || 'USD';
         let currentCountryCode = localStorage.getItem('pufemo-country') || '';
 
+        // DOM element referansları
         const loadingOverlay = document.getElementById('loading-overlay');
         const loadingTextP = document.getElementById('loading-text');
 
@@ -702,6 +767,7 @@
 
         const mainSectionTitleEl = document.getElementById('main-section-title');
         const cartPageLinkEl = document.getElementById('cart-page-link');
+        const cartBadge = document.querySelector('.cart-badge');
 
         const welcomeModalOverlay = document.getElementById('welcomeModalOverlay');
         const welcomeCountrySelect = document.getElementById('welcomeCountrySelect');
@@ -709,7 +775,13 @@
         const welcomeModalTitle = document.getElementById('welcome-modal-title');
         const welcomeModalMessage = document.getElementById('welcome-modal-message');
 
-        // --- Utility Functions ---
+        // --- Yardımcı Fonksiyonlar ---
+
+        /**
+         * İki harfli ülke kodunu emoji bayrağına çevirir.
+         * @param {string} code - İki harfli ülke kodu (örn. "TR", "US").
+         * @returns {string} Emoji bayrağı veya boş string.
+         */
         function countryCodeToEmoji(code) {
             if (!code || code.length !== 2) {
                 return '';
@@ -719,76 +791,20 @@
             ).join('');
         }
 
+        /**
+         * Verilen anahtara göre mevcut dilde çeviri metnini döndürür.
+         * Eğer mevcut dilde çeviri yoksa İngilizce'ye, o da yoksa Türkçe'ye döner.
+         * @param {string} key - Çeviri anahtarı.
+         * @returns {string} Çevrilmiş metin veya anahtarın kendisi.
+         */
         const translate = (key) => staticTranslations[key]?.[currentLang] || staticTranslations[key]?.['en'] || staticTranslations[key]?.['tr'] || key;
         
-        const fetchData = async () => {
-            try {
-                const [settingsDoc, categoriesDocSnap, productsSnap] = await Promise.all([
-                    getDoc(doc(db, 'pufemo', 'settings')),
-                    getDoc(doc(db, 'pufemo', 'categories')), 
-                    getDocs(query(collection(db, 'pufemo-products'), where('isInShowcase', '==', true)))
-                ]);
-                
-                if (settingsDoc.exists()) {
-                    siteData.settings = { ...settingsDoc.data() };
-                } else {
-                    console.warn('Settings document not found. Using default settings.');
-                }
-                
-                if (categoriesDocSnap.exists()) { 
-                    siteData.categories = { ...categoriesDocSnap.data() };
-                } else {
-                    console.warn('Categories document not found. Using empty categories.');
-                }
-
-                siteData.products = productsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-                const availableCountries = Object.keys(siteData.settings.countryPricing);
-                
-                if (localStorage.getItem('pufemo-country') && availableCountries.includes(localStorage.getItem('pufemo-country'))) {
-                    currentCountryCode = localStorage.getItem('pufemo-country');
-                } else if (availableCountries.length > 0) {
-                    currentCountryCode = availableCountries[0];
-                    localStorage.setItem('pufemo-country', currentCountryCode);
-                } else {
-                    currentCountryCode = 'US';
-                    localStorage.setItem('pufemo-country', currentCountryCode);
-                }
-
-                const selectedCountryData = siteData.settings.countryPricing[currentCountryCode];
-                if (selectedCountryData) {
-                    currentLang = selectedCountryData.defaultLanguage || 'en';
-                    const selectedCountryCurrencySymbol = selectedCountryData.currencySymbol;
-                    if (selectedCountryCurrencySymbol) {
-                        const currencyCodeFromSymbol = Object.keys(siteData.settings.currencySymbols || {}).find(key => 
-                            siteData.settings.currencySymbols[key] === selectedCountryCurrencySymbol
-                        );
-                        currentCurrency = currencyCodeFromSymbol || 'USD';
-                    } else {
-                        currentCurrency = 'USD';
-                    }
-                    localStorage.setItem('pufemo-language', currentLang);
-                    localStorage.setItem('pufemo-currency', currentCurrency);
-                } else {
-                    currentLang = 'en';
-                    currentCurrency = 'USD';
-                    localStorage.setItem('pufemo-language', currentLang);
-                    localStorage.setItem('pufemo-currency', currentCurrency);
-                }
-
-            } catch (e) {
-                console.error("Veri okuma hatası! Varsayılan ayarlar kullanılıyor.", e);
-                currentLang = 'en';
-                currentCurrency = 'USD';
-                localStorage.setItem('pufemo-language', currentLang);
-                localStorage.setItem('pufemo-currency', currentCurrency);
-                if (!localStorage.getItem('pufemo-country')) {
-                    localStorage.setItem('pufemo-country', 'US');
-                    currentCountryCode = 'US';
-                }
-            }
-        };
-        
+        /**
+         * Fiyatı mevcut para birimine ve ülke ayarlarına göre formatlar.
+         * @param {number} basePrice - Ürünün temel fiyatı (TL cinsinden varsayılan).
+         * @param {number|null} [discountPrice=null] - Ürünün indirimli fiyatı (TL cinsinden varsayılan).
+         * @returns {string} Formatlanmış fiyat stringi (örn. "$ 123.45" veya "₺ 1.234").
+         */
         const formatPrice = (basePrice, discountPrice = null) => {
             const symbols = siteData.settings?.currencySymbols || {};
             const selectedCountryData = siteData.settings.countryPricing[currentCountryCode];
@@ -814,16 +830,114 @@
             return `${symbol} ${formattedPrice}`;
         };
 
-        const renderAll = () => {
+        // --- Veri Çekme Fonksiyonları ---
+
+        /**
+         * Firebase Firestore'dan genel site ayarlarını, kategorileri ve ürünleri çeker.
+         * currentLang, currentCurrency ve currentCountryCode değişkenlerini günceller.
+         */
+        const fetchData = async () => {
+            try {
+                // db nesnesinin başlatıldığından emin olun
+                if (!db) {
+                    console.error("Firestore DB başlatılmamış. Veri çekilemiyor.");
+                    // Bu noktada uygulamayı kullanamayacağı için kullanıcıya hata mesajı gösterebiliriz.
+                    loadingTextP.textContent = "Hata: Sunucuya bağlanılamadı.";
+                    return;
+                }
+
+                const [settingsDoc, categoriesDocSnap, productsSnap] = await Promise.all([
+                    getDoc(doc(db, 'pufemo', 'settings')), // Genel ayarları çek
+                    getDoc(doc(db, 'pufemo', 'categories')), // Kategorileri çek
+                    getDocs(query(collection(db, 'pufemo-products'), where('isInShowcase', '==', true))) // Vitrindeki ürünleri çek
+                ]);
+                
+                // Ayarlar belgesini yükle
+                if (settingsDoc.exists()) {
+                    siteData.settings = { ...settingsDoc.data() };
+                } else {
+                    console.warn('Ayarlar belgesi bulunamadı. Varsayılan ayarlar kullanılıyor.');
+                }
+                
+                // Kategoriler belgesini yükle
+                if (categoriesDocSnap.exists()) {    
+                    siteData.categories = { ...categoriesDocSnap.data() };
+                } else {
+                    console.warn('Kategoriler belgesi bulunamadı. Boş kategoriler kullanılıyor.');
+                }
+
+                // Ürünleri yükle
+                siteData.products = productsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+                // Ülke, dil ve para birimi tercihlerini ayarla
+                const availableCountries = Object.keys(siteData.settings.countryPricing);
+                
+                if (localStorage.getItem('pufemo-country') && availableCountries.includes(localStorage.getItem('pufemo-country'))) {
+                    currentCountryCode = localStorage.getItem('pufemo-country');
+                } else if (availableCountries.length > 0) {
+                    currentCountryCode = availableCountries[0];
+                    localStorage.setItem('pufemo-country', currentCountryCode);
+                } else {
+                    currentCountryCode = 'US'; // Varsayılan ülke
+                    localStorage.setItem('pufemo-country', currentCountryCode);
+                }
+
+                const selectedCountryData = siteData.settings.countryPricing[currentCountryCode];
+                if (selectedCountryData) {
+                    currentLang = selectedCountryData.defaultLanguage || 'en';
+                    const selectedCountryCurrencySymbol = selectedCountryData.currencySymbol;
+                    if (selectedCountryCurrencySymbol) {
+                        const currencyCodeFromSymbol = Object.keys(siteData.settings.currencySymbols || {}).find(key =>    
+                            siteData.settings.currencySymbols[key] === selectedCountryCurrencySymbol
+                        );
+                        currentCurrency = currencyCodeFromSymbol || 'USD';
+                    } else {
+                        currentCurrency = 'USD';
+                    }
+                    localStorage.setItem('pufemo-language', currentLang);
+                    localStorage.setItem('pufemo-currency', currentCurrency);
+                } else {
+                    currentLang = 'en';
+                    currentCurrency = 'USD';
+                    localStorage.setItem('pufemo-language', currentLang);
+                    localStorage.setItem('pufemo-currency', currentCurrency);
+                }
+
+            } catch (e) {
+                console.error("Veri okuma hatası! Varsayılan ayarlar kullanılıyor.", e);
+                // Hata durumunda varsayılan değerleri ayarla
+                currentLang = 'en';
+                currentCurrency = 'USD';
+                currentCountryCode = 'US';
+                localStorage.setItem('pufemo-language', currentLang);
+                localStorage.setItem('pufemo-currency', currentCurrency);
+                localStorage.setItem('pufemo-country', currentCountryCode);
+            }
+        };
+
+        // --- Render Fonksiyonları ---
+
+        /**
+         * Tüm sayfa içeriğini mevcut dil ve ayarlara göre yeniden render eder.
+         */
+        const renderAll = async () => {
             renderStaticText();
-            setupControls();
+            setupControls(); // Kontrol elemanlarını ayarlar ve günceller
             renderCategories();
             renderBanner();
             renderProducts();
             renderGeneralSiteElements();
-            updateCartBadge();
+
+            // Eğer kullanıcı oturumu açıksa (anonim dahil), sepet rozetini güncellemek için dinlemeyi başlat
+            // Bu, onAuthStateChanged içinde zaten yapıldığı için burada sadece UI güncellemesi sağlar.
+            if (currentUser && db) {
+                // updateCartBadge(); // onAuthStateChanged zaten onSnapshot'u kurar, bu fazladan olabilir
+            }
         };
 
+        /**
+         * Sayfadaki statik metinleri mevcut dile göre çevirir ve günceller.
+         */
         const renderStaticText = () => {
             document.documentElement.lang = currentLang;
             loadingTextP.textContent = translate('loading_text');
@@ -844,11 +958,14 @@
             if (welcomeModalConfirmButton) welcomeModalConfirmButton.textContent = translate('welcome_modal_confirm_button');
             
             if (cartPageLinkEl) cartPageLinkEl.title = translate('cart_page_link_title');
-            if (googleLoginBtn) googleLoginBtn.textContent = translate('profile_menu_login_google'); // Changed to use new key
-            if (logoutBtn) logoutBtn.textContent = translate('profile_menu_logout'); // Changed to use new key
-            if (userEmailDisplay) userEmailDisplay.textContent = ""; // Default empty
+            if (googleLoginBtn) googleLoginBtn.textContent = translate('profile_menu_login_google');
+            if (logoutBtn) logoutBtn.textContent = translate('profile_menu_logout');
+            if (userEmailDisplay) userEmailDisplay.textContent = ""; // Varsayılan olarak boş
         };
 
+        /**
+         * Genel site elemanlarını (logo, promosyon çubuğu) Firebase ayarlarından alarak render eder.
+         */
         const renderGeneralSiteElements = () => {
             const generalSettings = siteData.settings.general || {};
             const logoLink = document.getElementById('main-logo-link');
@@ -891,6 +1008,9 @@
             }
         };
 
+        /**
+         * Kategori menülerini (masaüstü ve mobil) Firebase'den alarak render eder.
+         */
         const renderCategories = () => {
             const desktopContainer = document.getElementById('category-menu-container');
             const mobileContainer = document.getElementById('mobile-nav');
@@ -924,11 +1044,22 @@
             mobileContainer.appendChild(createMenu(categories));
         };
 
+        let currentSlideIndex = 0;
+        let slideIntervalId;
+
+        /**
+         * Kahraman banner'ı (hero banner) Firebase ayarlarından alarak render eder ve slayt gösterisini başlatır.
+         */
         const renderBanner = () => {
             const bannerContainer = document.getElementById('hero-banner-container');
             const slides = siteData.settings?.banner || [];
 
+            // Önceki slaytları ve gezinti noktalarını temizle
             bannerContainer.innerHTML = '';
+            if (slideIntervalId) {
+                clearInterval(slideIntervalId);
+            }
+
             if (slides.length === 0) {
                 bannerContainer.style.display = 'none';
                 return;
@@ -945,6 +1076,7 @@
                 
                 const slideStyle = slideData.style || {};
 
+                // Medya tipine göre video veya resim yükle
                 if(slideData.image_url?.includes('.mp4')) {
                     slideEl.innerHTML = `<video src="${slideData.image_url}" autoplay muted loop playsinline></video>`;
                 } else {
@@ -964,23 +1096,32 @@
                 bannerContainer.appendChild(slideEl);
             });
 
+            // Gezinti noktalarını oluştur
             const slideNav = document.createElement('div');
             slideNav.className = 'slide-nav';
             bannerContainer.appendChild(slideNav);
 
+            // Slayt gezintisini başlat
             startSlider();
         };
-        
+
+        /**
+         * Ürünleri (vitrin ürünleri) Firebase'den alarak ürün ızgarasına render eder.
+         */
         const renderProducts = () => {
             const container = document.getElementById('product-grid-container');
             const products = siteData.products || [];
-            container.innerHTML = '';
-            if (products.length === 0) return;
+            container.innerHTML = ''; // Önceki ürünleri temizle
+            if (products.length === 0) {
+                container.innerHTML = `<p style="text-align:center; margin-top:50px;">${translate('main_section_title')} için ürün bulunamadı.</p>`;
+                return;
+            }
 
             products.forEach(product => {
                 const card = document.createElement('div');
                 card.className = 'product-card';
-                const firstImage = product.variants?.[0]?.media?.[0]?.url || `https://placehold.co/400x300/ccc/fff?text=${translate('no_image')}`;
+                // İlk görseli veya varyant görselini al, yoksa placeholder kullan
+                const firstImage = product.variants?.[0]?.media?.[0]?.url || product.media?.[0]?.url || `https://placehold.co/400x300/ccc/fff?text=${translate('no_image')}`;
                 const name = product.content?.[currentLang]?.name || product.content?.tr?.name || translate('untitled_product');
                 
                 const originalPrice = product.basePriceTL;
@@ -1003,7 +1144,7 @@
 
                 card.innerHTML = `
                     <a href="product.html?id=${product.id}" class="product-image-link">
-                        <img src="${firstImage}" alt="${name}" class="product-image">
+                        <img src="${firstImage}" alt="${name}" class="product-image" onerror="this.onerror=null; this.src='https://placehold.co/400x300/ccc/fff?text=${encodeURIComponent(translate('no_image'))}';">
                     </a>
                     <div class="product-info">
                         <div class="product-info-top">
@@ -1016,13 +1157,24 @@
             });
         };
 
-        const startSlider = () => {
-            const slides = document.querySelectorAll('.slide');
-            const navContainer = document.querySelector('.slide-nav');
-            if (!navContainer) return;
-            navContainer.innerHTML = '';
-            if (slides.length <= 1) return;
+        // --- Slayt Gösterisi Kontrolü ---
 
+        /**
+         * Kahraman banner'daki slayt gösterisini başlatır.
+         */
+        const startSlider = () => {
+            const slides = document.querySelectorAll('.hero-banner .slide');
+            const navContainer = document.querySelector('.hero-banner .slide-nav');
+            
+            if (!navContainer || slides.length === 0) return;
+
+            // Önceki interval'i temizle
+            if (slideIntervalId) {
+                clearInterval(slideIntervalId);
+            }
+            
+            // Gezinti noktalarını yeniden oluştur
+            navContainer.innerHTML = '';
             slides.forEach((_, index) => {
                 const dot = document.createElement('div');
                 dot.className = 'nav-dot' + (index === 0 ? ' active' : '');
@@ -1031,33 +1183,69 @@
             });
 
             const dots = navContainer.querySelectorAll('.nav-dot');
-            let currentSlide = 0;
-            let slideInterval = setInterval(nextSlide, 5000);
-            function setSlide(index) { slides.forEach((s, i) => s.classList.toggle('active', i === index)); dots.forEach((d, i) => d.classList.toggle('active', i === index)); currentSlide = index; }
-            function nextSlide() { setSlide((currentSlide + 1) % slides.length); }
-            dots.forEach(dot => dot.addEventListener('click', () => { setSlide(parseInt(dot.dataset.index)); clearInterval(slideInterval); slideInterval = setInterval(nextSlide, 5000); }));
+            currentSlideIndex = 0; // Her başlatıldığında sıfırla
+
+            /**
+             * Belirli bir slayta geçiş yapar.
+             * @param {number} index - Gidilecek slaytın indeksi.
+             */
+            function setSlide(index) {
+                slides.forEach((s, i) => s.classList.toggle('active', i === index));
+                dots.forEach((d, i) => d.classList.toggle('active', i === index));
+                currentSlideIndex = index;
+            }
+
+            /**
+             * Sonraki slayta geçer.
+             */
+            function nextSlide() {
+                setSlide((currentSlideIndex + 1) % slides.length);
+            }
+
+            // Gezinti noktalarına tıklama olayları ekle
+            dots.forEach(dot => dot.addEventListener('click', () => {
+                setSlide(parseInt(dot.dataset.index));
+                // Kullanıcı manuel olarak değiştirdiğinde otomatik geçişi sıfırla
+                clearInterval(slideIntervalId);
+                slideIntervalId = setInterval(nextSlide, 5000);
+            }));
+
+            // Otomatik slayt geçişini başlat
+            if (slides.length > 1) { // Birden fazla slayt varsa otomatik geçişi başlat
+                slideIntervalId = setInterval(nextSlide, 5000);
+            } else { // Tek slayt varsa gezinti noktalarını gizle
+                navContainer.style.display = 'none';
+            }
+            setSlide(currentSlideIndex); // Başlangıç slaytını ayarla
         };
         
-        const updateCartBadge = async () => {
-            const cartBadge = document.querySelector('.cart-badge');
-            if (!cartBadge || !currentUser) { 
-                cartBadge.style.display = 'none'; 
+        /**
+         * Sepet rozetindeki toplam ürün sayısını günceller.
+         * currentUser mevcutsa ve db başlatılmışsa, kullanıcının sepet koleksiyonunu dinler.
+         */
+        function updateCartBadge() {
+            if (!cartBadge || !currentUser || !db) {
+                cartBadge.style.display = 'none';
                 return;
             }
 
-            try {
-                const cartRef = collection(db, 'users', currentUser.uid, 'cart');
-                onSnapshot(cartRef, (snapshot) => {
-                    const totalItems = snapshot.docs.reduce((sum, doc) => sum + doc.data().quantity, 0);
-                    cartBadge.textContent = totalItems;
-                    cartBadge.style.display = totalItems > 0 ? 'block' : 'none';
-                });
-            } catch (error) {
-                console.error("Error updating cart badge:", error);
-                cartBadge.style.display = 'none'; 
-            }
-        };
+            const cartRef = collection(db, 'users', currentUser.uid, 'cart');
+            // onSnapshot dinleyicisini doğrudan burada kuruyoruz
+            onSnapshot(cartRef, (snapshot) => {
+                const totalItems = snapshot.docs.reduce((sum, doc) => sum + doc.data().quantity, 0);
+                cartBadge.textContent = totalItems;
+                cartBadge.style.display = totalItems > 0 ? 'block' : 'none';
+            }, (error) => {
+                console.error("Sepet rozeti güncellenirken hata oluştu:", error);
+                cartBadge.style.display = 'none';
+            });
+        }
 
+        // --- Kontrol Elemanı Kurulumu ve Olay Dinleyicileri ---
+
+        /**
+         * Dil, para birimi, ülke seçicileri ve mobil menü gibi sayfa kontrollerini ayarlar.
+         */
         const setupControls = () => {
             const languageSelector = document.getElementById('language-selector');
             const currencySelector = document.getElementById('currency-selector');
@@ -1066,11 +1254,13 @@
             const mobileNav = document.getElementById('mobile-nav');
             const mobileNavOverlay = document.getElementById('mobile-nav-overlay');
 
+            // Dil Seçiciyi Doldur
             const languagesFromDB = siteData.settings.languages || [];
             languageSelector.innerHTML = languagesFromDB.map(l => `<option value="${l.code}">${countryCodeToEmoji(l.flag)} ${l.name}</option>`).join('');
             languageSelector.value = currentLang;
             languageSelector.style.display = languagesFromDB.length > 0 ? 'block' : 'none';
             
+            // Para Birimi Seçiciyi Doldur
             const currencies = siteData.settings?.currencySymbols || {};
             const availableCurrencies = Object.keys(currencies);
             currencySelector.innerHTML = availableCurrencies.map(c => {
@@ -1080,6 +1270,7 @@
             currencySelector.value = currentCurrency;
             currencySelector.style.display = availableCurrencies.length > 0 ? 'block' : 'none';
             
+            // Ülke Seçiciyi Doldur
             const countries = siteData.settings.countryPricing || {};
             const countryOptionsHtml = Object.entries(countries).map(([code, data]) => {
                 const countryName = data.name?.[currentLang] || data.name?.['tr'] || code.toUpperCase();
@@ -1091,116 +1282,145 @@
                 countrySelector.value = currentCountryCode;
                 countrySelector.parentElement.style.display = 'block';
 
-                if (welcomeCountrySelect) { 
+                if (welcomeCountrySelect) {    
                     welcomeCountrySelect.innerHTML = countryOptionsHtml;
                     welcomeCountrySelect.value = currentCountryCode;
                 }
-                if (welcomeModalOverlay) welcomeModalOverlay.style.display = 'none'; 
+                // Eğer ülkesi seçili değilse veya geçerli bir ülke değilse hoş geldin modalını göster
+                if (!localStorage.getItem('pufemo-country') || !Object.keys(countries).includes(localStorage.getItem('pufemo-country'))) {
+                    if (welcomeModalOverlay) welcomeModalOverlay.classList.add('active');
+                } else {
+                    if (welcomeModalOverlay) welcomeModalOverlay.classList.remove('active');
+                }
             } else {
                 if (countrySelector && countrySelector.parentElement) countrySelector.parentElement.style.display = 'none';
-                if (welcomeModalOverlay) welcomeModalOverlay.style.display = 'none';
+                if (welcomeModalOverlay) welcomeModalOverlay.classList.remove('active');
             }
 
-            languageSelector.onchange = (e) => {
+            // Seçiciler için olay dinleyicileri
+            languageSelector.onchange = async (e) => {
                 currentLang = e.target.value;
                 localStorage.setItem('pufemo-language', currentLang);
-                renderAll();
+                await fetchData(); // Yeni dil ayarlarıyla verileri tekrar çek
+                await renderAll(); // UI'yi yeniden render et
             };
             
-            currencySelector.onchange = (e) => {
+            currencySelector.onchange = async (e) => {
                 currentCurrency = e.target.value;
                 localStorage.setItem('pufemo-currency', currentCurrency);
-                renderAll();
+                await fetchData(); // Yeni para birimi ayarlarıyla verileri tekrar çek
+                await renderAll(); // UI'yi yeniden render et
             };
 
-            countrySelector.onchange = (e) => {
-                currentCountryCode = e.target.value;
+            // window.applyCountryAndRender fonksiyonunu globalde tanımla ve ülke seçiciden çağır
+            window.applyCountryAndRender = async (countryCode) => {
+                currentCountryCode = countryCode;
                 localStorage.setItem('pufemo-country', currentCountryCode);
                 const selectedCountryData = siteData.settings.countryPricing[currentCountryCode];
                 if (selectedCountryData) {
                     currentLang = selectedCountryData.defaultLanguage || 'en';
-                    const currencyCodeFromSymbol = Object.keys(siteData.settings.currencySymbols || {}).find(key => 
+                    const currencyCodeFromSymbol = Object.keys(siteData.settings.currencySymbols || {}).find(key =>    
                         siteData.settings.currencySymbols[key] === selectedCountryData.currencySymbol
                     );
                     currentCurrency = currencyCodeFromSymbol || 'USD';
                     localStorage.setItem('pufemo-language', currentLang);
                     localStorage.setItem('pufemo-currency', currentCurrency);
                 }
-                renderAll();
+                await fetchData(); // Yeni ülke, dil ve para birimi ayarlarıyla verileri tekrar çek
+                await renderAll(); // UI'yi yeniden render et
+                // Seçicilerin değerlerini güncelledikten sonra UI'da doğru göründüklerinden emin ol
+                if (languageSelector) languageSelector.value = currentLang;
+                if (currencySelector) currencySelector.value = currentCurrency;
+                if (countrySelector) countrySelector.value = currentCountryCode;
+            };
+
+            countrySelector.onchange = (e) => {
+                window.applyCountryAndRender(e.target.value);
             };
             
-            if (welcomeModalConfirmButton) { 
+            // Hoş Geldin Modalı Onay Butonu
+            if (welcomeModalConfirmButton) {    
                 welcomeModalConfirmButton.addEventListener('click', function() {
                     const selectedCountry = welcomeCountrySelect.value;
                     if (selectedCountry) {
-                        window.applyCountryAndRender(selectedCountry); 
+                        window.applyCountryAndRender(selectedCountry);    
                         if (welcomeModalOverlay) welcomeModalOverlay.classList.remove('active');
                     } else {
-                        alert(translate('welcome_modal_message').replace('Please select your country below.', 'Please select a country to continue.'));
+                        // alert yerine custom bir modal mesajı düşünebilirsiniz.
+                        alert(translate('welcome_modal_message').replace('Please select your country below.', 'Lütfen devam etmek için bir ülke seçin.'));
                     }
                 });
             }
 
+            // Hamburger Menü İşlevselliği
             const toggleMenu = () => {
                 hamburgerBtn.classList.toggle('open');
                 mobileNav.classList.toggle('open');
                 mobileNavOverlay.classList.toggle('open');
-                document.querySelector('body').classList.toggle('mobile-menu-open');
+                document.body.classList.toggle('mobile-menu-open');
             };
             hamburgerBtn.onclick = toggleMenu;
             mobileNavOverlay.onclick = toggleMenu;
             mobileNav.onclick = (e) => { if (e.target.tagName === 'A') toggleMenu(); };
+
+            // --- Kimlik Doğrulama Fonksiyonları ---
+            const googleProvider = new GoogleAuthProvider();
+
+            // Profil simgesine tıklayınca açılır menüyü göster/gizle
+            if (profileToggle) {
+                profileToggle.addEventListener('click', () => {
+                    if (authDropdownMenu) authDropdownMenu.classList.toggle('active');
+                });
+            }
+
+            // Dışarı tıklayınca açılır menüyü kapat
+            document.addEventListener('click', (event) => {
+                // authContainer'a tıklanmadıysa ve açılır menü açıksa kapat
+                if (authContainer && !authContainer.contains(event.target) && authDropdownMenu && authDropdownMenu.classList.contains('active')) {
+                    authDropdownMenu.classList.remove('active');
+                }
+            });
+
+            // Google ile Giriş
+            if (googleLoginBtn) {
+                googleLoginBtn.addEventListener('click', async () => {
+                    try {
+                        const userCredential = await signInWithPopup(auth, googleProvider);
+                        console.log("Google ile giriş başarılı:", userCredential.user);
+                        if (authDropdownMenu) authDropdownMenu.classList.remove('active');
+                    } catch (error) {
+                        console.error("Google giriş hatası:", error);
+                        // Hata mesajını kullanıcıya göster (alert yerine daha iyi bir UI kullanılabilir)
+                        alert("Google ile giriş yapılırken bir hata oluştu: " + error.message);
+                        if (authDropdownMenu) authDropdownMenu.classList.remove('active');
+                    }
+                });
+            }
+
+            // Çıkış Yap
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', async () => {
+                    try {
+                        await signOut(auth);
+                        console.log("Başarıyla çıkış yapıldı.");
+                        if (authDropdownMenu) authDropdownMenu.classList.remove('active');
+                        // onAuthStateChanged tetiklenecek ve anonim oturum açılacak
+                    } catch (error) {
+                        console.error("Çıkış hatası:", error);
+                        alert("Çıkış yapılırken bir hata oluştu: " + error.message);
+                        if (authDropdownMenu) authDropdownMenu.classList.remove('active');
+                    }
+                });
+            }
         };
 
-        // --- Authentication Functions ---
-        const googleProvider = new GoogleAuthProvider();
-
-        // Toggle dropdown on profile icon click
-        profileToggle.addEventListener('click', () => {
-            authDropdownMenu.classList.toggle('active');
-        });
-
-        // Close dropdown if clicked outside
-        document.addEventListener('click', (event) => {
-            // Check if the click was outside the auth container AND the dropdown is active
-            if (authContainer && !authContainer.contains(event.target) && authDropdownMenu.classList.contains('active')) {
-                authDropdownMenu.classList.remove('active');
-            }
-        });
-
-        // Google Login
-        googleLoginBtn.addEventListener('click', async () => {
-            try {
-                const userCredential = await signInWithPopup(auth, googleProvider);
-                // onAuthStateChanged will handle UI update and createUserIfNotExists
-                console.log("Google ile giriş başarılı:", userCredential.user);
-                if (authDropdownMenu) authDropdownMenu.classList.remove('active');
-            } catch (error) {
-                console.error("Google giriş hatası:", error);
-                alert("Google ile giriş yapılırken bir hata oluştu: " + error.message);
-                if (authDropdownMenu) authDropdownMenu.classList.remove('active');
-            }
-        });
-
-        // Logout
-        logoutBtn.addEventListener('click', async () => {
-            try {
-                await signOut(auth);
-                // onAuthStateChanged will be triggered with user=null,
-                // which will then attempt signInAnonymously to maintain a guest session.
-                console.log("Başarıyla çıkış yapıldı.");
-                if (authDropdownMenu) authDropdownMenu.classList.remove('active');
-            } catch (error) {
-                console.error("Çıkış hatası:", error);
-                alert("Çıkış yapılırken bir hata oluştu: " + error.message);
-                if (authDropdownMenu) authDropdownMenu.classList.remove('active');
-            }
-        });
-
-        // Helper function to create user document if it doesn't exist
+        /**
+         * Kullanıcı belgesinin Firestore'da olup olmadığını kontrol eder ve yoksa oluşturur.
+         * @param {Object} user - Firebase Auth User nesnesi.
+         */
         async function createUserIfNotExists(user) {
             if (!db) {
-                console.error("Firestore DB is not initialized. Cannot create user document.");
+                console.error("Firestore DB başlatılmamış. Kullanıcı belgesi oluşturulamıyor.");
                 return;
             }
             const userRef = doc(db, "users", user.uid);
@@ -1209,100 +1429,101 @@
             if (!userSnap.exists()) {
                 await setDoc(userRef, {
                     uid: user.uid,
-                    email: user.email || 'misafir@pufemo.com', // Default email for anonymous
-                    displayName: user.displayName || translate('guest_user_display_name'), // Default name
-                    createdAt: serverTimestamp(),
-                    role: user.isAnonymous ? 'guest' : 'user' // 'guest' or 'user'
+                    email: user.email || 'misafir@pufemo.com', // Anonim kullanıcılar için varsayılan e-posta
+                    displayName: user.displayName || (user.isAnonymous ? translate('guest_user_display_name') : 'Kayıtlı Kullanıcı'), // Anonim ise misafir adı
+                    createdAt: serverTimestamp(), // Sunucu zaman damgası kullanmak daha doğru
+                    role: user.isAnonymous ? 'guest' : 'user' // 'guest' veya 'user' rolü
                 });
-                console.log("User document created for:", user.uid);
+                console.log("Kullanıcı belgesi oluşturuldu:", user.uid);
             }
         }
 
-        // Listen for authentication state changes and update UI
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                currentUser = user; // Set global currentUser
-                await createUserIfNotExists(user); // Ensure user document exists
+        // --- Sayfa Başlatma ---
 
-                profileToggle.style.display = 'flex';
-                if (user.isAnonymous) {
-                    if (profileImg) profileImg.style.display = 'none';
-                    if (guestIcon) guestIcon.style.display = 'block';
-                    if (userEmailDisplay) userEmailDisplay.textContent = translate('guest_user_display_name');
-                    if (googleLoginBtn) googleLoginBtn.style.display = 'block'; // Show Google login for guests
-                    if (logoutBtn) logoutBtn.style.display = 'none'; // Hide logout for guests
-                } else {
-                    if (profileImg) {
-                        profileImg.style.display = 'block';
-                        profileImg.src = user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName || user.email || '')}&background=2c3e50&color=fff`;
-                    }
-                    if (guestIcon) guestIcon.style.display = 'none';
-                    if (userEmailDisplay) userEmailDisplay.textContent = user.email || user.displayName;
-                    if (googleLoginBtn) googleLoginBtn.style.display = 'none'; // Hide Google login if already logged in
-                    if (logoutBtn) logoutBtn.style.display = 'block'; // Show logout for registered users
-                }
-                updateCartBadge(); // Update badge when auth state changes
-                
-            } else {
-                currentUser = null;
-                profileToggle.style.display = 'flex'; // Keep toggle visible
-                if (profileImg) profileImg.style.display = 'none';
-                if (guestIcon) guestIcon.style.display = 'block'; // Show a generic user icon
-                if (userEmailDisplay) userEmailDisplay.textContent = ""; // Clear email display
-                if (googleLoginBtn) googleLoginBtn.style.display = 'block'; // Always show Google login if not logged in
-                if (logoutBtn) logoutBtn.style.display = 'none'; // No logout option if not logged in
-                
-                // If no user is authenticated, try to sign in anonymously to maintain cart/orders
-                try {
-                    // Check if there's a stored anonymous UID that can be re-used
-                    // Firebase Auth's persistence usually handles this automatically on page load.
-                    // If `user` is null here, it means no persistent session was found.
-                    // We must sign in anonymously to get a valid `currentUser` for Firestore rules.
-                    const anonUserCredential = await signInAnonymously(auth);
-                    currentUser = anonUserCredential.user;
-                    localStorage.setItem('pufemo_anon_uid', currentUser.uid); // Store/update anon UID
-                    await createUserIfNotExists(currentUser); // Ensure guest user doc exists
-                    console.log("Anonim oturum açıldı:", currentUser.uid);
-                } catch (anonError) {
-                    console.error("Anonim oturum açma hatası:", anonError);
-                    // Critical error: cannot get a user. Disable cart functionality gracefully.
-                    alert("Misafir olarak alışveriş yaparken bir hata oluştu. Lütfen sayfayı yenileyin.");
-                    // You might want to disable cart/order related UI elements here.
-                }
-                updateCartBadge(); // Update badge based on current user (or lack thereof)
-            }
-        });
-
-
-        // --- Initialisation ---
+        /**
+         * Sayfa yüklendiğinde tüm başlatma işlemlerini yapar.
+         */
         async function init() {
-            loadingOverlay.classList.remove('hidden');
-            renderStaticText(); 
+            loadingOverlay.classList.remove('hidden'); // Yükleme ekranını göster
+            renderStaticText(); // İlk statik metinleri yükle
 
             try {
-                if (!app) { 
-                    app = initializeApp(firebaseConfig);
-                    db = getFirestore(app);
-                    auth = getAuth(app);
-                }
+                // Firebase servislerini başlat
+                app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
             } catch (e) {
-                console.error("Firebase initialization error:", e);
-                if (document.getElementById('loading-overlay')) document.getElementById('loading-overlay').classList.add('hidden');
+                console.error("Firebase başlatma hatası:", e);
+                loadingOverlay.classList.add('hidden'); // Yükleme ekranını gizle
                 alert("Uygulama yüklenirken bir hata oluştu. Lütfen daha sonra tekrar deneyin.");
-                return; 
+                return; // Fonksiyondan çık
             }
 
-            await fetchData(); 
+            // Firebase'den temel verileri çek (ayarlar, kategoriler)
+            await fetchData();
+            // Kontrol elemanlarını ve navigasyonu ayarla
             setupControls();
             renderCategories();
-            renderBanner();
-            renderProducts();
-            
-            // `onAuthStateChanged` dinleyicisi Firebase Auth'un oturum durumunu yönetecek ve diğer tüm renderları tetikleyecek.
-            loadingOverlay.classList.add('hidden');
+            renderBanner(); // Banner'ı render et
+            renderProducts(); // Ürünleri render et
+            renderGeneralSiteElements(); // Logo ve promosyon çubuğunu render et
+
+            // Kullanıcı kimlik doğrulama durumunu dinle
+            onAuthStateChanged(auth, async (user) => {
+                // currentUser global değişkenine sadece değer atanır, tekrar tanımlanmaz.
+                currentUser = user; 
+
+                if (currentUser) {
+                    await createUserIfNotExists(currentUser); // Kullanıcı belgesini kontrol et/oluştur
+                    
+                    // Kullanıcı arayüzünü güncelle
+                    if (profileToggle) profileToggle.style.display = 'flex';
+                    if (currentUser.isAnonymous) {
+                        if (profileImg) profileImg.style.display = 'none';
+                        if (guestIcon) guestIcon.style.display = 'block';
+                        if (userEmailDisplay) userEmailDisplay.textContent = translate('guest_user_display_name');
+                        if (googleLoginBtn) googleLoginBtn.style.display = 'block'; // Misafirler için Google girişi göster
+                        if (logoutBtn) logoutBtn.style.display = 'none'; // Misafirler için çıkış gizle
+                    } else {
+                        if (profileImg) {
+                            profileImg.style.display = 'block';
+                            profileImg.src = currentUser.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser.displayName || currentUser.email || '')}&background=2c3e50&color=fff`;
+                        }
+                        if (guestIcon) guestIcon.style.display = 'none';
+                        if (userEmailDisplay) userEmailDisplay.textContent = currentUser.email || currentUser.displayName;
+                        if (googleLoginBtn) googleLoginBtn.style.display = 'none'; // Giriş yapmış kullanıcı için Google girişi gizle
+                        if (logoutBtn) logoutBtn.style.display = 'block'; // Giriş yapmış kullanıcı için çıkış göster
+                    }
+                } else {
+                    // Kullanıcı oturum açmamışsa (veya çıkış yapmışsa), anonim olarak oturum açmaya çalış
+                    try {
+                        const anonUserCredential = await signInAnonymously(auth);
+                        currentUser = anonUserCredential.user;
+                        localStorage.setItem('pufemo_anon_uid', currentUser.uid); // Anonim UID'yi kaydet
+                        await createUserIfNotExists(currentUser); // Anonim kullanıcı belgesini oluştur
+                        
+                        // Anonim kullanıcı UI'si
+                        if (profileToggle) profileToggle.style.display = 'flex';
+                        if (profileImg) profileImg.style.display = 'none';
+                        if (guestIcon) guestIcon.style.display = 'block';
+                        if (userEmailDisplay) userEmailDisplay.textContent = translate('guest_user_display_name');
+                        if (googleLoginBtn) googleLoginBtn.style.display = 'block';
+                        if (logoutBtn) logoutBtn.style.display = 'none';
+
+                    } catch (anonError) {
+                        console.error("Anonim oturum açma hatası:", anonError);
+                        // Eğer anonim giriş bile başarısız olursa, kullanıcıya bilgi ver ve cart/auth özelliklerini devre dışı bırak.
+                        alert("Misafir olarak alışveriş yaparken bir hata oluştu. Lütfen sayfayı yenileyin.");
+                        if (profileToggle) profileToggle.style.display = 'none'; // Auth UI'yi tamamen gizle
+                        if (cartBadge) cartBadge.style.display = 'none'; // Sepet rozetini gizle
+                    }
+                }
+                updateCartBadge(); // Auth durumu değiştiğinde sepet rozetini güncelle
+                loadingOverlay.classList.add('hidden'); // Yükleme ekranını gizle
+            });
         }
 
-        init(); 
+        init(); // Sayfayı başlat
     </script>
 </body>
 </html>
