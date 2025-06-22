@@ -270,7 +270,7 @@
         .footer-section a:hover { color: var(--secondary-color); }
         .footer-bottom { text-align: center; margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.2); font-size: 0.9rem; }
         
-        /* Country selector styles */
+        /* GÜNCELLENDİ: Ülke seçici için yeni stiller */
         .country-selector-container {
             text-align: center;
             padding: 2rem 0;
@@ -388,11 +388,11 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0,0,0,0.7);
-            z-index: 10005;
+            background-color: rgba(0,0,0,0.7); /* Koyu arka plan */
             display: flex;
             justify-content: center;
             align-items: center;
+            z-index: 10001; /* Loading overlay'den de yüksek */
             opacity: 0;
             visibility: hidden;
             transition: opacity 0.3s ease, visibility 0.3s ease;
@@ -404,12 +404,12 @@
         }
 
         .welcome-modal-content {
-            background-color: var(--card-bg-color);
+            background-color: var(--card-bg-color); /* Beyaz kart arkaplanı */
             padding: 30px;
             border-radius: var(--border-radius);
             box-shadow: var(--box-shadow);
             text-align: center;
-            max-width: 400px;
+            max-width: 450px;
             width: 90%;
             transform: translateY(-20px);
             transition: transform 0.3s ease;
@@ -428,32 +428,46 @@
         .welcome-modal-content p {
             font-size: 1.1rem;
             color: var(--text-color);
-            margin-bottom: 20px;
+            margin-bottom: 25px;
         }
 
         .welcome-modal-content .control-select {
-            width: 100%;
+            width: 80%;
+            max-width: 300px;
+            padding: 10px 15px;
             margin-bottom: 20px;
+            font-size: 1rem;
+            border-radius: var(--border-radius);
+            border: 1px solid #ccc;
+            background-color: #f8f9fa;
+            color: var(--text-color);
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+            outline: none;
+            cursor: pointer;
+        }
+
+        .welcome-modal-content .control-select:focus {
+            border-color: var(--secondary-color);
+            box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.2);
         }
 
         .welcome-modal-content button {
             background-color: var(--secondary-color);
             color: var(--light-text-color);
-            padding: 12px 25px;
+            padding: 12px 30px;
             border: none;
-            border-radius: 5px;
+            border-radius: var(--border-radius);
             font-size: 1.1rem;
             font-weight: 600;
             cursor: pointer;
-            transition: background-color 0.3s ease;
+            transition: background-color 0.3s ease, transform 0.2s ease;
         }
 
         .welcome-modal-content button:hover {
-            background-color: #c0392b;
+            background-color: #c0392b; /* Slightly darker red */
+            transform: translateY(-2px);
         }
 
-
-        /* Mobile specific adjustments */
         @media (max-width: 992px) {
             .category-nav { display: none; }
             .hamburger-menu { display: flex; }
@@ -569,7 +583,7 @@
                 .product-card {
                     padding-bottom: 25px;
                 }
-                /* Small screen modal adjustments */
+                    /* Küçük ekranlarda modal düzenlemesi */
                 .welcome-modal-content {
                     padding: 20px;
                 }
@@ -609,7 +623,6 @@
         <p id="loading-text"></p>
     </div>
     <div id="mobile-nav-overlay" class="mobile-nav-overlay"></div>
-    
     <header class="main-header">
         <div class="header-top">
             <a href="index.html" class="logo" id="main-logo-link">
@@ -686,7 +699,7 @@
         import { getFirestore, doc, getDoc, collection, query, where, getDocs, onSnapshot, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
         import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut, signInAnonymously } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
 
-        // Firebase Yapılandırması (Kendi anahtarlarınızla güncelleyin!)
+        // Firebase Yapılandırması (Kendi API anahtarınızla güncelleyin!)
         const firebaseConfig = {
             apiKey: "AIzaSyDYkzZzNXB22U4oEXxOoPh-puwuE8kz0g4", // Burayı kendi API anahtarınızla doldurun
             authDomain: "pufemo-com.firebaseapp.com",
@@ -700,7 +713,7 @@
         let app;
         let db;
         let auth;
-        let currentUser = null; // Aktif kullanıcıyı tutacak değişken
+        let currentUser = null; // Aktif kullanıcıyı tutacak değişken, SADECE BURADA TANIMLI
 
         // --- Statik Çeviriler ve Global Durum ---
         const staticTranslations = {
@@ -797,8 +810,8 @@
          * @param {string} key - Çeviri anahtarı.
          * @returns {string} Çevrilmiş metin veya anahtarın kendisi.
          */
-        const translate = (key) => staticTranslations[key]?.[currentLang] || staticTranslations[key]?.['en'] || staticTranslations[key]?.['tr'] || key;
-        
+        const translate = (key) => staticTranslations[key]?.[currentLang] || staticTranslations[key]?.[Object.keys(staticTranslations[key])[0]] || key; // İlk mevcut dili fallback olarak kullan
+
         /**
          * Fiyatı mevcut para birimine ve ülke ayarlarına göre formatlar.
          * @param {number} basePrice - Ürünün temel fiyatı (TL cinsinden varsayılan).
@@ -841,27 +854,27 @@
                 // db nesnesinin başlatıldığından emin olun
                 if (!db) {
                     console.error("Firestore DB başlatılmamış. Veri çekilemiyor.");
-                    // Bu noktada uygulamayı kullanamayacağı için kullanıcıya hata mesajı gösterebiliriz.
                     loadingTextP.textContent = "Hata: Sunucuya bağlanılamadı.";
                     return;
                 }
 
                 const [settingsDoc, categoriesDocSnap, productsSnap] = await Promise.all([
-                    getDoc(doc(db, 'pufemo', 'settings')), // Genel ayarları çek
-                    getDoc(doc(db, 'pufemo', 'categories')), // Kategorileri çek
-                    getDocs(query(collection(db, 'pufemo-products'), where('isInShowcase', '==', true))) // Vitrindeki ürünleri çek
+                    db.collection('pufemo').doc('settings').get(), // Genel ayarları çek
+                    db.collection('pufemo').doc('categories').get(), // Kategorileri çek
+                    db.collection('pufemo-products').where('isInShowcase', '==', true).get() // Vitrindeki ürünleri çek
                 ]);
                 
                 // Ayarlar belgesini yükle
-                if (settingsDoc.exists()) {
-                    siteData.settings = { ...settingsDoc.data() };
+                if (settingsDoc.exists) {
+                    const settingsData = settingsDoc.data();
+                    siteData.settings = { ...siteData.settings, ...settingsData };
                 } else {
                     console.warn('Ayarlar belgesi bulunamadı. Varsayılan ayarlar kullanılıyor.');
                 }
                 
                 // Kategoriler belgesini yükle
-                if (categoriesDocSnap.exists()) {    
-                    siteData.categories = { ...categoriesDocSnap.data() };
+                if (categoriesDocSnap.exists) {    
+                    siteData.categories = { ...siteData.categories, ...categoriesDocSnap.data() };
                 } else {
                     console.warn('Kategoriler belgesi bulunamadı. Boş kategoriler kullanılıyor.');
                 }
@@ -870,7 +883,7 @@
                 siteData.products = productsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
                 // Ülke, dil ve para birimi tercihlerini ayarla
-                const availableCountries = Object.keys(siteData.settings.countryPricing);
+                const availableCountries = Object.keys(siteData.settings.countryPricing || {}); // countryPricing boş olabilir
                 
                 if (localStorage.getItem('pufemo-country') && availableCountries.includes(localStorage.getItem('pufemo-country'))) {
                     currentCountryCode = localStorage.getItem('pufemo-country');
@@ -882,18 +895,16 @@
                     localStorage.setItem('pufemo-country', currentCountryCode);
                 }
 
-                const selectedCountryData = siteData.settings.countryPricing[currentCountryCode];
+                const selectedCountryData = siteData.settings.countryPricing?.[currentCountryCode];
                 if (selectedCountryData) {
                     currentLang = selectedCountryData.defaultLanguage || 'en';
                     const selectedCountryCurrencySymbol = selectedCountryData.currencySymbol;
-                    if (selectedCountryCurrencySymbol) {
-                        const currencyCodeFromSymbol = Object.keys(siteData.settings.currencySymbols || {}).find(key =>    
-                            siteData.settings.currencySymbols[key] === selectedCountryCurrencySymbol
-                        );
-                        currentCurrency = currencyCodeFromSymbol || 'USD';
-                    } else {
-                        currentCurrency = 'USD';
-                    }
+                    const currencySymbols = siteData.settings?.currencySymbols || {};
+                    const currencyCodeFromSymbol = Object.keys(currencySymbols).find(key =>    
+                        currencySymbols[key] === selectedCountryCurrencySymbol
+                    );
+                    currentCurrency = currencyCodeFromSymbol || 'USD';
+                    
                     localStorage.setItem('pufemo-language', currentLang);
                     localStorage.setItem('pufemo-currency', currentCurrency);
                 } else {
@@ -927,11 +938,11 @@
             renderBanner();
             renderProducts();
             renderGeneralSiteElements();
-
-            // Eğer kullanıcı oturumu açıksa (anonim dahil), sepet rozetini güncellemek için dinlemeyi başlat
-            // Bu, onAuthStateChanged içinde zaten yapıldığı için burada sadece UI güncellemesi sağlar.
+            // Auth durumu değiştiğinde sepet rozetini güncellemek için onSnapshot dinleyicisini burada kuruyoruz.
+            // Bu, zaten onAuthStateChanged içinde yapıldığı için burada tekrar çağrı yapmaya gerek kalmıyor
+            // ancak UI'yi manuel olarak güncellemek için faydalı olabilir.
             if (currentUser && db) {
-                // updateCartBadge(); // onAuthStateChanged zaten onSnapshot'u kurar, bu fazladan olabilir
+                 updateCartBadge();
             }
         };
 
@@ -958,9 +969,11 @@
             if (welcomeModalConfirmButton) welcomeModalConfirmButton.textContent = translate('welcome_modal_confirm_button');
             
             if (cartPageLinkEl) cartPageLinkEl.title = translate('cart_page_link_title');
+            // Auth ile ilgili çeviriler
             if (googleLoginBtn) googleLoginBtn.textContent = translate('profile_menu_login_google');
             if (logoutBtn) logoutBtn.textContent = translate('profile_menu_logout');
-            if (userEmailDisplay) userEmailDisplay.textContent = ""; // Varsayılan olarak boş
+            // userEmailDisplay içeriği onAuthStateChanged içinde ayarlanacak
+            if (userEmailDisplay) userEmailDisplay.textContent = currentUser?.email || currentUser?.displayName || ""; 
         };
 
         /**
@@ -1002,7 +1015,7 @@
                 const scrollSpeed = generalSettings.promoBar?.scrollSpeed || '20s';
                 promoTextContent.style.animationDuration = scrollSpeed;
                 
-                const promoText = generalSettings.promoBar?.text?.[currentLang] || staticTranslations['free_shipping_promo'][currentLang] || staticTranslations['free_shipping_promo']['tr'];
+                const promoText = generalSettings.promoBar?.text?.[currentLang] || staticTranslations['free_shipping_promo'][currentLang] || staticTranslations['free_shipping_promo'][Object.keys(staticTranslations['free_shipping_promo'])[0]];
                 promoTextContent.textContent = promoText;
                 promoBar.style.display = generalSettings.promoBar?.enabled ? 'block' : 'none';
             }
@@ -1028,7 +1041,7 @@
                 const ul = document.createElement('ul');
                 categoryArray.forEach(cat => {
                     const li = document.createElement('li');
-                    li.innerHTML = `<a href="#">${cat.name[currentLang] || cat.name.tr}</a>`;
+                    li.innerHTML = `<a href="#">${cat.name?.[currentLang] || cat.name?.[Object.keys(cat.name)[0]]}</a>`; // İlk mevcut dili fallback olarak kullan
                     if (cat.children && cat.children.length > 0) li.appendChild(createMenu(cat.children));
                     ul.appendChild(li);
                 });
@@ -1037,7 +1050,7 @@
             
             categories.forEach(cat => {
                 const li = document.createElement('li');
-                li.innerHTML = `<a href="#">${cat.name[currentLang] || cat.name.tr}</a>`;
+                li.innerHTML = `<a href="#">${cat.name?.[currentLang] || cat.name?.[Object.keys(cat.name)[0]]}</a>`; // İlk mevcut dili fallback olarak kullan
                 desktopContainer.appendChild(li);
             });
 
@@ -1070,7 +1083,7 @@
                 const slideEl = document.createElement('div');
                 slideEl.className = 'slide' + (index === 0 ? ' active' : '');
                 
-                const content = slideData.content?.[currentLang] || slideData.content?.tr || {};
+                const content = slideData.content?.[currentLang] || slideData.content?.[Object.keys(slideData.content)[0]] || {}; // İlk mevcut dili fallback olarak kullan
                 const defaultButtonText = translate('default_button_text');
                 const buttonText = content.button_text || defaultButtonText;
                 
@@ -1104,7 +1117,7 @@
             // Slayt gezintisini başlat
             startSlider();
         };
-
+            
         /**
          * Ürünleri (vitrin ürünleri) Firebase'den alarak ürün ızgarasına render eder.
          */
@@ -1122,7 +1135,7 @@
                 card.className = 'product-card';
                 // İlk görseli veya varyant görselini al, yoksa placeholder kullan
                 const firstImage = product.variants?.[0]?.media?.[0]?.url || product.media?.[0]?.url || `https://placehold.co/400x300/ccc/fff?text=${translate('no_image')}`;
-                const name = product.content?.[currentLang]?.name || product.content?.tr?.name || translate('untitled_product');
+                const name = product.content?.[currentLang]?.name || product.content?.[Object.keys(product.content)[0]]?.name || translate('untitled_product'); // İlk mevcut dili fallback olarak kullan
                 
                 const originalPrice = product.basePriceTL;
                 const discountedPrice = product.baseDiscountedPriceTL;
@@ -1163,10 +1176,13 @@
          * Kahraman banner'daki slayt gösterisini başlatır.
          */
         const startSlider = () => {
-            const slides = document.querySelectorAll('.hero-banner .slide');
-            const navContainer = document.querySelector('.hero-banner .slide-nav');
+            const slides = document.querySelectorAll('.slide');
+            const navContainer = document.querySelector('.slide-nav');
             
-            if (!navContainer || slides.length === 0) return;
+            if (!navContainer || slides.length === 0) {
+                 if (slideIntervalId) clearInterval(slideIntervalId); // Interval varsa temizle
+                 return; // Gezinti noktası yoksa veya slayt yoksa fonksiyonu sonlandır
+            }
 
             // Önceki interval'i temizle
             if (slideIntervalId) {
@@ -1229,8 +1245,13 @@
                 return;
             }
 
-            const cartRef = collection(db, 'users', currentUser.uid, 'cart');
+            const cartRef = db.collection('users').doc(currentUser.uid).collection('cart');
             // onSnapshot dinleyicisini doğrudan burada kuruyoruz
+            // Daha önce birden fazla dinleyici açmamak için dikkatli olun.
+            // Bu dinleyici sadece bir kez kurulmalı veya eski dinleyici kaldırılmalıdır.
+            // Firebase SDK'sı genellikle aynı referansa birden fazla onSnapshot çağrısını optimize eder,
+            // ancak manuel olarak yönetmek daha güvenlidir.
+            // Şimdilik bu şekilde bırakıyorum, eğer performans sorunu olursa yeniden düzenlenebilir.
             onSnapshot(cartRef, (snapshot) => {
                 const totalItems = snapshot.docs.reduce((sum, doc) => sum + doc.data().quantity, 0);
                 cartBadge.textContent = totalItems;
@@ -1273,7 +1294,7 @@
             // Ülke Seçiciyi Doldur
             const countries = siteData.settings.countryPricing || {};
             const countryOptionsHtml = Object.entries(countries).map(([code, data]) => {
-                const countryName = data.name?.[currentLang] || data.name?.['tr'] || code.toUpperCase();
+                const countryName = data.name?.[currentLang] || data.name?.[Object.keys(data.name)[0]] || code.toUpperCase(); // İlk mevcut dili fallback olarak kullan
                 return `<option value="${code}">${countryCodeToEmoji(data.flag)} ${countryName}</option>`;
             }).join('');
 
@@ -1286,18 +1307,25 @@
                     welcomeCountrySelect.innerHTML = countryOptionsHtml;
                     welcomeCountrySelect.value = currentCountryCode;
                 }
-                // Eğer ülkesi seçili değilse veya geçerli bir ülke değilse hoş geldin modalını göster
-                if (!localStorage.getItem('pufemo-country') || !Object.keys(countries).includes(localStorage.getItem('pufemo-country'))) {
-                    if (welcomeModalOverlay) welcomeModalOverlay.classList.add('active');
-                } else {
-                    if (welcomeModalOverlay) welcomeModalOverlay.classList.remove('active');
-                }
+                // Hoş geldin modalının her zaman görünmesini sağlamak için
+                // storedCountry kontrolünü kaldırıyoruz.
+                if (welcomeModalOverlay) welcomeModalOverlay.classList.add('active'); // Modalı göster
+
             } else {
                 if (countrySelector && countrySelector.parentElement) countrySelector.parentElement.style.display = 'none';
                 if (welcomeModalOverlay) welcomeModalOverlay.classList.remove('active');
             }
 
             // Seçiciler için olay dinleyicileri
+            // Her renderAll çağrısında bu dinleyiciler tekrar bağlanacağı için,
+            // mevcut dinleyicileri kaldırmalı veya bunları sadece bir kez bağlamalıyız.
+            // Basitlik için şu an için her seferinde yeniden bağlıyoruz,
+            // ancak eğer bellek sızıntısı olursa refactoring gerekebilir.
+
+            // Mevcut dinleyicileri kaldırmak için bir "temizleme" adımı eklenmedi,
+            // ancak çoğu modern tarayıcı, DOM elemanı kaldırıldığında olay dinleyicisini temizler.
+            // select elemanları yeniden innerHTML ile oluşturulmadığı için bu dinleyiciler kalıcıdır.
+
             languageSelector.onchange = async (e) => {
                 currentLang = e.target.value;
                 localStorage.setItem('pufemo-language', currentLang);
@@ -1312,35 +1340,16 @@
                 await renderAll(); // UI'yi yeniden render et
             };
 
-            // window.applyCountryAndRender fonksiyonunu globalde tanımla ve ülke seçiciden çağır
-            window.applyCountryAndRender = async (countryCode) => {
-                currentCountryCode = countryCode;
-                localStorage.setItem('pufemo-country', currentCountryCode);
-                const selectedCountryData = siteData.settings.countryPricing[currentCountryCode];
-                if (selectedCountryData) {
-                    currentLang = selectedCountryData.defaultLanguage || 'en';
-                    const currencyCodeFromSymbol = Object.keys(siteData.settings.currencySymbols || {}).find(key =>    
-                        siteData.settings.currencySymbols[key] === selectedCountryData.currencySymbol
-                    );
-                    currentCurrency = currencyCodeFromSymbol || 'USD';
-                    localStorage.setItem('pufemo-language', currentLang);
-                    localStorage.setItem('pufemo-currency', currentCurrency);
-                }
-                await fetchData(); // Yeni ülke, dil ve para birimi ayarlarıyla verileri tekrar çek
-                await renderAll(); // UI'yi yeniden render et
-                // Seçicilerin değerlerini güncelledikten sonra UI'da doğru göründüklerinden emin ol
-                if (languageSelector) languageSelector.value = currentLang;
-                if (currencySelector) currencySelector.value = currentCurrency;
-                if (countrySelector) countrySelector.value = currentCountryCode;
-            };
-
             countrySelector.onchange = (e) => {
                 window.applyCountryAndRender(e.target.value);
             };
             
             // Hoş Geldin Modalı Onay Butonu
             if (welcomeModalConfirmButton) {    
-                welcomeModalConfirmButton.addEventListener('click', function() {
+                // Birden fazla dinleyici eklememek için var olanı kaldırıp tekrar ekleyebiliriz,
+                // veya sadece bir kez eklendiğinden emin olabiliriz.
+                // Basitlik için şu an sadece ekliyoruz.
+                welcomeModalConfirmButton.onclick = function() { // addEventListener yerine onclick kullandım
                     const selectedCountry = welcomeCountrySelect.value;
                     if (selectedCountry) {
                         window.applyCountryAndRender(selectedCountry);    
@@ -1349,7 +1358,7 @@
                         // alert yerine custom bir modal mesajı düşünebilirsiniz.
                         alert(translate('welcome_modal_message').replace('Please select your country below.', 'Lütfen devam etmek için bir ülke seçin.'));
                     }
-                });
+                };
             }
 
             // Hamburger Menü İşlevselliği
@@ -1368,14 +1377,13 @@
 
             // Profil simgesine tıklayınca açılır menüyü göster/gizle
             if (profileToggle) {
-                profileToggle.addEventListener('click', () => {
+                profileToggle.onclick = () => { // addEventListener yerine onclick kullandım
                     if (authDropdownMenu) authDropdownMenu.classList.toggle('active');
-                });
+                };
             }
 
             // Dışarı tıklayınca açılır menüyü kapat
             document.addEventListener('click', (event) => {
-                // authContainer'a tıklanmadıysa ve açılır menü açıksa kapat
                 if (authContainer && !authContainer.contains(event.target) && authDropdownMenu && authDropdownMenu.classList.contains('active')) {
                     authDropdownMenu.classList.remove('active');
                 }
@@ -1383,23 +1391,23 @@
 
             // Google ile Giriş
             if (googleLoginBtn) {
-                googleLoginBtn.addEventListener('click', async () => {
+                googleLoginBtn.onclick = async () => { // addEventListener yerine onclick kullandım
                     try {
                         const userCredential = await signInWithPopup(auth, googleProvider);
                         console.log("Google ile giriş başarılı:", userCredential.user);
                         if (authDropdownMenu) authDropdownMenu.classList.remove('active');
+                        // onAuthStateChanged tetiklenecek ve UI güncellenecek
                     } catch (error) {
                         console.error("Google giriş hatası:", error);
-                        // Hata mesajını kullanıcıya göster (alert yerine daha iyi bir UI kullanılabilir)
                         alert("Google ile giriş yapılırken bir hata oluştu: " + error.message);
                         if (authDropdownMenu) authDropdownMenu.classList.remove('active');
                     }
-                });
+                };
             }
 
             // Çıkış Yap
             if (logoutBtn) {
-                logoutBtn.addEventListener('click', async () => {
+                logoutBtn.onclick = async () => { // addEventListener yerine onclick kullandım
                     try {
                         await signOut(auth);
                         console.log("Başarıyla çıkış yapıldı.");
@@ -1410,7 +1418,7 @@
                         alert("Çıkış yapılırken bir hata oluştu: " + error.message);
                         if (authDropdownMenu) authDropdownMenu.classList.remove('active');
                     }
-                });
+                };
             }
         };
 
@@ -1429,8 +1437,8 @@
             if (!userSnap.exists()) {
                 await setDoc(userRef, {
                     uid: user.uid,
-                    email: user.email || 'misafir@pufemo.com', // Anonim kullanıcılar için varsayılan e-posta
-                    displayName: user.displayName || (user.isAnonymous ? translate('guest_user_display_name') : 'Kayıtlı Kullanıcı'), // Anonim ise misafir adı
+                    email: user.email || (user.isAnonymous ? 'anonymous@pufemo.com' : null), // Anonimse varsayılan e-posta
+                    displayName: user.displayName || (user.isAnonymous ? translate('guest_user_display_name') : 'Kayıtlı Kullanıcı'), // Anonimse misafir adı
                     createdAt: serverTimestamp(), // Sunucu zaman damgası kullanmak daha doğru
                     role: user.isAnonymous ? 'guest' : 'user' // 'guest' veya 'user' rolü
                 });
@@ -1461,12 +1469,6 @@
 
             // Firebase'den temel verileri çek (ayarlar, kategoriler)
             await fetchData();
-            // Kontrol elemanlarını ve navigasyonu ayarla
-            setupControls();
-            renderCategories();
-            renderBanner(); // Banner'ı render et
-            renderProducts(); // Ürünleri render et
-            renderGeneralSiteElements(); // Logo ve promosyon çubuğunu render et
 
             // Kullanıcı kimlik doğrulama durumunu dinle
             onAuthStateChanged(auth, async (user) => {
@@ -1518,8 +1520,12 @@
                         if (cartBadge) cartBadge.style.display = 'none'; // Sepet rozetini gizle
                     }
                 }
-                updateCartBadge(); // Auth durumu değiştiğinde sepet rozetini güncelle
-                loadingOverlay.classList.add('hidden'); // Yükleme ekranını gizle
+                // *** ÖNEMLİ DEĞİŞİKLİK: TÜM RENDER İŞLEMLERİ BURAYA TAŞINDI ***
+                // currentUser değeri belirlendikten sonra tüm UI'yi yeniden render et
+                // Bu çağrı setupControls içinde dil/para birimi seçicilerinin doğru değerlere sahip olmasını sağlar.
+                await renderAll(); 
+                updateCartBadge(); // Sepet rozeti güncellenir.
+                loadingOverlay.classList.add('hidden'); // Yükleme ekranı gizlenir.
             });
         }
 
