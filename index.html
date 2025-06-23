@@ -690,9 +690,9 @@
             <h3><span data-i18n="login_label"></span></h3>
             <form id="loginForm">
                 <label for="loginEmail" data-i18n="email_label"></label>
-                <input id="loginEmail" type="email" placeholder="email@example.com" aria-label="E-posta">
+                <input id="loginEmail" type="email" placeholder="email@example.com" aria-label="E-posta" autocomplete="email">
                 <label for="loginPassword" data-i18n="password_label"></label>
-                <input id="loginPassword" type="password" placeholder="••••••••" aria-label="Şifre">
+                <input id="loginPassword" type="password" placeholder="••••••••" aria-label="Şifre" autocomplete="current-password">
                 <button type="submit" data-i18n="login_label"></button>
             </form>
 
@@ -701,9 +701,9 @@
             <h3><span data-i18n="register_label"></span></h3>
             <form id="registerForm">
                 <label for="registerEmail" data-i18n="email_label"></label>
-                <input id="registerEmail" type="email" placeholder="email@example.com" aria-label="E-posta">
+                <input id="registerEmail" type="email" placeholder="email@example.com" aria-label="E-posta" autocomplete="email">
                 <label for="registerPassword" data-i18n="password_label"></label>
-                <input id="registerPassword" type="password" placeholder="••••••••" aria-label="Şifre">
+                <input id="registerPassword" type="password" placeholder="••••••••" aria-label="Şifre" autocomplete="new-password">
                 <button type="submit" data-i18n="register_label"></button>
             </form>
 
@@ -781,6 +781,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
 
     <script type="module">
+        // Firebase Configuration
         const firebaseConfig = {
             apiKey: "AIzaSyDYkzZzNXB22U4oEXxOoPh-puwuE8kz0g4",
             authDomain: "pufemo-com.firebaseapp.com",
@@ -794,13 +795,12 @@
         let isFirebaseInitialized = false;
 
         // Make staticTranslations globally accessible BEFORE any script might need it.
-        // This is crucial for fixing the ReferenceError.
         window.staticTranslations = {
             'loading_text': { tr: 'PUFEMO Yükleniyor...', en: 'Loading PUFEMO...', el: 'Φόρτωση PUFEMO...', ru: 'Загрузка PUFEMO...', de: 'PUFEMO wird geladen...', fr: 'Chargement de PUFEMO...', it: 'Caricamento PUFEMO...' },
             'mobile_menu_title': { tr: 'Kategoriler', en: 'Categories', el: 'Κατηγορίες', ru: 'Категории', de: 'Kategorien', fr: 'Catégories', it: 'Categorie' },
             'main_section_title': { tr: 'Öne Çıkan Ürünler', en: 'Featured Products', el: 'Προτεινόμενα Προϊόντα', ru: 'Рекомендуемые товары', de: 'Ausgewählte Produkte', fr: 'Produits Phares', it: 'Prodotti in Evidenza' },
             'footer-title-pufemo': { tr: 'PUFEMO', en: 'PUFEMO', el: 'PUFEMO', ru: 'ПУΦΕΜΟ', de: 'PUFEMO', fr: 'PUFEMO', it: 'PUFEMO' },
-            'footer-desc-pufemo': { tr: 'Hayallerinizdeki konforu ve estetiği evinize taşıyoruz.', en: 'We bring the comfort and aesthetics of your dreams to your home.', el: 'Φέρνουμε την άνεση και την αισθητική των ονείρων σας στο σπίτι σας.', ru: 'Мы приносим комфорт и эстетику в ваш дом.', de: 'Wir bringen den Komfort und die Ästhetik Ihrer Träume in Ihr Zuhause.', fr: 'Nous apportons le confort et l\'esthétique de vos rêves à votre maison.', it: 'Portiamo il comfort e l\'estetica dei vostri sogni nella vostra casa.' },
+            'footer-desc-pufemo': { tr: 'Hayallerinizdeki konforu ve estetiği evinize taşıyoruz.', en: 'We bring the comfort and aesthetics of your dreams to your home.', el: 'Φέρνουμε την άνεση και την αισθητική των ονείρων σας στο σπίτι σας.', ru: 'Мы приносим комфорт и эстетику в ваш дом.', de: 'Wir bringen den Komfort und die Ästhetik Ihrer Träume in Ihr Zuhause.', fr: 'Nous apportamos il comfort e l\'estetica dei vostri sogni a casa vostra.', it: 'Portiamo il comfort e l\'estetica dei vostri sogni nella vostra casa.' },
             'footer-title-fast-links': { tr: 'Hızlı Bağlantılar', en: 'Quick Links', el: 'Γρήγοροι Σύνδεσμοι', ru: 'Быстрые ссылки', de: 'Schnelllinks', fr: 'Liens Rapides', it: 'Link Veloci' },
             'footer-link-about': { tr: 'Hakkımızda', en: 'About Us', el: 'Σχετικά με εμάς', ru: 'О нас', de: 'Über Uns', fr: 'À Propos', it: 'Chi Siamo' },
             'footer-link-contact': { tr: 'İletişim', en: 'Contact', el: 'Επικοινωνία', ru: 'Контакт', de: 'Kontakt', fr: 'Contact', it: 'Contatti' },
@@ -837,469 +837,527 @@
             console.error("Firebase başlatma hatası!", e);
         }
 
-        const DEFAULT_FALLBACK_LANG = 'en'; // Varsayılan yedek dil
-        const DEFAULT_COUNTRY_CODE = 'US'; // Varsayılan ülke kodu
+        const DEFAULT_FALLBACK_LANG = 'en'; 
+        const DEFAULT_COUNTRY_CODE = 'US'; 
 
-        if (isFirebaseInitialized) {
-            function countryCodeToEmoji(code) {
-                if (!code || code.length !== 2) {
-                    return '';
-                }
-                return code.toUpperCase().split('').map(char =>
-                    String.fromCodePoint(char.charCodeAt(0) + 127397)
-                ).join('');
+        // DOM Elements
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const loadingTextP = document.getElementById('loading-text');
+        const welcomeModalOverlay = document.getElementById('welcomeModalOverlay');
+        const welcomeCountrySelect = document.getElementById('welcomeCountrySelect');
+        const welcomeModalConfirmButton = document.getElementById('welcomeModalConfirmButton');
+        const welcomeModalTitle = document.getElementById('welcome-modal-title');
+        const welcomeModalMessage = document.getElementById('welcome-modal-message');
+        const mainSectionTitleEl = document.getElementById('main-section-title');
+        const cartPageLinkEl = document.getElementById('cart-page-link');
+
+        // Global State
+        let siteData = {
+            settings: {
+                languages: [],
+                general: { logo: {}, promoBar: {} },
+                countryPricing: {},
+                currencySymbols: {},
+                exchangeRates: {},
+                banner: [] 
+            },
+            categories: { tree: [] },
+            products: []
+        };
+        let currentLang = localStorage.getItem('pufemo-language') || DEFAULT_FALLBACK_LANG;
+        let currentCurrency = localStorage.getItem('pufemo-currency') || 'USD';
+        let currentCountryCode = localStorage.getItem('pufemo-country') || DEFAULT_COUNTRY_CODE;
+
+        // --- Helper Functions ---
+        function countryCodeToEmoji(code) {
+            if (!code || code.length !== 2) {
+                return '';
             }
+            return code.toUpperCase().split('').map(char =>
+                String.fromCodePoint(char.charCodeAt(0) + 127397)
+            ).join('');
+        }
 
-            const loadingOverlay = document.getElementById('loading-overlay');
-            const loadingTextP = document.getElementById('loading-text');
+        const translate = (key) => window.staticTranslations[key]?.[currentLang] || window.staticTranslations[key]?.[DEFAULT_FALLBACK_LANG] || '';
 
-            let siteData = {
-                settings: {
-                    languages: [],
-                    general: { logo: {}, promoBar: {} },
-                    countryPricing: {},
-                    currencySymbols: {},
-                    exchangeRates: {},
-                    banner: [] 
-                },
-                categories: { tree: [] },
-                products: []
-            };
-
-            let currentLang = localStorage.getItem('pufemo-language') || DEFAULT_FALLBACK_LANG;
-            let currentCurrency = localStorage.getItem('pufemo-currency') || 'USD';
-            let currentCountryCode = localStorage.getItem('pufemo-country') || DEFAULT_COUNTRY_CODE;
-
-            const welcomeModalOverlay = document.getElementById('welcomeModalOverlay');
-            const welcomeCountrySelect = document.getElementById('welcomeCountrySelect');
-            const welcomeModalConfirmButton = document.getElementById('welcomeModalConfirmButton');
-            const welcomeModalTitle = document.getElementById('welcome-modal-title');
-            const welcomeModalMessage = document.getElementById('welcome-modal-message');
-            
-            const mainSectionTitleEl = document.getElementById('main-section-title');
-            const cartPageLinkEl = document.getElementById('cart-page-link');
-
-            const translate = (key) => window.staticTranslations[key]?.[currentLang] || window.staticTranslations[key]?.[DEFAULT_FALLBACK_LANG] || '';
-
-            // Helper function to update language and currency based on country
-            const updateLanguageAndCurrencyForCountry = (countryCode) => {
-                const selectedCountryData = siteData.settings.countryPricing[countryCode];
-                if (selectedCountryData) {
-                    currentLang = selectedCountryData.defaultLanguage && typeof selectedCountryData.defaultLanguage === 'string' && selectedCountryData.defaultLanguage.length === 2
-                        ? selectedCountryData.defaultLanguage
-                        : DEFAULT_FALLBACK_LANG;
-                    
-                    const selectedCountryCurrencySymbol = selectedCountryData.currencySymbol;
-                    if (selectedCountryCurrencySymbol) {
-                        const currencyCodeFromSymbol = Object.keys(siteData.settings.currencySymbols || {}).find(key => 
-                            siteData.settings.currencySymbols[key] === selectedCountryCurrencySymbol
-                        );
-                        currentCurrency = currencyCodeFromSymbol || 'USD';
-                    } else {
-                        currentCurrency = 'USD';
-                    }
+        const updateLanguageAndCurrencyForCountry = (countryCode) => {
+            const selectedCountryData = siteData.settings.countryPricing[countryCode];
+            if (selectedCountryData) {
+                currentLang = selectedCountryData.defaultLanguage && typeof selectedCountryData.defaultLanguage === 'string' && selectedCountryData.defaultLanguage.length === 2
+                    ? selectedCountryData.defaultLanguage
+                    : DEFAULT_FALLBACK_LANG;
+                
+                const selectedCountryCurrencySymbol = selectedCountryData.currencySymbol;
+                if (selectedCountryCurrencySymbol) {
+                    const currencyCodeFromSymbol = Object.keys(siteData.settings.currencySymbols || {}).find(key => 
+                        siteData.settings.currencySymbols[key] === selectedCountryCurrencySymbol
+                    );
+                    currentCurrency = currencyCodeFromSymbol || 'USD';
                 } else {
-                    currentLang = DEFAULT_FALLBACK_LANG;
                     currentCurrency = 'USD';
                 }
-                localStorage.setItem('pufemo-language', currentLang);
-                localStorage.setItem('pufemo-currency', currentCurrency);
-                localStorage.setItem('pufemo-country', countryCode);
-            };
+            } else {
+                currentLang = DEFAULT_FALLBACK_LANG;
+                currentCurrency = 'USD';
+            }
+            localStorage.setItem('pufemo-language', currentLang);
+            localStorage.setItem('pufemo-currency', currentCurrency);
+            localStorage.setItem('pufemo-country', countryCode);
+        };
+        
+        const formatPrice = (basePrice, discountPrice = null) => {
+            const symbols = siteData.settings?.currencySymbols || {};
+            const selectedCountryData = siteData.settings.countryPricing[currentCountryCode];
+            let priceToFormat = discountPrice !== null ? discountPrice : basePrice;
 
-            const fetchData = async () => {
-                try {
-                    const [settingsDoc, categoriesDoc, productsSnap] = await Promise.all([
-                        db.collection('pufemo').doc('settings').get(),
-                        db.collection('pufemo').doc('categories').get(),
-                        db.collection('pufemo-products').where('isInShowcase', '==', true).get()
-                    ]);
+            if (selectedCountryData && typeof selectedCountryData.adjustment === 'number') {
+                const adjustmentPercentage = selectedCountryData.adjustment / 100;
+                priceToFormat = priceToFormat * (1 + adjustmentPercentage);
+            }
 
-                    if (settingsDoc.exists) {
-                        siteData.settings = { ...siteData.settings, ...settingsDoc.data() };
-                    } else {
-                        console.log('Settings belgesi mevcut değil!');
-                    }
-                    if (categoriesDoc.exists) {
-                        siteData.categories = { ...siteData.categories, ...categoriesDoc.data() };
-                    } else {
-                        console.log('Kategoriler belgesi mevcut değil!');
-                    }
-                    siteData.products = productsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            const rates = siteData.settings?.exchangeRates || {};
+            const rate = rates[currentCurrency] || 1;
+            priceToFormat = priceToFormat * rate;
 
-                    // Initial country, language, currency setup
-                    const availableCountries = Object.keys(siteData.settings.countryPricing);
-                    if (!localStorage.getItem('pufemo-country') || !availableCountries.includes(localStorage.getItem('pufemo-country'))) {
-                        currentCountryCode = availableCountries.length > 0 ? availableCountries[0] : DEFAULT_COUNTRY_CODE;
-                        localStorage.setItem('pufemo-country', currentCountryCode);
-                    } else {
-                        currentCountryCode = localStorage.getItem('pufemo-country');
-                    }
-                    updateLanguageAndCurrencyForCountry(currentCountryCode);
+            const symbol = symbols[currentCurrency] || currentCurrency;
 
-                } catch (e) {
-                    console.error("Veri okuma hatası! Varsayılan ayarlar kullanılıyor.", e);
-                    if (loadingTextP) loadingTextP.textContent = translate('loading_text') + " " + translate('login_error');
-                    if (mainSectionTitleEl) mainSectionTitleEl.textContent = translate('main_section_title') + " (" + translate('login_error') + ")";
-                }
-            };
+            const numberFormatOptions = currentCurrency === 'TRY'
+                ? { maximumFractionDigits: 0 }
+                : { minimumFractionDigits: 2, maximumFractionDigits: 2 };
             
-            window.applyCountryAndRender = (countryCode) => {
-                updateLanguageAndCurrencyForCountry(countryCode);
-                renderAll();
-                document.getElementById('language-selector').value = currentLang;
-                document.getElementById('currency-selector').value = currentCurrency;
-                document.getElementById('country-selector').value = currentCountryCode;
-            };
+            const formattedPrice = new Intl.NumberFormat(currentLang, numberFormatOptions).format(priceToFormat);
+            
+            return `${symbol} ${formattedPrice}`;
+        };
 
-            const renderAll = () => {
-                renderStaticText();
-                setupControls();
-                renderCategories();
-                renderBanner();
-                renderProducts();
-                renderGeneralSiteElements();
-                window.applyAuthTranslations(); // Call the global function
-            };
+        // --- Render Functions ---
+        const renderStaticText = () => {
+            document.documentElement.lang = currentLang;
 
-            const renderStaticText = () => {
-                document.documentElement.lang = currentLang;
+            if (loadingTextP) loadingTextP.textContent = translate('loading_text');
+            if (mainSectionTitleEl) mainSectionTitleEl.textContent = translate('main_section_title');
+            if (document.getElementById('footer-title-pufemo')) document.getElementById('footer-title-pufemo').textContent = translate('footer-title-pufemo');
+            if (document.getElementById('footer-desc-pufemo')) document.getElementById('footer-desc-pufemo').textContent = translate('footer-desc-pufemo');
+            if (document.getElementById('footer-title-fast-links')) document.getElementById('footer-title-fast-links').textContent = translate('footer-title-fast-links');
+            if (document.getElementById('footer-link-about')) document.getElementById('footer-link-about').textContent = translate('footer-link-about');
+            if (document.getElementById('footer-link-contact')) document.getElementById('footer-link-contact').textContent = translate('footer-link-contact');
+            if (document.getElementById('footer-link-privacy')) document.getElementById('footer-link-privacy').textContent = translate('footer-link-privacy');
+            if (document.getElementById('footer-title-follow-us')) document.getElementById('footer-title-follow-us').textContent = translate('footer-title-follow-us');
+            if (document.getElementById('footer-copyright')) document.getElementById('footer-copyright').innerHTML = translate('footer-copyright');
+            if (document.getElementById('country-selector-label')) document.getElementById('country-selector-label').textContent = translate('country_selector_label');
 
-                if (loadingTextP) loadingTextP.textContent = translate('loading_text');
-                if (mainSectionTitleEl) mainSectionTitleEl.textContent = translate('main_section_title');
-                if (document.getElementById('footer-title-pufemo')) document.getElementById('footer-title-pufemo').textContent = translate('footer-title-pufemo');
-                if (document.getElementById('footer-desc-pufemo')) document.getElementById('footer-desc-pufemo').textContent = translate('footer-desc-pufemo');
-                if (document.getElementById('footer-title-fast-links')) document.getElementById('footer-title-fast-links').textContent = translate('footer-title-fast-links');
-                if (document.getElementById('footer-link-about')) document.getElementById('footer-link-about').textContent = translate('footer-link-about');
-                if (document.getElementById('footer-link-contact')) document.getElementById('footer-link-contact').textContent = translate('footer-link-contact');
-                if (document.getElementById('footer-link-privacy')) document.getElementById('footer-link-privacy').textContent = translate('footer-link-privacy');
-                if (document.getElementById('footer-title-follow-us')) document.getElementById('footer-title-follow-us').textContent = translate('footer-title-follow-us');
-                if (document.getElementById('footer-copyright')) document.getElementById('footer-copyright').innerHTML = translate('footer-copyright');
-                if (document.getElementById('country-selector-label')) document.getElementById('country-selector-label').textContent = translate('country_selector_label');
+            if (welcomeModalTitle) welcomeModalTitle.textContent = translate('welcome_modal_title');
+            if (welcomeModalMessage) welcomeModalMessage.textContent = translate('welcome_modal_message');
+            if (welcomeModalConfirmButton) welcomeModalConfirmButton.textContent = translate('welcome_modal_confirm_button');
+            
+            if (cartPageLinkEl) cartPageLinkEl.title = translate('cart_page_link_title');
+        };
 
-                if (welcomeModalTitle) welcomeModalTitle.textContent = translate('welcome_modal_title');
-                if (welcomeModalMessage) welcomeModalMessage.textContent = translate('welcome_modal_message');
-                if (welcomeModalConfirmButton) welcomeModalConfirmButton.textContent = translate('welcome_modal_confirm_button');
-                
-                if (cartPageLinkEl) cartPageLinkEl.title = translate('cart_page_link_title');
-            };
+        const renderGeneralSiteElements = () => {
+            const generalSettings = siteData.settings.general || {};
+            const logoLink = document.getElementById('main-logo-link');
 
-            const renderGeneralSiteElements = () => {
-                const generalSettings = siteData.settings.general || {};
-                const logoLink = document.getElementById('main-logo-link');
+            if (logoLink) {
+                logoLink.innerHTML = '';
+                if (generalSettings.logo?.type === 'image' && generalSettings.logo.imageUrl) {
+                    const img = document.createElement('img');
+                    img.src = generalSettings.logo.imageUrl;
+                    img.alt = generalSettings.logo.text || 'PUFEMO Logo';
+                    if (generalSettings.logo.imageWidth) img.style.width = `${generalSettings.logo.imageWidth}px`;
+                    if (generalSettings.logo.imageHeight) img.style.height = `${generalSettings.logo.imageHeight}px`;
+                    logoLink.appendChild(img);
+                } else {
+                    const icon = document.createElement('i');
+                    icon.className = generalSettings.logo?.icon || 'fa-solid fa-couch';
+                    icon.style.color = generalSettings.logo?.iconColor || 'var(--secondary-color)';
+                    logoLink.appendChild(icon);
 
-                if (logoLink) {
-                    logoLink.innerHTML = '';
-                    if (generalSettings.logo?.type === 'image' && generalSettings.logo.imageUrl) {
-                        const img = document.createElement('img');
-                        img.src = generalSettings.logo.imageUrl;
-                        img.alt = generalSettings.logo.text || 'PUFEMO Logo';
-                        if (generalSettings.logo.imageWidth) img.style.width = `${generalSettings.logo.imageWidth}px`;
-                        if (generalSettings.logo.imageHeight) img.style.height = `${generalSettings.logo.imageHeight}px`;
-                        logoLink.appendChild(img);
-                    } else {
-                        const icon = document.createElement('i');
-                        icon.className = generalSettings.logo?.icon || 'fa-solid fa-couch';
-                        icon.style.color = generalSettings.logo?.iconColor || 'var(--secondary-color)';
-                        logoLink.appendChild(icon);
-
-                        const textNode = document.createTextNode(generalSettings.logo?.text ? ` ${generalSettings.logo.text}` : ' PUFEMO');
-                        logoLink.appendChild(textNode);
-                        logoLink.style.color = generalSettings.logo?.textColor || 'var(--primary-color)';
-                    }
+                    const textNode = document.createTextNode(generalSettings.logo?.text ? ` ${generalSettings.logo.text}` : ' PUFEMO');
+                    logoLink.appendChild(textNode);
+                    logoLink.style.color = generalSettings.logo?.textColor || 'var(--primary-color)';
                 }
+            }
 
-                const promoBar = document.querySelector('.promo-bar');
-                const promoTextContent = document.getElementById('promo-text-content');
-                if (promoBar && promoTextContent) {
-                    promoBar.style.backgroundColor = generalSettings.promoBar?.bgColor || 'var(--secondary-color)';
-                    promoBar.style.color = generalSettings.promoBar?.textColor || 'var(--light-text-color)';
-                    promoBar.style.fontSize = generalSettings.promoBar?.fontSize || '0.95rem';
+            const promoBar = document.querySelector('.promo-bar');
+            const promoTextContent = document.getElementById('promo-text-content');
+            if (promoBar && promoTextContent) {
+                promoBar.style.backgroundColor = generalSettings.promoBar?.bgColor || 'var(--secondary-color)';
+                promoBar.style.color = generalSettings.promoBar?.textColor || 'var(--light-text-color)';
+                promoBar.style.fontSize = generalSettings.promoBar?.fontSize || '0.95rem';
 
-                    const scrollSpeed = generalSettings.promoBar?.scrollSpeed || '20s';
-                    promoTextContent.style.animationDuration = scrollSpeed;
-                    
-                    const promoText = generalSettings.promoBar?.text?.[currentLang] || translate('free_shipping_promo');
-                    promoTextContent.textContent = promoText;
-                    promoBar.style.display = generalSettings.promoBar?.enabled ? 'block' : 'none';
-                }
-            };
+                const scrollSpeed = generalSettings.promoBar?.scrollSpeed || '20s';
+                promoTextContent.style.animationDuration = scrollSpeed;
+                
+                const promoText = generalSettings.promoBar?.text?.[currentLang] || translate('free_shipping_promo');
+                promoTextContent.textContent = promoText;
+                promoBar.style.display = generalSettings.promoBar?.enabled ? 'block' : 'none';
+            }
+        };
 
-            const renderCategories = () => {
-                const desktopContainer = document.getElementById('category-menu-container');
-                const mobileContainer = document.getElementById('mobile-nav');
-                const categories = siteData.categories?.tree || [];
-                
-                desktopContainer.innerHTML = '';
-                mobileContainer.innerHTML = '';
-                
-                if (categories.length === 0) return;
+        const renderCategories = () => {
+            const desktopContainer = document.getElementById('category-menu-container');
+            const mobileContainer = document.getElementById('mobile-nav');
+            const categories = siteData.categories?.tree || [];
+            
+            desktopContainer.innerHTML = '';
+            mobileContainer.innerHTML = '';
+            
+            if (categories.length === 0) return;
 
-                mobileContainer.innerHTML += `<div class="mobile-nav-header">${translate('mobile_menu_title')}</div>`;
-                
-                const createMenu = (categoryArray) => {
-                    const ul = document.createElement('ul');
-                    categoryArray.forEach(cat => {
-                        const li = document.createElement('li');
-                        li.innerHTML = `<a href="#">${cat.name[currentLang] || cat.name[DEFAULT_FALLBACK_LANG]}</a>`;
-                        if (cat.children && cat.children.length > 0) li.appendChild(createMenu(cat.children));
-                        ul.appendChild(li);
-                    });
-                    return ul;
-                };
-                
-                categories.forEach(cat => {
+            mobileContainer.innerHTML += `<div class="mobile-nav-header">${translate('mobile_menu_title')}</div>`;
+            
+            const createMenu = (categoryArray) => {
+                const ul = document.createElement('ul');
+                categoryArray.forEach(cat => {
                     const li = document.createElement('li');
                     li.innerHTML = `<a href="#">${cat.name[currentLang] || cat.name[DEFAULT_FALLBACK_LANG]}</a>`;
-                    desktopContainer.appendChild(li);
+                    if (cat.children && cat.children.length > 0) li.appendChild(createMenu(cat.children));
+                    ul.appendChild(li);
                 });
-
-                mobileContainer.appendChild(createMenu(categories));
+                return ul;
             };
+            
+            categories.forEach(cat => {
+                const li = document.createElement('li');
+                li.innerHTML = `<a href="#">${cat.name[currentLang] || cat.name[DEFAULT_FALLBACK_LANG]}</a>`;
+                desktopContainer.appendChild(li);
+            });
 
-            let currentSlideIndex = 0;
-            let slideInterval;
+            mobileContainer.appendChild(createMenu(categories));
+        };
 
-            const startSlider = () => {
-                const bannerContainer = document.getElementById('hero-banner-container');
-                const slides = bannerContainer.querySelectorAll('.slide');
-                const navContainer = bannerContainer.querySelector('.slide-nav');
-                
-                if (navContainer) navContainer.innerHTML = ''; 
+        let currentSlideIndex = 0;
+        let slideInterval;
 
-                if (!slides || slides.length <= 1) {
-                    if (navContainer) navContainer.style.display = 'none';
-                    clearInterval(slideInterval);
-                    return;
-                }
-                if (navContainer) navContainer.style.display = 'flex';
+        const setSlide = (index) => { // Defined at top level
+            const bannerContainer = document.getElementById('hero-banner-container');
+            const slides = bannerContainer.querySelectorAll('.slide');
+            const navContainer = bannerContainer.querySelector('.slide-nav');
+            const dots = navContainer ? navContainer.querySelectorAll('.nav-dot') : [];
 
-                slides.forEach((_, index) => {
-                    const dot = document.createElement('div');
-                    dot.className = 'nav-dot' + (index === 0 ? ' active' : '');
-                    dot.dataset.index = index;
-                    navContainer.appendChild(dot);
-                });
+            slides.forEach((s, i) => s.classList.toggle('active', i === index));
+            dots.forEach((d, i) => d.classList.toggle('active', i === index));
+            currentSlideIndex = index;
+        };
 
-                const dots = navContainer.querySelectorAll('.nav-dot');
-                
-                function setSlide(index) {
-                    slides.forEach((s, i) => s.classList.toggle('active', i === index));
-                    dots.forEach((d, i) => d.classList.toggle('active', i === index));
-                    currentSlideIndex = index;
-                }
+        const nextSlide = () => { // Defined at top level
+            const bannerContainer = document.getElementById('hero-banner-container');
+            const slides = bannerContainer.querySelectorAll('.slide');
+            setSlide((currentSlideIndex + 1) % slides.length);
+        };
 
-                setSlide(currentSlideIndex);
+        const startSlider = () => { // Defined at top level
+            const bannerContainer = document.getElementById('hero-banner-container');
+            const slides = bannerContainer.querySelectorAll('.slide');
+            let navContainer = bannerContainer.querySelector('.slide-nav');
+            
+            if (!navContainer) { // Ensure navContainer exists
+                navContainer = document.createElement('div');
+                navContainer.className = 'slide-nav';
+                bannerContainer.appendChild(navContainer);
+            }
+            navContainer.innerHTML = ''; 
 
+            if (!slides || slides.length <= 1) {
+                if (navContainer) navContainer.style.display = 'none';
                 clearInterval(slideInterval);
-                slideInterval = setInterval(nextSlide, 5000);
+                return;
+            }
+            if (navContainer) navContainer.style.display = 'flex';
 
-                dots.forEach(dot => {
-                    const newHandler = () => {
-                        setSlide(parseInt(dot.dataset.index));
-                        clearInterval(slideInterval);
-                        slideInterval = setInterval(nextSlide, 5000);
-                    };
-                    // Remove existing event listener if it was previously attached
-                    if (dot.__slideDotClickHandler) {
-                        dot.removeEventListener('click', dot.__slideDotClickHandler);
-                    }
-                    dot.addEventListener('click', newHandler);
-                    dot.__slideDotClickHandler = newHandler; // Store reference for removal
-                });
-                function nextSlide() {
-                    setSlide((currentSlideIndex + 1) % slides.length);
-                }
-            };
+            slides.forEach((_, index) => {
+                const dot = document.createElement('div');
+                dot.className = 'nav-dot' + (index === 0 ? ' active' : '');
+                dot.dataset.index = index;
+                navContainer.appendChild(dot);
+            });
+
+            const dots = navContainer.querySelectorAll('.nav-dot');
             
-            const formatPrice = (basePrice, discountPrice = null) => {
-                const symbols = siteData.settings?.currencySymbols || {};
-                const selectedCountryData = siteData.settings.countryPricing[currentCountryCode];
-                let priceToFormat = discountPrice !== null ? discountPrice : basePrice;
+            setSlide(currentSlideIndex);
 
-                if (selectedCountryData && typeof selectedCountryData.adjustment === 'number') {
-                    const adjustmentPercentage = selectedCountryData.adjustment / 100;
-                    priceToFormat = priceToFormat * (1 + adjustmentPercentage);
-                }
+            clearInterval(slideInterval);
+            slideInterval = setInterval(nextSlide, 5000);
 
-                const rates = siteData.settings?.exchangeRates || {};
-                const rate = rates[currentCurrency] || 1;
-                priceToFormat = priceToFormat * rate;
-
-                const symbol = symbols[currentCurrency] || currentCurrency;
-
-                const numberFormatOptions = currentCurrency === 'TRY'
-                    ? { maximumFractionDigits: 0 }
-                    : { minimumFractionDigits: 2, maximumFractionDigits: 2 };
-                
-                const formattedPrice = new Intl.NumberFormat(currentLang, numberFormatOptions).format(priceToFormat);
-                
-                return `${symbol} ${formattedPrice}`;
-            };
-            
-            const renderProducts = () => {
-                const container = document.getElementById('product-grid-container');
-                const products = siteData.products || [];
-                container.innerHTML = '';
-                if (products.length === 0) return;
-
-                const fragment = document.createDocumentFragment();
-
-                products.forEach(product => {
-                    const card = document.createElement('div');
-                    card.className = 'product-card';
-                    const firstImage = product.variants?.[0]?.media?.[0]?.url || `https://placehold.co/400x300/ccc/fff?text=${translate('no_image')}`;
-                    const name = product.content?.[currentLang]?.name || product.content?.[DEFAULT_FALLBACK_LANG]?.name || translate('untitled_product');
-                    
-                    const originalPrice = product.basePriceTL;
-                    const discountedPrice = product.baseDiscountedPriceTL;
-
-                    let priceHTML = '';
-                    if (discountedPrice !== null && typeof discountedPrice === 'number' && discountedPrice < originalPrice) {
-                        priceHTML = `
-                            <div class="price-container">
-                                <span class="original-price">${formatPrice(originalPrice)}</span>
-                                <span class="discounted-price">${formatPrice(originalPrice, discountedPrice)}</span>
-                            </div>`;
-                    } else {
-                        priceHTML = `<div class="price-container"><span class="discounted-price">${formatPrice(originalPrice)}</span></div>`;
-                    }
-
-                    const freeShippingTag = product.isFreeShipping
-                        ? `<div class="free-shipping-tag">${translate('free_shipping_text')}</div>`
-                        : '';
-
-                    card.innerHTML = `
-                        <a href="product.html?id=${product.id}" class="product-image-link">
-                            <img src="${firstImage}" alt="${name}" class="product-image">
-                        </a>
-                        <div class="product-info">
-                            <div class="product-info-top">
-                                <h3 class="product-name"><a href="product.html?id=${product.id}">${name}</a></h3>
-                            </div>
-                            ${priceHTML}
-                        </div>
-                        ${freeShippingTag}`;
-                    fragment.appendChild(card);
-                });
-                container.appendChild(fragment);
-            };
-
-            const setupControls = () => {
-                const languageSelector = document.getElementById('language-selector');
-                const currencySelector = document.getElementById('currency-selector');
-                const countrySelector = document.getElementById('country-selector');
-                const hamburgerBtn = document.getElementById('hamburger-menu-btn');
-                const mobileNav = document.getElementById('mobile-nav');
-                const mobileNavOverlay = document.getElementById('mobile-nav-overlay');
-
-                const languagesFromDB = siteData.settings.languages || [];
-                languageSelector.innerHTML = languagesFromDB.map(l => `<option value="${l.code}">${countryCodeToEmoji(l.flag)} ${l.name}</option>`).join('');
-                languageSelector.value = currentLang;
-                languageSelector.style.display = languagesFromDB.length > 0 ? 'block' : 'none';
-                
-                const currencies = siteData.settings?.currencySymbols || {};
-                const availableCurrencies = Object.keys(currencies);
-                currencySelector.innerHTML = availableCurrencies.map(c => {
-                    const symbol = currencies[c] || c;
-                    return `<option value="${c}">${symbol} ${c}</option>`;
-                }).join('');
-                currencySelector.value = currentCurrency;
-                currencySelector.style.display = availableCurrencies.length > 0 ? 'block' : 'none';
-                
-                const countries = siteData.settings.countryPricing || {};
-                const countryOptionsHtml = Object.entries(countries).map(([code, data]) => {
-                    const countryName = data.name?.[currentLang] || data.name?.[DEFAULT_FALLBACK_LANG] || code.toUpperCase();
-                    return `<option value="${code}">${countryCodeToEmoji(data.flag)} ${countryName}</option>`;
-                }).join('');
-
-                if (Object.keys(countries).length > 0) {
-                    countrySelector.innerHTML = countryOptionsHtml;
-                    countrySelector.value = currentCountryCode;
-                    countrySelector.parentElement.style.display = 'block';
-
-                    welcomeCountrySelect.innerHTML = countryOptionsHtml;
-                    welcomeCountrySelect.value = currentCountryCode;
-                } else {
-                    countrySelector.parentElement.style.display = 'none';
-                    welcomeModalOverlay.style.display = 'none';
-                }
-
-                if (!languageSelector.hasAttribute('data-listeners-attached')) {
-                    languageSelector.addEventListener('change', (e) => {
-                        currentLang = e.target.value;
-                        localStorage.setItem('pufemo-language', currentLang);
-                        renderAll();
-                    });
-                    languageSelector.setAttribute('data-listeners-attached', 'true');
-                }
-                
-                if (!currencySelector.hasAttribute('data-listeners-attached')) {
-                    currencySelector.addEventListener('change', (e) => {
-                        currentCurrency = e.target.value;
-                        localStorage.setItem('pufemo-currency', currentCurrency);
-                        renderAll();
-                    });
-                    currencySelector.setAttribute('data-listeners-attached', 'true');
-                }
-
-                if (!countrySelector.hasAttribute('data-listeners-attached')) {
-                    countrySelector.addEventListener('change', (e) => {
-                        window.applyCountryAndRender(e.target.value);
-                    });
-                    countrySelector.setAttribute('data-listeners-attached', 'true');
-                }
-                
-                if (!welcomeModalConfirmButton.hasAttribute('data-listeners-attached')) {
-                    welcomeModalConfirmButton.addEventListener('click', function() {
-                        const selectedCountry = welcomeCountrySelect.value;
-                        if (selectedCountry) {
-                            window.applyCountryAndRender(selectedCountry);
-                            welcomeModalOverlay.classList.remove('active');
-                        } else {
-                            alert(translate('select_country_alert'));
-                        }
-                    });
-                    welcomeModalConfirmButton.setAttribute('data-listeners-attached', 'true');
-                }
-
-                const toggleMenu = () => {
-                    hamburgerBtn.classList.toggle('open');
-                    mobileNav.classList.toggle('open');
-                    mobileNavOverlay.classList.toggle('open');
-                    document.querySelector('body').classList.toggle('mobile-menu-open');
+            dots.forEach(dot => {
+                const newHandler = () => {
+                    setSlide(parseInt(dot.dataset.index));
+                    clearInterval(slideInterval);
+                    slideInterval = setInterval(nextSlide, 5000);
                 };
-                if (!hamburgerBtn.hasAttribute('data-listeners-attached')) {
-                    hamburgerBtn.onclick = toggleMenu;
-                    mobileNavOverlay.onclick = toggleMenu;
-                    mobileNav.onclick = (e) => { if (e.target.tagName === 'A') toggleMenu(); };
-                    hamburgerBtn.setAttribute('data-listeners-attached', 'true');
+                if (dot.__slideDotClickHandler) {
+                    dot.removeEventListener('click', dot.__slideDotClickHandler);
                 }
-            };
+                dot.addEventListener('click', newHandler);
+                dot.__slideDotClickHandler = newHandler;
+            });
+        };
+        
+        const renderBanner = () => { // Defined at top level
+            const bannerContainer = document.getElementById('hero-banner-container');
+            const slidesData = siteData.settings?.banner || [];
+
+            bannerContainer.innerHTML = ''; 
             
-            async function init() {
-                loadingOverlay.classList.remove('hidden');
-                if (loadingTextP) loadingTextP.textContent = translate('loading_text');
+            if (slidesData.length === 0) {
+                bannerContainer.style.display = 'none';
+                return;
+            }
+            bannerContainer.style.display = 'block';
 
-                await fetchData();
+            slidesData.forEach((slideData, index) => {
+                const slideEl = document.createElement('div');
+                slideEl.className = 'slide' + (index === 0 ? ' active' : '');
                 
-                const storedCountry = localStorage.getItem('pufemo-country');
-                const availableCountries = Object.keys(siteData.settings.countryPricing);
+                const content = slideData.content?.[currentLang] || slideData.content?.[DEFAULT_FALLBACK_LANG] || {};
+                const buttonText = content.button_text || translate('default_button_text');
+                
+                const slideStyle = slideData.style || {};
 
-                if (!storedCountry || !availableCountries.includes(storedCountry)) {
-                    if (availableCountries.length > 0) {
-                        welcomeModalOverlay.classList.add('active');
-                    } else {
-                        console.warn("No countries configured in Firebase settings. Proceeding without welcome modal.");
-                        welcomeModalOverlay.style.display = 'none';
-                    }
+                if(slideData.image_url?.includes('.mp4')) {
+                    slideEl.innerHTML = `<video src="${slideData.image_url}" autoplay muted loop playsinline></video>`;
+                } else {
+                    slideEl.innerHTML = `<div class="slide-bg-image" style="background-image: url('${slideData.image_url || ''}')"></div>`;
                 }
                 
-                renderAll();
+                const titleStyle = `${slideStyle.title_color ? `color: ${slideStyle.title_color};` : ''} ${slideStyle.title_font_size ? `font-size: ${slideStyle.title_font_size};` : ''}`;
+                const subtitleStyle = `${slideStyle.subtitle_color ? `color: ${slideStyle.subtitle_color};` : ''} ${slideStyle.subtitle_font_size ? `font-size: ${slideStyle.subtitle_font_size};` : ''}`;
+                const buttonInlineStyle = `${slideStyle.button_bg_color ? `background-color: ${slideStyle.button_bg_color};` : ''} ${slideStyle.button_text_color ? `color: ${slideStyle.button_text_color};` : ''} ${slideStyle.button_border_radius ? `border-radius: ${slideStyle.button_border_radius};` : ''} ${slideData.style.button_padding ? `padding: ${slideData.style.button_padding};` : ''}`;
 
-                loadingOverlay.classList.add('hidden');
+                slideEl.innerHTML += `
+                    <div class="slide-content">
+                        <h2 style="${titleStyle}">${content.title || ''}</h2>
+                        <p style="${subtitleStyle}">${content.subtitle || ''}</p>
+                        <a href="${slideData.link_url || '#'}" class="btn-shop" style="${buttonInlineStyle}">${buttonText}</a>
+                    </div>`;
+                bannerContainer.appendChild(slideEl);
+            });
+
+            const slideNav = document.createElement('div');
+            slideNav.className = 'slide-nav';
+            bannerContainer.appendChild(slideNav);
+
+            startSlider();
+        };
+        
+        const renderProducts = () => { // Defined at top level
+            const container = document.getElementById('product-grid-container');
+            const products = siteData.products || [];
+            container.innerHTML = '';
+            if (products.length === 0) return;
+
+            const fragment = document.createDocumentFragment();
+
+            products.forEach(product => {
+                const card = document.createElement('div');
+                card.className = 'product-card';
+                const firstImage = product.variants?.[0]?.media?.[0]?.url || `https://placehold.co/400x300/ccc/fff?text=${translate('no_image')}`;
+                const name = product.content?.[currentLang]?.name || product.content?.[DEFAULT_FALLBACK_LANG]?.name || translate('untitled_product');
+                
+                const originalPrice = product.basePriceTL;
+                const discountedPrice = product.baseDiscountedPriceTL;
+
+                let priceHTML = '';
+                if (discountedPrice !== null && typeof discountedPrice === 'number' && discountedPrice < originalPrice) {
+                    priceHTML = `
+                        <div class="price-container">
+                            <span class="original-price">${formatPrice(originalPrice)}</span>
+                            <span class="discounted-price">${formatPrice(originalPrice, discountedPrice)}</span>
+                        </div>`;
+                } else {
+                    priceHTML = `<div class="price-container"><span class="discounted-price">${formatPrice(originalPrice)}</span></div>`;
+                }
+
+                const freeShippingTag = product.isFreeShipping
+                    ? `<div class="free-shipping-tag">${translate('free_shipping_text')}</div>`
+                    : '';
+
+                card.innerHTML = `
+                    <a href="product.html?id=${product.id}" class="product-image-link">
+                        <img src="${firstImage}" alt="${name}" class="product-image">
+                    </a>
+                    <div class="product-info">
+                        <div class="product-info-top">
+                            <h3 class="product-name"><a href="product.html?id=${product.id}">${name}</a></h3>
+                        </div>
+                        ${priceHTML}
+                    </div>
+                    ${freeShippingTag}`;
+                fragment.appendChild(card);
+            });
+            container.appendChild(fragment);
+        };
+
+        const setupControls = () => { // Defined at top level
+            const languageSelector = document.getElementById('language-selector');
+            const currencySelector = document.getElementById('currency-selector');
+            const countrySelector = document.getElementById('country-selector');
+            const hamburgerBtn = document.getElementById('hamburger-menu-btn');
+            const mobileNav = document.getElementById('mobile-nav');
+            const mobileNavOverlay = document.getElementById('mobile-nav-overlay');
+
+            const languagesFromDB = siteData.settings.languages || [];
+            languageSelector.innerHTML = languagesFromDB.map(l => `<option value="${l.code}">${countryCodeToEmoji(l.flag)} ${l.name}</option>`).join('');
+            languageSelector.value = currentLang;
+            languageSelector.style.display = languagesFromDB.length > 0 ? 'block' : 'none';
+            
+            const currencies = siteData.settings?.currencySymbols || {};
+            const availableCurrencies = Object.keys(currencies);
+            currencySelector.innerHTML = availableCurrencies.map(c => {
+                const symbol = currencies[c] || c;
+                return `<option value="${c}">${symbol} ${c}</option>`;
+            }).join('');
+            currencySelector.value = currentCurrency;
+            currencySelector.style.display = availableCurrencies.length > 0 ? 'block' : 'none';
+            
+            const countries = siteData.settings.countryPricing || {};
+            const countryOptionsHtml = Object.entries(countries).map(([code, data]) => {
+                const countryName = data.name?.[currentLang] || data.name?.[DEFAULT_FALLBACK_LANG] || code.toUpperCase();
+                return `<option value="${code}">${countryCodeToEmoji(data.flag)} ${countryName}</option>`;
+            }).join('');
+
+            if (Object.keys(countries).length > 0) {
+                countrySelector.innerHTML = countryOptionsHtml;
+                countrySelector.value = currentCountryCode;
+                countrySelector.parentElement.style.display = 'block';
+
+                welcomeCountrySelect.innerHTML = countryOptionsHtml;
+                welcomeCountrySelect.value = currentCountryCode;
+            } else {
+                countrySelector.parentElement.style.display = 'none';
+                welcomeModalOverlay.style.display = 'none';
+            }
+
+            if (!languageSelector.hasAttribute('data-listeners-attached')) {
+                languageSelector.addEventListener('change', (e) => {
+                    currentLang = e.target.value;
+                    localStorage.setItem('pufemo-language', currentLang);
+                    renderAll();
+                });
+                languageSelector.setAttribute('data-listeners-attached', 'true');
             }
             
+            if (!currencySelector.hasAttribute('data-listeners-attached')) {
+                currencySelector.addEventListener('change', (e) => {
+                    currentCurrency = e.target.value;
+                    localStorage.setItem('pufemo-currency', currentCurrency);
+                    renderAll();
+                });
+                currencySelector.setAttribute('data-listeners-attached', 'true');
+            }
+
+            if (!countrySelector.hasAttribute('data-listeners-attached')) {
+                countrySelector.addEventListener('change', (e) => {
+                    window.applyCountryAndRender(e.target.value);
+                });
+                countrySelector.setAttribute('data-listeners-attached', 'true');
+            }
+            
+            if (!welcomeModalConfirmButton.hasAttribute('data-listeners-attached')) {
+                welcomeModalConfirmButton.addEventListener('click', function() {
+                    const selectedCountry = welcomeCountrySelect.value;
+                    if (selectedCountry) {
+                        window.applyCountryAndRender(selectedCountry);
+                        welcomeModalOverlay.classList.remove('active');
+                    } else {
+                        alert(translate('select_country_alert'));
+                    }
+                });
+                welcomeModalConfirmButton.setAttribute('data-listeners-attached', 'true');
+            }
+
+            const toggleMenu = () => {
+                hamburgerBtn.classList.toggle('open');
+                mobileNav.classList.toggle('open');
+                mobileNavOverlay.classList.toggle('open');
+                document.querySelector('body').classList.toggle('mobile-menu-open');
+            };
+            if (!hamburgerBtn.hasAttribute('data-listeners-attached')) {
+                hamburgerBtn.onclick = toggleMenu;
+                mobileNavOverlay.onclick = toggleMenu;
+                mobileNav.onclick = (e) => { if (e.target.tagName === 'A') toggleMenu(); };
+                hamburgerBtn.setAttribute('data-listeners-attached', 'true');
+            }
+        };
+
+        const renderAll = () => { // Defined at top level
+            renderStaticText();
+            setupControls();
+            renderCategories();
+            renderBanner();
+            renderProducts();
+            renderGeneralSiteElements();
+            window.applyAuthTranslations(); 
+        };
+        
+        async function fetchData() { // Defined at top level
+            try {
+                const [settingsDoc, categoriesDoc, productsSnap] = await Promise.all([
+                    db.collection('pufemo').doc('settings').get(),
+                    db.collection('pufemo').doc('categories').get(),
+                    db.collection('pufemo-products').where('isInShowcase', '==', true).get()
+                ]);
+
+                if (settingsDoc.exists) {
+                    siteData.settings = { ...siteData.settings, ...settingsDoc.data() };
+                } else {
+                    console.log('Settings belgesi mevcut değil!');
+                }
+                if (categoriesDoc.exists) {
+                    siteData.categories = { ...siteData.categories, ...categoriesDoc.data() };
+                } else {
+                    console.log('Kategoriler belgesi mevcut değil!');
+                }
+                siteData.products = productsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+                const availableCountries = Object.keys(siteData.settings.countryPricing);
+                if (!localStorage.getItem('pufemo-country') || !availableCountries.includes(localStorage.getItem('pufemo-country'))) {
+                    currentCountryCode = availableCountries.length > 0 ? availableCountries[0] : DEFAULT_COUNTRY_CODE;
+                    localStorage.setItem('pufemo-country', currentCountryCode);
+                } else {
+                    currentCountryCode = localStorage.getItem('pufemo-country');
+                }
+                updateLanguageAndCurrencyForCountry(currentCountryCode);
+
+            } catch (e) {
+                console.error("Veri okuma hatası! Varsayılan ayarlar kullanılıyor.", e);
+                if (loadingTextP) loadingTextP.textContent = translate('loading_text') + " " + translate('login_error');
+                if (mainSectionTitleEl) mainSectionTitleEl.textContent = translate('main_section_title') + " (" + translate('login_error') + ")";
+            }
+        }
+        
+        window.applyCountryAndRender = (countryCode) => { // Global function
+            updateLanguageAndCurrencyForCountry(countryCode);
+            renderAll();
+            document.getElementById('language-selector').value = currentLang;
+            document.getElementById('currency-selector').value = currentCurrency;
+            document.getElementById('country-selector').value = currentCountryCode;
+        };
+
+        async function init() { // Defined at top level
+            loadingOverlay.classList.remove('hidden');
+            if (loadingTextP) loadingTextP.textContent = translate('loading_text');
+
+            await fetchData();
+            
+            const storedCountry = localStorage.getItem('pufemo-country');
+            const availableCountries = Object.keys(siteData.settings.countryPricing);
+
+            if (!storedCountry || !availableCountries.includes(storedCountry)) {
+                if (availableCountries.length > 0) {
+                    welcomeModalOverlay.classList.add('active');
+                } else {
+                    console.warn("No countries configured in Firebase settings. Proceeding without welcome modal.");
+                    welcomeModalOverlay.style.display = 'none';
+                }
+            }
+            
+            renderAll();
+
+            loadingOverlay.classList.add('hidden');
+        }
+        
+        if (isFirebaseInitialized) {
             init();
         } else {
             if (loadingOverlay) loadingOverlay.classList.add('hidden');
@@ -1328,15 +1386,16 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
 
+        // DOM Elements
         const userStatusEl = document.getElementById("userStatus");
         const loginButton = document.getElementById("loginButton");
         const logoutButton = document.getElementById("logoutButton");
         const authModal = document.getElementById("authModal");
-        const authModalOverlay = document.getElementById("authModalOverlay"); // Yeni overlay
-        const loginForm = document.getElementById("loginForm"); // Form elemanı
+        const authModalOverlay = document.getElementById("authModalOverlay");
+        const loginForm = document.getElementById("loginForm"); 
         const loginEmailInput = document.getElementById("loginEmail");
         const loginPasswordInput = document.getElementById("loginPassword");
-        const registerForm = document.getElementById("registerForm"); // Form elemanı
+        const registerForm = document.getElementById("registerForm"); 
         const registerEmailInput = document.getElementById("registerEmail");
         const registerPasswordInput = document.getElementById("registerPassword");
         const continueAsGuestButton = document.getElementById("continueAsGuestButton");
@@ -1385,7 +1444,8 @@
         window.logout = () => {
             signOut(auth)
                 .then(() => {
-                    userStatusEl.textContent = window.staticTranslations?.['login_label']?.[localStorage.getItem('pufemo-language') || 'en'] || 'Giriş Yap';
+                    const lang = localStorage.getItem('pufemo-language') || 'en';
+                    userStatusEl.textContent = window.staticTranslations?.['login_label']?.[lang] || 'Giriş Yap';
                     loginButton.style.display = 'block';
                     logoutButton.style.display = 'none';
                 })
@@ -1405,7 +1465,7 @@
         // Event Listeners for Authentication UI
         const openAuthModal = () => {
             authModal.style.display = 'block';
-            authModalOverlay.style.display = 'block'; // Overlay'ı da göster
+            authModalOverlay.style.display = 'block'; 
             clearAuthError();
             loginEmailInput.value = '';
             loginPasswordInput.value = '';
@@ -1414,20 +1474,19 @@
         };
 
         loginButton.addEventListener('click', openAuthModal);
-        userStatusEl.addEventListener('click', openAuthModal); // Status yazısına tıklayınca da açsın
+        userStatusEl.addEventListener('click', openAuthModal); 
 
         logoutButton.addEventListener('click', window.logout);
 
-        // Form submit listeners
         if (loginForm) {
             loginForm.addEventListener('submit', (e) => {
-                e.preventDefault(); // Varsayılan form göndermeyi engelle
+                e.preventDefault(); 
                 window.login();
             });
         }
         if (registerForm) {
             registerForm.addEventListener('submit', (e) => {
-                e.preventDefault(); // Varsayılan form göndermeyi engelle
+                e.preventDefault(); 
                 window.register();
             });
         }
@@ -1436,11 +1495,11 @@
         
         const closeAuthModal = () => {
             authModal.style.display = 'none';
-            authModalOverlay.style.display = 'none'; // Overlay'ı da gizle
+            authModalOverlay.style.display = 'none'; 
             clearAuthError();
         };
         closeAuthModalButton.addEventListener('click', closeAuthModal);
-        authModalOverlay.addEventListener('click', closeAuthModal); // Overlay'a tıklayınca da kapat
+        authModalOverlay.addEventListener('click', closeAuthModal); 
 
         // Auth State Change Listener
         onAuthStateChanged(auth, (user) => {
