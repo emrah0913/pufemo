@@ -656,7 +656,7 @@
             <p id="auth-message" class="auth-message"></p>
             <form id="auth-form">
                 <input type="email" id="auth-email" placeholder="E-posta" required>
-                <input type="password" id="auth-password" placeholder="Şifre" required>
+                <input type="password" id="auth-password" placeholder="Şifre" required autocomplete="current-password">
                 <button type="submit" id="auth-submit-btn" class="btn-primary"></button>
             </form>
             <button id="anon-login-btn" class="btn-secondary"></button>
@@ -794,7 +794,7 @@
             'footer-desc-pufemo': {
                 tr: 'Hayallerinizdeki konforu ve estetiği evinize taşıyoruz.', en: 'We bring the comfort and aesthetics of your dreams to your home.',
                 el: 'Φέρνουμε την άνεση και την αισθητική των ονείρων σας στο σπίτι σας.', ru: 'Мы приносим комфорт и эстетику в ваш дом.',
-                de: 'Wir bringen den Komfort und die Ästhetik Ihrer Träume in Ihr Zuhause.', fr: 'Nous apportons le confort et l\'esthétique de vos rêves à votre maison.',
+                de: 'Wir bringen den Komfort und die Ästhetik Ihrer Träume in Ihr Zuhause.', fr: 'Nous apportamos el confort et l\'esthétique de vos rêves à votre maison.',
                 it: 'Portiamo il comfort e l\'estetica dei vostri sogni nella vostra casa.'
             },
             'footer-title-fast-links': {
@@ -899,7 +899,7 @@
             },
             'logout_error': {
                 tr: 'Çıkış yapılırken hata: ', en: 'Logout error: ', el: 'Σφάλμα αποσύνδεσης: ', ru: 'Ошибка выхода: ',
-                de: 'Abmeldefehler: ', fr: 'Erreur de déconnexion : ', it: 'Errore di disconnessione: '
+                de: 'Abmeldefehler: ', fr: 'Erreur de déconnexion : ', it: 'Errore durante la disconnessione: '
             },
             'guest_user': {
                 tr: 'Misafir Kullanıcı', en: 'Guest User', el: 'Επισκέπτης χρήστης', ru: 'Гостевой пользователь',
@@ -925,7 +925,7 @@
             },
             'guest_login_error': {
                 tr: 'Misafir girişi sırasında hata: ', en: 'Error during guest login: ', el: 'Σφάλμα κατά την είσοδο επισκέπτη: ', ru: 'Ошибка при входе в качестве гостя: ',
-                de: 'Fehler beim Gast-Login: ', fr: 'Erreur lors de la connexion en tant qu\'invité : ', it: 'Errore durante l\'accesso ospite: '
+                de: 'Fehler beim Gast-Login: ', fr: 'Erreur lors de la connexion en tant un invité: ', it: 'Errore durante l\'accesso ospite: '
             },
             'auth_error_unknown': {
                 tr: 'Bilinmeyen bir kimlik doğrulama hatası oluştu.', en: 'An unknown authentication error occurred.',
@@ -1245,11 +1245,7 @@
             if (translation) {
                 return translation;
             }
-            // Eğer çeviri yoksa admin panelinde kullanılan anahtar formatını dene (varsayılan olarak Türkçe)
-            if (siteData.settings.staticTranslations?.[key]?.['tr']) {
-                return siteData.settings.staticTranslations[key]['tr']; 
-            }
-            // Hiç çeviri bulunamazsa defaultStaticTranslations'dan dene
+            // Eğer çeviri siteData'dan gelmezse, defaultStaticTranslations'dan kontrol et (varsayılan olarak Türkçe)
             if (defaultStaticTranslations[key]?.[currentLang]) {
                 return defaultStaticTranslations[key][currentLang];
             }
@@ -1303,7 +1299,8 @@
         const renderStaticText = () => {
             document.documentElement.lang = currentLang;
 
-            if (loadingTextP) loadingTextP.textContent = translate('loading_text');
+            // Bu kısım artık hata almayacak çünkü `init` içinde `defaultStaticTranslations` kullanıldı
+            // Diğer metinler için `translate` fonksiyonu düzgün çalışır.
             if (mainSectionTitleEl) mainSectionTitleEl.textContent = translate('main_section_title');
             if (document.getElementById('footer-title-pufemo')) document.getElementById('footer-title-pufemo').textContent = translate('footer-title-pufemo');
             if (document.getElementById('footer-desc-pufemo')) document.getElementById('footer-desc-pufemo').textContent = translate('footer-desc-pufemo');
@@ -1770,8 +1767,8 @@
             
         async function init() {
             loadingOverlay.classList.remove('hidden');
-            // Yüklenme metnini hemen çevir (init içinde ilk translate çağrısı)
-            if (loadingTextP) loadingTextP.textContent = translate('loading_text');
+            // İlk yüklenme metni için direkt defaultStaticTranslations kullanın, çünkü siteData henüz yüklenmemiş olabilir.
+            if (loadingTextP) loadingTextP.textContent = defaultStaticTranslations['loading_text'][currentLang] || defaultStaticTranslations['loading_text']['tr'];
 
             await fetchData(); // Lokal verileri çek
             
