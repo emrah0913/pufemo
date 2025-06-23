@@ -365,7 +365,7 @@
             box-shadow: 0 2px 10px rgba(0,0,0,0.05);
             max-width: 1100px;
         }
-        .description-section h2 { margin-bottom: 15px; font-size: 1.5rem; border-bottom: 2px solid var(--secondary-color); display: inline-block; }
+        .description-section h2 { margin-bottom: 15px; font-size: 1.5rem; border-bottom: 2px solid var(--secondary-color); padding-bottom: 5px; display: inline-block; }
 
         /* Benzer Varyantlar Bölümü Stilleri */
         .related-variants-section {
@@ -740,6 +740,119 @@
                 margin-top: 5px;
             }
         }
+        /* New Styles for User Controls (from index.html for consistency) */
+        .auth-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .auth-controls .profile-pic {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            object-fit: cover;
+            cursor: pointer;
+            border: 2px solid var(--primary-color);
+            transition: border-color 0.3s ease;
+        }
+
+        .auth-controls .profile-pic:hover {
+            border-color: var(--secondary-color);
+        }
+
+        .auth-controls .sign-in-btn {
+            background: none;
+            border: none;
+            padding: 0;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            background-color: #eee;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+
+        .auth-controls .sign-in-btn:hover {
+            background-color: #ddd;
+            transform: translateY(-1px);
+        }
+
+        .auth-controls .sign-in-btn i {
+            font-size: 1.2rem;
+            color: var(--primary-color);
+        }
+
+        .auth-controls .sign-out-btn {
+            background-color: var(--secondary-color);
+            color: var(--light-text-color);
+            padding: 8px 15px;
+            border: none;
+            border-radius: 5px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+
+        .auth-controls .sign-out-btn:hover {
+            background-color: #c0392b;
+            transform: translateY(-1px);
+        }
+
+        .auth-dropdown {
+            position: absolute;
+            top: 60px; /* Adjust as needed */
+            right: 20px;
+            background-color: var(--card-bg-color);
+            box-shadow: var(--box-shadow);
+            border-radius: var(--border-radius);
+            padding: 10px;
+            display: none;
+            flex-direction: column;
+            gap: 8px;
+            z-index: 1000;
+        }
+
+        .auth-dropdown.active {
+            display: flex;
+        }
+        .auth-dropdown button {
+            width: 100%;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 5px;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .auth-dropdown button:hover {
+            background-color: #e0e0e0;
+        }
+
+        @media (max-width: 480px) {
+            /* Mobile auth controls */
+            .auth-controls {
+                gap: 5px;
+            }
+            .auth-controls .profile-pic,
+            .auth-controls .sign-in-btn {
+                width: 30px;
+                height: 30px;
+            }
+            .auth-controls .sign-in-btn i {
+                font-size: 1rem;
+            }
+            .auth-controls .sign-out-btn {
+                padding: 6px 10px;
+                font-size: 0.8rem;
+            }
+        }
     </style>
 </head>
 <body>
@@ -749,7 +862,7 @@
             <p id="welcome-modal-message"></p>
             <select id="welcomeCountrySelect" class="control-select"></select>
             <button id="welcomeModalConfirmButton" class="btn"></button>
-        </div>
+            </div>
     </div>
 
     <div class="promo-bar">
@@ -766,7 +879,7 @@
     <header class="main-header">
         <div class="header-top">
             <a href="index.html" class="logo" id="main-logo-link">
-            </a>
+                </a>
         </div>
         <div class="container">
             <button class="hamburger-menu" id="hamburger-menu-btn" aria-label="Menüyü aç/kapat"><span></span><span></span><span></span></button>
@@ -776,8 +889,15 @@
                 <a href="cart.html" class="cart-icon" id="cart-page-link" title="">
                     <i class="fa-solid fa-cart-shopping"></i><span class="cart-badge" id="cart-badge">0</span>
                 </a>
-                <div id="user-controls-container" class="user-controls-dropdown">
+                <div class="auth-controls">
+                    <img id="user-profile-pic" class="profile-pic" src="https://via.placeholder.com/35" alt="Profile" style="display:none;">
+                    <button id="auth-toggle-button" class="sign-in-btn" title="Sign In"><i class="fa-solid fa-user"></i></button>
+                    <div id="auth-dropdown" class="auth-dropdown">
+                        <button id="google-sign-in-desktop-button"></button>
+                        <button id="anonymous-sign-in-desktop-button"></button>
+                        <button id="sign-out-button"></button>
                     </div>
+                </div>
             </div>
         </div>
     </header>
@@ -885,49 +1005,31 @@
             appId: "1:983352837227:web:defaa8dae215776e2e1d2e",
         };
 
-        let app; 
-        let db;  
-        let auth; 
+        let app;
+        let db;
+        let auth;
         try {
             app = initializeApp(firebaseConfig);
             db = getFirestore(app);
             auth = getAuth(app);
         } catch (e) {
             console.error("Firebase başlatma hatası!", e);
-            // This initial block sets up default UI for failed Firebase init.
-            // Elements are now globally scoped and assigned content here.
-            const loadingOverlay = document.getElementById('loading-overlay');
-            const loadingTextP = document.getElementById('loading-text');
-            const productTitleEl = document.getElementById('product-title');
-            const productDescriptionEl = document.getElementById('product-description');
-            const btnCartEl = document.getElementById('btn-cart');
-            const btnBuyEl = document.getElementById('btn-buy');
-            const decreaseQuantityBtn = document.getElementById('decrease-quantity');
-            const increaseQuantityBtn = document.getElementById('increase-quantity');
-            const languageSelector = document.getElementById('language-selector');
-            const currencySelector = document.getElementById('currency-selector');
-            const countrySelector = document.getElementById('country-selector');
-            const cartBadge = document.getElementById('cart-badge');
-            const variantSectionEl = document.querySelector('.variant-section');
-            const relatedVariantsGridEl = document.getElementById('related-variants-grid');
-            const relatedSection = document.querySelector('.related-variants-section');
-
-            if (loadingOverlay) loadingOverlay.classList.add('hidden');
-            if (loadingTextP) loadingTextP.textContent = "Hata: Sayfa yüklenemedi! Lütfen internet bağlantınızı kontrol edin.";
-            if (productTitleEl) productTitleEl.textContent = "Hata Oluştu";
-            if (productDescriptionEl) productDescriptionEl.textContent = "Ürün bilgileri yüklenemedi.";
-            if (btnCartEl) btnCartEl.disabled = true;
-            if (btnBuyEl) btnBuyEl.disabled = true;
-            if (decreaseQuantityBtn) decreaseQuantityBtn.disabled = true;
-            if (increaseQuantityBtn) increaseQuantityBtn.disabled = true;
-            
-            if (languageSelector) languageSelector.style.display = 'none';
-            if (currencySelector) currencySelector.style.display = 'none';
-            if (countrySelector) countrySelector.parentElement.style.display = 'none';
-            if (cartBadge) cartBadge.textContent = '0';
-            if (variantSectionEl) variantSectionEl.style.display = 'none';
-            if (relatedVariantsGridEl) relatedVariantsGridEl.innerHTML = '';
-            if (relatedSection) relatedSection.style.display = 'none';
+            // Error handling for Firebase initialization failure
+            document.getElementById('loading-overlay').classList.add('hidden');
+            document.getElementById('loading-text').textContent = "Hata: Sayfa yüklenemedi! Lütfen internet bağlantınızı kontrol edin.";
+            document.getElementById('product-title').textContent = "Hata Oluştu";
+            document.getElementById('product-description').textContent = "Ürün bilgileri yüklenemedi.";
+            document.getElementById('btn-cart').disabled = true;
+            document.getElementById('btn-buy').disabled = true;
+            document.getElementById('decrease-quantity').disabled = true;
+            document.getElementById('increase-quantity').disabled = true;
+            document.getElementById('language-selector').style.display = 'none';
+            document.getElementById('currency-selector').style.display = 'none';
+            document.getElementById('country-selector').parentElement.style.display = 'none';
+            document.getElementById('cart-badge').textContent = '0';
+            document.querySelector('.variant-section').style.display = 'none';
+            document.getElementById('related-variants-grid').innerHTML = '';
+            document.querySelector('.related-variants-section').style.display = 'none';
             return; // Exit script if Firebase fails to initialize
         }
 
@@ -950,7 +1052,7 @@
         
         // New variant elements
         const variantSectionEl = document.querySelector('.variant-section');
-        const variantTitleEl = document.getElementById('variant-selector-label'); 
+        const variantTitleEl = document.getElementById('variant-selector-label');
         const variantSelectorsEl = document.getElementById('variant-selectors');
 
         const quantityInputEl = document.getElementById('quantity-input');
@@ -976,7 +1078,7 @@
         const cartPageLink = document.getElementById('cart-page-link');
         const cartBadge = document.getElementById('cart-badge'); // Added cart badge
 
-        // Welcome Modal (hidden by default)
+        // Welcome Modal (hidden by default via CSS)
         const welcomeModalOverlay = document.getElementById('welcomeModalOverlay');
 
 
@@ -998,170 +1100,7 @@
         let currentCountryCode = localStorage.getItem('pufemo-country') || '';
 
         // product-specific data, global to this page's script
-        let currentProductData = null; 
-        let productContentGlobal = {};
-        let currentSelectedVariantId = null; // Track selected variant
-
-
-        // --- Static Translations ---
-        const staticTranslations = {
-            'loading_text': { tr: 'PUFEMO Yükleniyor...', en: 'Loading PUFEMO...', el: 'Φόρτωση PUFEMO...', ru: 'Загрузка PUFEMO...', de: 'PUFEMO wird geladen...', fr: 'Chargement de PUFEMO...', it: 'Caricamento PUFEMO...' },
-            'mobile_menu_title': { tr: 'Kategoriler', en: 'Categories', el: 'Κατηγορίες', ru: 'Категории', de: 'Kategorien', fr: 'Catégories', it: 'Categorie' },
-            'footer-title-pufemo': { tr: 'PUFEMO', en: 'PUFEMO', el: 'PUFEMO', ru: 'ПУΦΕΜΟ', de: 'PUFEMO', fr: 'PUFEMO', it: 'PUFEMO' },
-            'footer-desc-pufemo': { tr: 'Hayallerinizdeki konforu ve estetiği evinize taşıyoruz.', en: 'We bring the comfort and aesthetics of your dreams to your home.', el: 'Φέρνουμε την άνεση και την αισθητική των ονείρων σας στο σπίλετε', ru: 'Мы приносим комфорт и эстетику в ваш дом.', de: 'Wir bringen den Komfort und die Ästhetik Ihrer Träume in Ihr Zuhause.', fr: 'Nous apportons le confort et l\'esthétique de vos rêves à votre maison.', it: 'Portiamo il comfort e l\'estetica dei vostri sogni nella vostra casa.' },
-            'footer-title-fast-links': { tr: 'Hızlı Bağlantılar', en: 'Quick Links', el: 'Γρήγοροι Σύνδεσμοι', ru: 'Быстрые ссылки', de: 'Schnelllinks', fr: 'Liens Rapides', it: 'Link Veloci' },
-            'footer-link-about': { tr: 'Hakkımızda', en: 'About Us', el: 'Σχετικά με εμάς', ru: 'О нас', de: 'Über Uns', fr: 'À Propos', it: 'Chi Siamo' },
-            'footer-link-contact': { tr: 'İletişim', en: 'Contact', el: 'Επικοινωνία', ru: 'Контакт', de: 'Kontakt', fr: 'Contact', it: 'Contatti' },
-            'footer-link-privacy': { tr: 'Gizlilik Politikası', en: 'Privacy Policy', el: 'Πολιτική Απορρήτου', ru: 'Политика конфиденциальности', de: 'Datenschutzbestimmungen', fr: 'Politique de Confidentialité', it: 'Informativa sulla Privacy' },
-            'footer-title-follow-us': { tr: 'Bizi Takip Edin', en: 'Follow Us', el: 'Ακολουθήστε μας', ru: 'Следите за нами', de: 'Folgen Sie Uns', fr: 'Suivez-nos', it: 'Seguici' },
-            'footer-copyright': { tr: '&copy; 2025 PUFEMO.COM | Tüm Hakları Saklıdır.', en: '&copy; 2025 PUFEMO.COM | All Rights Reserved.', el: '&copy; 2025 PUFEMO.COM | Με την επιφύλαξη παντός δικαιώματος.', ru: '&copy; 2025 PUFEMO.COM | Все права защищены.', de: '&copy; 2025 PUFEMO.COM | Alle Rechte vorbehalten.', fr: '&#169; 2025 PUFEMO.COM | Tous droits réservés.', it: '&#169; 2025 PUFEMO.COM | Tutti i diritti riservati.' },
-            'country_selector_label': { tr: 'Ülke Seçimi:', en: 'Select Country:', el: 'Επιλέξτε Χώρα:', ru: 'Выбрать страну:', de: 'Land auswählen:', fr: 'Sélectionner le pays :', it: 'Seleziona Paese:' },
-            'product_title_default': { tr: 'Ürün Başlığı', en: 'Product Title', el: 'Τίτλος Προϊόντος', ru: 'Название продукта', de: 'Produkttitel', fr: 'Titre du Produit', it: 'Titolo Prodotto' },
-            'product_description_loading': { tr: 'Yükleniyor...', en: 'Loading...', el: 'Φορτώνεται...', ru: 'Загрузка...', de: 'Wird geladen...', fr: 'Chargement...', it: 'Caricamento...' },
-            'product_description_no_info': { tr: 'Bu ürün hakkında detaylı bilgi bulunmamaktadır.', en: 'No detailed information is available for this product.', el: 'Δεν υπάρχουν διαθέσιμες λεπτομέρειες για αυτό το προϊόν.', ru: 'Подробная информация об этом продукте отсутствует.', de: 'Keine detaillierten Informationen zu diesem Produkt verfügbar.', fr: 'Aucune information détaillée n\'est disponible pour ce prodotto.', it: 'Nessuna informazione dettagliata disponibile per questo prodotto.' },
-            'product_not_found_title': { tr: 'Ürün Bulunamadı', en: 'Product Not Found', el: 'Το προϊόν δεν βρέθηκε', ru: 'Продукт не найден', de: 'Produkt nicht gefunden', fr: 'Produit non trouvé', it: 'Prodotto non trovato' },
-            'product_not_found_desc': { tr: 'Aradığınız ürün bulunamamaktadır.', en: 'The product you are looking for cannot be found.', el: 'Το προϊόν που αναζητάτε δεν μπορεί να βρεθεί.', ru: 'Искомый товар не найден.', de: 'Das gesuchte Produkt konnte nicht gefunden werden.', fr: 'Le produit que you are looking for is not available.', it: 'Il prodotto che stai cercando non è stato trovato.' },
-            'error_loading_product_title': { tr: 'Hata Oluştu', en: 'Error Occurred', el: 'Σφάλμα παρουσιάστηκε', ru: 'Произошла ошибка', de: 'Fehler aufgetreten', fr: 'Erreur survenue', it: 'Si è verificato un errore' },
-            'error_loading_product_desc': { tr: 'Ürün bilgileri yüklenemedi. Lütfen daha sonra tekrar deneyin.', en: 'Product information could not be loaded. Please try again later.', el: 'Δεν ήταν δυνατή η φόρτωση των πληροφοριών προϊόντος. Παρακαλώ δοκιμάστε ξανά αργότερα.', ru: 'Не удалось загрузить информацию о товаре. Пожалуйста, попробуйте еще раз позже.', de: 'Produktinformationen konnten nicht geladen werden. Bitte versuchen Sie es später erneut.', fr: 'Les informations sur le produit n\'a pas pu être chargées. Veuillez réessayer plus tard.', it: 'Impossibile caricare le informazioni sul prodotto. Si prega di riprovare più tardi.' },
-            'add_to_cart_button': { tr: 'Sepete Ekle', en: 'Add to Cart', el: 'Προσθήκη στο καλάθι', ru: 'Добавить в корзину', de: 'In den Warenkorb', fr: 'Ajouter au panier', it: 'Aggiungi al carrello' },
-            'buy_now_button': { tr: 'Satın Al', en: 'Buy Now', el: 'Αγορά τώρα', ru: 'Купить сейчас', de: 'Jetzt kaufen', fr: 'Acheter maintenant', it: 'Acquista ora' },
-            'product_details_heading': { tr: 'Ürün Detayları', en: 'Product Details', el: 'Λεπτομέρειες προϊόντος', ru: 'Информация о продукте', de: 'Produktdetails', fr: 'Détails du Produit', it: 'Dettagli Prodotto' },
-            'variant_selection_label': { tr: 'Renk Seçimi', en: 'Color Selection', el: 'Επιλογή Χρώματος', ru: 'Выбор цвета', de: 'Farbauswahl', fr: 'Sélection de couleur', it: 'Selezione Colore' },
-            'unknown_color': { tr: 'Bilinmeyen Renk', en: 'Unknown Color', el: 'Άγνωστο Χρώμα', ru: 'Неизвестный цвет', de: 'Unbekannte Farbe', fr: 'Couleur inconnue', it: 'Colore sconosciuto' },
-            'quantity_label': { tr: 'Adet:', en: 'Quantity:', el: 'Ποσότητα:', ru: 'Количество:', de: 'Menge:', fr: 'Quantité :', it: 'Quantità:' },
-            'total_price_label': { tr: 'Genel Toplam:', en: 'Total:', el: 'Σύνολο:', ru: 'Итого:', de: 'Gesamt:', fr: 'Total :', it: 'Totale:' },
-            'description_not_found_fallback': { tr: 'Açıklama bulunamadı.', en: 'Description not found.', el: 'Περιγραφή δεν βρέθηκε.', ru: 'Описание не найдено.', de: 'Beschreibung nicht gefunden.', fr: 'Description introuvable.', it: 'Descrizione non trovata.' },
-            'related_products_title': { tr: 'Diğer Renk Varyantları', en: 'Other Color Variants', el: 'Άλλες Παραλλαγές Χρωμάτων', ru: 'Другие цветовые варианты', de: 'Andere Farbvarianten', fr: 'Autres Variantes de Couleur', it: 'Altre Varianti di Colore' },
-            'free_shipping_tag': { tr: 'Ücretsiz Kargo', en: 'Free Shipping', el: 'Δωρεάν Αποστολή', ru: 'Беσπλατνα Доставка', de: 'Kostenloser Versand', fr: 'Livraison Gratuite', it: 'Spedizione Gratuita' },
-            'welcome_modal_title': { tr: 'Hoş Geldiniz!', en: 'Welcome!', el: 'Καλώς ήρθατε!', ru: 'Добро пожаловать!', de: 'Willkommen!', fr: 'Bienvenue !', it: 'Benvenuto!' },
-            'welcome_modal_message': { tr: 'Lütfen ülkenizi seçin.', en: 'Please select your country below.', el: 'Παρακαλώ επιλέξτε τη χώρα σας παρακάτω.', ru: 'Пожалуйста, выберите свою страну ниже.', de: 'Bitte wählen Sie Ihr Land unten aus.', fr: 'Veuillez sélectionner votre pays ci-dessous.', it: 'Seleziona il tuo paese qui sotto.' },
-            'welcome_modal_confirm_button': { tr: 'Devam Et', en: 'Continue', el: 'Συνέχεια', ru: 'Продолжить', de: 'Weiter', fr: 'Continuer', it: 'Continua' },
-            'promo_bar_text': { tr: 'Ücretsiz Kargo Fırsatını Kaçırmayın!', en: 'Don\'t Miss Free Shipping!', el: 'Μην χάσετε τη δωρεάν αποστολή!', ru: 'Не пропустите бесплатную доставку!', de: 'Verpassen Sie nicht den kostenlosen Versand!', fr: 'Ne manquez pas la livraison gratuite !', it: 'Non perdere la spedizione gratuita!' },
-            'cart_page_link_title': { tr: 'Sepetim', en: 'My Cart', el: 'Το καλάθι μου', ru: 'Моя корзина', de: 'Mein Warenkorb', fr: 'Mon Panier', it: 'Il mio Carrello' },
-            'login_register': { tr: 'Giriş Yap / Kayıt Ol', en: 'Login / Register', el: 'Σύνδεση / Εγγραφή', ru: 'Войти / Зарегистрироваться', de: 'Anmelden / Registrieren', fr: 'Connexion / Inscription', it: 'Accedi / Registrati' },
-            'my_account': { tr: 'Hesabım', en: 'My Account', el: 'Ο λογαριασμός μου', ru: 'Мой λογαριασμός', de: 'Mein Konto', fr: 'Mon compte', it: 'Il mio account' },
-            'logout': { tr: 'Çıkış Yap', en: 'Logout', el: 'Αποσύνδεση', ru: 'Выйти', de: 'Abmelden', fr: 'Déconnexion', it: 'Esci' },
-            'continue_as_guest': { tr: 'Misafir Olarak Devam Et', en: 'Continue as Guest', el: 'Συνέχιση ως επισκέπτης', ru: 'Продолжить как гость', de: 'Als Gast fortfahren', fr: 'Continuer en tant qu\'invité', it: 'Continua come ospite' },
-            'no_image': { tr: 'Resim Yok', en: 'No Image', el: 'Χωρίς Εικόνα', ru: 'Нет изображения', de: 'Kein Bild', fr: 'Pas d\'image', it: 'Nessuna görüntü' },
-            'untitled_product': { tr: 'İsimsiz Ürün', en: 'Untitled Product', el: 'Προϊόν χωρίς τίτλο', ru: 'Товар без названия', de: 'Unbenanntes Produkt', fr: 'Produit sans titre', it: 'Prodotto senza titolo' },
-        };
-
-
-        // Firebase app, db, auth initialized outside the main logic block
-        let app; 
-        let db;  
-        let auth; 
-        try {
-            app = initializeApp(firebaseConfig);
-            db = getFirestore(app);
-            auth = getAuth(app);
-        } catch (e) {
-            console.error("Firebase başlatma hatası!", e);
-            // This initial block sets up default UI for failed Firebase init.
-            // Elements are now globally scoped and assigned content here.
-            const loadingOverlay = document.getElementById('loading-overlay');
-            const loadingTextP = document.getElementById('loading-text');
-            const productTitleEl = document.getElementById('product-title');
-            const productDescriptionEl = document.getElementById('product-description');
-            const btnCartEl = document.getElementById('btn-cart');
-            const btnBuyEl = document.getElementById('btn-buy');
-            const decreaseQuantityBtn = document.getElementById('decrease-quantity');
-            const increaseQuantityBtn = document.getElementById('increase-quantity');
-            const languageSelector = document.getElementById('language-selector');
-            const currencySelector = document.getElementById('currency-selector');
-            const countrySelector = document.getElementById('country-selector');
-            const cartBadge = document.getElementById('cart-badge');
-            const variantSectionEl = document.querySelector('.variant-section');
-            const relatedVariantsGridEl = document.getElementById('related-variants-grid');
-            const relatedSection = document.querySelector('.related-variants-section');
-
-            if (loadingOverlay) loadingOverlay.classList.add('hidden');
-            if (loadingTextP) loadingTextP.textContent = "Hata: Sayfa yüklenemedi! Lütfen internet bağlantınızı kontrol edin.";
-            if (productTitleEl) productTitleEl.textContent = "Hata Oluştu";
-            if (productDescriptionEl) productDescriptionEl.textContent = "Ürün bilgileri yüklenemedi.";
-            if (btnCartEl) btnCartEl.disabled = true;
-            if (btnBuyEl) btnBuyEl.disabled = true;
-            if (decreaseQuantityBtn) decreaseQuantityBtn.disabled = true;
-            if (increaseQuantityBtn) increaseQuantityBtn.disabled = true;
-            
-            if (languageSelector) languageSelector.style.display = 'none';
-            if (currencySelector) currencySelector.style.display = 'none';
-            if (countrySelector) countrySelector.parentElement.style.display = 'none';
-            if (cartBadge) cartBadge.textContent = '0';
-            if (variantSectionEl) variantSectionEl.style.display = 'none';
-            if (relatedVariantsGridEl) relatedVariantsGridEl.innerHTML = '';
-            if (relatedSection) relatedSection.style.display = 'none';
-            // No return here, so the script can proceed to the 'if (app && db && auth)' check.
-        }
-
-        // --- DOM Elements (Defined globally in module scope to prevent re-declaration errors) ---
-        const loadingOverlay = document.getElementById('loading-overlay');
-        const loadingTextP = document.getElementById('loading-text');
-        const productDetailContainer = document.querySelector('.product-detail-container');
-        const mainMediaDisplayEl = document.getElementById("main-media-display");
-        const thumbnailRowEl = document.getElementById("thumbnail-row");
-        const productTitleEl = document.getElementById("product-title");
-        const productOldPriceEl = document.getElementById("product-old-price");
-        const productPriceEl = document.getElementById("product-price");
-        const freeShippingEl = document.getElementById("free-shipping");
-        const productDescriptionEl = document.getElementById("product-description");
-        const promoBarEl = document.querySelector('.promo-bar');
-        const promoTextContentEl = document.getElementById('promo-text-content');
-        const btnCartEl = document.getElementById('btn-cart');
-        const btnBuyEl = document.getElementById('btn-buy');
-        const productDetailsHeadingEl = document.getElementById('product-details-heading');
-        
-        // New variant elements
-        const variantSectionEl = document.querySelector('.variant-section');
-        const variantTitleEl = document.getElementById('variant-selector-label'); 
-        const variantSelectorsEl = document.getElementById('variant-selectors');
-
-        const quantityInputEl = document.getElementById('quantity-input');
-        const quantityLabelEl = document.getElementById('quantity-label');
-        const decreaseQuantityBtn = document.getElementById('decrease-quantity');
-        const increaseQuantityBtn = document.getElementById('increase-quantity');
-        const totalPriceLabelEl = document.getElementById('total-price-label');
-        const calculatedTotalPriceEl = document.getElementById('calculated-total-price');
-
-        // Related variants
-        const relatedVariantsGridEl = document.getElementById('related-variants-grid');
-        const relatedVariantsTitleEl = document.getElementById('related-variants-title');
-
-        // Header Controls
-        const userControlsContainer = document.getElementById('user-controls-container');
-        const hamburgerBtn = document.getElementById('hamburger-menu-btn');
-        const mobileNav = document.getElementById('mobile-nav');
-        const mobileNavOverlay = document.getElementById('mobile-nav-overlay');
-        const languageSelector = document.getElementById('language-selector');
-        const currencySelector = document.getElementById('currency-selector');
-        const countrySelector = document.getElementById('country-selector');
-        const mainLogoLink = document.getElementById('main-logo-link');
-        const cartPageLink = document.getElementById('cart-page-link');
-        const cartBadge = document.getElementById('cart-badge'); // Added cart badge
-
-        // Welcome Modal (hidden by default)
-        const welcomeModalOverlay = document.getElementById('welcomeModalOverlay');
-
-
-        // --- Global State Variables ---
-        let siteData = {
-            settings: {
-                languages: [],
-                general: { logo: {}, promoBar: {} },
-                countryPricing: {},
-                currencySymbols: {},
-                exchangeRates: {}
-            },
-            categories: { tree: [] }
-        };
-
-        let currentUser = null; // Firebase Auth user object
-        let currentLang = localStorage.getItem('pufemo-language') || 'tr';
-        let currentCurrency = localStorage.getItem('pufemo-currency') || 'USD';
-        let currentCountryCode = localStorage.getItem('pufemo-country') || '';
-
-        // product-specific data, global to this page's script
-        let currentProductData = null; 
+        let currentProductData = null;
         let productContentGlobal = {};
         let currentSelectedVariantId = null; // Track selected variant
 
@@ -1174,658 +1113,6 @@
             'footer-desc-pufemo': { tr: 'Hayallerinizdeki konforu ve estetiği evinize taşıyoruz.', en: 'We bring the comfort and aesthetics of your dreams to your home.', el: 'Φέρνουμε την άνεση και την αισθητική των ονείρων σας στο σπίλετε', ru: 'Мы приносим комфорт и эстетику в ваш дом.', de: 'Wir bringen den Komfort und die Ästhetik Ihrer Träume in Ihr Zuhause.', fr: 'Nous apportons le confort et l\'estetica dei vostri sogni nella vostra casa.', it: 'Portiamo il comfort e l\'estetica dei vostri sogni nella vostra casa.' },
             'footer-title-fast-links': { tr: 'Hızlı Bağlantılar', en: 'Quick Links', el: 'Γρήγοροι Σύνδεσμοι', ru: 'Быстрые ссылки', de: 'Schnelllinks', fr: 'Liens Rapides', it: 'Link Veloci' },
             'footer-link-about': { tr: 'Hakkımızda', en: 'About Us', el: 'Σχετικά με εμάς', ru: 'О нас', de: 'Über Uns', fr: 'À Propos', it: 'Chi Siamo' },
-            'footer-link-contact': { tr: 'İletişim', en: 'Contact', el: 'Επικοινωνία', ru: 'Контакт', de: 'Kontakt', fr: 'Contact', it: 'Contatti' },
-            'footer-link-privacy': { tr: 'Gizlilik Politikası', en: 'Privacy Policy', el: 'Πολιτική Απορρήτου', ru: 'Политика конфиденциальности', de: 'Datenschutzbestimmungen', fr: 'Politique de Confidentialité', it: 'Informativa sulla Privacy' },
-            'footer-title-follow-us': { tr: 'Bizi Takip Edin', en: 'Follow Us', el: 'Ακολουθήστε μας', ru: 'Следите за нами', de: 'Folgen Sie Uns', fr: 'Suivez-nos', it: 'Seguici' },
-            'footer-copyright': { tr: '&copy; 2025 PUFEMO.COM | Tüm Hakları Saklıdır.', en: '&copy; 2025 PUFEMO.COM | All Rights Reserved.', el: '&copy; 2025 PUFEMO.COM | Με την επιφύλαξη παντός δικαιώματος.', ru: '&copy; 2025 PUFEMO.COM | Все права защищены.', de: '&copy; 2025 PUFEMO.COM | Alle Rechte vorbehalten.', fr: '&#169; 2025 PUFEMO.COM | Tous droits réservés.', it: '&#169; 2025 PUFEMO.COM | Tutti i diritti riservati.' },
-            'country_selector_label': { tr: 'Ülke Seçimi:', en: 'Select Country:', el: 'Επιλέξτε Χώρα:', ru: 'Выбрать страну:', de: 'Land auswählen:', fr: 'Sélectionner le pays :', it: 'Seleziona Paese:' },
-            'product_title_default': { tr: 'Ürün Başlığı', en: 'Product Title', el: 'Τίτλος Προϊόντος', ru: 'Название продукта', de: 'Produkttitel', fr: 'Titre du Produit', it: 'Titolo Prodotto' },
-            'product_description_loading': { tr: 'Yükleniyor...', en: 'Loading...', el: 'Φορτώνεται...', ru: 'Загрузка...', de: 'Wird geladen...', fr: 'Chargement...', it: 'Caricamento...' },
-            'product_description_no_info': { tr: 'Bu ürün hakkında detaylı bilgi bulunmamaktadır.', en: 'No detailed information is available for this product.', el: 'Δεν υπάρχουν διαθέσιμες λεπτομέρειες για αυτό το προϊόν.', ru: 'Подробная информация об этом продукте отсутствует.', de: 'Keine detaillierten Informationen zu diesem Produkt verfügbar.', fr: 'Aucune information détaillée n\'est available for this product.', it: 'Nessuna informazione dettagliata disponibile per questo prodotto.' },
-            'product_not_found_title': { tr: 'Ürün Bulunamadı', en: 'Product Not Found', el: 'Το προϊόν δεν βρέθηκε', ru: 'Продукт не найден', de: 'Produkt nicht gefunden', fr: 'Produit non trouvé', it: 'Prodotto non trovato' },
-            'product_not_found_desc': { tr: 'Aradığınız ürün bulunamamaktadır.', en: 'The product you are looking for cannot be found.', el: 'Το προϊόν που αναζητάτε δεν μπορεί να βρεθεί.', ru: 'Искомый товар не найден.', de: 'Das gesuchte Produkt konnte nicht gefunden werden.', fr: 'Le produit que you are looking for is not available.', it: 'Il prodotto che stai cercando non è stato trovato.' },
-            'error_loading_product_title': { tr: 'Hata Oluştu', en: 'Error Occurred', el: 'Σφάλμα παρουσιάστηκε', ru: 'Произошла ошибка', de: 'Fehler aufgetreten', fr: 'Erreur survenue', it: 'Si è verificato un errore' },
-            'error_loading_product_desc': { tr: 'Ürün bilgileri yüklenemedi. Lütfen daha sonra tekrar deneyin.', en: 'Product information could not be loaded. Please try again later.', el: 'Δεν ήταν δυνατή η φόρτωση των πληροφοριών προϊόντος. Παρακαλώ δοκιμάστε ξανά αργότερα.', ru: 'Не удалось загрузить информацию о товаре. Пожалуйста, попробуйте еще раз позже.', de: 'Produktinformationen konnten nicht geladen werden. Bitte versuchen Sie es später erneut.', fr: 'Les informations sur le produit n\'a pas pu être chargées. Veuillez réessayer plus tard.', it: 'Impossibile caricare le informazioni sul prodotto. Si prega di riprovare più tardi.' },
-            'add_to_cart_button': { tr: 'Sepete Ekle', en: 'Add to Cart', el: 'Προσθήκη στο καλάθι', ru: 'Добавить в корзину', de: 'In den Warenkorb', fr: 'Ajouter au panier', it: 'Aggiungi al carrello' },
-            'buy_now_button': { tr: 'Satın Al', en: 'Buy Now', el: 'Αγορά τώρα', ru: 'Купить сейчас', de: 'Jetzt kaufen', fr: 'Acheter maintenant', it: 'Acquista ora' },
-            'product_details_heading': { tr: 'Ürün Detayları', en: 'Product Details', el: 'Λεπτομέρειες προϊόντος', ru: 'Информация о продукте', de: 'Produktdetails', fr: 'Détails du Produit', it: 'Dettagli Prodotto' },
-            'variant_selection_label': { tr: 'Renk Seçimi', en: 'Color Selection', el: 'Επιλογή Χρώματος', ru: 'Выбор цвета', de: 'Farbauswahl', fr: 'Sélection de couleur', it: 'Selezione Colore' },
-            'unknown_color': { tr: 'Bilinmeyen Renk', en: 'Unknown Color', el: 'Άγνωστο Χρώμα', ru: 'Неизвестный цвет', de: 'Unbekannte Farbe', fr: 'Couleur inconnue', it: 'Colore sconosciuto' },
-            'quantity_label': { tr: 'Adet:', en: 'Quantity:', el: 'Ποσότητα:', ru: 'Количество:', de: 'Menge:', fr: 'Quantité :', it: 'Quantità:' },
-            'total_price_label': { tr: 'Genel Toplam:', en: 'Total:', el: 'Σύνολο:', ru: 'Итого:', de: 'Gesamt:', fr: 'Total :', it: 'Totale:' },
-            'description_not_found_fallback': { tr: 'Açıklama bulunamadı.', en: 'Description not found.', el: 'Περιγραφή δεν βρέθηκε.', ru: 'Описание не найдено.', de: 'Beschreibung nicht gefunden.', fr: 'Description introuvable.', it: 'Descrizione non trovata.' },
-            'related_products_title': { tr: 'Diğer Renk Varyantları', en: 'Other Color Variants', el: 'Άλλες Παραλλαγές Χρωμάτων', ru: 'Другие цветовые варианты', de: 'Andere Farbvarianten', fr: 'Autres Variantes de Couleur', it: 'Altre Varianti di Colore' },
-            'free_shipping_tag': { tr: 'Ücretsiz Kargo', en: 'Free Shipping', el: 'Δωρεάν Αποστολή', ru: 'Беσπλατνα Доставка', de: 'Kostenloser Versand', fr: 'Livraison Gratuite', it: 'Spedizione Gratuita' },
-            'welcome_modal_title': { tr: 'Hoş Geldiniz!', en: 'Welcome!', el: 'Καλώς ήρθατε!', ru: 'Добро пожаловать!', de: 'Willkommen!', fr: 'Bienvenue !', it: 'Benvenuto!' },
-            'welcome_modal_message': { tr: 'Lütfen ülkenizi seçin.', en: 'Please select your country below.', el: 'Παρακαλώ επιλέξτε τη χώρα σας παρακάτω.', ru: 'Пожалуйста, выберите свою страну ниже.', de: 'Bitte wählen Sie Ihr Land unten aus.', fr: 'Veuillez sélectionner votre pays ci-dessous.', it: 'Seleziona il tuo paese qui sotto.' },
-            'welcome_modal_confirm_button': { tr: 'Devam Et', en: 'Continue', el: 'Συνέχεια', ru: 'Продолжить', de: 'Weiter', fr: 'Continuer', it: 'Continua' },
-            'promo_bar_text': { tr: 'Ücretsiz Kargo Fırsatını Kaçırmayın!', en: 'Don\'t Miss Free Shipping!', el: 'Μην χάσετε τη δωρεάν αποστολή!', ru: 'Не пропустите бесплатную доставку!', de: 'Verpassen Sie nicht den kostenlosen Versand!', fr: 'Ne manquez pas la livraison gratuite !', it: 'Non perdere la spedizione gratuita!' },
-            'cart_page_link_title': { tr: 'Sepetim', en: 'My Cart', el: 'Το καλάθι μου', ru: 'Моя корзина', de: 'Mein Warenkorb', fr: 'Mon Panier', it: 'Il mio Carrello' },
-            'login_register': { tr: 'Giriş Yap / Kayıt Ol', en: 'Login / Register', el: 'Σύνδεση / Εγγραφή', ru: 'Войти / Зарегистрироваться', de: 'Anmelden / Registrieren', fr: 'Connexion / Inscription', it: 'Accedi / Registrati' },
-            'my_account': { tr: 'Hesabım', en: 'My Account', el: 'Ο λογαριασμός μου', ru: 'Мой λογαριασμός', de: 'Mein Konto', fr: 'Mon compte', it: 'Il mio account' },
-            'logout': { tr: 'Çıkış Yap', en: 'Logout', el: 'Αποσύνδεση', ru: 'Выйти', de: 'Abmelden', fr: 'Déconnexion', it: 'Esci' },
-            'continue_as_guest': { tr: 'Misafir Olarak Devam Et', en: 'Continue as Guest', el: 'Συνέχιση ως επισκέπτης', ru: 'Продолжить как гость', de: 'Als Gast fortfahren', fr: 'Continuer en tant qu\'invité', it: 'Continua come ospite' },
-            'no_image': { tr: 'Resim Yok', en: 'No Image', el: 'Χωρίς Εικόνα', ru: 'Нет изображения', de: 'Kein Bild', fr: 'Pas d\'image', it: 'Nessuna görüntü' },
-            'untitled_product': { tr: 'İsimsiz Ürün', en: 'Untitled Product', el: 'Προϊόν χωρίς τίτλο', ru: 'Товар без названия', de: 'Unbenanntes Produkt', fr: 'Produit sans titre', it: 'Prodotto senza titolo' },
-        };
-
-
-        // Firebase app, db, auth initialized outside the main logic block
-        let app; 
-        let db;  
-        let auth; 
-        try {
-            app = initializeApp(firebaseConfig);
-            db = getFirestore(app);
-            auth = getAuth(app);
-        } catch (e) {
-            console.error("Firebase başlatma hatası!", e);
-            // This initial block sets up default UI for failed Firebase init.
-            // Elements are now globally scoped and assigned content here.
-            const loadingOverlay = document.getElementById('loading-overlay');
-            const loadingTextP = document.getElementById('loading-text');
-            const productTitleEl = document.getElementById('product-title');
-            const productDescriptionEl = document.getElementById('product-description');
-            const btnCartEl = document.getElementById('btn-cart');
-            const btnBuyEl = document.getElementById('btn-buy');
-            const decreaseQuantityBtn = document.getElementById('decrease-quantity');
-            const increaseQuantityBtn = document.getElementById('increase-quantity');
-            const languageSelector = document.getElementById('language-selector');
-            const currencySelector = document.getElementById('currency-selector');
-            const countrySelector = document.getElementById('country-selector');
-            const cartBadge = document.getElementById('cart-badge');
-            const variantSectionEl = document.querySelector('.variant-section');
-            const relatedVariantsGridEl = document.getElementById('related-variants-grid');
-            const relatedSection = document.querySelector('.related-variants-section');
-
-            if (loadingOverlay) loadingOverlay.classList.add('hidden');
-            if (loadingTextP) loadingTextP.textContent = "Hata: Sayfa yüklenemedi! Lütfen internet bağlantınızı kontrol edin.";
-            if (productTitleEl) productTitleEl.textContent = "Hata Oluştu";
-            if (productDescriptionEl) productDescriptionEl.textContent = "Ürün bilgileri yüklenemedi.";
-            if (btnCartEl) btnCartEl.disabled = true;
-            if (btnBuyEl) btnBuyEl.disabled = true;
-            if (decreaseQuantityBtn) decreaseQuantityBtn.disabled = true;
-            if (increaseQuantityBtn) increaseQuantityBtn.disabled = true;
-            
-            if (languageSelector) languageSelector.style.display = 'none';
-            if (currencySelector) currencySelector.style.display = 'none';
-            if (countrySelector) countrySelector.parentElement.style.display = 'none';
-            if (cartBadge) cartBadge.textContent = '0';
-            if (variantSectionEl) variantSectionEl.style.display = 'none';
-            if (relatedVariantsGridEl) relatedVariantsGridEl.innerHTML = '';
-            if (relatedSection) relatedSection.style.display = 'none';
-            // No return here, so the script can proceed to the 'if (app && db && auth)' check.
-        }
-
-        // --- DOM Elements (Defined globally in module scope to prevent re-declaration errors) ---
-        const loadingOverlay = document.getElementById('loading-overlay');
-        const loadingTextP = document.getElementById('loading-text');
-        const productDetailContainer = document.querySelector('.product-detail-container');
-        const mainMediaDisplayEl = document.getElementById("main-media-display");
-        const thumbnailRowEl = document.getElementById("thumbnail-row");
-        const productTitleEl = document.getElementById("product-title");
-        const productOldPriceEl = document.getElementById("product-old-price");
-        const productPriceEl = document.getElementById("product-price");
-        const freeShippingEl = document.getElementById("free-shipping");
-        const productDescriptionEl = document.getElementById("product-description");
-        const promoBarEl = document.querySelector('.promo-bar');
-        const promoTextContentEl = document.getElementById('promo-text-content');
-        const btnCartEl = document.getElementById('btn-cart');
-        const btnBuyEl = document.getElementById('btn-buy');
-        const productDetailsHeadingEl = document.getElementById('product-details-heading');
-        
-        // New variant elements
-        const variantSectionEl = document.querySelector('.variant-section');
-        const variantTitleEl = document.getElementById('variant-selector-label'); 
-        const variantSelectorsEl = document.getElementById('variant-selectors');
-
-        const quantityInputEl = document.getElementById('quantity-input');
-        const quantityLabelEl = document.getElementById('quantity-label');
-        const decreaseQuantityBtn = document.getElementById('decrease-quantity');
-        const increaseQuantityBtn = document.getElementById('increase-quantity');
-        const totalPriceLabelEl = document.getElementById('total-price-label');
-        const calculatedTotalPriceEl = document.getElementById('calculated-total-price');
-
-        // Related variants
-        const relatedVariantsGridEl = document.getElementById('related-variants-grid');
-        const relatedVariantsTitleEl = document.getElementById('related-variants-title');
-
-        // Header Controls
-        const userControlsContainer = document.getElementById('user-controls-container');
-        const hamburgerBtn = document.getElementById('hamburger-menu-btn');
-        const mobileNav = document.getElementById('mobile-nav');
-        const mobileNavOverlay = document.getElementById('mobile-nav-overlay');
-        const languageSelector = document.getElementById('language-selector');
-        const currencySelector = document.getElementById('currency-selector');
-        const countrySelector = document.getElementById('country-selector');
-        const mainLogoLink = document.getElementById('main-logo-link');
-        const cartPageLink = document.getElementById('cart-page-link');
-        const cartBadge = document.getElementById('cart-badge'); // Added cart badge
-
-        // Welcome Modal (hidden by default)
-        const welcomeModalOverlay = document.getElementById('welcomeModalOverlay');
-
-
-        // --- Global State Variables ---
-        let siteData = {
-            settings: {
-                languages: [],
-                general: { logo: {}, promoBar: {} },
-                countryPricing: {},
-                currencySymbols: {},
-                exchangeRates: {}
-            },
-            categories: { tree: [] }
-        };
-
-        let currentUser = null; // Firebase Auth user object
-        let currentLang = localStorage.getItem('pufemo-language') || 'tr';
-        let currentCurrency = localStorage.getItem('pufemo-currency') || 'USD';
-        let currentCountryCode = localStorage.getItem('pufemo-country') || '';
-
-        // product-specific data, global to this page's script
-        let currentProductData = null; 
-        let productContentGlobal = {};
-        let currentSelectedVariantId = null; // Track selected variant
-
-
-        // --- Static Translations ---
-        const staticTranslations = {
-            'loading_text': { tr: 'PUFEMO Yükleniyor...', en: 'Loading PUFEMO...', el: 'Φόρτωση PUFEMO...', ru: 'Загрузка PUFEMO...', de: 'PUFEMO wird geladen...', fr: 'Chargement de PUFEMO...', it: 'Caricamento PUFEMO...' },
-            'mobile_menu_title': { tr: 'Kategoriler', en: 'Categories', el: 'Κατηγορίες', ru: 'Категории', de: 'Kategorien', fr: 'Catégories', it: 'Categorie' },
-            'footer-title-pufemo': { tr: 'PUFEMO', en: 'PUFEMO', el: 'PUFEMO', ru: 'ПУΦΕΜΟ', de: 'PUFEMO', fr: 'PUFEMO', it: 'PUFEMO' },
-            'footer-desc-pufemo': { tr: 'Hayallerinizdeki konforu ve estetiği evinize taşıyoruz.', en: 'We bring the comfort and aesthetics of your dreams to your home.', el: 'Φέρνουμε την άνεση και την αισθητική των ονείρων σας στο σπίλετε', ru: 'Мы приносим комфорт и эстетику в ваш дом.', de: 'Wir bringen den Komfort και την αισθητική των ονείρων σας στο σπίτι σας.', fr: 'Nous apportons le confort et l\'estetica dei vostri sogni nella vostra casa.', it: 'Portiamo il comfort e l\'estetica dei vostri sogni nella vostra casa.' },
-            'footer-title-fast-links': { tr: 'Hızlı Bağlantılar', en: 'Quick Links', el: 'Γρήγοροι Σύνδεσμοι', ru: 'Быстрые ссылки', de: 'Schnelllinks', fr: 'Liens Rapides', it: 'Link Veloci' },
-            'footer-link-about': { tr: 'Hakkımızda', en: 'About Us', el: 'Σχετικά με εμάς', ru: 'О нас', de: 'Über Uns', fr: 'À Propos', it: 'Chi Siamo' },
-            'footer-link-contact': { tr: 'İletişim', en: 'Contact', el: 'Επικοινωνία', ru: 'Контакт', de: 'Kontakt', fr: 'Contact', it: 'Contatti' },
-            'footer-link-privacy': { tr: 'Gizlilik Politikası', en: 'Privacy Policy', el: 'Πολιτική Απορρήτου', ru: 'Политика конфиденциальности', de: 'Datenschutzbestimmungen', fr: 'Politique de Confidentialité', it: 'Informativa sulla Privacy' },
-            'footer-title-follow-us': { tr: 'Bizi Takip Edin', en: 'Follow Us', el: 'Ακολουθήστε μας', ru: 'Следите за нами', de: 'Folgen Sie Uns', fr: 'Suivez-nos', it: 'Seguici' },
-            'footer-copyright': { tr: '&copy; 2025 PUFEMO.COM | Tüm Hakları Saklıdır.', en: '&copy; 2025 PUFEMO.COM | All Rights Reserved.', el: '&copy; 2025 PUFEMO.COM | Με την επιφύλαξη παντός δικαιώματος.', ru: '&copy; 2025 PUFEMO.COM | Все права защищены.', de: '&copy; 2025 PUFEMO.COM | Alle Rechte vorbehalten.', fr: '&#169; 2025 PUFEMO.COM | Tous droits réservés.', it: '&#169; 2025 PUFEMO.COM | Tutti i diritti riservati.' },
-            'country_selector_label': { tr: 'Ülke Seçimi:', en: 'Select Country:', el: 'Επιλέξτε Χώρα:', ru: 'Выбрать страну:', de: 'Land auswählen:', fr: 'Sélectionner le pays :', it: 'Seleziona Paese:' },
-            'product_title_default': { tr: 'Ürün Başlığı', en: 'Product Title', el: 'Τίτλος Προϊόντος', ru: 'Название продукта', de: 'Produkttitel', fr: 'Titre du Produit', it: 'Titolo Prodotto' },
-            'product_description_loading': { tr: 'Yükleniyor...', en: 'Loading...', el: 'Φορτώνεται...', ru: 'Загрузка...', de: 'Wird geladen...', fr: 'Chargement...', it: 'Caricamento...' },
-            'product_description_no_info': { tr: 'Bu ürün hakkında detaylı bilgi bulunmamaktadır.', en: 'No detailed information is available for this product.', el: 'Δεν υπάρχουν διαθέσιμες λεπτομέρειες για αυτό το προϊόν.', ru: 'Подробная информация об этом продукте отсутствует.', de: 'Keine detaillierten Informationen zu diesem Produkt verfügbar.', fr: 'Aucune information détaillée n\'est available for this product.', it: 'Nessuna informazione dettagliata disponibile per questo prodotto.' },
-            'product_not_found_title': { tr: 'Ürün Bulunamadı', en: 'Product Not Found', el: 'Το προϊόν δεν βρέθηκε', ru: 'Продукт не найден', de: 'Produkt nicht gefunden', fr: 'Produit non trouvé', it: 'Prodotto non trovato' },
-            'product_not_found_desc': { tr: 'Aradığınız ürün bulunamamaktadır.', en: 'The product you are looking for cannot be found.', el: 'Το προϊόν που αναζητάτε δεν μπορεί να βρεθεί.', ru: 'Искомый товар не найден.', de: 'Das gesuchte Produkt konnte nicht gefunden werden.', fr: 'Le produit que you are looking for is not available.', it: 'Il prodotto che stai cercando non è stato trovato.' },
-            'error_loading_product_title': { tr: 'Hata Oluştu', en: 'Error Occurred', el: 'Σφάλμα παρουσιάστηκε', ru: 'Произошла ошибка', de: 'Fehler aufgetreten', fr: 'Erreur survenue', it: 'Si è verificato un errore' },
-            'error_loading_product_desc': { tr: 'Ürün bilgileri yüklenemedi. Lütfen daha sonra tekrar deneyin.', en: 'Product information could not be loaded. Please try again later.', el: 'Δεν ήταν δυνατή η φόρτωση των πληροφοριών προϊόντος. Παρακαλώ δοκιμάστε ξανά αργότερα.', ru: 'Не удалось загрузить информацию о товаре. Пожалуйста, попробуйте еще раз позже.', de: 'Produktinformationen konnten nicht geladen werden. Bitte versuchen Sie es später erneut.', fr: 'Les informations sur le produit n\'a pas pu être chargées. Veuillez réessayer plus tard.', it: 'Impossibile caricare le informazioni sul prodotto. Si prega di riprovare più tardi.' },
-            'add_to_cart_button': { tr: 'Sepete Ekle', en: 'Add to Cart', el: 'Προσθήκη στο καλάθι', ru: 'Добавить в корзину', de: 'In den Warenkorb', fr: 'Ajouter au panier', it: 'Aggiungi al carrello' },
-            'buy_now_button': { tr: 'Satın Al', en: 'Buy Now', el: 'Αγορά τώρα', ru: 'Купить сейчас', de: 'Jetzt kaufen', fr: 'Acheter maintenant', it: 'Acquista ora' },
-            'product_details_heading': { tr: 'Ürün Detayları', en: 'Product Details', el: 'Λεπτομέρειες προϊόντος', ru: 'Информация о продукте', de: 'Produktdetails', fr: 'Détails du Produit', it: 'Dettagli Prodotto' },
-            'variant_selection_label': { tr: 'Renk Seçimi', en: 'Color Selection', el: 'Επιλογή Χρώματος', ru: 'Выбор цвета', de: 'Farbauswahl', fr: 'Sélection de couleur', it: 'Selezione Colore' },
-            'unknown_color': { tr: 'Bilinmeyen Renk', en: 'Unknown Color', el: 'Άγνωστο Χρώμα', ru: 'Неизвестный цвет', de: 'Unbekannte Farbe', fr: 'Couleur inconnue', it: 'Colore sconosciuto' },
-            'quantity_label': { tr: 'Adet:', en: 'Quantity:', el: 'Ποσότητα:', ru: 'Количество:', de: 'Menge:', fr: 'Quantité :', it: 'Quantità:' },
-            'total_price_label': { tr: 'Genel Toplam:', en: 'Total:', el: 'Σύνολο:', ru: 'Итого:', de: 'Gesamt:', fr: 'Total :', it: 'Totale:' },
-            'description_not_found_fallback': { tr: 'Açıklama bulunamadı.', en: 'Description not found.', el: 'Περιγραφή δεν βρέθηκε.', ru: 'Описание не найдено.', de: 'Beschreibung nicht gefunden.', fr: 'Description introuvable.', it: 'Descrizione non trovata.' },
-            'related_products_title': { tr: 'Diğer Renk Varyantları', en: 'Other Color Variants', el: 'Άλλες Παραλλαγές Χρωμάτων', ru: 'Другие цветовые варианты', de: 'Andere Farbvarianten', fr: 'Autres Variantes de Couleur', it: 'Altre Varianti di Colore' },
-            'free_shipping_tag': { tr: 'Ücretsiz Kargo', en: 'Free Shipping', el: 'Δωρεάν Αποστολή', ru: 'Беσπλατνα Доставка', de: 'Kostenloser Versand', fr: 'Livraison Gratuite', it: 'Spedizione Gratuita' },
-            'welcome_modal_title': { tr: 'Hoş Geldiniz!', en: 'Welcome!', el: 'Καλώς ήρθατε!', ru: 'Добρο пожаловать!', de: 'Willkommen!', fr: 'Bienvenue !', it: 'Benvenuto!' },
-            'welcome_modal_message': { tr: 'Lütfen ülkenizi seçin.', en: 'Please select your country below.', el: 'Παρακαλώ επιλέξτε τη χώρα σας παρακάτω.', ru: 'Пожалуйста, выберите свою страну ниже.', de: 'Bitte wählen Sie Ihr Land unten aus.', fr: 'Veuillez sélectionner votre pays ci-dessous.', it: 'Seleziona il tuo paese qui sotto.' },
-            'welcome_modal_confirm_button': { tr: 'Devam Et', en: 'Continue', el: 'Συνέχεια', ru: 'Продолжить', de: 'Weiter', fr: 'Continuer', it: 'Continua' },
-            'promo_bar_text': { tr: 'Ücretsiz Kargo Fırsatını Kaçırmayın!', en: 'Don\'t Miss Free Shipping!', el: 'Μην χάσετε τη δωρεάν αποστολή!', ru: 'Не пропустите бесплатную доставку!', de: 'Verpassen Sie nicht den kostenlosen Versand!', fr: 'Ne manquez pas la livraison gratuite !', it: 'Non perdere la spedizione gratuita!' },
-            'cart_page_link_title': { tr: 'Sepetim', en: 'My Cart', el: 'Το καλάθι μου', ru: 'Моя корзина', de: 'Mein Warenkorb', fr: 'Mon Panier', it: 'Il mio Carrello' },
-            'login_register': { tr: 'Giriş Yap / Kayıt Ol', en: 'Login / Register', el: 'Σύνδεση / Εγγραφή', ru: 'Войти / Зарегистрироваться', de: 'Anmelden / Registrieren', fr: 'Connexion / Inscription', it: 'Accedi / Registrati' },
-            'my_account': { tr: 'Hesabım', en: 'My Account', el: 'Ο λογαριασμός μου', ru: 'Мой λογαριασμός', de: 'Mein Konto', fr: 'Mon compte', it: 'Il mio account' },
-            'logout': { tr: 'Çıkış Yap', en: 'Logout', el: 'Αποσύνδεση', ru: 'Выйти', de: 'Abmelden', fr: 'Déconnexion', it: 'Esci' },
-            'continue_as_guest': { tr: 'Misafir Olarak Devam Et', en: 'Continue as Guest', el: 'Συνέχιση ως επισκέπτης', ru: 'Продолжить как гость', de: 'Als Gast fortfahren', fr: 'Continuer en tant qu\'invité', it: 'Continua come ospite' },
-            'no_image': { tr: 'Resim Yok', en: 'No Image', el: 'Χωρίς Εικόνα', ru: 'Нет изображения', de: 'Kein Bild', fr: 'Pas d\'image', it: 'Nessuna görüntü' },
-            'untitled_product': { tr: 'İsimsiz Ürün', en: 'Untitled Product', el: 'Προϊόν χωρίς τίτλο', ru: 'Товар без названия', de: 'Unbenanntes Produkt', fr: 'Produit sans titre', it: 'Prodotto senza titolo' },
-        };
-
-
-        // Firebase app, db, auth initialized outside the main logic block
-        let app; 
-        let db;  
-        let auth; 
-        try {
-            app = initializeApp(firebaseConfig);
-            db = getFirestore(app);
-            auth = getAuth(app);
-        } catch (e) {
-            console.error("Firebase başlatma hatası!", e);
-            // This initial block sets up default UI for failed Firebase init.
-            // Elements are now globally scoped and assigned content here.
-            const loadingOverlay = document.getElementById('loading-overlay');
-            const loadingTextP = document.getElementById('loading-text');
-            const productTitleEl = document.getElementById('product-title');
-            const productDescriptionEl = document.getElementById('product-description');
-            const btnCartEl = document.getElementById('btn-cart');
-            const btnBuyEl = document.getElementById('btn-buy');
-            const decreaseQuantityBtn = document.getElementById('decrease-quantity');
-            const increaseQuantityBtn = document.getElementById('increase-quantity');
-            const languageSelector = document.getElementById('language-selector');
-            const currencySelector = document.getElementById('currency-selector');
-            const countrySelector = document.getElementById('country-selector');
-            const cartBadge = document.getElementById('cart-badge');
-            const variantSectionEl = document.querySelector('.variant-section');
-            const relatedVariantsGridEl = document.getElementById('related-variants-grid');
-            const relatedSection = document.querySelector('.related-variants-section');
-
-            if (loadingOverlay) loadingOverlay.classList.add('hidden');
-            if (loadingTextP) loadingTextP.textContent = "Hata: Sayfa yüklenemedi! Lütfen internet bağlantınızı kontrol edin.";
-            if (productTitleEl) productTitleEl.textContent = "Hata Oluştu";
-            if (productDescriptionEl) productDescriptionEl.textContent = "Ürün bilgileri yüklenemedi.";
-            if (btnCartEl) btnCartEl.disabled = true;
-            if (btnBuyEl) btnBuyEl.disabled = true;
-            if (decreaseQuantityBtn) decreaseQuantityBtn.disabled = true;
-            if (increaseQuantityBtn) increaseQuantityBtn.disabled = true;
-            
-            if (languageSelector) languageSelector.style.display = 'none';
-            if (currencySelector) currencySelector.style.display = 'none';
-            if (countrySelector) countrySelector.parentElement.style.display = 'none';
-            if (cartBadge) cartBadge.textContent = '0';
-            if (variantSectionEl) variantSectionEl.style.display = 'none';
-            if (relatedVariantsGridEl) relatedVariantsGridEl.innerHTML = '';
-            if (relatedSection) relatedSection.style.display = 'none';
-            // No return here, so the script can proceed to the 'if (app && db && auth)' check.
-        }
-
-        // --- DOM Elements (Defined globally in module scope to prevent re-declaration errors) ---
-        const loadingOverlay = document.getElementById('loading-overlay');
-        const loadingTextP = document.getElementById('loading-text');
-        const productDetailContainer = document.querySelector('.product-detail-container');
-        const mainMediaDisplayEl = document.getElementById("main-media-display");
-        const thumbnailRowEl = document.getElementById("thumbnail-row");
-        const productTitleEl = document.getElementById("product-title");
-        const productOldPriceEl = document.getElementById("product-old-price");
-        const productPriceEl = document.getElementById("product-price");
-        const freeShippingEl = document.getElementById("free-shipping");
-        const productDescriptionEl = document.getElementById("product-description");
-        const promoBarEl = document.querySelector('.promo-bar');
-        const promoTextContentEl = document.getElementById('promo-text-content');
-        const btnCartEl = document.getElementById('btn-cart');
-        const btnBuyEl = document.getElementById('btn-buy');
-        const productDetailsHeadingEl = document.getElementById('product-details-heading');
-        
-        // New variant elements
-        const variantSectionEl = document.querySelector('.variant-section');
-        const variantTitleEl = document.getElementById('variant-selector-label'); 
-        const variantSelectorsEl = document.getElementById('variant-selectors');
-
-        const quantityInputEl = document.getElementById('quantity-input');
-        const quantityLabelEl = document.getElementById('quantity-label');
-        const decreaseQuantityBtn = document.getElementById('decrease-quantity');
-        const increaseQuantityBtn = document.getElementById('increase-quantity');
-        const totalPriceLabelEl = document.getElementById('total-price-label');
-        const calculatedTotalPriceEl = document.getElementById('calculated-total-price');
-
-        // Related variants
-        const relatedVariantsGridEl = document.getElementById('related-variants-grid');
-        const relatedVariantsTitleEl = document.getElementById('related-variants-title');
-
-        // Header Controls
-        const userControlsContainer = document.getElementById('user-controls-container');
-        const hamburgerBtn = document.getElementById('hamburger-menu-btn');
-        const mobileNav = document.getElementById('mobile-nav');
-        const mobileNavOverlay = document.getElementById('mobile-nav-overlay');
-        const languageSelector = document.getElementById('language-selector');
-        const currencySelector = document.getElementById('currency-selector');
-        const countrySelector = document.getElementById('country-selector');
-        const mainLogoLink = document.getElementById('main-logo-link');
-        const cartPageLink = document.getElementById('cart-page-link');
-        const cartBadge = document.getElementById('cart-badge'); // Added cart badge
-
-        // Welcome Modal (hidden by default)
-        const welcomeModalOverlay = document.getElementById('welcomeModalOverlay');
-
-
-        // --- Global State Variables ---
-        let siteData = {
-            settings: {
-                languages: [],
-                general: { logo: {}, promoBar: {} },
-                countryPricing: {},
-                currencySymbols: {},
-                exchangeRates: {}
-            },
-            categories: { tree: [] }
-        };
-
-        let currentUser = null; // Firebase Auth user object
-        let currentLang = localStorage.getItem('pufemo-language') || 'tr';
-        let currentCurrency = localStorage.getItem('pufemo-currency') || 'USD';
-        let currentCountryCode = localStorage.getItem('pufemo-country') || '';
-
-        // product-specific data, global to this page's script
-        let currentProductData = null; 
-        let productContentGlobal = {};
-        let currentSelectedVariantId = null; // Track selected variant
-
-
-        // --- Static Translations ---
-        const staticTranslations = {
-            'loading_text': { tr: 'PUFEMO Yükleniyor...', en: 'Loading PUFEMO...', el: 'Φόρτωση PUFEMO...', ru: 'Загрузка PUFEMO...', de: 'PUFEMO wird geladen...', fr: 'Chargement de PUFEMO...', it: 'Caricamento PUFEMO...' },
-            'mobile_menu_title': { tr: 'Kategoriler', en: 'Categories', el: 'Κατηγορίες', ru: 'Категории', de: 'Kategorien', fr: 'Catégories', it: 'Categorie' },
-            'footer-title-pufemo': { tr: 'PUFEMO', en: 'PUFEMO', el: 'PUFEMO', ru: 'ПУΦΕΜΟ', de: 'PUFEMO', fr: 'PUFEMO', it: 'PUFEMO' },
-            'footer-desc-pufemo': { tr: 'Hayallerinizdeki konforu ve estetiği evinize taşıyoruz.', en: 'We bring the comfort and aesthetics of your dreams to your home.', el: 'Φέρνουμε την άνεση και την αισθητική των ονείρων σας στο σπίλετε', ru: 'Мы приносим комфорт и эстетику в ваш дом.', de: 'Wir bringen den Komfort και την αισθητική των ονείρων σας στο σπίτι σας.', fr: 'Nous apportons le confort et l\'estetica dei vostri sogni nella vostra casa.', it: 'Portiamo il comfort e l\'estetica dei vostri sogni nella vostra casa.' },
-            'footer-title-fast-links': { tr: 'Hızlı Bağlantılar', en: 'Quick Links', el: 'Γρήγοροι Σύνδεσμοι', ru: 'Быстрые ссылки', de: 'Schnelllinks', fr: 'Liens Rapides', it: 'Link Veloci' },
-            'footer-link-about': { tr: 'Hakkımızda', en: 'About Us', el: 'Σχετικά με εμάς', ru: 'О нас', de: 'Über Uns', fr: 'À Propos', it: 'Chi Siamo' },
-            'footer-link-contact': { tr: 'İletişim', en: 'Contact', el: 'Επικοινωνία', ru: 'Контакт', de: 'Kontakt', fr: 'Contact', it: 'Contatti' },
-            'footer-link-privacy': { tr: 'Gizlilik Politikası', en: 'Privacy Policy', el: 'Πολιτική Απορρήτου', ru: 'Политика конфиденциальности', de: 'Datenschutzbestimmungen', fr: 'Politique de Confidentialité', it: 'Informativa sulla Privacy' },
-            'footer-title-follow-us': { tr: 'Bizi Takip Edin', en: 'Follow Us', el: 'Ακολουθήστε μας', ru: 'Следите за нами', de: 'Folgen Sie Uns', fr: 'Suivez-nos', it: 'Seguici' },
-            'footer-copyright': { tr: '&copy; 2025 PUFEMO.COM | Tüm Hakları Saklıdır.', en: '&copy; 2025 PUFEMO.COM | All Rights Reserved.', el: '&copy; 2025 PUFEMO.COM | Με την επιφύλαξη παντός δικαιώματος.', ru: '&copy; 2025 PUFEMO.COM | Все права защищены.', de: '&copy; 2025 PUFEMO.COM | Alle Rechte vorbehalten.', fr: '&#169; 2025 PUFEMO.COM | Tous droits réservés.', it: '&#169; 2025 PUFEMO.COM | Tutti i diritti riservati.' },
-            'country_selector_label': { tr: 'Ülke Seçimi:', en: 'Select Country:', el: 'Επιλέξτε Χώρα:', ru: 'Выбрать страну:', de: 'Land auswählen:', fr: 'Sélectionner le pays :', it: 'Seleziona Paese:' },
-            'product_title_default': { tr: 'Ürün Başlığı', en: 'Product Title', el: 'Τίτλος Προϊόντος', ru: 'Название продукта', de: 'Produkttitel', fr: 'Titre du Produit', it: 'Titolo Prodotto' },
-            'product_description_loading': { tr: 'Yükleniyor...', en: 'Loading...', el: 'Φορτώνεται...', ru: 'Загрузка...', de: 'Wird geladen...', fr: 'Chargement...', it: 'Caricamento...' },
-            'product_description_no_info': { tr: 'Bu ürün hakkında detaylı bilgi bulunmamaktadır.', en: 'No detailed information is available for this product.', el: 'Δεν υπάρχουν διαθέσιμες λεπτομέτέλεις για αυτό το προϊόν.', ru: 'Подробная информация об этом продукте отсутствует.', de: 'Keine detaillierten Informationen zu diesem Produkt verfügbar.', fr: 'Aucune information détaillée n\'est available for this product.', it: 'Nessuna informazione dettagliata disponibile per this product.' },
-            'product_not_found_title': { tr: 'Ürün Bulunamadı', en: 'Product Not Found', el: 'Το προϊόν δεν βρέθηκε', ru: 'Продукт не найден', de: 'Produkt nicht gefunden', fr: 'Produit non trouvé', it: 'Prodotto non trovato' },
-            'product_not_found_desc': { tr: 'Aradığınız ürün bulunamamaktadır.', en: 'The product you are looking for cannot be found.', el: 'Το προϊόν που αναζητάτε δεν μπορεί να βρεθεί.', ru: 'Искомый товар не найден.', de: 'Das gesuchte Produkt konnte nicht gefunden werden.', fr: 'Le produit que you are looking for is not available.', it: 'Il prodotto che stai cercando non è stato trovato.' },
-            'error_loading_product_title': { tr: 'Hata Oluştu', en: 'Error Occurred', el: 'Σφάλμα παρουσιάστηκε', ru: 'Произошла ошибка', de: 'Fehler aufgetreten', fr: 'Erreur survenue', it: 'Si è verificato un errore' },
-            'error_loading_product_desc': { tr: 'Ürün bilgileri yüklenemedi. Lütfen daha sonra tekrar deneyin.', en: 'Product information could not be loaded. Please try again later.', el: 'Δεν ήταν δυνατή η φόρτωση των πληροφοριών προϊόντος. Παρακαλώ δοκιμάστε ξανά αργότερα.', ru: 'Не удалось загрузить информацию о товаре. Пожалуйста, попробуйте еще раз позже.', de: 'Produktinformationen konnten nicht geladen werden. Bitte versuchen Sie es später erneut.', fr: 'Les informations sur le produit n\'a pas pu être chargées. Veuillez réessayer plus tard.', it: 'Impossibile caricare le informazioni sul prodotto. Si prega di riprovare più tardi.' },
-            'add_to_cart_button': { tr: 'Sepete Ekle', en: 'Add to Cart', el: 'Προσθήκη στο καλάθι', ru: 'Добавить в корзину', de: 'In den Warenkorb', fr: 'Ajouter au panier', it: 'Aggiungi al carrello' },
-            'buy_now_button': { tr: 'Satın Al', en: 'Buy Now', el: 'Αγορά τώρα', ru: 'Купить сейчас', de: 'Jetzt kaufen', fr: 'Acheter maintenant', it: 'Acquista ora' },
-            'product_details_heading': { tr: 'Ürün Detayları', en: 'Product Details', el: 'Λεπτομέρειες προϊόντος', ru: 'Информация о продукте', de: 'Produktdetails', fr: 'Détails du Produit', it: 'Dettagli Prodotto' },
-            'variant_selection_label': { tr: 'Renk Seçimi', en: 'Color Selection', el: 'Επιλογή Χρώματος', ru: 'Выбор цвета', de: 'Farbauswahl', fr: 'Sélection de couleur', it: 'Selezione Colore' },
-            'unknown_color': { tr: 'Bilinmeyen Renk', en: 'Unknown Color', el: 'Άγνωστο Χρώμα', ru: 'Неизвестный цвет', de: 'Unbekannte Farbe', fr: 'Couleur inconnue', it: 'Colore sconosciuto' },
-            'quantity_label': { tr: 'Adet:', en: 'Quantity:', el: 'Ποσότητα:', ru: 'Количество:', de: 'Menge:', fr: 'Quantité :', it: 'Quantità:' },
-            'total_price_label': { tr: 'Genel Toplam:', en: 'Total:', el: 'Σύνολο:', ru: 'Итого:', de: 'Gesamt:', fr: 'Total :', it: 'Totale:' },
-            'description_not_found_fallback': { tr: 'Açıklama bulunamadı.', en: 'Description not found.', el: 'Περιγραφή δεν βρέθηκε.', ru: 'Описание не найдено.', de: 'Beschreibung nicht gefunden.', fr: 'Description introuvable.', it: 'Descrizione non trovata.' },
-            'related_products_title': { tr: 'Diğer Renk Varyantları', en: 'Other Color Variants', el: 'Άλλες Παραλλαγές Χρωμάτων', ru: 'Другие цветовые варианты', de: 'Andere Farbvarianten', fr: 'Autres Variantes de Couleur', it: 'Altre Varianti di Colore' },
-            'free_shipping_tag': { tr: 'Ücretsiz Kargo', en: 'Free Shipping', el: 'Δωρεάν Αποστολή', ru: 'Беσπλατνα Доставка', de: 'Kostenloser Versand', fr: 'Livraison Gratuite', it: 'Spedizione Gratuita' },
-            'welcome_modal_title': { tr: 'Hoş Geldiniz!', en: 'Welcome!', el: 'Καλώς ήρθατε!', ru: 'Добро пожаловать!', de: 'Willkommen!', fr: 'Bienvenue !', it: 'Benvenuto!' },
-            'welcome_modal_message': { tr: 'Lütfen ülkenizi seçin.', en: 'Please select your country below.', el: 'Παρακαλώ επιλέξτε τη χώρα σας παρακάτω.', ru: 'Пожалуйста, выберите свою страну ниже.', de: 'Bitte wählen Sie Ihr Land unten aus.', fr: 'Veuillez sélectionner votre pays ci-dessous.', it: 'Seleziona il tuo paese qui sotto.' },
-            'welcome_modal_confirm_button': { tr: 'Devam Et', en: 'Continue', el: 'Συνέχεια', ru: 'Продолжить', de: 'Weiter', fr: 'Continuer', it: 'Continua' },
-            'promo_bar_text': { tr: 'Ücretsiz Kargo Fırsatını Kaçırmayın!', en: 'Don\'t Miss Free Shipping!', el: 'Μην χάσετε τη δωρεάν αποστολή!', ru: 'Не пропустите бесплатную доставку!', de: 'Verpassen Sie nicht den kostenlosen Versand!', fr: 'Ne manquez pas la livraison gratuite !', it: 'Non perdere la spedizione gratuita!' },
-            'cart_page_link_title': { tr: 'Sepetim', en: 'My Cart', el: 'Το καλάθι μου', ru: 'Моя корзина', de: 'Mein Warenkorb', fr: 'Mon Panier', it: 'Il mio Carrello' },
-            'login_register': { tr: 'Giriş Yap / Kayıt Ol', en: 'Login / Register', el: 'Σύνδεση / Εγγραφή', ru: 'Войти / Зарегистрироваться', de: 'Anmelden / Registrieren', fr: 'Connexion / Inscription', it: 'Accedi / Registrati' },
-            'my_account': { tr: 'Hesabım', en: 'My Account', el: 'Ο λογαριασμός μου', ru: 'Мой λογαριασμός', de: 'Mein Konto', fr: 'Mon compte', it: 'Il mio account' },
-            'logout': { tr: 'Çıkış Yap', en: 'Logout', el: 'Αποσύνδεση', ru: 'Выйти', de: 'Abmelden', fr: 'Déconnexion', it: 'Esci' },
-            'continue_as_guest': { tr: 'Misafir Olarak Devam Et', en: 'Continue as Guest', el: 'Συνέχιση ως επισκέπτης', ru: 'Προχωρήστε ως επισκέπτης', de: 'Als Gast fortfahren', fr: 'Continuer en tant qu\'invité', it: 'Continua come ospite' },
-            'no_image': { tr: 'Resim Yok', en: 'No Image', el: 'Χωρίς Εικόνα', ru: 'Нет изображения', de: 'Kein Bild', fr: 'Pas d\'image', it: 'Nessuna görüntü' },
-            'untitled_product': { tr: 'İsimsiz Ürün', en: 'Untitled Product', el: 'Προϊόν χωρίς τίτλο', ru: 'Товар без названия', de: 'Unbenanntes Produkt', fr: 'Produit sans titre', it: 'Prodotto senza τίτλο' },
-        };
-
-
-        // Firebase app, db, auth initialized outside the main logic block
-        let app; 
-        let db;  
-        let auth; 
-        try {
-            app = initializeApp(firebaseConfig);
-            db = getFirestore(app);
-            auth = getAuth(app);
-        } catch (e) {
-            console.error("Firebase başlatma hatası!", e);
-            // This initial block sets up default UI for failed Firebase init.
-            // Elements are now globally scoped and assigned content here.
-            const loadingOverlay = document.getElementById('loading-overlay');
-            const loadingTextP = document.getElementById('loading-text');
-            const productTitleEl = document.getElementById('product-title');
-            const productDescriptionEl = document.getElementById('product-description');
-            const btnCartEl = document.getElementById('btn-cart');
-            const btnBuyEl = document.getElementById('btn-buy');
-            const decreaseQuantityBtn = document.getElementById('decrease-quantity');
-            const increaseQuantityBtn = document.getElementById('increase-quantity');
-            const languageSelector = document.getElementById('language-selector');
-            const currencySelector = document.getElementById('currency-selector');
-            const countrySelector = document.getElementById('country-selector');
-            const cartBadge = document.getElementById('cart-badge');
-            const variantSectionEl = document.querySelector('.variant-section');
-            const relatedVariantsGridEl = document.getElementById('related-variants-grid');
-            const relatedSection = document.querySelector('.related-variants-section');
-
-            if (loadingOverlay) loadingOverlay.classList.add('hidden');
-            if (loadingTextP) loadingTextP.textContent = "Hata: Sayfa yüklenemedi! Lütfen internet bağlantınızı kontrol edin.";
-            if (productTitleEl) productTitleEl.textContent = "Hata Oluştu";
-            if (productDescriptionEl) productDescriptionEl.textContent = "Ürün bilgileri yüklenemedi.";
-            if (btnCartEl) btnCartEl.disabled = true;
-            if (btnBuyEl) btnBuyEl.disabled = true;
-            if (decreaseQuantityBtn) decreaseQuantityBtn.disabled = true;
-            if (increaseQuantityBtn) increaseQuantityBtn.disabled = true;
-            
-            if (languageSelector) languageSelector.style.display = 'none';
-            if (currencySelector) currencySelector.style.display = 'none';
-            if (countrySelector) countrySelector.parentElement.style.display = 'none';
-            if (cartBadge) cartBadge.textContent = '0';
-            if (variantSectionEl) variantSectionEl.style.display = 'none';
-            if (relatedVariantsGridEl) relatedVariantsGridEl.innerHTML = '';
-            if (relatedSection) relatedSection.style.display = 'none';
-            // No return here, so the script can proceed to the 'if (app && db && auth)' check.
-        }
-
-        // --- DOM Elements (Defined globally in module scope to prevent re-declaration errors) ---
-        const loadingOverlay = document.getElementById('loading-overlay');
-        const loadingTextP = document.getElementById('loading-text');
-        const productDetailContainer = document.querySelector('.product-detail-container');
-        const mainMediaDisplayEl = document.getElementById("main-media-display");
-        const thumbnailRowEl = document.getElementById("thumbnail-row");
-        const productTitleEl = document.getElementById("product-title");
-        const productOldPriceEl = document.getElementById("product-old-price");
-        const productPriceEl = document.getElementById("product-price");
-        const freeShippingEl = document.getElementById("free-shipping");
-        const productDescriptionEl = document.getElementById("product-description");
-        const promoBarEl = document.querySelector('.promo-bar');
-        const promoTextContentEl = document.getElementById('promo-text-content');
-        const btnCartEl = document.getElementById('btn-cart');
-        const btnBuyEl = document.getElementById('btn-buy');
-        const productDetailsHeadingEl = document.getElementById('product-details-heading');
-        
-        // New variant elements
-        const variantSectionEl = document.querySelector('.variant-section');
-        const variantTitleEl = document.getElementById('variant-selector-label'); 
-        const variantSelectorsEl = document.getElementById('variant-selectors');
-
-        const quantityInputEl = document.getElementById('quantity-input');
-        const quantityLabelEl = document.getElementById('quantity-label');
-        const decreaseQuantityBtn = document.getElementById('decrease-quantity');
-        const increaseQuantityBtn = document.getElementById('increase-quantity');
-        const totalPriceLabelEl = document.getElementById('total-price-label');
-        const calculatedTotalPriceEl = document.getElementById('calculated-total-price');
-
-        // Related variants
-        const relatedVariantsGridEl = document.getElementById('related-variants-grid');
-        const relatedVariantsTitleEl = document.getElementById('related-variants-title');
-
-        // Header Controls
-        const userControlsContainer = document.getElementById('user-controls-container');
-        const hamburgerBtn = document.getElementById('hamburger-menu-btn');
-        const mobileNav = document.getElementById('mobile-nav');
-        const mobileNavOverlay = document.getElementById('mobile-nav-overlay');
-        const languageSelector = document.getElementById('language-selector');
-        const currencySelector = document.getElementById('currency-selector');
-        const countrySelector = document.getElementById('country-selector');
-        const mainLogoLink = document.getElementById('main-logo-link');
-        const cartPageLink = document.getElementById('cart-page-link');
-        const cartBadge = document.getElementById('cart-badge'); // Added cart badge
-
-        // Welcome Modal (hidden by default)
-        const welcomeModalOverlay = document.getElementById('welcomeModalOverlay');
-
-
-        // --- Global State Variables ---
-        let siteData = {
-            settings: {
-                languages: [],
-                general: { logo: {}, promoBar: {} },
-                countryPricing: {},
-                currencySymbols: {},
-                exchangeRates: {}
-            },
-            categories: { tree: [] }
-        };
-
-        let currentUser = null; // Firebase Auth user object
-        let currentLang = localStorage.getItem('pufemo-language') || 'tr';
-        let currentCurrency = localStorage.getItem('pufemo-currency') || 'USD';
-        let currentCountryCode = localStorage.getItem('pufemo-country') || '';
-
-        // product-specific data, global to this page's script
-        let currentProductData = null; 
-        let productContentGlobal = {};
-        let currentSelectedVariantId = null; // Track selected variant
-
-
-        // --- Static Translations ---
-        const staticTranslations = {
-            'loading_text': { tr: 'PUFEMO Yükleniyor...', en: 'Loading PUFEMO...', el: 'Φόρτωση PUFEMO...', ru: 'Загрузка PUFEMO...', de: 'PUFEMO wird geladen...', fr: 'Chargement de PUFEMO...', it: 'Caricamento PUFEMO...' },
-            'mobile_menu_title': { tr: 'Kategoriler', en: 'Categories', el: 'Κατηγορίες', ru: 'Категории', de: 'Kategorien', fr: 'Catégories', it: 'Categorie' },
-            'footer-title-pufemo': { tr: 'PUFEMO', en: 'PUFEMO', el: 'PUFEMO', ru: 'ПУΦΕΜΟ', de: 'PUFEMO', fr: 'PUFEMO', it: 'PUFEMO' },
-            'footer-desc-pufemo': { tr: 'Hayallerinizdeki konforu ve estetiği evinize taşıyoruz.', en: 'We bring the comfort and aesthetics of your dreams to your home.', el: 'Φέρνουμε την άνεση και την αισθητική των ονείρων σας στο σπίλετε', ru: 'Мы приносим комфорт и эстетику в ваш дом.', de: 'Wir bringen den Komfort και την αισθητική των ονείρων σας στο σπίτι σας.', fr: 'Nous apportons le confort et l\'estetica dei vostri sogni nella vostra casa.', it: 'Portiamo il comfort e l\'estetica dei vostri sogni nella vostra casa.' },
-            'footer-title-fast-links': { tr: 'Hızlı Bağlantılar', en: 'Quick Links', el: 'Γρήγοροι Σύνδεσμοι', ru: 'Быстрые ссылки', de: 'Schnelllinks', fr: 'Liens Rapides', it: 'Link Veloci' },
-            'footer-link-about': { tr: 'Hakkımızda', en: 'About Us', el: 'Σχετικά με εμάς', ru: 'Ολόκληρος ο κόσμος', de: 'Über Uns', fr: 'À Propos', it: 'Chi Siamo' },
-            'footer-link-contact': { tr: 'İletişim', en: 'Contact', el: 'Επικοινωνία', ru: 'Контакт', de: 'Kontakt', fr: 'Contact', it: 'Contatti' },
-            'footer-link-privacy': { tr: 'Gizlilik Politikası', en: 'Privacy Policy', el: 'Πολιτική Απορρήτου', ru: 'Политика конфиденциальности', de: 'Datenschutzbestimmungen', fr: 'Politique de Confidentialité', it: 'Informativa sulla Privacy' },
-            'footer-title-follow-us': { tr: 'Bizi Takip Edin', en: 'Follow Us', el: 'Ακολουθήστε μας', ru: 'Следите за нами', de: 'Folgen Sie Uns', fr: 'Suivez-nos', it: 'Seguici' },
-            'footer-copyright': { tr: '&copy; 2025 PUFEMO.COM | Tüm Hakları Saklıdır.', en: '&copy; 2025 PUFEMO.COM | All Rights Reserved.', el: '&copy; 2025 PUFEMO.COM | Με την επιφύλαξη παντός δικαιώματος.', ru: '&copy; 2025 PUFEMO.COM | Все права защищены.', de: '&copy; 2025 PUFEMO.COM | Alle Rechte vorbehalten.', fr: '&#169; 2025 PUFEMO.COM | Tous droits réservés.', it: '&#169; 2025 PUFEMO.COM | Tutti i diritti riservati.' },
-            'country_selector_label': { tr: 'Ülke Seçimi:', en: 'Select Country:', el: 'Επιλέξτε Χώρα:', ru: 'Выбрать страну:', de: 'Land auswählen:', fr: 'Sélectionner le pays :', it: 'Seleziona Paese:' },
-            'product_title_default': { tr: 'Ürün Başlığı', en: 'Product Title', el: 'Τίτλος Προϊόντος', ru: 'Название продукта', de: 'Produkttitel', fr: 'Titre du Produit', it: 'Titolo Prodotto' },
-            'product_description_loading': { tr: 'Yükleniyor...', en: 'Loading...', el: 'Φορτώνεται...', ru: 'Загрузка...', de: 'Wird geladen...', fr: 'Chargement...', it: 'Caricamento...' },
-            'product_description_no_info': { tr: 'Bu ürün hakkında detaylı bilgi bulunmamaktadır.', en: 'No detailed information is available for this product.', el: 'Δεν υπάρχουν διαθέσιμες λεπτομέτέλεις για αυτό το προϊόν.', ru: 'Подробная информация об этом продукте отсутствует.', de: 'Keine detaillierten Informationen zu diesem Produkt verfügbar.', fr: 'Aucune information détaillée n\'est available for this product.', it: 'Nessuna informazione dettagliata disponibile for this product.' },
-            'product_not_found_title': { tr: 'Ürün Bulunamadı', en: 'Product Not Found', el: 'Το προϊόν δεν βρέθηκε', ru: 'Продукт не найден', de: 'Produkt nicht gefunden', fr: 'Produit non trouvé', it: 'Prodotto non trovato' },
-            'product_not_found_desc': { tr: 'Aradığınız ürün bulunamamaktadır.', en: 'The product you are looking for cannot be found.', el: 'Το προϊόν που αναζητάτε δεν μπορεί να βρεθεί.', ru: 'Искомый товар не найден.', de: 'Das gesuchte Produkt konnte nicht gefunden werden.', fr: 'Le produit que you are looking for is not available.', it: 'Il prodotto che stai cercando non è stato trovato.' },
-            'error_loading_product_title': { tr: 'Hata Oluştu', en: 'Error Occurred', el: 'Σφάλμα παρουσιάστηκε', ru: 'Произошла ошибка', de: 'Fehler aufgetreten', fr: 'Erreur survenue', it: 'Si è verificato un errore' },
-            'error_loading_product_desc': { tr: 'Ürün bilgileri yüklenemedi. Lütfen daha sonra tekrar deneyin.', en: 'Product information could not be loaded. Please try again later.', el: 'Δεν ήταν δυνατή η φόρτωση των πληροφοριών προϊόντος. Παρακαλώ δοκιμάστε ξανά αργότερα.', ru: 'Не удалось загрузить информацию о товаре. Пожалуйста, попробуйте еще раз позже.', de: 'Produktinformationen konnten nicht geladen werden. Bitte versuchen Sie es später erneut.', fr: 'Les informations sur le produit n\'a pas pu être chargées. Veuillez réessayer plus tard.', it: 'Impossibile caricare le informazioni sul prodotto. Si prega di riprovare più tardi.' },
-            'add_to_cart_button': { tr: 'Sepete Ekle', en: 'Add to Cart', el: 'Προσθήκη στο καλάθι', ru: 'Добавить в корзину', de: 'In den Warenkorb', fr: 'Ajouter au panier', it: 'Aggiungi al carrello' },
-            'buy_now_button': { tr: 'Satın Al', en: 'Buy Now', el: 'Αγορά τώρα', ru: 'Купить сейчас', de: 'Jetzt kaufen', fr: 'Acheter maintenant', it: 'Acquista ora' },
-            'product_details_heading': { tr: 'Ürün Detayları', en: 'Product Details', el: 'Λεπτομέρειες προϊόντος', ru: 'Информация о продукте', de: 'Produktdetails', fr: 'Détails du Produit', it: 'Dettagli Prodotto' },
-            'variant_selection_label': { tr: 'Renk Seçimi', en: 'Color Selection', el: 'Επιλογή Χρώματος', ru: 'Выбор цвета', de: 'Farbauswahl', fr: 'Sélection de couleur', it: 'Selezione Colore' },
-            'unknown_color': { tr: 'Bilinmeyen Renk', en: 'Unknown Color', el: 'Άγνωστο Χρώμα', ru: 'Неизвестный цвет', de: 'Unbekannte Farbe', fr: 'Couleur inconnue', it: 'Colore sconosciuto' },
-            'quantity_label': { tr: 'Adet:', en: 'Quantity:', el: 'Ποσότητα:', ru: 'Количество:', de: 'Menge:', fr: 'Quantité :', it: 'Quantità:' },
-            'total_price_label': { tr: 'Genel Toplam:', en: 'Total:', el: 'Σύνολο:', ru: 'Итого:', de: 'Gesamt:', fr: 'Total :', it: 'Totale:' },
-            'description_not_found_fallback': { tr: 'Açıklama bulunamadı.', en: 'Description not found.', el: 'Περιγραφή δεν βρέθηκε.', ru: 'Описание не найдено.', de: 'Beschreibung nicht gefunden.', fr: 'Description introuvable.', it: 'Descrizione non trovata.' },
-            'related_products_title': { tr: 'Diğer Renk Varyantları', en: 'Other Color Variants', el: 'Άλλες Παραλλαγές Χρωμάτων', ru: 'Другие цветовые варианты', de: 'Andere Farbvarianten', fr: 'Autres Variantes de Couleur', it: 'Altre Varianti di Colore' },
-            'free_shipping_tag': { tr: 'Ücretsiz Kargo', en: 'Free Shipping', el: 'Δωρεάν Αποστολή', ru: 'Беσπλατνα Доставка', de: 'Kostenloser Versand', fr: 'Livraison Gratuite', it: 'Spedizione Gratuita' },
-            'welcome_modal_title': { tr: 'Hoş Geldiniz!', en: 'Welcome!', el: 'Καλώς ήρθατε!', ru: 'Добρο пожаловать!', de: 'Willkommen!', fr: 'Bienvenue !', it: 'Benvenuto!' },
-            'welcome_modal_message': { tr: 'Lütfen ülkenizi seçin.', en: 'Please select your country below.', el: 'Παρακαλώ επιλέξτε τη χώρα σας παρακάτω.', ru: 'Пожалуйста, выберите свою страну ниже.', de: 'Bitte wählen Sie Ihr Land unten aus.', fr: 'Veuillez sélectionner votre pays ci-dessous.', it: 'Seleziona il tuo country below.' },
-            'welcome_modal_confirm_button': { tr: 'Devam Et', en: 'Continue', el: 'Συνέχεια', ru: 'Продолжить', de: 'Weiter', fr: 'Continuer', it: 'Continua' },
-            'promo_bar_text': { tr: 'Ücretsiz Kargo Fırsatını Kaçırmayın!', en: 'Don\'t Miss Free Shipping!', el: 'Μην χάσετε τη δωρεάν αποστολή!', ru: 'Не пропустите бесплатную доставку!', de: 'Verpassen Sie nicht den kostenlosen Versand!', fr: 'Ne manquez pas la livraison gratuite !', it: 'Non perdere la spedizione gratuita!' },
-            'cart_page_link_title': { tr: 'Sepetim', en: 'My Cart', el: 'Το καλάθι μου', ru: 'Моя корзина', de: 'Mein Warenkorb', fr: 'Mon Panier', it: 'Il mio Carrello' },
-            'login_register': { tr: 'Giriş Yap / Kayıt Ol', en: 'Login / Register', el: 'Σύνδεση / Εγγραφή', ru: 'Войти / Зарегистрироваться', de: 'Anmelden / Registrieren', fr: 'Connexion / Inscription', it: 'Accedi / Registrati' },
-            'my_account': { tr: 'Hesabım', en: 'My Account', el: 'Ο λογαριασμός μου', ru: 'Мой λογαριασμός', de: 'Mein Konto', fr: 'Mon compte', it: 'Il mio account' },
-            'logout': { tr: 'Çıkış Yap', en: 'Logout', el: 'Αποσύνδεση', ru: 'Выйти', de: 'Abmelden', fr: 'Déconnexion', it: 'Esci' },
-            'continue_as_guest': { tr: 'Misafir Olarak Devam Et', en: 'Continue as Guest', el: 'Συνέχιση ως επισκέπτης', ru: 'Προχωρήστε ως επισκέπτης', de: 'Als Gast fortfahren', fr: 'Continuer en tant qu\'invité', it: 'Continua come ospite' },
-            'no_image': { tr: 'Resim Yok', en: 'No Image', el: 'Χωρίς Εικόνα', ru: 'Нет изображения', de: 'Kein Bild', fr: 'Pas d\'image', it: 'Nessuna görüntü' },
-            'untitled_product': { tr: 'İsimsiz Ürün', en: 'Untitled Product', el: 'Προϊόν χωρίς τίτλο', ru: 'Товар без названия', de: 'Unbenanntes Produkt', fr: 'Produit sans titre', it: 'Prodotto senza τίτλο' },
-        };
-
-
-        // Firebase app, db, auth initialized outside the main logic block
-        let app; 
-        let db;  
-        let auth; 
-        try {
-            app = initializeApp(firebaseConfig);
-            db = getFirestore(app);
-            auth = getAuth(app);
-        } catch (e) {
-            console.error("Firebase başlatma hatası!", e);
-            // This initial block sets up default UI for failed Firebase init.
-            // Elements are now globally scoped and assigned content here.
-            const loadingOverlay = document.getElementById('loading-overlay');
-            const loadingTextP = document.getElementById('loading-text');
-            const productTitleEl = document.getElementById('product-title');
-            const productDescriptionEl = document.getElementById('product-description');
-            const btnCartEl = document.getElementById('btn-cart');
-            const btnBuyEl = document.getElementById('btn-buy');
-            const decreaseQuantityBtn = document.getElementById('decrease-quantity');
-            const increaseQuantityBtn = document.getElementById('increase-quantity');
-            const languageSelector = document.getElementById('language-selector');
-            const currencySelector = document.getElementById('currency-selector');
-            const countrySelector = document.getElementById('country-selector');
-            const cartBadge = document.getElementById('cart-badge');
-            const variantSectionEl = document.querySelector('.variant-section');
-            const relatedVariantsGridEl = document.getElementById('related-variants-grid');
-            const relatedSection = document.querySelector('.related-variants-section');
-
-            if (loadingOverlay) loadingOverlay.classList.add('hidden');
-            if (loadingTextP) loadingTextP.textContent = "Hata: Sayfa yüklenemedi! Lütfen internet bağlantınızı kontrol edin.";
-            if (productTitleEl) productTitleEl.textContent = "Hata Oluştu";
-            if (productDescriptionEl) productDescriptionEl.textContent = "Ürün bilgileri yüklenemedi.";
-            if (btnCartEl) btnCartEl.disabled = true;
-            if (btnBuyEl) btnBuyEl.disabled = true;
-            if (decreaseQuantityBtn) decreaseQuantityBtn.disabled = true;
-            if (increaseQuantityBtn) increaseQuantityBtn.disabled = true;
-            
-            if (languageSelector) languageSelector.style.display = 'none';
-            if (currencySelector) currencySelector.style.display = 'none';
-            if (countrySelector) countrySelector.parentElement.style.display = 'none';
-            if (cartBadge) cartBadge.textContent = '0';
-            if (variantSectionEl) variantSectionEl.style.display = 'none';
-            if (relatedVariantsGridEl) relatedVariantsGridEl.innerHTML = '';
-            if (relatedSection) relatedSection.style.display = 'none';
-            // No return here, so the script can proceed to the 'if (app && db && auth)' check.
-        }
-
-        // --- DOM Elements (Defined globally in module scope to prevent re-declaration errors) ---
-        const loadingOverlay = document.getElementById('loading-overlay');
-        const loadingTextP = document.getElementById('loading-text');
-        const productDetailContainer = document.querySelector('.product-detail-container');
-        const mainMediaDisplayEl = document.getElementById("main-media-display");
-        const thumbnailRowEl = document.getElementById("thumbnail-row");
-        const productTitleEl = document.getElementById("product-title");
-        const productOldPriceEl = document.getElementById("product-old-price");
-        const productPriceEl = document.getElementById("product-price");
-        const freeShippingEl = document.getElementById("free-shipping");
-        const productDescriptionEl = document.getElementById("product-description");
-        const promoBarEl = document.querySelector('.promo-bar');
-        const promoTextContentEl = document.getElementById('promo-text-content');
-        const btnCartEl = document.getElementById('btn-cart');
-        const btnBuyEl = document.getElementById('btn-buy');
-        const productDetailsHeadingEl = document.getElementById('product-details-heading');
-        
-        // New variant elements
-        const variantSectionEl = document.querySelector('.variant-section');
-        const variantTitleEl = document.getElementById('variant-selector-label'); 
-        const variantSelectorsEl = document.getElementById('variant-selectors');
-
-        const quantityInputEl = document.getElementById('quantity-input');
-        const quantityLabelEl = document.getElementById('quantity-label');
-        const decreaseQuantityBtn = document.getElementById('decrease-quantity');
-        const increaseQuantityBtn = document.getElementById('increase-quantity');
-        const totalPriceLabelEl = document.getElementById('total-price-label');
-        const calculatedTotalPriceEl = document.getElementById('calculated-total-price');
-
-        // Related variants
-        const relatedVariantsGridEl = document.getElementById('related-variants-grid');
-        const relatedVariantsTitleEl = document.getElementById('related-variants-title');
-
-        // Header Controls
-        const userControlsContainer = document.getElementById('user-controls-container');
-        const hamburgerBtn = document.getElementById('hamburger-menu-btn');
-        const mobileNav = document.getElementById('mobile-nav');
-        const mobileNavOverlay = document.getElementById('mobile-nav-overlay');
-        const languageSelector = document.getElementById('language-selector');
-        const currencySelector = document.getElementById('currency-selector');
-        const countrySelector = document.getElementById('country-selector');
-        const mainLogoLink = document.getElementById('main-logo-link');
-        const cartPageLink = document.getElementById('cart-page-link');
-        const cartBadge = document.getElementById('cart-badge'); // Added cart badge
-
-        // Welcome Modal (hidden by default)
-        const welcomeModalOverlay = document.getElementById('welcomeModalOverlay');
-
-
-        // --- Global State Variables ---
-        let siteData = {
-            settings: {
-                languages: [],
-                general: { logo: {}, promoBar: {} },
-                countryPricing: {},
-                currencySymbols: {},
-                exchangeRates: {}
-            },
-            categories: { tree: [] }
-        };
-
-        let currentUser = null; // Firebase Auth user object
-        let currentLang = localStorage.getItem('pufemo-language') || 'tr';
-        let currentCurrency = localStorage.getItem('pufemo-currency') || 'USD';
-        let currentCountryCode = localStorage.getItem('pufemo-country') || '';
-
-        // product-specific data, global to this page's script
-        let currentProductData = null; 
-        let productContentGlobal = {};
-        let currentSelectedVariantId = null; // Track selected variant
-
-
-        // --- Static Translations ---
-        const staticTranslations = {
-            'loading_text': { tr: 'PUFEMO Yükleniyor...', en: 'Loading PUFEMO...', el: 'Φόρτωση PUFEMO...', ru: 'Загрузка PUFEMO...', de: 'PUFEMO wird geladen...', fr: 'Chargement de PUFEMO...', it: 'Caricamento PUFEMO...' },
-            'mobile_menu_title': { tr: 'Kategoriler', en: 'Categories', el: 'Κατηγορίες', ru: 'Категории', de: 'Kategorien', fr: 'Catégories', it: 'Categorie' },
-            'footer-title-pufemo': { tr: 'PUFEMO', en: 'PUFEMO', el: 'PUFEMO', ru: 'ПУΦΕΜΟ', de: 'PUFEMO', fr: 'PUFEMO', it: 'PUFEMO' },
-            'footer-desc-pufemo': { tr: 'Hayallerinizdeki konforu ve estetiği evinize taşıyoruz.', en: 'We bring the comfort and aesthetics of your dreams to your home.', el: 'Φέρνουμε την άνεση και την αισθητική των ονείρων σας στο σπίλετε', ru: 'Мы приносим комфорт и эстетику в ваш дом.', de: 'Wir bringen den Komfort και την αισθητική των ονείρων σας στο σπίτι σας.', fr: 'Nous apportons le confort et l\'estetica dei vostri sogni nella vostra casa.', it: 'Portiamo il comfort e l\'estetica dei vostri sogni nella vostra casa.' },
-            'footer-title-fast-links': { tr: 'Hızlı Bağlantılar', en: 'Quick Links', el: 'Γρήγοροι Σύνδεσμοι', ru: 'Быстрые ссылки', de: 'Schnelllinks', fr: 'Liens Rapides', it: 'Link Veloci' },
-            'footer-link-about': { tr: 'Hakkımızda', en: 'About Us', el: 'Σχετικά με εμάς', ru: 'Ολόκληρος ο κόσμος', de: 'Über Uns', fr: 'À Propos', it: 'Chi Siamo' },
             'footer-link-contact': { tr: 'İletişim', en: 'Contact', el: 'Επικοινωνία', ru: 'Контакт', de: 'Kontakt', fr: 'Contact', it: 'Contatti' },
             'footer-link-privacy': { tr: 'Gizlilik Politikası', en: 'Privacy Policy', el: 'Πολιτική Απορρήτου', ru: 'Политика конфиденциальности', de: 'Datenschutzbestimmungen', fr: 'Politique de Confidentialité', it: 'Informativa sulla Privacy' },
             'footer-title-follow-us': { tr: 'Bizi Takip Edin', en: 'Follow Us', el: 'Ακολουθήστε μας', ru: 'Следите за нами', de: 'Folgen Sie Uns', fr: 'Suivez-nos', it: 'Seguici' },
@@ -1848,8 +1135,8 @@
             'description_not_found_fallback': { tr: 'Açıklama bulunamadı.', en: 'Description not found.', el: 'Περιγραφή δεν βρέθηκε.', ru: 'Описание не найдено.', de: 'Beschreibung nicht gefunden.', fr: 'Description introuvable.', it: 'Descrizione non trovata.' },
             'related_products_title': { tr: 'Diğer Renk Varyantları', en: 'Other Color Variants', el: 'Άλλες Παραλλαγές Χρωμάτων', ru: 'Другие цветовые варианты', de: 'Andere Farbvarianten', fr: 'Autres Variantes de Couleur', it: 'Altre Varianti di Colore' },
             'free_shipping_tag': { tr: 'Ücretsiz Kargo', en: 'Free Shipping', el: 'Δωρεάν Αποστολή', ru: 'Беσπλατνα Доставка', de: 'Kostenloser Versand', fr: 'Livraison Gratuite', it: 'Spedizione Gratuita' },
-            'welcome_modal_title': { tr: 'Hoş Geldiniz!', en: 'Welcome!', el: 'Καλώς ήρθατε!', ru: 'Добρο пожаловать!', de: 'Willkommen!', fr: 'Bienvenue !', it: 'Benvenuto!' },
-            'welcome_modal_message': { tr: 'Lütfen ülkenizi seçin.', en: 'Please select your country below.', el: 'Παρακαλώ επιλέξτε τη χώρα σας παρακάτω.', ru: 'Пожалуйста, выберите свою страну ниже.', de: 'Bitte wählen Sie Ihr Land unten aus.', fr: 'Veuillez sélectionner votre pays ci-dessous.', it: 'Seleziona il tuo country below.' },
+            'welcome_modal_title': { tr: 'Hoş Geldiniz!', en: 'Welcome!', el: 'Καλώς ήρθατε!', ru: 'Добро пожаловать!', de: 'Willkommen!', fr: 'Bienvenue !', it: 'Benvenuto!' },
+            'welcome_modal_message': { tr: 'Lütfen ülkenizi seçin.', en: 'Please select your country below.', el: 'Παρακαλώ επιλέξτε τη χώρα σας παρακάτω.', ru: 'Пожалуйста, выберите свою страну ниже.', de: 'Bitte wählen Sie Ihr Land unten aus.', fr: 'Veuillez sélectionner votre country below.', it: 'Seleziona il tuo country below.' },
             'welcome_modal_confirm_button': { tr: 'Devam Et', en: 'Continue', el: 'Συνέχεια', ru: 'Продолжить', de: 'Weiter', fr: 'Continuer', it: 'Continua' },
             'promo_bar_text': { tr: 'Ücretsiz Kargo Fırsatını Kaçırmayın!', en: 'Don\'t Miss Free Shipping!', el: 'Μην χάσετε τη δωρεάν αποστολή!', ru: 'Не пропустите бесплатную доставку!', de: 'Verpassen Sie nicht den kostenlosen Versand!', fr: 'Ne manquez pas la livraison gratuite !', it: 'Non perdere la spedizione gratuita!' },
             'cart_page_link_title': { tr: 'Sepetim', en: 'My Cart', el: 'Το καλάθι μου', ru: 'Моя корзина', de: 'Mein Warenkorb', fr: 'Mon Panier', it: 'Il mio Carrello' },
@@ -1863,78 +1150,6 @@
 
 
         if (app && db && auth) { // Only proceed if Firebase is successfully initialized
-            // --- DOM Elements (Defined globally in module scope to prevent re-declaration errors) ---
-            const loadingOverlay = document.getElementById('loading-overlay');
-            const loadingTextP = document.getElementById('loading-text');
-            const productDetailContainer = document.querySelector('.product-detail-container');
-            const mainMediaDisplayEl = document.getElementById("main-media-display");
-            const thumbnailRowEl = document.getElementById("thumbnail-row");
-            const productTitleEl = document.getElementById("product-title");
-            const productOldPriceEl = document.getElementById("product-old-price");
-            const productPriceEl = document.getElementById("product-price");
-            const freeShippingEl = document.getElementById("free-shipping");
-            const productDescriptionEl = document.getElementById("product-description");
-            const promoBarEl = document.querySelector('.promo-bar');
-            const promoTextContentEl = document.getElementById('promo-text-content');
-            const btnCartEl = document.getElementById('btn-cart');
-            const btnBuyEl = document.getElementById('btn-buy');
-            const productDetailsHeadingEl = document.getElementById('product-details-heading');
-            
-            // New variant elements
-            const variantSectionEl = document.querySelector('.variant-section');
-            const variantTitleEl = document.getElementById('variant-selector-label'); 
-            const variantSelectorsEl = document.getElementById('variant-selectors');
-
-            const quantityInputEl = document.getElementById('quantity-input');
-            const quantityLabelEl = document.getElementById('quantity-label');
-            const decreaseQuantityBtn = document.getElementById('decrease-quantity');
-            const increaseQuantityBtn = document.getElementById('increase-quantity');
-            const totalPriceLabelEl = document.getElementById('total-price-label');
-            const calculatedTotalPriceEl = document.getElementById('calculated-total-price');
-
-            // Related variants
-            const relatedVariantsGridEl = document.getElementById('related-variants-grid');
-            const relatedVariantsTitleEl = document.getElementById('related-variants-title');
-
-            // Header Controls
-            const userControlsContainer = document.getElementById('user-controls-container');
-            const hamburgerBtn = document.getElementById('hamburger-menu-btn');
-            const mobileNav = document.getElementById('mobile-nav');
-            const mobileNavOverlay = document.getElementById('mobile-nav-overlay');
-            const languageSelector = document.getElementById('language-selector');
-            const currencySelector = document.getElementById('currency-selector');
-            const countrySelector = document.getElementById('country-selector');
-            const mainLogoLink = document.getElementById('main-logo-link');
-            const cartPageLink = document.getElementById('cart-page-link');
-            const cartBadge = document.getElementById('cart-badge'); // Added cart badge
-
-            // Welcome Modal (hidden by default)
-            const welcomeModalOverlay = document.getElementById('welcomeModalOverlay');
-
-
-            // --- Global State Variables ---
-            let siteData = {
-                settings: {
-                    languages: [],
-                    general: { logo: {}, promoBar: {} },
-                    countryPricing: {},
-                    currencySymbols: {},
-                    exchangeRates: {}
-                },
-                categories: { tree: [] }
-            };
-
-            let currentUser = null; // Firebase Auth user object
-            let currentLang = localStorage.getItem('pufemo-language') || 'tr';
-            let currentCurrency = localStorage.getItem('pufemo-currency') || 'USD';
-            let currentCountryCode = localStorage.getItem('pufemo-country') || '';
-
-            // product-specific data, global to this page's script
-            let currentProductData = null; 
-            let productContentGlobal = {};
-            let currentSelectedVariantId = null; // Track selected variant
-
-
             // --- Utility Functions ---
             function countryCodeToEmoji(code) {
                 if (!code || code.length !== 2) { return ''; }
@@ -1954,7 +1169,7 @@
                 }
 
                 const rates = siteData.settings?.exchangeRates || {};
-                const rate = rates[currentCurrency] || 1; 
+                const rate = rates[currentCurrency] || 1;
                 priceToFormat = priceToFormat * rate;
 
                 const symbol = symbols[currentCurrency] || currentCurrency;
@@ -1982,7 +1197,7 @@
                 if (decreaseQuantityBtn) decreaseQuantityBtn.disabled = (quantity === min);
                 if (increaseQuantityBtn) increaseQuantityBtn.disabled = (quantity === max);
 
-                const selectedVariant = currentSelectedVariantId 
+                const selectedVariant = currentSelectedVariantId
                     ? currentProductData.variants?.find(v => v.id === currentSelectedVariantId)
                     : null;
 
@@ -2003,8 +1218,8 @@
 
                 if (!media || media.length === 0) {
                     const imgPlaceholder = document.createElement('img');
-                    imgPlaceholder.src = 'https://via.placeholder.com/600x450?text=Görsel+Yok';
-                    imgPlaceholder.alt = (productContentGlobal && productContentGlobal.name) ? productContentGlobal.name + " - Görsel Yok" : "Ürün Görseli Yok";
+                    imgPlaceholder.src = `https://via.placeholder.com/600x450?text=${translate('no_image')}`;
+                    imgPlaceholder.alt = (productContentGlobal && productContentGlobal.name) ? productContentGlobal.name + " - " + translate('no_image') : translate('untitled_product') + " - " + translate('no_image');
                     imgPlaceholder.classList.add('main-media');
                     mainMediaDisplayEl.appendChild(imgPlaceholder);
                     return;
@@ -2083,7 +1298,7 @@
 
                 relatedVariantsTitleEl.textContent = translate('related_products_title');
 
-                relatedVariantsGridEl.innerHTML = ''; 
+                relatedVariantsGridEl.innerHTML = '';
 
                 if (!allVariants || allVariants.length <= 1) {
                     const relatedSection = document.querySelector('.related-variants-section');
@@ -2091,7 +1306,7 @@
                     return;
                 } else {
                     const relatedSection = document.querySelector('.related-variants-section');
-                    if (relatedSection) relatedSection.style.display = 'block'; 
+                    if (relatedSection) relatedSection.style.display = 'block';
                 }
 
                 allVariants.forEach(variant => {
@@ -2101,7 +1316,7 @@
                     }
 
                     const productName = productContentGlobal.name || translate('product_title_default');
-                    const variantImageUrl = variant.media?.[0]?.url || 'https://via.placeholder.com/200x200/cccccc/000000?text=NoImg';
+                    const variantImageUrl = variant.media?.[0]?.url || `https://via.placeholder.com/200x200/cccccc/000000?text=${translate('no_image')}`;
 
                     const basePriceForVariant = variant.basePriceTL !== undefined ? variant.basePriceTL : (currentProductData.basePriceTL || 0);
                     const discountedPriceForVariant = variant.baseDiscountedPriceTL !== undefined ? variant.baseDiscountedPriceTL : currentProductData.baseDiscountedPriceTL;
@@ -2136,7 +1351,7 @@
                         // When a related variant is clicked, switch the main product view to this variant
                         currentSelectedVariantId = variant.id; // Update selected variant ID
                         loadProductDetails(currentProductData.id); // Reload product details to update variant section
-                        window.scrollTo({ top: 0, behavior: 'smooth' }); 
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
                     };
 
                     relatedVariantsGridEl.appendChild(card);
@@ -2171,10 +1386,17 @@
                     const data = docSnap.data();
                     currentProductData = { id: productId, ...data }; // Store product ID with data
                     
-                    productContentGlobal = data.content?.[currentLang] || data.content?.tr || {}; 
+                    productContentGlobal = data.content?.[currentLang] || data.content?.tr || {};
 
                     if (productTitleEl) productTitleEl.textContent = productContentGlobal.name || translate('product_title_default');
                     if (productDescriptionEl) productDescriptionEl.textContent = productContentGlobal.description || translate('description_not_found_fallback');
+                    if (productDetailsHeadingEl) productDetailsHeadingEl.textContent = translate('product_details_heading');
+                    if (quantityLabelEl) quantityLabelEl.textContent = translate('quantity_label');
+                    if (totalPriceLabelEl) totalPriceLabelEl.textContent = translate('total_price_label');
+                    if (btnCartEl) btnCartEl.textContent = translate('add_to_cart_button');
+                    if (btnBuyEl) btnBuyEl.textContent = translate('buy_now_button');
+                    if (freeShippingEl) freeShippingEl.textContent = translate('free_shipping_tag');
+
 
                     // Determine the currently displayed variant based on currentSelectedVariantId
                     let displayedVariant = null;
@@ -2210,9 +1432,10 @@
 
                     const variants = data.variants || [];
                     
-                    if (variantTitleEl) { 
+                    if (variantTitleEl) {
                         if (variants.length > 0) {
                             variantTitleEl.style.display = 'block';
+                            variantTitleEl.textContent = translate('variant_selection_label');
                             if (variantSectionEl) variantSectionEl.style.display = 'flex';
                         } else {
                             variantTitleEl.style.display = 'none';
@@ -2221,13 +1444,11 @@
                     }
 
                     if (variantSelectorsEl) {
-                        while (variantSelectorsEl.children.length > 0) { 
-                            variantSelectorsEl.removeChild(variantSelectorsEl.lastChild);
-                        }
+                        variantSelectorsEl.innerHTML = ''; // Clear previous variant selectors
                     }
 
                     if (variants.length > 0) {
-                        variants.forEach((variant, index) => {
+                        variants.forEach((variant) => {
                             const colorOptionDiv = document.createElement('div');
                             colorOptionDiv.className = 'color-option';
 
@@ -2235,28 +1456,30 @@
                             colorCircleDiv.className = 'color-circle';
 
                             const variantFirstMedia = variant.media?.[0];
-                            let variantImageUrl = 'https://via.placeholder.com/60x60/cccccc/000000?text=NoImg';
+                            let variantImageUrl = `https://via.placeholder.com/60x60/cccccc/000000?text=${translate('no_image')}`;
                             if (variantFirstMedia && variantFirstMedia.type === 'image' && variantFirstMedia.url) {
                                 variantImageUrl = variantFirstMedia.url;
                             } else if (variantFirstMedia && variantFirstMedia.type === 'video' && variantFirstMedia.thumbnailUrl) {
                                 variantImageUrl = variantFirstMedia.thumbnailUrl;
-                            } else if (variantFirstMedia && variantFirstMedia.url) { 
-                                variantImageUrl = variantFirstMedia.url;
+                            } else if (variantFirstMedia && variantFirstMedia.url) {
+                                variantImageUrl = variantFirstMedia.url; // Fallback for other types with direct URL
                             }
                             
                             const img = document.createElement('img');
                             img.src = variantImageUrl;
-                            img.alt = variant.colorName?.[currentLang] || variant.colorName?.tr || translate('unknown_color'); 
+                            img.alt = variant.colorName?.[currentLang] || variant.colorName?.tr || translate('unknown_color');
                             colorCircleDiv.appendChild(img);
 
                             const colorNameSpan = document.createElement('span');
                             colorNameSpan.className = 'color-name';
-                            colorNameSpan.textContent = variant.colorName?.[currentLang] || variant.colorName?.tr || translate('unknown_color'); 
+                            colorNameSpan.textContent = variant.colorName?.[currentLang] || variant.colorName?.tr || translate('unknown_color');
                             colorOptionDiv.title = colorNameSpan.textContent;
 
                             if (variant.id === currentSelectedVariantId) { // Mark active variant
                                 colorCircleDiv.classList.add('active');
                                 colorOptionDiv.classList.add('active');
+                                // Ensure main media is set to this variant's media if it's the current selected one
+                                setImages(variant.media);
                             }
 
                             colorOptionDiv.onclick = () => {
@@ -2281,15 +1504,16 @@
 
                                 freeShippingEl.style.display = (variant.isFreeShipping || data.isFreeShipping) ? 'inline-block' : 'none';
 
-                                updateCalculatedTotalPrice(); 
+                                updateCalculatedTotalPrice();
                                 renderRelatedVariants(variants); // Re-render related variants to exclude current
-                                window.scrollTo({ top: 0, behavior: 'smooth' }); 
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
                             };
                             colorOptionDiv.appendChild(colorCircleDiv);
                             colorOptionDiv.appendChild(colorNameSpan);
                             if (variantSelectorsEl) { variantSelectorsEl.appendChild(colorOptionDiv); }
                         });
                     } else {
+                        // If no variants, just use the main product's media
                         setImages(data.media);
                     }
 
@@ -2297,7 +1521,7 @@
                     if (decreaseQuantityBtn) decreaseQuantityBtn.disabled = false;
                     if (increaseQuantityBtn) increaseQuantityBtn.disabled = false;
 
-                    renderRelatedVariants(variants);
+                    renderRelatedVariants(variants); // Initially render related variants
                 } catch (error) {
                     console.error("Ürün verileri çekilirken bir hata oluştu:", error);
                     if (productTitleEl) productTitleEl.textContent = translate('error_loading_product_title');
@@ -2308,6 +1532,9 @@
                     if (relatedVariantsGridEl) relatedVariantsGridEl.innerHTML = '';
                     const relatedSection = document.querySelector('.related-variants-section');
                     if (relatedSection) relatedSection.style.display = 'none';
+                } finally {
+                    // Hide loading overlay regardless of success or failure
+                    if (loadingOverlay) loadingOverlay.classList.add('hidden');
                 }
             };
 
@@ -2348,9 +1575,9 @@
                     countrySelector.parentElement.style.display = 'none';
                 }
                 
-                languageSelector.onchange = (e) => { currentLang = e.target.value; localStorage.setItem('pufemo-language', currentLang); renderAll(); };
-                currencySelector.onchange = (e) => { currentCurrency = e.target.value; localStorage.setItem('pufemo-currency', currentCurrency); renderAll(); };
-                countrySelector.onchange = (e) => { window.applyCountryAndRender(e.target.value); };
+                languageSelector.onchange = (e) => { currentLang = e.target.value; localStorage.setItem('pufemo-language', currentLang); renderAll(); loadProductDetails(new URLSearchParams(window.location.search).get('id')); };
+                currencySelector.onchange = (e) => { currentCurrency = e.target.value; localStorage.setItem('pufemo-currency', currentCurrency); renderAll(); loadProductDetails(new URLSearchParams(window.location.search).get('id')); };
+                countrySelector.onchange = (e) => { window.applyCountryAndRender(e.target.value); loadProductDetails(new URLSearchParams(window.location.search).get('id')); };
 
                 const toggleMenu = () => {
                     hamburgerBtn.classList.toggle('open');
@@ -2362,7 +1589,31 @@
                 mobileNavOverlay.onclick = toggleMenu;
                 mobileNav.onclick = (e) => { if (e.target.tagName === 'A') toggleMenu(); };
 
-                // Hide welcome modal on product page
+                // Quantity controls
+                if (decreaseQuantityBtn) {
+                    decreaseQuantityBtn.onclick = () => {
+                        let currentQuantity = parseInt(quantityInputEl.value);
+                        if (currentQuantity > 1) {
+                            quantityInputEl.value = currentQuantity - 1;
+                            updateCalculatedTotalPrice();
+                        }
+                    };
+                }
+                if (increaseQuantityBtn) {
+                    increaseQuantityBtn.onclick = () => {
+                        let currentQuantity = parseInt(quantityInputEl.value);
+                        if (currentQuantity < parseInt(quantityInputEl.max)) {
+                            quantityInputEl.value = currentQuantity + 1;
+                            updateCalculatedTotalPrice();
+                        }
+                    };
+                }
+                if (quantityInputEl) {
+                    quantityInputEl.onchange = updateCalculatedTotalPrice;
+                    quantityInputEl.onkeyup = updateCalculatedTotalPrice; // Also update on key up
+                }
+
+                // Hide welcome modal on product page by default CSS
                 if (welcomeModalOverlay) { welcomeModalOverlay.style.display = 'none'; }
 
                 // User authentication UI elements
@@ -2390,26 +1641,30 @@
                 const itemToAdd = {
                     productId: currentProductData.id,
                     quantity: quantity,
-                    basePrice: currentProductData.basePriceTL, // Store original base price
-                    discountedPrice: currentProductData.baseDiscountedPriceTL, // Store original discounted price
-                    // Add variant details if a variant is selected
-                    ...(selectedVariant && { 
-                        variantId: selectedVariant.id, 
-                        variantColorName: selectedVariant.colorName,
-                        basePrice: selectedVariant.basePriceTL, // Override with variant price if set
-                        discountedPrice: selectedVariant.baseDiscountedPriceTL // Override with variant price if set
-                    })
+                    // Use prices from the product or selected variant
+                    basePrice: selectedVariant?.basePriceTL || currentProductData.basePriceTL,
+                    discountedPrice: selectedVariant?.baseDiscountedPriceTL || currentProductData.baseDiscountedPriceTL,
+                    name: (selectedVariant?.content?.[currentLang]?.name || selectedVariant?.content?.tr?.name || productContentGlobal.name || translate('untitled_product')),
+                    image: (selectedVariant?.media?.[0]?.url || currentProductData.media?.[0]?.url || `https://via.placeholder.com/100x100?text=${translate('no_image')}`),
+                    isFreeShipping: (selectedVariant?.isFreeShipping || currentProductData.isFreeShipping || false)
                 };
 
-                // Get current cart items
+                // Add variant details if a variant is selected
+                if (selectedVariant) {
+                    itemToAdd.variantId = selectedVariant.id;
+                    itemToAdd.variantColorName = selectedVariant.colorName; // Assuming variants have colorName
+                }
+
                 let cartItems = [];
                 if (currentUser) {
+                    // Get current cart from Firestore
                     const cartDocRef = doc(db, 'users', currentUser.uid, 'cart', 'items');
                     const cartDocSnap = await getDoc(cartDocRef);
                     if (cartDocSnap.exists()) {
                         cartItems = cartDocSnap.data().items || [];
                     }
                 } else {
+                    // Get current cart from localStorage
                     const localCart = localStorage.getItem('pufemo-cart');
                     if (localCart) {
                         try {
@@ -2439,23 +1694,27 @@
                     try {
                         const cartDocRef = doc(db, 'users', currentUser.uid, 'cart', 'items');
                         await setDoc(cartDocRef, { items: cartItems });
-                        alert("Ürün sepetinize eklendi!");
+                        alert(`${itemToAdd.name} ${translate('add_to_cart_button').toLowerCase().replace('sepetinize', '')} eklendi!`); // User feedback
                     } catch (error) {
                         console.error("Error adding to Firestore cart:", error);
                         alert("Ürün sepetinize eklenirken bir hata oluştu.");
                     }
                 } else {
                     localStorage.setItem('pufemo-cart', JSON.stringify(cartItems));
-                    alert("Ürün sepetinize eklendi!");
+                    alert(`${itemToAdd.name} ${translate('add_to_cart_button').toLowerCase().replace('sepetinize', '')} eklendi!`); // User feedback
                 }
                 updateCartBadge(); // Update cart badge
             };
 
-            btnCartEl.onclick = addProductToCart;
-            btnBuyEl.onclick = async () => {
-                await addProductToCart();
-                window.location.href = 'checkout.html';
-            };
+            // Event listeners for Add to Cart and Buy Now buttons
+            if (btnCartEl) btnCartEl.onclick = addProductToCart;
+            if (btnBuyEl) {
+                btnBuyEl.onclick = async () => {
+                    await addProductToCart();
+                    // Redirect to checkout page after adding to cart
+                    window.location.href = 'cart.html'; // Or 'checkout.html' if you have one
+                };
+            }
             
             // Update cart badge (called on initial load and after cart operations)
             const updateCartBadge = async () => {
@@ -2465,7 +1724,7 @@
                         const cartDocRef = doc(db, 'users', currentUser.uid, 'cart', 'items');
                         const cartDocSnap = await getDoc(cartDocRef);
                         if (cartDocSnap.exists()) {
-                            cartItemCount = (cartDocSnap.data().items || []).length;
+                            cartItemCount = (cartDocSnap.data().items || []).reduce((sum, item) => sum + item.quantity, 0); // Sum quantities
                         }
                     } catch (error) {
                         console.error("Error loading cart for badge:", error);
@@ -2474,7 +1733,7 @@
                     const localCart = localStorage.getItem('pufemo-cart');
                     if (localCart) {
                         try {
-                            cartItemCount = JSON.parse(localCart).length;
+                            cartItemCount = JSON.parse(localCart).reduce((sum, item) => sum + item.quantity, 0); // Sum quantities
                         } catch (e) {
                             console.error("Error parsing local cart for badge:", e);
                             localStorage.removeItem('pufemo-cart');
@@ -2482,6 +1741,7 @@
                     }
                 }
                 cartBadge.textContent = cartItemCount;
+                cartBadge.style.display = cartItemCount > 0 ? 'block' : 'none'; // Show/hide badge
             };
 
             const mergeCarts = async (anonymousCart, userUid) => {
@@ -2497,7 +1757,7 @@
                 const mergedCart = [...firestoreCart];
 
                 anonymousCart.forEach(anonItem => {
-                    const existingItemIndex = mergedCart.findIndex(item => 
+                    const existingItemIndex = mergedCart.findIndex(item =>
                         item.productId === anonItem.productId && (item.variantId === anonItem.variantId || (!item.variantId && !anonItem.variantId))
                     );
                     if (existingItemIndex > -1) {
@@ -2508,53 +1768,33 @@
                 });
 
                 await setDoc(firestoreCartDocRef, { items: mergedCart });
-                localStorage.removeItem('pufemo-cart'); 
+                localStorage.removeItem('pufemo-cart');
                 console.log("Carts merged successfully!");
             };
 
 
             // --- User Authentication & UI Update ---
             const updateUserUI = () => {
-                userControlsContainer.innerHTML = ''; 
+                userControlsContainer.innerHTML = '';
+                const userBtn = document.createElement('button');
+                userBtn.className = 'user-btn';
+                userBtn.innerHTML = `<i class="fa-solid fa-user-circle"></i> <span>${translate('login_register')}</span>`; // Default text
+                userControlsContainer.appendChild(userBtn);
+
+                const dropdownContent = document.createElement('div');
+                dropdownContent.className = 'user-controls-dropdown-content';
+                userControlsContainer.appendChild(dropdownContent);
+
                 if (currentUser) {
                     let userDisplay = currentUser.isAnonymous ? translate('continue_as_guest') : (currentUser.email || currentUser.uid);
                     if (!currentUser.isAnonymous && userDisplay.length > 20) userDisplay = userDisplay.substring(0, 17) + "..."; // Truncate long emails
+                    userBtn.innerHTML = `<i class="fa-solid fa-user-circle"></i> <span>${userDisplay}</span>`;
 
-                    const dropdownBtn = document.createElement('button');
-                    dropdownBtn.className = 'user-btn';
-                    dropdownBtn.innerHTML = `<i class="fa-solid fa-user-circle"></i> <span>${userDisplay}</span>`;
-                    userControlsContainer.appendChild(dropdownBtn);
-
-                    const dropdownContent = document.createElement('div');
-                    dropdownContent.className = 'user-controls-dropdown-content';
-                    
                     if (!currentUser.isAnonymous) {
-                         const myAccountLink = document.createElement('a');
-                         myAccountLink.href = "#"; 
-                         myAccountLink.textContent = translate('my_account');
-                         dropdownContent.appendChild(myAccountLink);
-                    } else {
-                        // Guest user can still log in or sign up
-                        const googleLoginButton = document.createElement('button');
-                        googleLoginButton.className = 'user-btn'; // Use user-btn style for consistency
-                        googleLoginButton.innerHTML = `<i class="fa-brands fa-google"></i> ${translate('login_google')}`;
-                        googleLoginButton.style.display = 'block'; // Ensure it's a block element in dropdown
-                        googleLoginButton.style.width = '100%';
-                        googleLoginButton.style.textAlign = 'left';
-                        googleLoginButton.style.background = 'none';
-                        googleLoginButton.style.color = 'var(--text-color)';
-                        googleLoginButton.style.padding = '12px 16px';
-                        googleLoginButton.onclick = async () => {
-                            const provider = new GoogleAuthProvider();
-                            try {
-                                await signInWithPopup(auth, provider);
-                                alert("Google ile başarıyla giriş yapıldı!");
-                            } catch (error) {
-                                console.error("Google login error:", error);
-                                alert("Google ile giriş yapılırken bir hata oluştu.");
-                            }
-                        };
-                        dropdownContent.appendChild(googleLoginButton);
+                        const myAccountLink = document.createElement('a');
+                        myAccountLink.href = "#"; // Replace with actual account page link
+                        myAccountLink.textContent = translate('my_account');
+                        dropdownContent.appendChild(myAccountLink);
                     }
 
                     const logoutButton = document.createElement('button');
@@ -2562,32 +1802,53 @@
                     logoutButton.onclick = async () => {
                         try {
                             await signOut(auth);
-                            alert("Başarıyla çıkış yapıldı!");
+                            alert(translate('logout') + " " + translate('welcome_modal_confirm_button').toLowerCase() + "!"); // "Çıkış Yap Devam Et!" gibi bir çeviri olabilir.
+                            window.location.reload(); // Refresh page after logout to reset state
                         } catch (error) {
                             console.error("Logout error:", error);
                             alert("Çıkış yapılırken bir hata oluştu.");
                         }
                     };
                     dropdownContent.appendChild(logoutButton);
-                    userControlsContainer.appendChild(dropdownContent);
-
-                    dropdownBtn.onclick = (e) => {
-                        e.stopPropagation(); 
-                        userControlsContainer.classList.toggle('active');
-                    };
-                    document.onclick = (e) => {
-                        if (!userControlsContainer.contains(e.target)) {
-                            userControlsContainer.classList.remove('active');
+                } else {
+                    const googleLoginButton = document.createElement('button');
+                    googleLoginButton.innerHTML = `<i class="fa-brands fa-google"></i> ${translate('login_register')}`; // Use login_register for now
+                    googleLoginButton.onclick = async () => {
+                        const provider = new GoogleAuthProvider();
+                        try {
+                            await signInWithPopup(auth, provider);
+                            alert("Google ile başarıyla giriş yapıldı!");
+                        } catch (error) {
+                            console.error("Google login error:", error);
+                            alert("Google ile giriş yapılırken bir hata oluştu.");
                         }
                     };
+                    dropdownContent.appendChild(googleLoginButton);
 
-                } else {
-                    const loginLink = document.createElement('a');
-                    loginLink.href = "index.html"; 
-                    loginLink.className = 'user-btn';
-                    loginLink.textContent = translate('login_register');
-                    userControlsContainer.appendChild(loginLink);
+                    const anonymousLoginButton = document.createElement('button');
+                    anonymousLoginButton.textContent = translate('continue_as_guest');
+                    anonymousLoginButton.onclick = async () => {
+                        try {
+                            await signInAnonymously(auth);
+                            alert("Misafir olarak devam ediliyor!");
+                        } catch (error) {
+                            console.error("Anonymous login error:", error);
+                            alert("Misafir olarak giriş yapılırken bir hata oluştu.");
+                        }
+                    };
+                    dropdownContent.appendChild(anonymousLoginButton);
                 }
+
+                // Dropdown toggle logic
+                userBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    userControlsContainer.classList.toggle('active');
+                };
+                document.onclick = (e) => {
+                    if (!userControlsContainer.contains(e.target)) {
+                        userControlsContainer.classList.remove('active');
+                    }
+                };
             };
 
 
@@ -2596,54 +1857,193 @@
                 if (loadingOverlay) loadingOverlay.classList.remove('hidden');
                 if (loadingTextP) loadingTextP.textContent = translate('loading_text');
 
-                await fetchData(); 
-
-                onAuthStateChanged(auth, async (user) => {
-                    currentUser = user;
-                    updateUserUI(); 
-
-                    if (user) {
-                        if (!user.isAnonymous) {
-                            const localCartData = localStorage.getItem('pufemo-cart');
-                            if (localCartData) {
-                                try {
-                                    const anonymousCart = JSON.parse(localCartData);
-                                    await mergeCarts(anonymousCart, user.uid);
-                                } catch (e) {
-                                    console.error("Error parsing local cart:", e);
-                                    localStorage.removeItem('pufemo-cart');
+                // Fetch global site settings and categories
+                await Promise.all([
+                    (async () => {
+                        const settingsDoc = await getDoc(doc(db, 'pufemo', 'settings'));
+                        if (settingsDoc.exists()) {
+                            siteData.settings = { ...siteData.settings, ...settingsDoc.data() };
+                            // Ensure country, lang, currency are set based on available data or defaults
+                            const availableCountries = Object.keys(siteData.settings.countryPricing || {});
+                            if (localStorage.getItem('pufemo-country') && availableCountries.includes(localStorage.getItem('pufemo-country'))) {
+                                currentCountryCode = localStorage.getItem('pufemo-country');
+                            } else if (availableCountries.length > 0) {
+                                currentCountryCode = availableCountries[0];
+                                localStorage.setItem('pufemo-country', currentCountryCode);
+                            } else {
+                                currentCountryCode = 'US'; // Fallback
+                                localStorage.setItem('pufemo-country', currentCountryCode);
+                            }
+                            const selectedCountryData = siteData.settings.countryPricing[currentCountryCode];
+                            if (selectedCountryData) {
+                                if (selectedCountryData.defaultLanguage && typeof selectedCountryData.defaultLanguage === 'string' && selectedCountryData.defaultLanguage.length === 2) {
+                                    currentLang = selectedCountryData.defaultLanguage;
+                                } else {
+                                    currentLang = 'en';
                                 }
+                                const selectedCountryCurrencySymbol = selectedCountryData.currencySymbol;
+                                if (selectedCountryCurrencySymbol) {
+                                    const currencyCodeFromSymbol = Object.keys(siteData.settings.currencySymbols || {}).find(key =>
+                                        siteData.settings.currencySymbols[key] === selectedCountryCurrencySymbol
+                                    );
+                                    if (currencyCodeFromSymbol) {
+                                        currentCurrency = currencyCodeFromSymbol;
+                                    } else {
+                                        currentCurrency = 'USD';
+                                    }
+                                } else {
+                                    currentCurrency = 'USD';
+                                }
+                                localStorage.setItem('pufemo-language', currentLang);
+                                localStorage.setItem('pufemo-currency', currentCurrency);
+                            } else {
+                                currentLang = 'en';
+                                currentCurrency = 'USD';
+                                localStorage.setItem('pufemo-language', currentLang);
+                                localStorage.setItem('pufemo-currency', currentCurrency);
                             }
                         }
-                    } else {
-                        console.log("User is signed out.");
-                    }
-                    renderAll(); 
-                    updateCartBadge(); // Ensure cart badge is updated for current user/anon
-                    if (loadingOverlay) loadingOverlay.classList.add('hidden');
-                    // Show welcome modal if no country is set in localStorage (or if it's invalid)
-                    const availableCountries = siteData.settings?.countryPricing ? Object.keys(siteData.settings.countryPricing) : [];
-                    if (!localStorage.getItem('pufemo-country') && availableCountries.length > 0 && welcomeModalOverlay) {
-                        welcomeModalOverlay.classList.add('active'); // Modalı göster
-                    }
-                });
-            }
+                    })(),
+                    (async () => {
+                        const categoriesDoc = await getDoc(doc(db, 'pufemo', 'categories'));
+                        if (categoriesDoc.exists()) {
+                            siteData.categories = { ...siteData.categories, ...categoriesDoc.data() };
+                        }
+                    })()
+                ]);
 
-            // Get product ID from URL on initial load
-            const productId = new URLSearchParams(window.location.search).get('id');
-            if (productId) {
-                init().then(() => loadProductDetails(productId));
-            } else {
-                console.error("Product ID not found in URL.");
-                init().then(() => {
+                // Render common UI elements after fetching siteData
+                renderGeneralSiteElements();
+                renderCategories();
+                setupControls();
+
+                // Listen for Auth state changes
+                onAuthStateChanged(auth, async (user) => {
+                    currentUser = user;
+                    updateUserUI();
+                    if (user && !user.isAnonymous) {
+                        const localCartData = localStorage.getItem('pufemo-cart');
+                        if (localCartData) {
+                            try {
+                                const anonymousCart = JSON.parse(localCartData);
+                                await mergeCarts(anonymousCart, user.uid);
+                            } catch (e) {
+                                console.error("Error parsing local cart during merge:", e);
+                                localStorage.removeItem('pufemo-cart');
+                            }
+                        }
+                    }
+                    updateCartBadge(); // Update cart badge based on current user/local storage
+                });
+
+
+                // Get product ID from URL on initial load and then load details
+                const productId = new URLSearchParams(window.location.search).get('id');
+                if (productId) {
+                    await loadProductDetails(productId);
+                } else {
+                    console.error("Product ID not found in URL.");
                     if (productTitleEl) productTitleEl.textContent = translate('product_not_found_title');
                     if (productDescriptionEl) productDescriptionEl.textContent = translate('product_not_found_desc');
                     if (calculatedTotalPriceEl) calculatedTotalPriceEl.textContent = '';
-                });
+                    if (loadingOverlay) loadingOverlay.classList.add('hidden'); // Hide on error
+                    if (relatedVariantsGridEl) relatedVariantsGridEl.innerHTML = '';
+                    const relatedSection = document.querySelector('.related-variants-section');
+                    if (relatedSection) relatedSection.style.display = 'none';
+                }
             }
+
+            // Function to re-render all elements when language/currency/country changes
+            const renderAll = () => {
+                renderStaticText();
+                renderGeneralSiteElements();
+                renderCategories();
+                setupControls(); // Re-setup controls to update values
+                // Product details should re-load based on current ID, which is triggered by language/currency/country changes
+                // loadProductDetails(new URLSearchParams(window.location.search).get('id')); // Already called in onchange listeners
+            };
+
+            const renderStaticText = () => {
+                document.documentElement.lang = currentLang;
+                if (loadingTextP) loadingTextP.textContent = translate('loading_text');
+                if (productDetailsHeadingEl) productDetailsHeadingEl.textContent = translate('product_details_heading');
+                if (quantityLabelEl) quantityLabelEl.textContent = translate('quantity_label');
+                if (totalPriceLabelEl) totalPriceLabelEl.textContent = translate('total_price_label');
+                if (btnCartEl) btnCartEl.textContent = translate('add_to_cart_button');
+                if (btnBuyEl) btnBuyEl.textContent = translate('buy_now_button');
+                if (freeShippingEl) freeShippingEl.textContent = translate('free_shipping_tag');
+                if (relatedVariantsTitleEl) relatedVariantsTitleEl.textContent = translate('related_products_title');
+
+                // Footer
+                document.getElementById('footer-title-pufemo').textContent = translate('footer-title-pufemo');
+                document.getElementById('footer-desc-pufemo').textContent = translate('footer-desc-pufemo');
+                document.getElementById('footer-title-fast-links').textContent = translate('footer-title-fast-links');
+                document.getElementById('footer-link-about').textContent = translate('footer-link-about');
+                document.getElementById('footer-link-contact').textContent = translate('footer-link-contact');
+                document.getElementById('footer-link-privacy').textContent = translate('footer-link-privacy');
+                document.getElementById('footer-title-follow-us').textContent = translate('footer-title-follow-us');
+                document.getElementById('footer-copyright').innerHTML = translate('footer-copyright');
+                document.getElementById('country-selector-label').textContent = translate('country_selector_label');
+
+                // Promo Bar
+                if (promoTextContentEl) promoTextContentEl.textContent = siteData.settings.general?.promoBar?.text?.[currentLang] || translate('promo_bar_text');
+                
+                // Cart Link Title
+                if (cartPageLink) cartPageLink.title = translate('cart_page_link_title');
+
+                // Category Menu Title (for mobile)
+                const mobileNavHeader = mobileNav.querySelector('.mobile-nav-header');
+                if (mobileNavHeader) mobileNavHeader.textContent = translate('mobile_menu_title');
+
+                // Variant Label
+                if (variantTitleEl) variantTitleEl.textContent = translate('variant_selection_label');
+            };
+
+            // Global function to apply country and re-render (used by country selector)
+            window.applyCountryAndRender = (countryCode) => {
+                currentCountryCode = countryCode;
+                localStorage.setItem('pufemo-country', currentCountryCode);
+
+                const selectedCountryData = siteData.settings.countryPricing[currentCountryCode];
+                if (selectedCountryData) {
+                    if (selectedCountryData.defaultLanguage && typeof selectedCountryData.defaultLanguage === 'string' && selectedCountryData.defaultLanguage.length === 2) {
+                        currentLang = selectedCountryData.defaultLanguage;
+                    } else {
+                        currentLang = 'en';
+                    }
+                    const selectedCountryCurrencySymbol = selectedCountryData.currencySymbol;
+                    if (selectedCountryCurrencySymbol) {
+                        const currencyCodeFromSymbol = Object.keys(siteData.settings.currencySymbols || {}).find(key =>
+                            siteData.settings.currencySymbols[key] === selectedCountryCurrencySymbol
+                        );
+                        if (currencyCodeFromSymbol) {
+                            currentCurrency = currencyCodeFromSymbol;
+                        } else {
+                            currentCurrency = 'USD';
+                        }
+                    } else {
+                        currentCurrency = 'USD';
+                    }
+                    localStorage.setItem('pufemo-language', currentLang);
+                    localStorage.setItem('pufemo-currency', currentCurrency);
+                } else {
+                    currentLang = 'en';
+                    currentCurrency = 'USD';
+                    localStorage.setItem('pufemo-language', currentLang);
+                    localStorage.setItem('pufemo-currency', currentCurrency);
+                }
+                renderAll(); // Rerender all common UI elements
+                loadProductDetails(new URLSearchParams(window.location.search).get('id')); // Reload product details for new pricing/language
+                document.getElementById('language-selector').value = currentLang;
+                document.getElementById('currency-selector').value = currentCurrency;
+                document.getElementById('country-selector').value = currentCountryCode;
+            };
+
+
+            init(); // Start the initialization process
         } else {
-            // Firebase init failed - this block is only reached if the initial try-catch failed and returned.
-            // All necessary elements are already handled in the catch block above this.
+            // This block is executed if Firebase fails to initialize.
+            // The initial try-catch block already handles displaying error messages and disabling elements.
             console.error("Script execution stopped because Firebase failed to initialize.");
         }
     </script>
