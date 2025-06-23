@@ -737,26 +737,7 @@
     </footer>
 
     <script type="module">
-        // Firebase SDK importları güncellendi
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-        import { getFirestore, doc, getDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
-        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, signInAnonymously } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
-
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyDYkzZzNXB22U4oEXxOoPh-puwuE8kz0g4",
-            authDomain: "pufemo-com.firebaseapp.com",
-            projectId: "pufemo-com",
-            storageBucket: "pufemo-com.firebasestorage.app",
-            messagingSenderId: "983352837227",
-            appId: "1:983352837227:web:defaa8dae215776e2e1d2e",
-            measurementId: "G-RH8XHC7P91"
-        };
-        
-        // Firebase başlatma
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const auth = getAuth(app); // Auth servisini başlat
+        // Firebase SDK importları kaldırıldı. Artık lokal olarak çalışıyoruz.
 
         // DOM Elementleri
         const loadingOverlay = document.getElementById('loading-overlay');
@@ -786,113 +767,469 @@
 
         let isLoginMode = true; // true = Giriş Yap, false = Kayıt Ol
 
-        let siteData = {
-            settings: {
-                languages: [],
-                banner: [], // banner artık doğrudan dizi olarak kabul edilecek
-                general: { logo: {}, promoBar: {} },
-                countryPricing: {},
-                currencySymbols: {},
-                exchangeRates: {},
-                staticTranslations: {} // Yeni: Statik çeviriler için
+        // Lokal Veri Depolama Yapısı
+        // siteData, LocalStorage'da tutulacak tüm site ayarlarını, kategorileri ve ürünleri içerir.
+        // İlk yüklendiğinde, eğer localStorage'da veri yoksa varsayılan verilerle başlatılır.
+        let siteData = {};
+
+        // Varsayılan Statik Çeviriler (Tüm diller dahil)
+        // Bu, siteye ilk kez erişildiğinde veya localStorage boş olduğunda kullanılacak.
+        const defaultStaticTranslations = {
+            'loading_text': {
+                tr: 'PUFEMO Yükleniyor...', en: 'Loading PUFEMO...', el: 'Φόρτωση PUFEMO...', ru: 'Загрузка PUFEMO...',
+                de: 'PUFEMO wird geladen...', fr: 'Chargement de PUFEMO...', it: 'Caricamento PUFEMO...'
             },
-            categories: { tree: [] },
-            products: []
+            'mobile_menu_title': {
+                tr: 'Kategoriler', en: 'Categories', el: 'Κατηγορίες', ru: 'Категории',
+                de: 'Kategorien', fr: 'Catégories', it: 'Categorie'
+            },
+            'main_section_title': {
+                tr: 'Öne Çıkan Ürünler', en: 'Featured Products', el: 'Προτεινόμενα Προϊόντα', ru: 'Рекомендуемые товары',
+                de: 'Ausgewählte Produkte', fr: 'Produits Phares', it: 'Prodotti in Evidenza'
+            },
+            'footer-title-pufemo': {
+                tr: 'PUFEMO', en: 'PUFEMO', el: 'PUFEMO', ru: 'ПУΦΕΜΟ',
+                de: 'PUFEMO', fr: 'PUFEMO', it: 'PUFEMO'
+            },
+            'footer-desc-pufemo': {
+                tr: 'Hayallerinizdeki konforu ve estetiği evinize taşıyoruz.', en: 'We bring the comfort and aesthetics of your dreams to your home.',
+                el: 'Φέρνουμε την άνεση και την αισθητική των ονείρων σας στο σπίτι σας.', ru: 'Мы приносим комфорт и эстетику в ваш дом.',
+                de: 'Wir bringen den Komfort und die Ästhetik Ihrer Träume in Ihr Zuhause.', fr: 'Nous apportons le confort et l\'esthétique de vos rêves à votre maison.',
+                it: 'Portiamo il comfort e l\'estetica dei vostri sogni nella vostra casa.'
+            },
+            'footer-title-fast-links': {
+                tr: 'Hızlı Bağlantılar', en: 'Quick Links', el: 'Γρήγοροι Σύνδεσμοι', ru: 'Быстрые ссылки',
+                de: 'Schnelllinks', fr: 'Liens Rapides', it: 'Link Veloci'
+            },
+            'footer-link-about': {
+                tr: 'Hakkımızda', en: 'About Us', el: 'Σχετικά με εμάς', ru: 'О нас',
+                de: 'Über Uns', fr: 'À Propos', it: 'Chi Siamo'
+            },
+            'footer-link-contact': {
+                tr: 'İletişim', en: 'Contact', el: 'Επικοινωνία', ru: 'Контакт',
+                de: 'Kontakt', fr: 'Contact', it: 'Contatti'
+            },
+            'footer-link-privacy': {
+                tr: 'Gizlilik Politikası', en: 'Privacy Policy', el: 'Πολιτική Απορρήτου', ru: 'Политика конфиденциальности',
+                de: 'Datenschutzbestimmungen', fr: 'Politique de Confidentialité', it: 'Informativa sulla Privacy'
+            },
+            'footer-title-follow-us': {
+                tr: 'Bizi Takip Edin', en: 'Follow Us', el: 'Ακολουθήστε μας', ru: 'Следите за нами',
+                de: 'Folgen Sie Uns', fr: 'Suivez-nous', it: 'Seguici'
+            },
+            'footer-copyright': {
+                tr: '&copy; 2025 PUFEMO.COM | Tüm Hakları Saklıdır.', en: '&copy; 2025 PUFEMO.COM | All Rights Reserved.',
+                el: '&copy; 2025 PUFEMO.COM | Με την επιφύλαξη παντός δικαιώματος.', ru: '&copy; 2025 PUFEMO.COM | Все права защищены.',
+                de: '&copy; 2025 PUFEMO.COM | Alle Rechte vorbehalten.', fr: '&copy; 2025 PUFEMO.COM | Tous droits réservés.',
+                it: '&copy; 2025 PUFEMO.COM | Tutti i diritti riservati.'
+            },
+            'default_button_text': {
+                tr: 'Alışverişe Başla', en: 'Shop Now', el: 'Αγοράστε τώρα', ru: 'Купить сейчас',
+                de: 'Jetzt einkaufen', fr: 'Acheter maintenant', it: 'Acquista ora'
+            },
+            'free_shipping_text': {
+                tr: 'Ücretsiz Kargo', en: 'Free Shipping', el: 'Δωρεάν Αποστολή', ru: 'Бесплатная доставка',
+                de: 'Kostenloser Versand', fr: 'Livraison Gratuite', it: 'Spedizione Gratuita'
+            },
+            'free_shipping_promo': {
+                tr: 'Ücretsiz Kargo İmkanı! Mobilyalarınız Kapınızda!', en: 'Free Shipping Available! Furniture at Your Doorstep!',
+                el: 'Διαθέσιμη δωρεάν αποστολή! Έπιπλα στην πόρτα σας!', ru: 'Доступна бесплатная доставка! Мебель доставим до вашей двери!',
+                de: 'Kostenloser Versand möglich! Möbel direkt vor Ihre Haustür!', fr: 'Livraison Gratuite Disponible ! Vos meubles à votre porte !',
+                it: 'Spedizione Gratuita Disponibile! I tuoi mobili a casa tua!'
+            },
+            'country_selector_label': {
+                tr: 'Ülke Seçimi:', en: 'Select Country:', el: 'Επιλέξτε Χώρα:', ru: 'Выбрать страну:',
+                de: 'Land auswählen:', fr: 'Sélectionner le pays :', it: 'Seleziona Paese:'
+            },
+            'welcome_modal_title': {
+                tr: 'Hoş Geldiniz!', en: 'Welcome!', el: 'Καλώς ήρθατε!', ru: 'Добро пожаловать!',
+                de: 'Willkommen!', fr: 'Bienvenue !', it: 'Benvenuto!'
+            },
+            'welcome_modal_message': {
+                tr: 'Lütfen ülkenizi seçin.', en: 'Please select your country below.', el: 'Παρακαλώ επιλέξτε τη χώρα σας παρακάτω.', ru: 'Пожалуйста, выберите свою страну ниже.',
+                de: 'Bitte wählen Sie Ihr Land unten aus.', fr: 'Veuillez sélectionner votre pays ci-dessous.', it: 'Seleziona il tuo paese qui sotto.'
+            },
+            'welcome_modal_confirm_button': {
+                tr: 'Devam Et', en: 'Continue', el: 'Συνέχεια', ru: 'Продолжить',
+                de: 'Weiter', fr: 'Continuer', it: 'Continua'
+            },
+            'cart_page_link_title': {
+                tr: 'Sepetim', en: 'My Cart', el: 'Το καλάθι μου', ru: 'Моя корзина',
+                de: 'Mein Warenkorb', fr: 'Mon Panier', it: 'Il mio Carrello'
+            },
+            'untitled_product': {
+                tr: 'İsimsiz Ürün', en: 'Untitled Product', el: 'Προϊόν χωρίς τίτλο', ru: 'Товар без названия',
+                de: 'Unbenanntes Produkt', fr: 'Produit sans titre', it: 'Prodotto senza titolo'
+            },
+            'no_image': {
+                tr: 'Resim Yok', en: 'No Image', el: 'Χωρίς Εικόνα', ru: 'Нет изображения',
+                de: 'Kein Bild', fr: 'Pas d\'image', it: 'Nessuna immagine'
+            },
+            'login_title': {
+                tr: 'Giriş Yap', en: 'Login', el: 'Σύνδεση', ru: 'Вход',
+                de: 'Anmelden', fr: 'Se connecter', it: 'Accedi'
+            },
+            'register_title': {
+                tr: 'Kayıt Ol', en: 'Register', el: 'Εγγραφή', ru: 'Регистрация',
+                de: 'Registrieren', fr: 'S\'inscrire', it: 'Registrati'
+            },
+            'login_button': {
+                tr: 'Giriş Yap', en: 'Login', el: 'Σύνδεση', ru: 'Вход',
+                de: 'Anmelden', fr: 'Se connecter', it: 'Accedi'
+            },
+            'register_button': {
+                tr: 'Kayıt Ol', en: 'Register', el: 'Εγγραφή', ru: 'Регистрация',
+                de: 'Registrieren', fr: 'S\'inscrire', it: 'Registrati'
+            },
+            'continue_as_guest_button': {
+                tr: 'Misafir Olarak Devam Et', en: 'Continue as Guest', el: 'Συνέχιση ως επισκέπτης', ru: 'Продолжить как гость',
+                de: 'Als Gast fortfahren', fr: 'Continuer en tant qu\'invité', it: 'Continua come ospite'
+            },
+            'no_account_yet': {
+                tr: 'Hesabın yok mu? Kayıt Ol', en: 'Don\'t have an account? Register', el: 'Δεν έχετε λογαριασμό; Εγγραφείτε', ru: 'Нет аккаунта? Зарегистрироваться',
+                de: 'Noch kein Konto? Registrieren', fr: 'Pas de compte ? S\'inscrire', it: 'Non hai un account? Registrati'
+            },
+            'already_have_account': {
+                tr: 'Zaten bir hesabın var mı? Giriş Yap', en: 'Already have an account? Login', el: 'Έχετε ήδη λογαριασμό; Συνδεθείτε', ru: 'Уже есть аккаунт? Войти',
+                de: 'Bereits ein Konto? Anmelden', fr: 'Déjà un compte ? Se connecter', it: 'Hai già un account? Accedi'
+            },
+            'confirm_logout': {
+                tr: 'Çıkış yapmak istediğinize emin misiniz?', en: 'Are you sure you want to log out?', el: 'Είστε σίγουροι ότι θέλετε να αποσυνδεθείτε;', ru: 'Вы уверены, что хотите выйти?',
+                de: 'Sind Sie sicher, dass Sie sich abmelden möchten?', fr: 'Êtes-vous sûr de vouloir vous déconnecter ?', it: 'Sei sicuro di voler disconnetterti?'
+            },
+            'logout_error': {
+                tr: 'Çıkış yapılırken hata: ', en: 'Logout error: ', el: 'Σφάλμα αποσύνδεσης: ', ru: 'Ошибка выхода: ',
+                de: 'Abmeldefehler: ', fr: 'Erreur de déconnexion : ', it: 'Errore di disconnessione: '
+            },
+            'guest_user': {
+                tr: 'Misafir Kullanıcı', en: 'Guest User', el: 'Επισκέπτης χρήστης', ru: 'Гостевой пользователь',
+                de: 'Gastnutzer', fr: 'Utilisateur invité', it: 'Utente ospite'
+            },
+            'login_register': {
+                tr: 'Giriş Yap / Kayıt Ol', en: 'Login / Register', el: 'Σύνδεση / Εγγραφή', ru: 'Вход / Регистрация',
+                de: 'Anmelden / Registrieren', fr: 'Connexion / Inscription', it: 'Accedi / Registrati'
+            },
+            'login_success': {
+                tr: 'Başarıyla giriş yapıldı!', en: 'Logged in successfully!', el: 'Επιτυχής σύνδεση!', ru: 'Успешный вход!',
+                de: 'Erfolgreich angemeldet!', fr: 'Connexion réussie !', it: 'Accesso riuscito!'
+            },
+            'register_success': {
+                tr: 'Hesabınız başarıyla oluşturuldu! Şimdi giriş yapabilirsiniz.', en: 'Account created successfully! You can now log in.',
+                el: 'Ο λογαριασμός δημιουργήθηκε επιτυχώς! Μπορείτε τώρα να συνδεθείτε.', ru: 'Аккаунт успешно создан! Теперь вы можете войти.',
+                de: 'Konto erfolgreich erstellt! Sie können sich jetzt anmelden.', fr: 'Compte créé avec succès ! Vous pouvez maintenant vous connecter.',
+                it: 'Account creato con successo! Ora puoi accedere.'
+            },
+            'guest_login_success': {
+                tr: 'Misafir olarak giriş yapıldı.', en: 'Logged in as guest.', el: 'Συνδεθήκατε ως επισκέπτης.', ru: 'Вошли как гость.',
+                de: 'Als Gast angemeldet.', fr: 'Connecté en tant qu\'invité.', it: 'Accesso come ospite.'
+            },
+            'guest_login_error': {
+                tr: 'Misafir girişi sırasında hata: ', en: 'Error during guest login: ', el: 'Σφάλμα κατά την είσοδο επισκέπτη: ', ru: 'Ошибка при входе в качестве гостя: ',
+                de: 'Fehler beim Gast-Login: ', fr: 'Erreur lors de la connexion en tant qu\'invité : ', it: 'Errore durante l\'accesso ospite: '
+            },
+            'auth_error_unknown': {
+                tr: 'Bilinmeyen bir kimlik doğrulama hatası oluştu.', en: 'An unknown authentication error occurred.',
+                el: 'Παρουσιάστηκε ένα άγνωστο σφάλμα ελέγχου ταυτότητας.', ru: 'Произошла неизвестная ошибка аутентификации.',
+                de: 'Ein unbekannter Authentifizierungsfehler ist aufgetreten.', fr: 'Une erreur d\'authentification inconnue s\'est produite.',
+                it: 'Si è verificato un errore di autenticazione sconosciuto.'
+            },
+            'auth_error_invalid_email': {
+                tr: 'Geçersiz e-posta adresi.', en: 'Invalid email address.', el: 'Μη έγκυρη διεύθυνση email.', ru: 'Неверный адрес электронной почты.',
+                de: 'Ungültige E-Mail-Adresse.', fr: 'Adresse email invalide.', it: 'Indirizzo email non valido.'
+            },
+            'auth_error_user_disabled': {
+                tr: 'Bu hesap devre dışı bırakılmış.', en: 'This account has been disabled.', el: 'Αυτός ο λογαριασμός έχει απενεργοποιηθεί.', ru: 'Этот аккаунт отключен.',
+                de: 'Dieses Konto wurde deaktiviert.', fr: 'Ce compte a été désactivé.', it: 'Questo account è stato disabilitato.'
+            },
+            'auth_error_user_not_found': {
+                tr: 'Bu e-posta adresine ait bir kullanıcı bulunamadı.', en: 'No user found with this email address.',
+                el: 'Δεν βρέθηκε χρήστης με αυτήν τη διεύθυνση email.', ru: 'Пользователь с таким адресом электронной почты не найден.',
+                de: 'Kein Benutzer mit dieser E-Mail-Adresse gefunden.', fr: 'Aucun utilisateur trouvé avec cette adresse e-mail.',
+                it: 'Nessun utente trovato con questo indirizzo email.'
+            },
+            'auth_error_wrong_password': {
+                tr: 'Yanlış şifre.', en: 'Wrong password.', el: 'Λάθος κωδικός πρόσβασης.', ru: 'Неверный пароль.',
+                de: 'Falsches Passwort.', fr: 'Mot de passe incorrect.', it: 'Password sbagliata.'
+            },
+            'auth_error_email_in_use': {
+                tr: 'Bu e-posta adresi zaten kullanılıyor.', en: 'This email address is already in use.',
+                el: 'Αυτή η διεύθυνση email χρησιμοποιείται ήδη.', ru: 'Этот адрес электронной почты уже используется.',
+                de: 'Diese E-Mail-Adresse wird bereits verwendet.', fr: 'Cette adresse e-mail est déjà utilisée.',
+                it: 'Questo indirizzo email è già in uso.'
+            },
+            'auth_error_weak_password': {
+                tr: 'Şifre en az 6 karakter olmalıdır.', en: 'Password should be at least 6 characters.',
+                el: 'Ο κωδικός πρόσβασης πρέπει να έχει τουλάχιστον 6 χαρακτήρες.', ru: 'Пароль должен быть не менее 6 символов.',
+                de: 'Das Passwort sollte mindestens 6 Zeichen lang sein.', fr: 'Le mot de passe doit contenir au moins 6 caractères.',
+                it: 'La password deve contenere almeno 6 caratteri.'
+            },
+            'auth_error_operation_not_allowed': {
+                tr: 'E-posta/Şifre ile giriş etkin değil.', en: 'Email/Password sign-in is not enabled.',
+                el: 'Η σύνδεση με email/κωδικό πρόσβασης δεν είναι ενεργοποιημένη.', ru: 'Вход по электронной почте/паролю не включен.',
+                de: 'E-Mail-/Passwort-Anmeldung ist nicht aktiviert.', fr: 'La connexion par e-mail/mot de passe n\'est pas activée.',
+                it: 'L\'accesso tramite email/password non è abilitato.'
+            },
+            'auth_error_generic': {
+                tr: 'Bir hata oluştu: ', en: 'An error occurred: ', el: 'Παρουσιάστηκε σφάλμα: ', ru: 'Произошла ошибка: ',
+                de: 'Ein Fehler ist aufgetreten: ', fr: 'Une erreur s\'est produite : ', it: 'Si è verificato un errore: '
+            },
+            'select_country_to_continue': {
+                tr: 'Devam etmek için lütfen bir ülke seçin.', en: 'Please select a country to continue.',
+                el: 'Παρακαλώ επιλέξτε μια χώρα για να συνεχίσετε.', ru: 'Пожалуйста, выберите страну для продолжения.',
+                de: 'Bitte wählen Sie ein Land aus, um fortzufahren.', fr: 'Veuillez sélectionner un pays pour continuer.',
+                it: 'Seleziona un paese per continuare.'
+            }
         };
 
-        let currentLang = localStorage.getItem('pufemo-language') || 'en';
+        // Varsayılan Site Verileri (localStorage boşsa kullanılacak)
+        // Admin panelinden Firebase yerine localStorage'a kaydedilecek verinin yapısı
+        const defaultSiteData = {
+            settings: {
+                languages: [
+                    { code: 'tr', name: 'Türkçe', flag: 'TR' },
+                    { code: 'en', name: 'English', flag: 'GB' },
+                    { code: 'el', name: 'Ελληνικά', flag: 'GR' },
+                    { code: 'ru', name: 'Русский', flag: 'RU' },
+                    { code: 'de', name: 'Deutsch', flag: 'DE' },
+                    { code: 'fr', name: 'Français', flag: 'FR' },
+                    { code: 'it', name: 'Italiano', flag: 'IT' }
+                ],
+                banner: [
+                    {
+                        image_url: 'https://via.placeholder.com/1200x500/2c3e50/ffffff?text=Mobilyada+Yeni+Trendler',
+                        link_url: '#',
+                        content: {
+                            tr: { title: 'Modern Mobilyaların Adresi', subtitle: 'Evinizi yeniden keşfedin.', button_text: 'Şimdi Keşfet' },
+                            en: { title: 'The Address of Modern Furniture', subtitle: 'Rediscover your home.', button_text: 'Discover Now' }
+                        },
+                        style: {
+                            title_color: '#FFFFFF', title_font_size: '2.8rem', subtitle_color: '#FFFFFF',
+                            subtitle_font_size: '1.2rem', button_bg_color: '#e74c3c', button_text_color: '#FFFFFF',
+                            button_border_radius: '5px', button_padding: '12px 25px'
+                        }
+                    },
+                    {
+                        image_url: 'https://via.placeholder.com/1200x500/e74c3c/ffffff?text=Konforlu+Yaşam+Alanları',
+                        link_url: '#',
+                        content: {
+                            tr: { title: 'Konforlu Yaşam Alanları', subtitle: 'Hayalinizdeki eve bir adım daha yakın.', button_text: 'Koleksiyonu Gör' },
+                            en: { title: 'Comfortable Living Spaces', subtitle: 'A step closer to your dream home.', button_text: 'View Collection' }
+                        },
+                        style: {
+                            title_color: '#FFFFFF', title_font_size: '2.8rem', subtitle_color: '#FFFFFF',
+                            subtitle_font_size: '1.2rem', button_bg_color: '#2c3e50', button_text_color: '#FFFFFF',
+                            button_border_radius: '5px', button_padding: '12px 25px'
+                        }
+                    }
+                ],
+                general: {
+                    logo: { type: 'text_icon', text: 'PUFEMO', icon: 'fa-solid fa-couch', iconColor: '#e74c3c', textColor: '#2c3e50' },
+                    promoBar: { bgColor: '#e74c3c', textColor: '#ffffff', fontSize: '0.95rem', scrollSpeed: '20s', text: defaultStaticTranslations.free_shipping_promo, enabled: true }
+                },
+                countryPricing: {
+                    tr: { name: { tr: 'Türkiye', en: 'Turkey' }, flag: 'TR', adjustment: 0, defaultLanguage: 'tr', currencySymbol: '₺' },
+                    us: { name: { tr: 'Amerika Birleşik Devletleri', en: 'United States' }, flag: 'US', adjustment: 5, defaultLanguage: 'en', currencySymbol: '$' },
+                    de: { name: { tr: 'Almanya', en: 'Germany' }, flag: 'DE', adjustment: 8, defaultLanguage: 'de', currencySymbol: '€' }
+                },
+                currencySymbols: { "TRY": "₺", "USD": "$", "EUR": "€", "GBP": "£" },
+                exchangeRates: { "USD": 1, "TRY": 32.5, "EUR": 0.92, "GBP": 0.79 },
+                staticTranslations: defaultStaticTranslations // Varsayılan çeviriler
+            },
+            categories: { tree: [
+                { id: 'koltuklar', name: { tr: 'Koltuk Takımları', en: 'Sofa Sets' }, children: [
+                    { id: 'lkoltuklar', name: { tr: 'L Koltuklar', en: 'L-Shaped Sofas' }, children: [] },
+                    { id: 'klasikkoltuklar', name: { tr: 'Klasik Koltuklar', en: 'Classic Sofas' }, children: [] }
+                ]},
+                { id: 'yemekodasi', name: { tr: 'Yemek Odası', en: 'Dining Room' }, children: [] },
+                { id: 'yatakodasi', name: { tr: 'Yatak Odası', en: 'Bedroom' }, children: [] }
+            ]},
+            products: [
+                {
+                    id: 'urun-1', sku: 'URUN001', basePriceTL: 12000, baseDiscountedPriceTL: 9999, isFreeShipping: true, isInShowcase: true,
+                    categories: ['koltuklar', 'lkoltuklar'],
+                    content: {
+                        tr: { name: 'Modern L Koltuk Takımı', description: 'Geniş ve konforlu, modern yaşam alanları için ideal.' },
+                        en: { name: 'Modern L-Shaped Sofa Set', description: 'Spacious and comfortable, ideal for modern living spaces.' }
+                    },
+                    media: [{ type: 'image', url: 'https://via.placeholder.com/600x450/2980b9/ffffff?text=Modern+Koltuk' }],
+                    variants: [
+                        { colorName: { tr: 'Gri', en: 'Grey' }, media: [{ type: 'image', url: 'https://via.placeholder.com/600x450/7f8c8d/ffffff?text=Gri+Koltuk' }], basePriceTL: 12000, baseDiscountedPriceTL: 9999, isFreeShipping: true },
+                        { colorName: { tr: 'Mavi', en: 'Blue' }, media: [{ type: 'image', url: 'https://via.placeholder.com/600x450/3498db/ffffff?text=Mavi+Koltuk' }], basePriceTL: 12500, baseDiscountedPriceTL: 10500, isFreeShipping: false },
+                        { colorName: { tr: 'Video Tanıtım', en: 'Video Intro' }, media: [{ type: 'video', url: 'https://www.w3schools.com/html/mov_bbb.mp4' }], basePriceTL: 12000, baseDiscountedPriceTL: 9999, isFreeShipping: true }
+                    ],
+                    seo: { slug: 'modern-l-koltuk-takimi', title: { tr: 'Modern L Koltuk Takımı - Uygun Fiyatlar', en: 'Modern L-Shaped Sofa Set - Affordable Prices' }, description: { tr: 'Konforlu modern L koltuk takımı ile salonunuzu yenileyin.', en: 'Renew your living room with our comfortable modern L-shaped sofa set.' } }
+                },
+                {
+                    id: 'urun-2', sku: 'URUN002', basePriceTL: 8000, baseDiscountedPriceTL: null, isFreeShipping: false, isInShowcase: true,
+                    categories: ['yemekodasi'],
+                    content: {
+                        tr: { name: 'Ahşap Yemek Masası', description: 'Doğal ahşaptan üretilmiş, şık ve dayanıklı.' },
+                        en: { name: 'Wooden Dining Table', description: 'Made from natural wood, elegant and durable.' }
+                    },
+                    media: [{ type: 'image', url: 'https://via.placeholder.com/600x450/d35400/ffffff?text=Ahsap+Masa' }],
+                    variants: [],
+                    seo: { slug: 'ahsap-yemek-masasi', title: { tr: 'Ahşap Yemek Masası - Modern Tasarım', en: 'Wooden Dining Table - Modern Design' }, description: { tr: 'Evinize sıcaklık katacak doğal ahşap yemek masası.', en: 'Natural wooden dining table that will add warmth to your home.' } }
+                },
+                {
+                    id: 'urun-3', sku: 'URUN003', basePriceTL: 15000, baseDiscountedPriceTL: 13500, isFreeShipping: true, isInShowcase: true,
+                    categories: ['yatakodasi'],
+                    content: {
+                        tr: { name: 'Premium Yatak Odası Takımı', description: 'Konforlu uyku deneyimi için tasarlanmış şık yatak odası takımı.' },
+                        en: { name: 'Premium Bedroom Set', description: 'Stylish bedroom set designed for a comfortable sleep experience.' }
+                    },
+                    media: [{ type: 'image', url: 'https://via.placeholder.com/600x450/8e44ad/ffffff?text=Yatak+Odasi' }],
+                    variants: [],
+                    seo: { slug: 'premium-yatak-odasi', title: { tr: 'Premium Yatak Odası Takımı - En İyi Fiyat', en: 'Premium Bedroom Set - Best Price' }, description: { tr: 'Rüya gibi bir uyku için premium yatak odası takımınızı seçin.', en: 'Choose your premium bedroom set for a dream-like sleep.' } }
+                }
+            ],
+            users: { // Simüle edilmiş kullanıcılar
+                'anon_123': { email: 'anonymous@pufemo.com', isAnonymous: true, uid: 'anon_123' },
+                'test@example.com': { email: 'test@example.com', password: 'password123', uid: 'user_123', isAnonymous: false }
+            }
+        };
+
+
+        let currentLang = localStorage.getItem('pufemo-language') || 'tr';
         let currentCurrency = localStorage.getItem('pufemo-currency') || 'USD';
         let currentCountryCode = localStorage.getItem('pufemo-country') || '';
-        let currentUser = null; // Firebase Authentication kullanıcısı
+        let currentUser = null; // Simüle edilmiş kullanıcı objesi
 
+        // --- Simüle Edilmiş Firebase Authentication ---
+        // Bu kısım Firebase Authentication'ın davranışını localStorage ile taklit eder.
+        let authListeners = []; // onAuthStateChanged için dinleyici listesi
+        let userAccounts = JSON.parse(localStorage.getItem('pufemo-user-accounts')) || {}; // Kayıtlı kullanıcılar
 
-        // Firebase Veri Çekme Fonksiyonu
-        const fetchData = async () => {
-            try {
-                const [settingsDoc, categoriesDoc, productsSnap, translationsDoc] = await Promise.all([
-                    getDoc(doc(db, 'pufemo', 'settings')),
-                    getDoc(doc(db, 'pufemo', 'categories')),
-                    getDocs(query(collection(db, 'pufemo-products'), where('isInShowcase', '==', true))),
-                    getDoc(doc(db, 'pufemo', 'staticTranslations')) // Yeni: Statik çevirileri çek
-                ]);
+        function generateUID() {
+            return 'uid_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+        }
 
-                if (settingsDoc.exists()) {
-                    siteData.settings = { 
-                        ...siteData.settings, 
-                        ...settingsDoc.data(),
-                        // Firebase'den gelen 'banner' doğrudan dizi olmalı, eğer yoksa boş dizi ata
-                        banner: settingsDoc.data().banner || [] 
-                    };
-                    // console.log('Firebase settings yüklendi:', siteData.settings);
-                } else {
-                    console.log('Settings belgesi mevcut değil! Varsayılan değerler kullanılacak.');
-                }
-                
-                // Statik çevirileri siteData'ya ekle
-                if (translationsDoc.exists()) {
-                    siteData.settings.staticTranslations = translationsDoc.data();
-                    // console.log('Firebase staticTranslations yüklendi:', siteData.settings.staticTranslations);
-                } else {
-                    console.log('staticTranslations belgesi mevcut değil! Varsayılan statik çeviriler kullanılacak.');
-                }
-
-
-                if (categoriesDoc.exists()) {
-                    siteData.categories = { ...siteData.categories, ...categoriesDoc.data() };
-                    // console.log('Firebase kategorileri yüklendi:', siteData.categories);
-                } else {
-                    console.log('Kategoriler belgesi mevcut değil!');
-                }
-                siteData.products = productsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                // console.log('Firebase ürünleri yüklendi:', siteData.products);
-
-                const availableCountries = Object.keys(siteData.settings.countryPricing);
-                
-                // Ülke seçimi mantığı
-                if (localStorage.getItem('pufemo-country') && availableCountries.includes(localStorage.getItem('pufemo-country'))) {
-                    currentCountryCode = localStorage.getItem('pufemo-country');
-                } else if (availableCountries.length > 0) {
-                    currentCountryCode = availableCountries[0];
-                    localStorage.setItem('pufemo-country', currentCountryCode);
-                } else {
-                    // Hiç ülke tanımı yoksa TR'yi varsayılan yap
-                    currentCountryCode = 'tr';
-                    localStorage.setItem('pufemo-country', currentCountryCode);
-                }
-
-                // Ülkeye göre dil ve para birimi ayarı
-                const selectedCountryData = siteData.settings.countryPricing[currentCountryCode];
-                if (selectedCountryData) {
-                    currentLang = selectedCountryData.defaultLanguage || 'tr';
-                    const selectedCountryCurrencySymbol = selectedCountryData.currencySymbol;
-                    if (selectedCountryCurrencySymbol) {
-                        const currencyCodeFromSymbol = Object.keys(siteData.settings.currencySymbols || {}).find(key => 
-                            siteData.settings.currencySymbols[key] === selectedCountryCurrencySymbol
-                        );
-                        currentCurrency = currencyCodeFromSymbol || 'USD';
+        async function signInWithEmailAndPassword(email, password) {
+            return new Promise((resolve, reject) => {
+                setTimeout(() => { // Simüle edilmiş gecikme
+                    const user = Object.values(userAccounts).find(u => u.email === email && u.password === password);
+                    if (user) {
+                        localStorage.setItem('pufemo-current-user', JSON.stringify(user));
+                        currentUser = user;
+                        authListeners.forEach(listener => listener(currentUser));
+                        resolve({ user: currentUser });
                     } else {
+                        reject({ code: 'auth/user-not-found', message: 'Kullanıcı bulunamadı veya şifre yanlış.' });
+                    }
+                }, 500);
+            });
+        }
+
+        async function createUserWithEmailAndPassword(email, password) {
+            return new Promise((resolve, reject) => {
+                setTimeout(() => { // Simüle edilmiş gecikme
+                    if (Object.values(userAccounts).some(u => u.email === email)) {
+                        reject({ code: 'auth/email-already-in-use', message: 'Bu e-posta adresi zaten kullanımda.' });
+                        return;
+                    }
+                    if (password.length < 6) {
+                        reject({ code: 'auth/weak-password', message: 'Şifre en az 6 karakter olmalıdır.' });
+                        return;
+                    }
+                    const newUser = { email, password, uid: generateUID(), isAnonymous: false };
+                    userAccounts[newUser.uid] = newUser;
+                    localStorage.setItem('pufemo-user-accounts', JSON.stringify(userAccounts));
+                    localStorage.setItem('pufemo-current-user', JSON.stringify(newUser));
+                    currentUser = newUser;
+                    authListeners.forEach(listener => listener(currentUser));
+                    resolve({ user: currentUser });
+                }, 500);
+            });
+        }
+
+        async function signInAnonymously() {
+            return new Promise((resolve) => {
+                setTimeout(() => { // Simüle edilmiş gecikme
+                    const anonUser = { uid: generateUID(), isAnonymous: true, email: 'anonymous@pufemo.com' };
+                    localStorage.setItem('pufemo-current-user', JSON.stringify(anonUser));
+                    currentUser = anonUser;
+                    authListeners.forEach(listener => listener(currentUser));
+                    resolve({ user: currentUser });
+                }, 500);
+            });
+        }
+
+        async function signOut() {
+            return new Promise((resolve) => {
+                setTimeout(() => { // Simüle edilmiş gecikme
+                    localStorage.removeItem('pufemo-current-user');
+                    currentUser = null;
+                    authListeners.forEach(listener => listener(null));
+                    resolve();
+                }, 300);
+            });
+        }
+
+        function onAuthStateChanged(callback) {
+            authListeners.push(callback);
+            // Sayfa yüklendiğinde mevcut kullanıcıyı hemen bildir
+            const storedUser = localStorage.getItem('pufemo-current-user');
+            if (storedUser) {
+                currentUser = JSON.parse(storedUser);
+                callback(currentUser);
+            } else {
+                callback(null);
+            }
+            // Geri dönen fonksiyon ile dinleyiciyi kaldır
+            return () => {
+                authListeners = authListeners.filter(listener => listener !== callback);
+            };
+        }
+        // --- Simüle Edilmiş Firebase Authentication Bitiş ---
+
+
+        // Lokal Veri Çekme Fonksiyonu
+        // Bu fonksiyon, siteData'yı localStorage'dan yükler veya varsayılan değerlerle başlatır.
+        const fetchData = async () => {
+            return new Promise(resolve => {
+                setTimeout(() => { // Yükleme gecikmesini simüle et
+                    const storedSiteData = localStorage.getItem('pufemo-site-data');
+                    if (storedSiteData) {
+                        siteData = JSON.parse(storedSiteData);
+                        // console.log('LocalStorage\'dan yüklendi:', siteData);
+                    } else {
+                        siteData = defaultSiteData;
+                        localStorage.setItem('pufemo-site-data', JSON.stringify(siteData));
+                        // console.log('Varsayılan verilerle başlatıldı ve kaydedildi:', siteData);
+                    }
+
+                    // Güncel dil, para birimi ve ülke kodunu localStorage'dan al
+                    // Eğer localStorage'da yoksa veya geçersizse varsayılanlardan al
+                    currentLang = localStorage.getItem('pufemo-language') || 'tr';
+                    currentCurrency = localStorage.getItem('pufemo-currency') || 'USD';
+                    currentCountryCode = localStorage.getItem('pufemo-country') || '';
+
+                    const availableCountries = Object.keys(siteData.settings.countryPricing);
+                    if (!availableCountries.includes(currentCountryCode)) {
+                        currentCountryCode = availableCountries.length > 0 ? availableCountries[0] : 'tr';
+                        localStorage.setItem('pufemo-country', currentCountryCode);
+                    }
+
+                    const selectedCountryData = siteData.settings.countryPricing[currentCountryCode];
+                    if (selectedCountryData) {
+                        currentLang = selectedCountryData.defaultLanguage || 'tr';
+                        const selectedCountryCurrencySymbol = selectedCountryData.currencySymbol;
+                        if (selectedCountryCurrencySymbol) {
+                            const currencyCodeFromSymbol = Object.keys(siteData.settings.currencySymbols || {}).find(key => 
+                                siteData.settings.currencySymbols[key] === selectedCountryCurrencySymbol
+                            );
+                            currentCurrency = currencyCodeFromSymbol || 'USD';
+                        } else {
+                            currentCurrency = 'USD';
+                        }
+                    } else {
+                        currentLang = 'tr';
                         currentCurrency = 'USD';
                     }
                     localStorage.setItem('pufemo-language', currentLang);
                     localStorage.setItem('pufemo-currency', currentCurrency);
-                } else {
-                    // Tanımlı ülke yoksa veya eşleşmiyorsa genel varsayılanları kullan
-                    currentLang = 'tr';
-                    currentCurrency = 'USD';
-                    localStorage.setItem('pufemo-language', currentLang);
-                    localStorage.setItem('pufemo-currency', currentCurrency);
-                }
-
-            } catch (e) {
-                console.error("Veri okuma hatası! Varsayılan ayarlar kullanılıyor.", e);
-                // Hata durumunda da varsayılanları belirle ve localStorage'a yaz
-                currentLang = 'tr';
-                currentCurrency = 'USD';
-                currentCountryCode = 'tr';
-                localStorage.setItem('pufemo-language', currentLang);
-                localStorage.setItem('pufemo-currency', currentCurrency);
-                localStorage.setItem('pufemo-country', currentCountryCode);
-            }
+                    resolve();
+                }, 300);
+            });
         };
         
         // Ülke kodu emojiye çevirici
@@ -902,15 +1239,22 @@
             return String.fromCodePoint(...codePoints);
         }
 
-        // Metin çeviri fonksiyonu (Firebase'den çekilen statik metinleri kullanacak)
+        // Metin çeviri fonksiyonu (defaultStaticTranslations objesini kullanacak)
         const translate = (key) => {
             const translation = siteData.settings.staticTranslations?.[key]?.[currentLang];
             if (translation) {
                 return translation;
             }
-            // Eğer çeviri yoksa admin panelinde kullanılan anahtar formatını dene
+            // Eğer çeviri yoksa admin panelinde kullanılan anahtar formatını dene (varsayılan olarak Türkçe)
             if (siteData.settings.staticTranslations?.[key]?.['tr']) {
-                return siteData.settings.staticTranslations[key]['tr']; // Varsayılan olarak Türkçe
+                return siteData.settings.staticTranslations[key]['tr']; 
+            }
+            // Hiç çeviri bulunamazsa defaultStaticTranslations'dan dene
+            if (defaultStaticTranslations[key]?.[currentLang]) {
+                return defaultStaticTranslations[key][currentLang];
+            }
+            if (defaultStaticTranslations[key]?.['tr']) {
+                return defaultStaticTranslations[key]['tr'];
             }
             return key; // Hiç çeviri bulunamazsa anahtarı göster
         };
@@ -1134,7 +1478,8 @@
         
         const renderProducts = () => {
             const container = document.getElementById('product-grid-container');
-            const products = siteData.products || [];
+            // 'isInShowcase' özelliği admin panelinde yönetileceği için, lokal veride de bu özelliği kontrol edelim.
+            const products = (siteData.products || []).filter(p => p.isInShowcase);
             container.innerHTML = '';
             if (products.length === 0) return;
 
@@ -1208,9 +1553,9 @@
             const mobileNav = document.getElementById('mobile-nav');
             const mobileNavOverlay = document.getElementById('mobile-nav-overlay');
 
-            const languagesFromDB = siteData.settings.languages || [];
-            languageSelector.innerHTML = languagesFromDB.map(l => `<option value="${l.code}">${countryCodeToEmoji(l.flag)} ${l.name}</option>`).join('');
-            if (languagesFromDB.length > 0) {
+            const languagesFromData = siteData.settings.languages || [];
+            languageSelector.innerHTML = languagesFromData.map(l => `<option value="${l.code}">${countryCodeToEmoji(l.flag)} ${l.name}</option>`).join('');
+            if (languagesFromData.length > 0) {
                 languageSelector.value = currentLang;
                 languageSelector.style.display = 'block';
             } else {
@@ -1271,9 +1616,8 @@
                     window.applyCountryAndRender(selectedCountry);
                     welcomeModalOverlay.classList.remove('active');
                 } else {
-                    // Alert yerine kendi mesaj kutunuzu kullanın
-                    // alert(translate('welcome_modal_message').replace('Please select your country below.', 'Please select a country to continue.'));
-                    authMessageEl.textContent = translate('select_country_to_continue'); // Yeni çeviri anahtarı
+                    // Kendi mesaj kutusu veya DOM elementine hata mesajı yazma
+                    authMessageEl.textContent = translate('select_country_to_continue');
                     authMessageEl.style.color = 'var(--danger-color)';
                 }
             });
@@ -1292,18 +1636,18 @@
             profileControl.onclick = () => {
                 if (currentUser) {
                     // Kullanıcı giriş yapmışsa çıkış sor
-                    if (confirm(translate('confirm_logout'))) { // Yeni çeviri anahtarı
-                        signOut(auth).then(() => {
+                    if (confirm(translate('confirm_logout'))) {
+                        signOut().then(() => {
                             // Çıkış yapıldı, arayüzü güncelle
                             updateProfileControl();
-                            // Belki de misafir olarak otomatik giriş yap
-                            signInAnonymously(auth).then(() => {
+                            // Misafir olarak otomatik giriş yap
+                            signInAnonymously().then(() => {
                                 console.log('Anonim olarak giriş yapıldı.');
-                            }).catch(error => console.error('Anonim giriş hatası:', error));
+                            }).catch(error => console.error('Anonim giriş hatası:', error.message));
                             renderStaticText(); // Dil metinlerini güncelle
                         }).catch(error => {
-                            console.error('Çıkış yaparken hata:', error);
-                            authMessageEl.textContent = translate('logout_error') + error.message; // Yeni çeviri anahtarı
+                            console.error('Çıkış yaparken hata:', error.message);
+                            authMessageEl.textContent = translate('logout_error') + error.message;
                             authMessageEl.style.color = 'var(--danger-color)';
                         });
                     }
@@ -1335,43 +1679,31 @@
 
                 try {
                     if (isLoginMode) {
-                        await signInWithEmailAndPassword(auth, email, password);
-                        authMessageEl.textContent = translate('login_success'); // Yeni çeviri anahtarı
+                        await signInWithEmailAndPassword(email, password);
+                        authMessageEl.textContent = translate('login_success');
                         authMessageEl.style.color = 'var(--success-color)';
                     } else {
-                        await createUserWithEmailAndPassword(auth, email, password);
-                        authMessageEl.textContent = translate('register_success'); // Yeni çeviri anahtarı
+                        await createUserWithEmailAndPassword(email, password);
+                        authMessageEl.textContent = translate('register_success');
                         authMessageEl.style.color = 'var(--success-color)';
                     }
                     hideAuthModal();
                 } catch (error) {
-                    console.error('Kimlik doğrulama hatası:', error);
-                    let errorMessage = translate('auth_error_unknown'); // Genel hata
-                    switch (error.code) {
-                        case 'auth/invalid-email':
-                            errorMessage = translate('auth_error_invalid_email');
-                            break;
-                        case 'auth/user-disabled':
-                            errorMessage = translate('auth_error_user_disabled');
-                            break;
-                        case 'auth/user-not-found':
-                            errorMessage = translate('auth_error_user_not_found');
-                            break;
-                        case 'auth/wrong-password':
-                            errorMessage = translate('auth_error_wrong_password');
-                            break;
-                        case 'auth/email-already-in-use':
-                            errorMessage = translate('auth_error_email_in_use');
-                            break;
-                        case 'auth/weak-password':
-                            errorMessage = translate('auth_error_weak_password');
-                            break;
-                        case 'auth/operation-not-allowed':
-                            errorMessage = translate('auth_error_operation_not_allowed');
-                            break;
-                        default:
-                            errorMessage = translate('auth_error_generic') + error.message;
-                            break;
+                    console.error('Kimlik doğrulama hatası:', error.message);
+                    let errorMessage = translate('auth_error_unknown');
+                    if (error.code) { // Simüle edilmiş hataları yakala
+                        switch (error.code) {
+                            case 'auth/invalid-email': errorMessage = translate('auth_error_invalid_email'); break;
+                            case 'auth/user-disabled': errorMessage = translate('auth_error_user_disabled'); break;
+                            case 'auth/user-not-found': errorMessage = translate('auth_error_user_not_found'); break;
+                            case 'auth/wrong-password': errorMessage = translate('auth_error_wrong_password'); break;
+                            case 'auth/email-already-in-use': errorMessage = translate('auth_error_email_in_use'); break;
+                            case 'auth/weak-password': errorMessage = translate('auth_error_weak_password'); break;
+                            case 'auth/operation-not-allowed': errorMessage = translate('auth_error_operation_not_allowed'); break;
+                            default: errorMessage = translate('auth_error_generic') + error.message; break;
+                        }
+                    } else { // Diğer JS hataları
+                        errorMessage = translate('auth_error_generic') + error.message;
                     }
                     authMessageEl.textContent = errorMessage;
                     authMessageEl.style.color = 'var(--danger-color)';
@@ -1381,13 +1713,13 @@
             anonLoginBtn.onclick = async () => {
                 authMessageEl.textContent = ''; // Hata mesajını temizle
                 try {
-                    await signInAnonymously(auth);
-                    authMessageEl.textContent = translate('guest_login_success'); // Yeni çeviri anahtarı
+                    await signInAnonymously();
+                    authMessageEl.textContent = translate('guest_login_success');
                     authMessageEl.style.color = 'var(--success-color)';
                     hideAuthModal();
                 } catch (error) {
-                    console.error('Anonim giriş hatası:', error);
-                    authMessageEl.textContent = translate('guest_login_error') + error.message; // Yeni çeviri anahtarı
+                    console.error('Anonim giriş hatası:', error.message);
+                    authMessageEl.textContent = translate('guest_login_error') + error.message;
                     authMessageEl.style.color = 'var(--danger-color)';
                 }
             };
@@ -1407,12 +1739,10 @@
             }
 
             // Kullanıcı durumu değişimini dinle
-            onAuthStateChanged(auth, (user) => {
+            onAuthStateChanged((user) => {
                 currentUser = user;
                 updateProfileControl();
-                // Kullanıcı durumu değişiminde sepeti veya diğer kullanıcıya özel verileri güncelle
-                // (Bu kısım sepet entegrasyonunda daha detaylı ele alınacak)
-                console.log("Auth State Changed. User:", user ? user.uid : "No user");
+                console.log("Auth State Changed. User:", user ? (user.isAnonymous ? 'Anonim' : user.email) : "No user");
             });
 
             function updateProfileControl() {
@@ -1420,33 +1750,30 @@
                     profileControl.innerHTML = ''; // İçeriği temizle
                     if (currentUser) {
                         // Kullanıcı giriş yapmışsa
-                        const userEmail = currentUser.email;
-                        if (userEmail) {
-                            // E-posta ile giriş yapmışsa
-                            profileControl.title = userEmail;
-                            profileControl.innerHTML = `<i class="fa-solid fa-user-circle"></i>`; // Profil resmi yerine ikon kullan
-                            // profileControl.innerHTML = `<img src="${currentUser.photoURL || 'https://via.placeholder.com/30/ccc/fff?text=U'}" alt="${userEmail.charAt(0).toUpperCase()}">`;
-                        } else if (currentUser.isAnonymous) {
+                        if (currentUser.isAnonymous) {
                             // Anonim kullanıcı ise
-                            profileControl.title = translate('guest_user'); // Yeni çeviri anahtarı
+                            profileControl.title = translate('guest_user');
                             profileControl.innerHTML = `<i class="fa-solid fa-user-secret"></i>`; // Misafir ikonu
+                        } else if (currentUser.email) {
+                            // E-posta ile giriş yapmışsa
+                            profileControl.title = currentUser.email;
+                            profileControl.innerHTML = `<i class="fa-solid fa-user-circle"></i>`; // Profil ikonu
                         }
                     } else {
                         // Kullanıcı çıkış yapmışsa
-                        profileControl.title = translate('login_register'); // Yeni çeviri anahtarı
+                        profileControl.title = translate('login_register');
                         profileControl.innerHTML = `<i class="fa-solid fa-user"></i>`; // Giriş ikonu
                     }
                 }
             }
-
         };
             
         async function init() {
             loadingOverlay.classList.remove('hidden');
-            // Yüklenme metnini hemen çevir
+            // Yüklenme metnini hemen çevir (init içinde ilk translate çağrısı)
             if (loadingTextP) loadingTextP.textContent = translate('loading_text');
 
-            await fetchData(); // Firebase verilerini çek
+            await fetchData(); // Lokal verileri çek
             
             const availableCountries = Object.keys(siteData.settings.countryPricing);
             const storedCountry = localStorage.getItem('pufemo-country');
@@ -1463,21 +1790,20 @@
             
             loadingOverlay.classList.add('hidden');
 
-            // Firebase Auth durumu için dinleyiciyi ayarla
-            // onAuthStateChanged init içinde zaten çağrılıyor, burada tekrar çağırmaya gerek yok.
-            // Sadece ilk seferde anonim giriş yapmak için bir kontrol ekleyelim
-            if (!auth.currentUser) {
-                // Eğer hiç kullanıcı yoksa (sayfa ilk yüklendiğinde veya çıkış yapıldıktan sonra)
-                // ve welcome modal aktif değilse (yani zaten ülke seçimi yapıldıysa)
-                // veya ülkeler hiç yoksa (welcome modal çıkmayacaksa)
-                if (!welcomeModalOverlay.classList.contains('active') || availableCountries.length === 0) {
-                    try {
-                        await signInAnonymously(auth);
-                        console.log("Uygulama başlatıldığında anonim olarak giriş yapıldı.");
-                    } catch (error) {
-                        console.error("Uygulama başlatılırken anonim giriş hatası:", error);
-                    }
+            // Kullanıcı yoksa anonim olarak giriş yapmayı dene
+            // Bu kısım onAuthStateChanged dinleyicisi tarafından zaten yönetilecek
+            // Eğer welcome modalı gösterildiyse, kullanıcı ülke seçimi yapana kadar anonim giriş yapmasın
+            if (!localStorage.getItem('pufemo-current-user') && !welcomeModalOverlay.classList.contains('active')) {
+                try {
+                    await signInAnonymously(); // Otomatik anonim giriş
+                    console.log("Uygulama başlatıldığında anonim olarak giriş yapıldı.");
+                } catch (error) {
+                    console.error("Uygulama başlatılırken anonim giriş hatası:", error.message);
                 }
+            } else if (localStorage.getItem('pufemo-current-user')) {
+                // Eğer zaten bir kullanıcı varsa, onu current user olarak ayarla
+                currentUser = JSON.parse(localStorage.getItem('pufemo-current-user'));
+                updateProfileControl(); // Profil kontrolünü güncelle
             }
         }
         
