@@ -237,9 +237,9 @@
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            margin-bottom: 1rem;
             flex-wrap: wrap;
             gap: 10px;
+            margin-bottom: 1rem;
         }
 
         .variant-header .form-group {
@@ -627,29 +627,34 @@
             display: block;
         }
 
-        .product-seo-table {
+        .product-seo-table, .order-table {
             width: 100%;
             border-collapse: collapse;
             margin-top: 1rem;
         }
 
         .product-seo-table th,
-        .product-seo-table td {
+        .product-seo-table td,
+        .order-table th,
+        .order-table td {
             border: 1px solid var(--border-color);
             padding: 10px;
             text-align: left;
         }
 
-        .product-seo-table th {
+        .product-seo-table th,
+        .order-table th {
             background-color: var(--background-color);
             font-weight: 600;
         }
 
-        .product-seo-table tbody tr:nth-child(even) {
+        .product-seo-table tbody tr:nth-child(even),
+        .order-table tbody tr:nth-child(even) {
             background-color: #f9f9f9;
         }
 
-        .product-seo-table button {
+        .product-seo-table button,
+        .order-table button {
             padding: 6px 12px;
             font-size: 0.9rem;
             border-radius: 5px;
@@ -657,13 +662,15 @@
             transition: background-color 0.2s;
         }
 
-        .product-seo-table button.edit-product-seo-btn {
+        .product-seo-table button.edit-product-seo-btn,
+        .order-table button.view-order-details {
             background-color: var(--info-color);
             color: white;
             border: none;
         }
 
-        .product-seo-table button.edit-product-seo-btn:hover {
+        .product-seo-table button.edit-product-seo-btn:hover,
+        .order-table button.view-order-details:hover {
             background-color: #2980b9;
         }
 
@@ -741,6 +748,7 @@
                     <li class="nav-item active" data-page="product-management"><span class="nav-item-name">Ürünler</span></li>
                     <li class="nav-item" data-page="category-management"><span class="nav-item-name">Kategoriler</span></li>
                     <li class="nav-item" data-page="country-pricing-management"><span class="nav-item-name">Ülkelere Göre Fiyatlandırma</span></li>
+                    <li class="nav-item" data-page="order-management"><span class="nav-item-name">Siparişler</span></li> <!-- YENİ EKLEME: Siparişler Menü Öğesi -->
                 </ul>
             </nav>
         </aside>
@@ -1025,6 +1033,32 @@
                         </div>
                 </div>
             </div>
+
+            <!-- YENİ EKLEME: Sipariş Yönetimi Sayfa Bölümü -->
+            <div id="order-management" class="page">
+                <h1>Sipariş Yönetimi</h1>
+                <div class="form-section">
+                    <input type="text" id="order-search-input" placeholder="Sipariş No, E-posta, Ad Soyad ile ara..." style="width: 100%; padding: 10px; margin-bottom: 20px; border: 1px solid var(--border-color); border-radius: 5px;">
+                    <table class="order-table" style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr>
+                                <th style="padding: 10px; border: 1px solid var(--border-color); text-align: left; background-color: var(--background-color);">Sipariş No</th>
+                                <th style="padding: 10px; border: 1px solid var(--border-color); text-align: left; background-color: var(--background-color);">Tarih</th>
+                                <th style="padding: 10px; border: 1px solid var(--border-color); text-align: left; background-color: var(--background-color);">Müşteri</th>
+                                <th style="padding: 10px; border: 1px solid var(--border-color); text-align: left; background-color: var(--background-color);">Toplam Tutar</th>
+                                <th style="padding: 10px; border: 1px solid var(--border-color); text-align: left; background-color: var(--background-color);">Durum</th>
+                                <th style="padding: 10px; border: 1px solid var(--border-color); text-align: left; background-color: var(--background-color);">Detay</th>
+                            </tr>
+                        </thead>
+                        <tbody id="order-list-body">
+                            <!-- Siparişler buraya dinamik olarak yüklenecek -->
+                            <tr><td colspan="6" style="text-align: center; padding: 20px;">Siparişler yükleniyor...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <!-- YENİ EKLEME SONU: Sipariş Yönetimi Sayfa Bölümü -->
+
         </main>
     </div>
 
@@ -1109,7 +1143,8 @@
                     }
                 },
                 categories: [],
-                products: []
+                products: [],
+                orders: [] // YENİ EKLEME: localState'e siparişler dizisi eklendi
             };
             
             const loadingOverlay = document.getElementById('loading-overlay');
@@ -1133,7 +1168,6 @@
             const newCurrencySymbolFormContainer = document.getElementById('new-currency-symbol-form-container');
             const addCurrencySymbolBtn = document.getElementById('add-new-currency-symbol-btn');
 
-
             const saveCategoriesBtn = document.getElementById('save-categories-btn');
 
             const countryPricingForm = document.getElementById('country-pricing-form');
@@ -1154,6 +1188,10 @@
             const saveSeoTemplateBtn = document.getElementById('save-seo-template-btn');
             const savedSeoTemplatesContainer = document.getElementById('saved-seo-templates-container');
 
+            // YENİ EKLEME: Sipariş Yönetimi UI Elementleri
+            const orderListBody = document.getElementById('order-list-body');
+            const orderSearchInput = document.getElementById('order-search-input');
+            // YENİ EKLEME SONU
 
             const fontAwesomeIcons = [
                 "fa-solid fa-couch", "fa-solid fa-chair", "fa-solid fa-bed", "fa-solid fa-lamp",
@@ -1215,6 +1253,13 @@
 
                     localState.categories = categoriesDoc.exists ? categoriesDoc.data().tree || [] : [];
                     localState.products = productsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+                    // YENİ EKLEME: Siparişleri çek
+                    // Not: Index sayfasındaki `placeOrder` fonksiyonunun `pufemo-orders` koleksiyonuna yazacak şekilde güncellendiğinden emin olun.
+                    const ordersSnapshot = await db.collection('pufemo-orders').orderBy('orderTimestamp', 'desc').get();
+                    localState.orders = ordersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    // YENİ EKLEME SONU
+
                 } catch (error) {
                     alert('Veri yüklenirken hata: ' + error.message);
                 } finally {
@@ -1553,6 +1598,97 @@
                 formLi.querySelector('.cancel-new-category').addEventListener('click', () => { formLi.remove(); });
             }
 
+            // === YENİ EKLEME: Sipariş Yönetimi Fonksiyonları ===
+            function renderOrders(searchTerm = '') {
+                orderListBody.innerHTML = '';
+                let filteredOrders = localState.orders;
+
+                if (searchTerm) {
+                    const lowerCaseSearchTerm = searchTerm.toLowerCase();
+                    filteredOrders = localState.orders.filter(order =>
+                        (order.id && order.id.toLowerCase().includes(lowerCaseSearchTerm)) ||
+                        (order.email && order.email.toLowerCase().includes(lowerCaseSearchTerm)) ||
+                        (order.fullName && order.fullName.toLowerCase().includes(lowerCaseSearchTerm)) ||
+                        (order.status && order.status.toLowerCase().includes(lowerCaseSearchTerm))
+                    );
+                }
+
+                if (filteredOrders.length === 0) {
+                    orderListBody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 20px;">Hiç sipariş bulunamadı.</td></tr>';
+                    return;
+                }
+
+                filteredOrders.forEach(order => {
+                    const row = orderListBody.insertRow();
+                    // orderTimestamp Firebase Timestamp objesi ise doğru şekilde dönüştür
+                    const orderDate = order.orderTimestamp && order.orderTimestamp.toDate ? order.orderTimestamp.toDate().toLocaleString() : 'N/A';
+                    const totalAmount = `${(order.totalAmount || 0).toFixed(2)} ${order.currency || ''}`;
+
+                    row.innerHTML = `
+                        <td style="padding: 10px; border: 1px solid var(--border-color);">${(order.id || 'N/A').substring(0, 8)}...</td>
+                        <td style="padding: 10px; border: 1px solid var(--border-color);">${orderDate}</td>
+                        <td style="padding: 10px; border: 1px solid var(--border-color);">${order.fullName || 'N/A'} (${order.email || 'N/A'})</td>
+                        <td style="padding: 10px; border: 1px solid var(--border-color);">${totalAmount}</td>
+                        <td style="padding: 10px; border: 1px solid var(--border-color);">${order.status || 'N/A'}</td>
+                        <td style="padding: 10px; border: 1px solid var(--border-color);"><button class="btn btn-info btn-sm view-order-details" data-order-id="${order.id || ''}">Detay</button></td>
+                    `;
+                });
+
+                // Detay butonlarına event listener ekle
+                orderListBody.querySelectorAll('.view-order-details').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        const orderId = e.target.dataset.orderId;
+                        const selectedOrder = localState.orders.find(o => o.id === orderId);
+                        if (selectedOrder) {
+                            showOrderDetailsModal(selectedOrder);
+                        }
+                    });
+                });
+            }
+
+            function showOrderDetailsModal(order) {
+                // Modal HTML'ini dinamik olarak oluştur
+                let modalHtml = `
+                    <div id="orderDetailsModal" class="modal">
+                        <div class="modal-content" style="max-width: 700px;">
+                            <h2>Sipariş Detayları (${(order.id || 'N/A').substring(0, 8)}...)</h2>
+                            <p><strong>Sipariş No:</strong> ${order.id || 'N/A'}</p>
+                            <p><strong>Tarih:</strong> ${order.orderTimestamp && order.orderTimestamp.toDate ? order.orderTimestamp.toDate().toLocaleString() : 'N/A'}</p>
+                            <p><strong>Durum:</strong> ${order.status || 'N/A'}</p>
+                            <p><strong>Müşteri:</strong> ${order.fullName || 'N/A'}</p>
+                            <p><strong>E-posta:</strong> ${order.email || 'N/A'}</p>
+                            <p><strong>Telefon:</strong> ${order.phone || 'N/A'}</p>
+                            <p><strong>Adres:</strong> ${order.address || 'N/A'}, ${order.zipCode || 'N/A'}, ${order.country || 'N/A'}</p>
+                            <p><strong>Toplam Tutar:</strong> ${(order.totalAmount || 0).toFixed(2)} ${order.currency || ''}</p>
+                            <h3>Ürünler:</h3>
+                            <ul style="list-style: none; padding: 0;">
+                                ${(order.items || []).map(item => `
+                                    <li style="margin-bottom: 5px; border-bottom: 1px dashed #eee; padding-bottom: 5px;">
+                                        <strong>${item.name || 'N/A'}</strong> x ${item.quantity || 1} (${item.currencySymbol || ''} ${(item.price || 0).toFixed(2)} / adet)
+                                        <br> Toplam: ${item.currencySymbol || ''} ${((item.price || 0) * (item.quantity || 1)).toFixed(2)}
+                                    </li>
+                                `).join('')}
+                            </ul>
+                            <div class="form-actions" style="text-align: right;">
+                                <button type="button" class="btn btn-danger" id="closeOrderDetailsModal">Kapat</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+                const modal = document.getElementById('orderDetailsModal');
+                modal.querySelector('#closeOrderDetailsModal').addEventListener('click', () => {
+                    modal.remove();
+                });
+                modal.addEventListener('click', (e) => { // Modal dışına tıklayınca kapatma
+                    if (e.target === modal) {
+                        modal.remove();
+                    }
+                });
+            }
+            // YENİ EKLEME SONU: Sipariş Yönetimi Fonksiyonları
+
             // === 6. OLAY DİNLEYİCİLER (EVENT LISTENERS) ===
             document.querySelector('.sidebar-nav').addEventListener('click', e => {
                 const navItem = e.target.closest('.nav-item');
@@ -1584,6 +1720,8 @@
                     renderCountryPricingList();
                 } else if (pageId === 'seo-management') {
                     renderSeoManagement();
+                } else if (pageId === 'order-management') { // YENİ EKLEME: Sipariş Yönetimi Sayfası
+                    renderOrders();
                 }
             });
             
@@ -1712,6 +1850,10 @@
                             previewElement = document.createElement('video');
                             previewElement.src = url;
                             previewElement.controls = true;
+                            previewElement.autoplay = false; // Videoları otomatik oynatmayı kapat
+                            previewElement.muted = true;
+                            previewElement.loop = false; // Videoları döngüye almayı kapat
+                            previewElement.playsInline = true;
                         }
                         if (previewElement) {
                             previewElement.classList.add('max-w-xs', 'max-h-20', 'object-contain', 'mr-2'); // CSS sınıflarını ekle
@@ -2767,6 +2909,12 @@
                 
                 // Varsayılan olarak "Ürün Yönetimi" sekmesini aç
                 document.querySelector('.sidebar-nav .nav-item[data-page="product-management"]').click();
+
+                // YENİ EKLEME: Arama kutusuna yazıldığında siparişleri filtrele
+                orderSearchInput.addEventListener('input', (e) => {
+                    renderOrders(e.target.value);
+                });
+                // YENİ EKLEME SONU
             }
             
             init();
