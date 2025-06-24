@@ -25,6 +25,27 @@
         body { background-color: var(--admin-background-color); color: var(--admin-text-color); line-height: 1.6; }
         .container { max-width: 1400px; margin: 0 auto; padding: 0 20px; }
 
+        /* Notification Bar */
+        #notification-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 15px;
+            text-align: center;
+            color: white;
+            font-weight: 600;
+            z-index: 1000;
+            display: none; /* Varsayılan olarak gizli */
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            transition: all 0.3s ease-in-out;
+        }
+        #notification-bar.success { background-color: #28a745; }
+        #notification-bar.error { background-color: #dc3545; }
+        #notification-bar.warning { background-color: #ffc107; color: #333;}
+        #notification-bar.info { background-color: #17a2b8; }
+
+
         /* Login Sayfası */
         .admin-login-container {
             display: flex; flex-direction: column; justify-content: center; align-items: center;
@@ -190,6 +211,8 @@
     </style>
 </head>
 <body>
+    <div id="notification-bar"></div>
+
     <div id="admin-login-view" class="admin-login-container">
         <div class="admin-login-box">
             <h2>Admin Girişi</h2>
@@ -468,6 +491,8 @@
                         </div>
                     </form>
 
+                    <hr style="margin: 40px 0; border: none; border-top: 1px dashed var(--admin-border-color);">
+
                     <h2 style="margin-top: 30px;">Banner Ayarları</h2>
                     <div id="banner-list-container">
                         </div>
@@ -513,7 +538,7 @@
                                 <label for="banner-style-title-font-size">Başlık Font Boyutu:</label>
                                 <input type="text" id="banner-style-title-font-size" placeholder="örn: 2.8rem">
                             </div>
-                             <div class="admin-form-group">
+                            <div class="admin-form-group">
                                 <label for="banner-style-subtitle-color">Alt Başlık Rengi:</label>
                                 <input type="color" id="banner-style-subtitle-color">
                             </div>
@@ -540,6 +565,8 @@
                         </form>
                     </div>
 
+                    <hr style="margin: 40px 0; border: none; border-top: 1px dashed var(--admin-border-color);">
+
                     <h2 style="margin-top: 30px;">Ülke ve Para Birimi Ayarları</h2>
                     <div id="country-currency-list">
                         </div>
@@ -548,8 +575,7 @@
                     <div id="country-currency-form-container" class="admin-form-container" style="display: none;">
                         <h3>Ülke <span id="country-currency-form-title">Ekle</span></h3>
                         <form id="country-currency-form">
-                            <input type="hidden" id="country-currency-code">
-                            <div class="admin-form-group">
+                            <input type="hidden" id="country-currency-code-hidden"> <div class="admin-form-group">
                                 <label for="country-code-input">Ülke Kodu (örn: TR, US):</label>
                                 <input type="text" id="country-code-input" maxlength="2" required>
                             </div>
@@ -592,6 +618,8 @@
                         </form>
                     </div>
 
+                    <hr style="margin: 40px 0; border: none; border-top: 1px dashed var(--admin-border-color);">
+
                     <h2 style="margin-top: 30px;">Diller</h2>
                     <div id="language-list-container">
                         </div>
@@ -628,8 +656,6 @@
     <script type="module">
         // Firebase Modüler SDK Import'ları
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-        // getAnalytics'i admin panelinde kullanmıyoruz, kaldırılabilir veya tutulabilir.
-        // import { getAnalytics } from "firebase/analytics"; 
         import { getFirestore, collection, doc, getDoc, setDoc, updateDoc, deleteDoc, query, where, getDocs, addDoc, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
         import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
         import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
@@ -639,20 +665,19 @@
             apiKey: "AIzaSyDYkzZzNXB22U4oEXxOoPh-puwuE8kz0g4",
             authDomain: "pufemo-com.firebaseapp.com",
             projectId: "pufemo-com",
-            storageBucket: "pufemo-com.appspot.com", // Bu alan firebaseConfig içinde böyle olmalı
+            storageBucket: "pufemo-com.appspot.com",
             messagingSenderId: "983352837227",
             appId: "1:983352837227:web:defaa8dae215776e2e1d2e",
-            // measurementId: "G-RH8XHC7P91" // Admin panelinde Analytics genellikle kullanılmaz
         };
-        
+       
         // Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const auth = getAuth(app);
         const storage = getStorage(app);
-        // const analytics = getAnalytics(app); // Admin panelinde kullanmıyorsak yorum satırı yapabiliriz
 
         // --- DOM Elements ---
+        const notificationBar = document.getElementById('notification-bar');
         const adminLoginView = document.getElementById('admin-login-view');
         const adminDashboardView = document.getElementById('admin-dashboard-view');
         const adminLoginForm = document.getElementById('admin-login-form');
@@ -760,7 +785,8 @@
         const countryCurrencyFormContainer = document.getElementById('country-currency-form-container');
         const countryCurrencyFormTitle = document.getElementById('country-currency-form-title');
         const countryCurrencyForm = document.getElementById('country-currency-form');
-        const countryCurrencyCodeInput = document.getElementById('country-currency-code');
+        const countryCurrencyCodeHiddenInput = document.getElementById('country-currency-code-hidden'); // Yeni gizli alan
+        const countryCodeInput = document.getElementById('country-code-input');
         const countryNameTrInput = document.getElementById('country-name-tr');
         const countryNameEnInput = document.getElementById('country-name-en');
         const currencyCodeInput = document.getElementById('currency-code-input');
@@ -799,6 +825,20 @@
         let currentEditingLanguageIndex = -1;
 
         // --- Helper Functions ---
+
+        // Notification Message Function
+        const showNotification = (message, type = 'info', duration = 3000) => {
+            notificationBar.textContent = message;
+            notificationBar.className = ''; // Mevcut sınıfları temizle
+            notificationBar.classList.add(type);
+            notificationBar.style.display = 'block';
+
+            setTimeout(() => {
+                notificationBar.style.display = 'none';
+            }, duration);
+        };
+
+
         const showView = (viewId) => {
             adminLoginView.style.display = 'none';
             adminDashboardView.style.display = 'none';
@@ -853,23 +893,16 @@
             return code.toUpperCase().split('').map(char => String.fromCodePoint(char.charCodeAt(0) + 127397)).join('');
         };
 
-        const getTranslatedName = (obj) => {
-            if (!obj || !obj.name) return 'N/A';
-            return obj.name.tr || obj.name.en || 'N/A'; // Varsayılan olarak Türkçe veya İngilizce
-        };
-
-        const getTranslatedContent = (obj, field) => {
+        // Helper to get translated content for specific language (e.g., 'tr', 'en')
+        // Prioritizes requested language, then falls back to 'tr', then 'en'.
+        const getTranslatedContentForLang = (obj, field, langCode = 'tr') => {
             if (!obj || !obj.content) return '';
-            return obj.content.tr?.[field] || obj.content.en?.[field] || '';
-        };
-
-        // Helper to get translated content for specific language
-        const getTranslatedContentForLang = (obj, field, langCode) => {
-            return obj?.content?.[langCode]?.[field] || '';
+            return obj.content[langCode]?.[field] || obj.content.tr?.[field] || obj.content.en?.[field] || '';
         };
 
         const deleteMediaFromPreview = (index, url, previewId) => {
             document.getElementById(previewId).innerHTML = '';
+            // Input alanını da temizle
             if (previewId.startsWith('variant-image-preview-')) {
                  document.getElementById(`variant-image-url-${index}`).value = '';
             } else if (previewId === 'logo-image-preview') {
@@ -878,12 +911,13 @@
                  document.getElementById('banner-image-url').value = '';
             }
 
-            // Opsiyonel: Firebase Storage'dan da silmek isterseniz
+            // Opsiyonel: Firebase Storage'dan da silmek isterseniz bu kısmı etkinleştirin
             // const storageRef = ref(storage, url);
             // deleteObject(storageRef).then(() => {
-            //     console.log('Dosya Storage\'dan silindi:', url);
+            //      showNotification('Dosya Storage\'dan silindi.', 'success');
             // }).catch((error) => {
-            //     console.error('Dosya Storage\'dan silinirken hata:', error);
+            //      console.error('Dosya Storage\'dan silinirken hata:', error);
+            //      showNotification('Dosya silinirken hata oluştu: ' + error.message, 'error');
             // });
         };
 
@@ -897,6 +931,7 @@
                 renderProductsTable();
             } catch (error) {
                 console.error("Ürünler yüklenirken hata:", error);
+                showNotification('Ürünler yüklenemedi. Lütfen konsolu kontrol edin.', 'error');
                 productsTableBody.innerHTML = '<tr><td colspan="6">Ürünler yüklenemedi.</td></tr>';
             }
         };
@@ -912,8 +947,8 @@
                 const row = productsTableBody.insertRow();
                 row.innerHTML = `
                     <td>${product.id.substring(0, 6)}...</td>
-                    <td>${getTranslatedContent(product, 'name')}</td>
-                    <td>${product.basePriceTL ? product.basePriceTL.toFixed(2) : 'N/A'}</td>
+                    <td>${getTranslatedContentForLang(product, 'name', 'tr')}</td>
+                    <td>${product.basePriceTL !== undefined ? product.basePriceTL.toFixed(2) : 'N/A'}</td>
                     <td>${product.variants?.[0]?.stock !== undefined ? product.variants[0].stock : 'N/A'}</td>
                     <td>${product.isInShowcase ? 'Evet' : 'Hayır'}</td>
                     <td class="actions-column">
@@ -979,6 +1014,7 @@
             `;
             productVariantsContainer.appendChild(variantDiv);
 
+            // Add event listeners for the newly created elements
             variantDiv.querySelector('.upload-variant-image').addEventListener('click', (e) => uploadProductVariantImage(e.target.dataset.index));
             variantDiv.querySelector('.remove-variant-btn').addEventListener('click', (e) => removeVariantRow(e.target.dataset.index));
             if (variantDiv.querySelector('.delete-media')) {
@@ -988,11 +1024,11 @@
 
         const removeVariantRow = (indexToRemove) => {
             if (productVariantsContainer.children.length === 1) {
-                alert("En az bir varyant olmak zorundadır.");
+                showNotification("En az bir varyant olmak zorundadır.", "warning");
                 return;
             }
             productVariantsContainer.children[indexToRemove].remove();
-            // İndeksleri yeniden düzenle
+            // Re-index variants to maintain correct data-index for future operations
             Array.from(productVariantsContainer.children).forEach((child, i) => {
                 child.querySelector('h4').textContent = `Varyant ${i + 1}`;
                 child.querySelectorAll('[id^="variant-"], [for^="variant-"]').forEach(el => {
@@ -1011,7 +1047,7 @@
             const previewContainer = document.getElementById(`variant-image-preview-${index}`);
 
             if (fileInput.files.length === 0) {
-                alert("Lütfen bir resim dosyası seçin.");
+                showNotification("Lütfen bir resim dosyası seçin.", "warning");
                 return;
             }
 
@@ -1023,9 +1059,10 @@
                 imageUrlInput.value = downloadURL;
                 previewContainer.innerHTML = `<div class="media-item"><img src="${downloadURL}"><button class="delete-media" data-index="${index}" data-url="${downloadURL}">X</button></div>`;
                 previewContainer.querySelector('.delete-media').addEventListener('click', (e) => deleteMediaFromPreview(e.target.dataset.index, e.target.dataset.url, `variant-image-preview-${e.target.dataset.index}`));
+                showNotification("Resim başarıyla yüklendi!", "success");
             } catch (error) {
                 console.error("Resim yüklenirken hata:", error);
-                alert("Resim yüklenirken hata oluştu.");
+                showNotification("Resim yüklenirken hata oluştu: " + error.message, "error");
             }
         };
 
@@ -1035,20 +1072,20 @@
 
             currentEditingProduct = product;
             productIdInput.value = product.id;
-            productNameTrInput.value = getTranslatedContent(product, 'name', 'tr');
-            productNameEnInput.value = getTranslatedContent(product, 'name', 'en');
-            productDescTrTextarea.value = getTranslatedContent(product, 'description', 'tr');
-            productDescEnTextarea.value = getTranslatedContent(product, 'description', 'en');
+            productNameTrInput.value = getTranslatedContentForLang(product, 'name', 'tr');
+            productNameEnInput.value = getTranslatedContentForLang(product, 'name', 'en');
+            productDescTrTextarea.value = getTranslatedContentForLang(product, 'description', 'tr');
+            productDescEnTextarea.value = getTranslatedContentForLang(product, 'description', 'en');
             productBasePriceInput.value = product.basePriceTL;
             productDiscountedPriceInput.value = product.baseDiscountedPriceTL;
             productIsFreeShippingCheckbox.checked = product.isFreeShipping || false;
             productIsInShowcaseCheckbox.checked = product.isInShowcase || false;
 
-            productVariantsContainer.innerHTML = ''; // Önceki varyantları temizle
+            productVariantsContainer.innerHTML = ''; // Clear previous variants
             if (product.variants && product.variants.length > 0) {
                 product.variants.forEach(variant => addVariantRow(variant));
             } else {
-                addVariantRow(); // Varyant yoksa boş bir tane ekle
+                addVariantRow(); // Add a default empty variant if none exist
             }
 
             showProductForm(true);
@@ -1058,11 +1095,11 @@
             if (!confirm("Bu ürünü silmek istediğinize emin misiniz?")) return;
             try {
                 await deleteDoc(doc(db, 'products', productId));
-                alert("Ürün başarıyla silindi!");
+                showNotification("Ürün başarıyla silindi!", "success");
                 loadProducts();
             } catch (error) {
                 console.error("Ürün silinirken hata:", error);
-                alert("Ürün silinirken bir hata oluştu: " + error.message);
+                showNotification("Ürün silinirken bir hata oluştu: " + error.message, "error");
             }
         };
 
@@ -1083,20 +1120,23 @@
                 }
             } catch (error) {
                 console.error("Kategoriler yüklenirken hata:", error);
+                showNotification('Kategoriler yüklenemedi. Lütfen konsolu kontrol edin.', 'error');
                 categoriesList.innerHTML = '<li>Kategoriler yüklenemedi.</li>';
             }
         };
 
         const renderCategoriesList = (categories, ulEl = categoriesList, depth = 0) => {
-            if (depth === 0) ulEl.innerHTML = ''; // Sadece en üst seviyede temizle
+            if (depth === 0) ulEl.innerHTML = ''; // Only clear at the top level
 
             categories.forEach(cat => {
                 const li = document.createElement('li');
                 li.innerHTML = `
-                    <div style="margin-left: ${depth * 20}px;">
-                        ${getTranslatedContentForLang({ content: cat.name }, 'name', 'tr')} 
-                        (<button class="edit-category-btn" data-id="${cat.id}">Düzenle</button> 
-                        <button class="delete-category-btn" data-id="${cat.id}">Sil</button>)
+                    <div style="margin-left: ${depth * 20}px; display: flex; align-items: center; justify-content: space-between; padding: 5px 0;">
+                        <span>${getTranslatedContentForLang({ content: cat.name }, 'name', 'tr')}</span>
+                        <span>
+                            <button class="edit-category-btn" data-id="${cat.id}" title="Düzenle"><i class="fa-solid fa-edit"></i></button>
+                            <button class="delete-category-btn" data-id="${cat.id}" title="Sil"><i class="fa-solid fa-trash-alt"></i></button>
+                        </span>
                     </div>
                 `;
                 ulEl.appendChild(li);
@@ -1114,11 +1154,17 @@
                 parentCategorySelect.innerHTML = '<option value="">Yok (Ana Kategori)</option>';
             }
             categories.forEach(cat => {
-                const option = document.createElement('option');
-                option.value = cat.id;
-                option.textContent = `${prefix}${getTranslatedContentForLang({ content: cat.name }, 'name', 'tr')}`;
-                parentCategorySelect.appendChild(option);
-                if (cat.children) { // Sadece varsa children'ı kontrol et
+                // Kendi alt kategorisi olamayacak şekilde düzenleme yapıyoruz (kendini seçememeli)
+                if (currentEditingCategory && currentEditingCategory.id === cat.id) {
+                    // Kendi kategorisini üst kategori olarak gösterme
+                } else {
+                    const option = document.createElement('option');
+                    option.value = cat.id;
+                    option.textContent = `${prefix}${getTranslatedContentForLang({ content: cat.name }, 'name', 'tr')}`;
+                    parentCategorySelect.appendChild(option);
+                }
+                
+                if (cat.children) {
                     populateParentCategorySelect(cat.children, prefix + '-- ', level + 1);
                 }
             });
@@ -1135,6 +1181,8 @@
             return null;
         };
 
+        // This function will be more complex if you allow changing parent of an existing category
+        // For now, it updates name in place. Re-parenting requires more advanced tree manipulation.
         const updateCategoryInTree = (categories, updatedCategory) => {
             return categories.map(cat => {
                 if (cat.id === updatedCategory.id) {
@@ -1168,6 +1216,8 @@
                 categoryIdInput.value = '';
                 currentEditingCategory = null;
             }
+            // Populate parent category select based on the current state (after reset for new, or current for edit)
+            populateParentCategorySelect(adminSiteData.categories.tree);
         };
 
         const hideCategoryForm = () => {
@@ -1196,6 +1246,9 @@
                 }
                 return null;
             };
+            
+            // Repopulate select to exclude current category from parent options
+            populateParentCategorySelect(adminSiteData.categories.tree);
             parentCategorySelect.value = findParentId(adminSiteData.categories.tree, category.id) || '';
 
             showCategoryForm(true);
@@ -1207,12 +1260,12 @@
                 let updatedTree = removeCategoryFromTree(adminSiteData.categories.tree, id);
                 await updateDoc(doc(db, 'pufemo', 'categories'), { tree: updatedTree });
                 adminSiteData.categories.tree = updatedTree; // State'i güncelle
-                alert("Kategori başarıyla silindi!");
+                showNotification("Kategori başarıyla silindi!", "success");
                 renderCategoriesList(adminSiteData.categories.tree); // UI'ı yenile
                 populateParentCategorySelect(adminSiteData.categories.tree); // Selectbox'ı yenile
             } catch (error) {
                 console.error("Kategori silinirken hata:", error);
-                alert("Kategori silinirken bir hata oluştu: " + error.message);
+                showNotification("Kategori silinirken bir hata oluştu: " + error.message, "error");
             }
         };
 
@@ -1225,6 +1278,7 @@
                 renderOrdersTable();
             } catch (error) {
                 console.error("Siparişler yüklenirken hata:", error);
+                showNotification('Siparişler yüklenemedi. Lütfen konsolu kontrol edin.', 'error');
                 ordersTableBody.innerHTML = '<tr><td colspan="6">Siparişler yüklenemedi.</td></tr>';
             }
         };
@@ -1238,7 +1292,7 @@
 
             adminSiteData.orders.forEach(order => {
                 const row = ordersTableBody.insertRow();
-                const orderDate = new Date(order.orderDate).toLocaleDateString('tr-TR'); // Türkçe format
+                const orderDate = new Date(order.orderDate).toLocaleDateString('tr-TR');
                 const orderTime = new Date(order.orderDate).toLocaleTimeString('tr-TR');
 
                 let statusClass = '';
@@ -1248,13 +1302,19 @@
                     case 'shipped': statusClass = 'status-shipped'; break;
                     case 'completed': statusClass = 'status-completed'; break;
                     case 'cancelled': statusClass = 'status-cancelled'; break;
+                    default: statusClass = ''; // Varsayılan durum
                 }
+
+                const currencySymbol = adminSiteData.settings?.currencySymbols?.[order.currency] || order.currency;
+                const exchangeRate = adminSiteData.settings?.exchangeRates?.[order.currency] || 1;
+                const totalFormatted = (order.totalTL * exchangeRate).toFixed(2);
+
 
                 row.innerHTML = `
                     <td>${order.id.substring(0, 8)}...</td>
                     <td>${order.userId ? order.userId.substring(0, 8) + '...' : 'Misafir'}</td>
                     <td>${orderDate} ${orderTime}</td>
-                    <td>${order.totalTL ? (order.totalTL * (adminSiteData.settings?.exchangeRates?.[order.currency] || 1)).toFixed(2) : 'N/A'} ${adminSiteData.settings?.currencySymbols?.[order.currency] || order.currency}</td>
+                    <td>${totalFormatted} ${currencySymbol}</td>
                     <td><span class="status-badge ${statusClass}">${order.status}</span></td>
                     <td class="actions-column">
                         <button class="view-order-detail-btn" data-id="${order.id}" title="Detayları Görüntüle"><i class="fa-solid fa-eye"></i></button>
@@ -1270,6 +1330,10 @@
 
             currentEditingOrder = order;
             orderDetailIdSpan.textContent = order.id.substring(0, 8);
+
+            const currencySymbol = adminSiteData.settings?.currencySymbols?.[order.currency] || order.currency;
+            const exchangeRate = adminSiteData.settings?.exchangeRates?.[order.currency] || 1;
+
             orderDetailsContent.innerHTML = `
                 <p><strong>Kullanıcı ID:</strong> ${order.userId || 'Misafir'}</p>
                 <p><strong>Sipariş Tarihi:</strong> ${new Date(order.orderDate).toLocaleString('tr-TR')}</p>
@@ -1282,13 +1346,13 @@
                         <li>
                             <img src="${item.imageUrl || `https://placehold.co/50x50/ccc/fff?text=N/A`}" alt="${item.name}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 3px; vertical-align: middle; margin-right: 10px;">
                             ${item.name} ${item.variantName ? `(${item.variantName})` : ''} x ${item.quantity} - 
-                            ${(item.priceAtPurchase * item.quantity * (adminSiteData.settings?.exchangeRates?.[order.currency] || 1)).toFixed(2)} ${adminSiteData.settings?.currencySymbols?.[order.currency] || order.currency}
+                            ${(item.priceAtPurchase * item.quantity * exchangeRate).toFixed(2)} ${currencySymbol}
                         </li>
                     `).join('')}
                 </ul>
-                <p><strong>Ara Toplam:</strong> ${(order.subtotalTL * (adminSiteData.settings?.exchangeRates?.[order.currency] || 1)).toFixed(2)} ${adminSiteData.settings?.currencySymbols?.[order.currency] || order.currency}</p>
-                <p><strong>Kargo Ücreti:</strong> ${(order.shippingCostTL * (adminSiteData.settings?.exchangeRates?.[order.currency] || 1)).toFixed(2)} ${adminSiteData.settings?.currencySymbols?.[order.currency] || order.currency}</p>
-                <p><strong>Toplam:</strong> ${(order.totalTL * (adminSiteData.settings?.exchangeRates?.[order.currency] || 1)).toFixed(2)} ${adminSiteData.settings?.currencySymbols?.[order.currency] || order.currency}</p>
+                <p><strong>Ara Toplam:</strong> ${(order.subtotalTL * exchangeRate).toFixed(2)} ${currencySymbol}</p>
+                <p><strong>Kargo Ücreti:</strong> ${(order.shippingCostTL * exchangeRate).toFixed(2)} ${currencySymbol}</p>
+                <p><strong>Toplam:</strong> ${(order.totalTL * exchangeRate).toFixed(2)} ${currencySymbol}</p>
             `;
             orderStatusSelect.value = order.status;
             orderDetailView.style.display = 'block';
@@ -1298,13 +1362,13 @@
         const loadUsers = async () => {
             usersTableBody.innerHTML = '<tr><td colspan="5">Kullanıcılar yükleniyor...</td></tr>';
             try {
-                // Not: Eğer Firestore koleksiyon adınız 'users' değil 'uyeler' ise bu satırı güncelleyin:
-                // const usersSnap = await getDocs(collection(db, 'uyeler'));
-                const usersSnap = await getDocs(collection(db, 'users')); // Varsayılan olarak 'users' kullanılıyor
+                // If your Firestore collection name is 'uyeler' instead of 'users', update this line:
+                const usersSnap = await getDocs(collection(db, 'users')); 
                 adminSiteData.users = usersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderUsersTable();
             } catch (error) {
                 console.error("Kullanıcılar yüklenirken hata:", error);
+                showNotification('Kullanıcılar yüklenemedi. Lütfen konsolu kontrol edin.', 'error');
                 usersTableBody.innerHTML = '<tr><td colspan="5">Kullanıcılar yüklenemedi.</td></tr>';
             }
         };
@@ -1338,17 +1402,16 @@
             const newRole = prompt(`Kullanıcı "${user.email}" için yeni rolü girin (customer, admin):`, user.role || 'customer');
             if (newRole && ['customer', 'admin'].includes(newRole)) {
                 try {
-                    // Not: Eğer Firestore koleksiyon adınız 'users' değil 'uyeler' ise bu satırı güncelleyin:
-                    // await updateDoc(doc(db, 'uyeler', userId), { role: newRole });
-                    await updateDoc(doc(db, 'users', userId), { role: newRole }); // Varsayılan olarak 'users' kullanılıyor
-                    alert(`Kullanıcı rolü "${newRole}" olarak güncellendi.`);
+                    // If your Firestore collection name is 'uyeler' instead of 'users', update this line:
+                    await updateDoc(doc(db, 'users', userId), { role: newRole }); 
+                    showNotification(`Kullanıcı rolü "${newRole}" olarak güncellendi.`, "success");
                     loadUsers();
                 } catch (error) {
                     console.error("Kullanıcı rolü güncellenirken hata:", error);
-                    alert("Kullanıcı rolü güncellenirken bir hata oluştu: " + error.message);
+                    showNotification("Kullanıcı rolü güncellenirken bir hata oluştu: " + error.message, "error");
                 }
             } else if (newRole !== null) {
-                alert("Geçersiz rol! Lütfen 'customer' veya 'admin' girin.");
+                showNotification("Geçersiz rol! Lütfen 'customer' veya 'admin' girin.", "warning");
             }
         };
 
@@ -1368,18 +1431,19 @@
                     renderBannerList([]);
                     renderCountryCurrencyList({});
                     renderLanguageList([]);
-                    console.warn("Settings document not found in Firestore.");
+                    console.warn("Settings document not found in Firestore. Creating with default values if saved.");
+                    showNotification("Ayarlar belgesi Firestore'da bulunamadı, varsayılan değerler yüklendi.", "info");
                 }
             } catch (error) {
                 console.error("Ayarlar yüklenirken hata:", error);
-                alert("Ayarlar yüklenirken bir hata oluştu.");
+                showNotification("Ayarlar yüklenirken bir hata oluştu: " + error.message, "error");
             }
         };
 
         const fillGeneralSettingsForm = (generalSettings) => {
             // Logo
             logoTypeSelect.value = generalSettings.logo?.type || 'text';
-            toggleLogoSettings(); // Seçime göre ilgili alanı göster/gizle
+            toggleLogoSettings(); // Show/hide relevant section based on selection
             logoTypeSelect.addEventListener('change', toggleLogoSettings);
 
             logoTextInput.value = generalSettings.logo?.text || '';
@@ -1488,21 +1552,21 @@
         const deleteBanner = async (index) => {
             if (!confirm("Bu bannerı silmek istediğinize emin misiniz?")) return;
             let updatedBanners = [...(adminSiteData.settings?.banner || [])];
-            const [deletedBanner] = updatedBanners.splice(index, 1); // Silineni al
+            const [deletedBanner] = updatedBanners.splice(index, 1); // Get the deleted item
 
             try {
                 await updateDoc(doc(db, 'pufemo', 'settings'), { banner: updatedBanners });
-                // Opsiyonel: Eğer Firebase Storage'dan da silmek isterseniz
+                // Optional: If you want to delete from Firebase Storage as well, enable this:
                 // if (deletedBanner && deletedBanner.image_url) {
-                //     const storageRef = ref(storage, deletedBanner.image_url);
-                //     await deleteObject(storageRef);
-                //     console.log('Banner medya dosyası Storage\'dan silindi.');
+                //      const storageRef = ref(storage, deletedBanner.image_url);
+                //      await deleteObject(storageRef);
+                //      showNotification('Banner medya dosyası Storage\'dan silindi.', 'success');
                 // }
-                alert("Banner başarıyla silindi!");
+                showNotification("Banner başarıyla silindi!", "success");
                 loadSettings();
             } catch (error) {
                 console.error("Banner silinirken hata:", error);
-                alert("Banner silinirken bir hata oluştu: " + error.message);
+                showNotification("Banner silinirken bir hata oluştu: " + error.message, "error");
             }
         };
 
@@ -1517,11 +1581,14 @@
             countries.forEach(([code, data]) => {
                 const div = document.createElement('div');
                 div.className = 'admin-form-container'; // Reuse style
+                const currencySymbol = adminSiteData.settings.currencySymbols?.[data.currencyCode] || data.currencyCode;
+                const exchangeRateFormatted = adminSiteData.settings.exchangeRates?.[data.currencyCode]?.toFixed(4) || 'Yok';
+
                 div.innerHTML = `
-                    <h3>${countryCodeToEmoji(data.flag)} ${data.name?.tr || data.name?.en || code.toUpperCase()} (${code})</h3>
-                    <p>Para Birimi: ${data.currencyCode} (${adminSiteData.settings.currencySymbols?.[data.currencyCode] || data.currencyCode})</p>
+                    <h3>${countryCodeToEmoji(data.flag || code)} ${data.name?.tr || data.name?.en || code.toUpperCase()} (${code})</h3>
+                    <p>Para Birimi: ${data.currencyCode} (${currencySymbol})</p>
                     <p>Varsayılan Dil: ${data.defaultLanguage}</p>
-                    <p>Döviz Kuru (USD'ye göre): ${adminSiteData.settings.exchangeRates?.[data.currencyCode]?.toFixed(4) || 'Yok'}</p>
+                    <p>Döviz Kuru (USD'ye göre): ${exchangeRateFormatted}</p>
                     <p>Fiyat Ayarlaması: %${data.adjustment || 0}</p>
                     <div class="admin-form-actions">
                         <button type="button" class="edit-country-currency-btn save-btn" data-code="${code}">Düzenle</button>
@@ -1539,29 +1606,36 @@
             countryCurrencyFormTitle.textContent = isEdit ? 'Düzenle' : 'Ekle';
             if (!isEdit) {
                 countryCurrencyForm.reset();
-                countryCurrencyCodeInput.value = '';
-                countryCurrencyCodeInput.readOnly = false; // Yeni eklerken kod düzenlenebilir
+                countryCodeInput.value = ''; // Ensure it's clear for new entries
+                countryCodeInput.readOnly = false; // Allow editing code for new entries
+                countryCurrencyCodeHiddenInput.value = ''; // Clear hidden input
                 currentEditingCountryCode = null;
             } else {
-                countryCurrencyCodeInput.readOnly = true; // Düzenlerken kod değiştirilemez
+                countryCodeInput.readOnly = true; // Prevent editing code when editing existing
             }
         };
 
         const hideCountryCurrencyForm = () => {
             countryCurrencyFormContainer.style.display = 'none';
             countryCurrencyForm.reset();
+            countryCodeInput.readOnly = false; // Reset to editable when hidden
             currentEditingCountryCode = null;
         };
 
         const editCountryCurrency = (code) => {
             const country = adminSiteData.settings.countryPricing[code];
-            const currencySymbol = adminSiteData.settings.currencySymbols[country.currencyCode];
-            const exchangeRate = adminSiteData.settings.exchangeRates[country.currencyCode];
+            // Ensure currencySymbols and exchangeRates exist before accessing
+            const currencySymbol = adminSiteData.settings.currencySymbols?.[country.currencyCode];
+            const exchangeRate = adminSiteData.settings.exchangeRates?.[country.currencyCode];
 
-            if (!country) return;
+            if (!country) {
+                showNotification("Düzenlenecek ülke bilgisi bulunamadı.", "warning");
+                return;
+            }
 
             currentEditingCountryCode = code;
-            countryCurrencyCodeInput.value = code;
+            countryCurrencyCodeHiddenInput.value = code; // Set hidden input for tracking original code
+            countryCodeInput.value = code;
             countryNameTrInput.value = country.name?.tr || '';
             countryNameEnInput.value = country.name?.en || '';
             currencyCodeInput.value = country.currencyCode || '';
@@ -1575,17 +1649,21 @@
         };
 
         const deleteCountryCurrency = async (code) => {
-            if (!confirm("Bu ülke/para birimi bilgisini silmek istediğinize emin misiniz?")) return;
+            if (!confirm(`"${code}" ülke/para birimi bilgisini silmek istediğinize emin misiniz?`)) return;
 
             let updatedCountryPricing = { ...(adminSiteData.settings.countryPricing || {}) };
             let updatedCurrencySymbols = { ...(adminSiteData.settings.currencySymbols || {}) };
             let updatedExchangeRates = { ...(adminSiteData.settings.exchangeRates || {}) };
 
             const deletedCountry = updatedCountryPricing[code];
+            if (!deletedCountry) {
+                showNotification("Silinecek ülke bilgisi bulunamadı.", "warning");
+                return;
+            }
             const deletedCurrencyCode = deletedCountry.currencyCode;
 
             delete updatedCountryPricing[code];
-            // Eğer silinen para birimi başka bir ülke tarafından kullanılmıyorsa, sembolünü ve kurunu da sil
+            // If the deleted currency is not used by any other country, delete its symbol and rate too
             const isCurrencyUsedByOtherCountries = Object.values(updatedCountryPricing).some(c => c.currencyCode === deletedCurrencyCode);
             if (!isCurrencyUsedByOtherCountries) {
                 delete updatedCurrencySymbols[deletedCurrencyCode];
@@ -1598,11 +1676,11 @@
                     currencySymbols: updatedCurrencySymbols,
                     exchangeRates: updatedExchangeRates
                 });
-                alert("Ülke/Para Birimi ayarı başarıyla silindi!");
+                showNotification("Ülke/Para Birimi ayarı başarıyla silindi!", "success");
                 loadSettings();
             } catch (error) {
                 console.error("Ülke/Para Birimi ayarı silinirken hata:", error);
-                alert("Ülke/Para Birimi ayarı silinirken bir hata oluştu: " + error.message);
+                showNotification("Ülke/Para Birimi ayarı silinirken bir hata oluştu: " + error.message, "error");
             }
         };
 
@@ -1635,22 +1713,26 @@
             if (!isEdit) {
                 languageForm.reset();
                 languageIndexInput.value = '';
-                languageCodeInput.readOnly = false;
+                languageCodeInput.readOnly = false; // Allow editing code for new entries
                 currentEditingLanguageIndex = -1;
             } else {
-                languageCodeInput.readOnly = true;
+                languageCodeInput.readOnly = true; // Prevent editing code when editing existing
             }
         };
 
         const hideLanguageForm = () => {
             languageFormContainer.style.display = 'none';
             languageForm.reset();
+            languageCodeInput.readOnly = false; // Reset to editable when hidden
             currentEditingLanguageIndex = -1;
         };
 
         const editLanguage = (index) => {
             const language = adminSiteData.settings.languages[index];
-            if (!language) return;
+            if (!language) {
+                showNotification("Düzenlenecek dil bilgisi bulunamadı.", "warning");
+                return;
+            }
 
             currentEditingLanguageIndex = index;
             languageIndexInput.value = index;
@@ -1664,15 +1746,19 @@
         const deleteLanguage = async (index) => {
             if (!confirm("Bu dili silmek istediğinize emin misiniz?")) return;
             let updatedLanguages = [...(adminSiteData.settings?.languages || [])];
+            if (index < 0 || index >= updatedLanguages.length) {
+                showNotification("Silinecek dil bilgisi bulunamadı.", "warning");
+                return;
+            }
             updatedLanguages.splice(index, 1);
 
             try {
                 await updateDoc(doc(db, 'pufemo', 'settings'), { languages: updatedLanguages });
-                alert("Dil ayarı başarıyla silindi!");
+                showNotification("Dil ayarı başarıyla silindi!", "success");
                 loadSettings();
             } catch (error) {
                 console.error("Dil ayarı silinirken hata:", error);
-                alert("Dil ayarı silinirken bir hata oluştu: " + error.message);
+                showNotification("Dil ayarı silinirken bir hata oluştu: " + error.message, "error");
             }
         };
 
@@ -1688,23 +1774,30 @@
                 const userCredential = await signInWithEmailAndPassword(auth, email, password);
                 const user = userCredential.user;
                 
-                // NOT: Eğer kullanıcı verilerinizi 'uyeler' koleksiyonunda tutuyorsanız, aşağıdaki satırı güncelleyin:
-                // const userDoc = await getDoc(doc(db, 'uyeler', user.uid));
-                const userDoc = await getDoc(doc(db, 'users', user.uid)); // Varsayılan: 'users'
+                // NOTE: If you store user data in 'uyeler' collection, update this line:
+                const userDoc = await getDoc(doc(db, 'users', user.uid)); // Default: 'users'
 
                 if (userDoc.exists() && userDoc.data().role === 'admin') {
                     showView('admin-dashboard-view');
                     adminUserEmailSpan.textContent = user.email;
-                    console.log("Admin logged in!");
+                    showNotification("Admin girişi başarılı!", "success");
                 } else {
-                    await signOut(auth); // Admin değilse çıkış yap
+                    await signOut(auth); // Sign out if not an admin
                     displayErrorMessage('Bu hesap yönetici yetkisine sahip değil.', loginErrorMessage);
-                    return; // Hata durumunda fonksiyonu sonlandır
+                    showNotification('Bu hesap yönetici yetkisine sahip değil.', 'error');
                 }
             } catch (error) {
-                displayErrorMessage(`Giriş hatası: ${error.message}`, loginErrorMessage);
+                let errorMessage = 'Giriş hatası: Bilinmeyen bir hata oluştu.';
+                if (error.code === 'auth/invalid-email' || error.code === 'auth/invalid-credential') {
+                    errorMessage = 'Geçersiz e-posta veya şifre.';
+                } else if (error.code === 'auth/user-disabled') {
+                    errorMessage = 'Bu hesap devre dışı bırakılmıştır.';
+                } else if (error.code === 'auth/too-many-requests') {
+                    errorMessage = 'Çok fazla başarısız giriş denemesi. Lütfen daha sonra tekrar deneyin.';
+                }
+                displayErrorMessage(errorMessage, loginErrorMessage);
+                showNotification(errorMessage, 'error');
                 console.error("Admin Login Error:", error);
-                return; // Hata durumunda fonksiyonu sonlandır
             }
         });
 
@@ -1714,9 +1807,10 @@
                 showView('admin-login-view');
                 adminEmailInput.value = '';
                 adminPasswordInput.value = '';
-                console.log("Admin logged out.");
+                showNotification("Başarıyla çıkış yapıldı.", "info");
             } catch (error) {
                 console.error("Logout Error:", error);
+                showNotification("Çıkış yapılırken hata oluştu: " + error.message, "error");
             }
         });
 
@@ -1724,20 +1818,21 @@
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 try {
-                    // Not: Eğer kullanıcı verilerinizi 'uyeler' koleksiyonunda tutuyorsanız, aşağıdaki satırı güncelleyin:
-                    // const userDoc = await getDoc(doc(db, 'uyeler', user.uid));
-                    const userDoc = await getDoc(doc(db, 'users', user.uid)); // Varsayılan: 'users'
+                    // NOTE: If you store user data in 'uyeler' collection, update this line:
+                    const userDoc = await getDoc(doc(db, 'users', user.uid)); // Default: 'users'
                     if (userDoc.exists() && userDoc.data().role === 'admin') {
                         showView('admin-dashboard-view');
                         adminUserEmailSpan.textContent = user.email;
                     } else {
-                        await signOut(auth); // Yetkisiz kullanıcı
+                        await signOut(auth); // Unauthorized user
                         showView('admin-login-view');
+                        showNotification('Yönetici yetkiniz yok veya hesabınız devre dışı bırakıldı.', 'warning');
                     }
                 } catch (error) {
                     console.error("Auth state check error:", error);
-                    await signOut(auth); // Hata olursa çıkış yap
+                    await signOut(auth); // Sign out on error
                     showView('admin-login-view');
+                    showNotification('Giriş yetkisi kontrol edilirken hata oluştu.', 'error');
                 }
             } else {
                 showView('admin-login-view');
@@ -1761,13 +1856,19 @@
             const productId = productIdInput.value;
             const variants = [];
             Array.from(productVariantsContainer.children).forEach((variantDiv, index) => {
+                const variantName = variantDiv.querySelector(`input[id^="variant-name-"]`).value;
+                const variantPriceTL = parseFloat(variantDiv.querySelector(`input[id^="variant-price-"]`).value) || 0;
+                const variantDiscountedPriceTL = parseFloat(variantDiv.querySelector(`input[id^="variant-discounted-price-"]`).value) || null;
+                const variantStock = parseInt(variantDiv.querySelector(`input[id^="variant-stock-"]`).value) || 0;
+                const variantImageUrl = variantDiv.querySelector(`input[id^="variant-image-url-"]`).value;
+
                 variants.push({
-                    id: currentEditingProduct?.variants?.[index]?.id || Math.random().toString(36).substring(2, 11), // Mevcut id'yi koru veya yeni oluştur
-                    name: variantDiv.querySelector(`input[id^="variant-name-"]`).value,
-                    priceTL: parseFloat(variantDiv.querySelector(`input[id^="variant-price-"]`).value) || null,
-                    discountedPriceTL: parseFloat(variantDiv.querySelector(`input[id^="variant-discounted-price-"]`).value) || null,
-                    stock: parseInt(variantDiv.querySelector(`input[id^="variant-stock-"]`).value) || 0,
-                    media: variantDiv.querySelector(`input[id^="variant-image-url-"]`).value ? [{ type: 'image', url: variantDiv.querySelector(`input[id^="variant-image-url-"]`).value }] : []
+                    id: currentEditingProduct?.variants?.[index]?.id || Math.random().toString(36).substring(2, 11), // Keep existing ID or generate new
+                    name: variantName,
+                    priceTL: variantPriceTL,
+                    discountedPriceTL: variantDiscountedPriceTL,
+                    stock: variantStock,
+                    media: variantImageUrl ? [{ type: 'image', url: variantImageUrl }] : []
                 });
             });
 
@@ -1792,16 +1893,16 @@
             try {
                 if (productId) {
                     await updateDoc(doc(db, 'products', productId), productData);
-                    alert("Ürün başarıyla güncellendi!");
+                    showNotification("Ürün başarıyla güncellendi!", "success");
                 } else {
                     await addDoc(collection(db, 'products'), productData);
-                    alert("Ürün başarıyla eklendi!");
+                    showNotification("Ürün başarıyla eklendi!", "success");
                 }
                 hideProductForm();
                 loadProducts();
             } catch (error) {
                 console.error("Ürün kaydedilirken hata:", error);
-                alert("Ürün kaydedilirken bir hata oluştu: " + error.message);
+                showNotification("Ürün kaydedilirken bir hata oluştu: " + error.message, "error");
             }
         });
 
@@ -1821,12 +1922,14 @@
                 children: []
             };
 
-            let updatedTree = JSON.parse(JSON.stringify(adminSiteData.categories.tree)); // Deep copy
+            let updatedTree = JSON.parse(JSON.stringify(adminSiteData.categories.tree)); // Deep copy to modify
 
-            if (categoryId) { // Edit existing
+            if (categoryId) { // Edit existing category
                 const updateNode = (nodes) => {
                     return nodes.map(node => {
                         if (node.id === categoryId) {
+                            // If the parent changed, we need more complex logic to move the node
+                            // For simplicity, this currently assumes only name change if parentId is not handled
                             return newCategory;
                         }
                         if (node.children) {
@@ -1836,8 +1939,8 @@
                     });
                 };
                 updatedTree = updateNode(updatedTree);
-                alert("Kategori başarıyla güncellendi!");
-            } else { // Add new
+                showNotification("Kategori başarıyla güncellendi!", "success");
+            } else { // Add new category
                 if (parentId) {
                     const addNodeToParent = (nodes) => {
                         return nodes.map(node => {
@@ -1854,18 +1957,18 @@
                 } else {
                     updatedTree.push(newCategory);
                 }
-                alert("Kategori başarıyla eklendi!");
+                showNotification("Kategori başarıyla eklendi!", "success");
             }
 
             try {
                 await updateDoc(doc(db, 'pufemo', 'categories'), { tree: updatedTree });
-                adminSiteData.categories.tree = updatedTree; // State'i güncelle
-                hideCategoryForm(); // Formu gizle
-                renderCategoriesList(adminSiteData.categories.tree); // UI'ı yenile
-                populateParentCategorySelect(adminSiteData.categories.tree); // Selectbox'ı yenile
+                adminSiteData.categories.tree = updatedTree; // Update state
+                hideCategoryForm(); // Hide form
+                renderCategoriesList(adminSiteData.categories.tree); // Refresh UI
+                populateParentCategorySelect(adminSiteData.categories.tree); // Refresh selectbox
             } catch (error) {
                 console.error("Kategori kaydedilirken hata:", error);
-                alert("Kategori kaydedilirken bir hata oluştu: " + error.message);
+                showNotification("Kategori kaydedilirken bir hata oluştu: " + error.message, "error");
             }
         });
 
@@ -1880,19 +1983,19 @@
             const newStatus = orderStatusSelect.value;
             try {
                 await updateDoc(doc(db, 'orders', currentEditingOrder.id), { status: newStatus });
-                alert("Sipariş durumu güncellendi!");
+                showNotification("Sipariş durumu güncellendi!", "success");
                 orderDetailView.style.display = 'none';
-                loadOrders(); // Listeyi yenile
+                loadOrders(); // Refresh list
             } catch (error) {
                 console.error("Sipariş durumu güncellenirken hata:", error);
-                alert("Sipariş durumu güncellenirken bir hata oluştu: " + error.message);
+                showNotification("Sipariş durumu güncellenirken bir hata oluştu: " + error.message, "error");
             }
         });
 
         // Settings Management Event Listeners
         uploadLogoImageBtn.addEventListener('click', async () => {
             if (logoImageFileInput.files.length === 0) {
-                alert("Lütfen bir resim dosyası seçin.");
+                showNotification("Lütfen bir resim dosyası seçin.", "warning");
                 return;
             }
             const file = logoImageFileInput.files[0];
@@ -1903,10 +2006,10 @@
                 logoImageUrlInput.value = downloadURL;
                 logoImagePreview.innerHTML = `<div class="media-item"><img src="${downloadURL}"><button class="delete-media" data-index="-1" data-url="${downloadURL}">X</button></div>`;
                 logoImagePreview.querySelector('.delete-media').addEventListener('click', (e) => deleteMediaFromPreview(e.target.dataset.index, e.target.dataset.url, 'logo-image-preview'));
-                alert("Logo resmi yüklendi!");
+                showNotification("Logo resmi yüklendi!", "success");
             } catch (error) {
                 console.error("Logo resmi yüklenirken hata:", error);
-                alert("Logo resmi yüklenirken bir hata oluştu.");
+                showNotification("Logo resmi yüklenirken bir hata oluştu.", "error");
             }
         });
 
@@ -1935,11 +2038,11 @@
             };
             try {
                 await updateDoc(doc(db, 'pufemo', 'settings'), { general: generalSettings });
-                alert("Genel Ayarlar başarıyla kaydedildi!");
-                loadSettings(); // Ayarları tekrar yükle
+                showNotification("Genel Ayarlar başarıyla kaydedildi!", "success");
+                loadSettings(); // Reload settings
             } catch (error) {
                 console.error("Genel ayarlar kaydedilirken hata:", error);
-                alert("Genel ayarlar kaydedilirken bir hata oluştu: " + error.message);
+                showNotification("Genel ayarlar kaydedilirken bir hata oluştu: " + error.message, "error");
             }
         });
 
@@ -1948,7 +2051,7 @@
         cancelBannerFormBtn.addEventListener('click', hideBannerForm);
         uploadBannerImageBtn.addEventListener('click', async () => {
             if (bannerImageFileInput.files.length === 0) {
-                alert("Lütfen bir resim/video dosyası seçin.");
+                showNotification("Lütfen bir resim/video dosyası seçin.", "warning");
                 return;
             }
             const file = bannerImageFileInput.files[0];
@@ -1960,10 +2063,10 @@
                 bannerImageUrlInput.value = downloadURL;
                 bannerImagePreview.innerHTML = `<div class="media-item">${file.type.startsWith('image/') ? `<img src="${downloadURL}">` : `<video src="${downloadURL}" controls></video>`}<button class="delete-media" data-index="-1" data-url="${downloadURL}">X</button></div>`;
                 bannerImagePreview.querySelector('.delete-media').addEventListener('click', (e) => deleteMediaFromPreview(e.target.dataset.index, e.target.dataset.url, 'banner-image-preview'));
-                alert("Banner medyası yüklendi!");
+                showNotification("Banner medyası yüklendi!", "success");
             } catch (error) {
                 console.error("Banner medyası yüklenirken hata:", error);
-                alert("Banner medyası yüklenirken bir hata oluştu.");
+                showNotification("Banner medyası yüklenirken bir hata oluştu.", "error");
             }
         });
 
@@ -2002,12 +2105,12 @@
 
             try {
                 await updateDoc(doc(db, 'pufemo', 'settings'), { banner: updatedBanners });
-                alert("Banner başarıyla kaydedildi!");
+                showNotification("Banner başarıyla kaydedildi!", "success");
                 hideBannerForm();
                 loadSettings();
             } catch (error) {
                 console.error("Banner kaydedilirken hata:", error);
-                alert("Banner kaydedilirken bir hata oluştu: " + error.message);
+                showNotification("Banner kaydedilirken bir hata oluştu: " + error.message, "error");
             }
         });
 
@@ -2016,8 +2119,20 @@
         cancelCountryCurrencyFormBtn.addEventListener('click', hideCountryCurrencyForm);
         countryCurrencyForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const countryCode = countryCurrencyCodeInput.value.toUpperCase();
-            const currencyCode = currencyCodeInput.value.toUpperCase();
+            const newCountryCode = countryCodeInput.value.toUpperCase().trim();
+            const oldCountryCode = countryCurrencyCodeHiddenInput.value; // Get original code if editing
+            const currencyCode = currencyCodeInput.value.toUpperCase().trim();
+
+            // *** CRITICAL VALIDATION FOR THE ERROR YOU REPORTED ***
+            if (!newCountryCode || newCountryCode.length !== 2) {
+                showNotification("Ülke kodu boş olamaz ve 2 karakter olmalıdır (örn: TR, US).", "error");
+                return; 
+            }
+            if (!currencyCode || currencyCode.length !== 3) {
+                showNotification("Para birimi kodu boş olamaz ve 3 karakter olmalıdır (örn: TRY, USD).", "error");
+                return;
+            }
+            // *** END CRITICAL VALIDATION ***
 
             const newCountryData = {
                 name: {
@@ -2034,9 +2149,15 @@
             let updatedCurrencySymbols = { ...(adminSiteData.settings.currencySymbols || {}) };
             let updatedExchangeRates = { ...(adminSiteData.settings.exchangeRates || {}) };
 
-            updatedCountryPricing[countryCode] = newCountryData;
+            // Handle renaming/updating country code if it changed
+            if (oldCountryCode && oldCountryCode !== newCountryCode) {
+                delete updatedCountryPricing[oldCountryCode]; // Remove old entry
+                showNotification(`Ülke kodu "${oldCountryCode}" den "${newCountryCode}" e güncelleniyor.`, 'info');
+            }
+            updatedCountryPricing[newCountryCode] = newCountryData;
+
             updatedCurrencySymbols[currencyCode] = currencySymbolInput.value;
-            updatedExchangeRates[currencyCode] = parseFloat(exchangeRateInput.value); // USD'ye göre kur
+            updatedExchangeRates[currencyCode] = parseFloat(exchangeRateInput.value); // Exchange rate relative to USD
 
             try {
                 await updateDoc(doc(db, 'pufemo', 'settings'), {
@@ -2044,12 +2165,12 @@
                     currencySymbols: updatedCurrencySymbols,
                     exchangeRates: updatedExchangeRates
                 });
-                alert("Ülke/Para Birimi ayarı başarıyla kaydedildi!");
+                showNotification("Ülke/Para Birimi ayarı başarıyla kaydedildi!", "success");
                 hideCountryCurrencyForm();
                 loadSettings();
             } catch (error) {
                 console.error("Ülke/Para Birimi ayarı kaydedilirken hata:", error);
-                alert("Ülke/Para Birimi ayarı kaydedilirken bir hata oluştu: " + error.message);
+                showNotification("Ülke/Para Birimi ayarı kaydedilirken bir hata oluştu: " + error.message, "error");
             }
         });
 
@@ -2058,34 +2179,51 @@
         cancelLanguageFormBtn.addEventListener('click', hideLanguageForm);
         languageForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+            const newLanguageCode = languageCodeInput.value.toLowerCase().trim();
+
+            if (!newLanguageCode || newLanguageCode.length !== 2) {
+                showNotification("Dil kodu boş olamaz ve 2 karakter olmalıdır (örn: tr, en).", "error");
+                return;
+            }
+
             const newLanguage = {
-                code: languageCodeInput.value.toLowerCase(),
+                code: newLanguageCode,
                 name: languageNameInput.value,
                 flag: languageFlagInput.value
             };
 
             let updatedLanguages = [...(adminSiteData.settings?.languages || [])];
             if (currentEditingLanguageIndex > -1) {
+                // Check for duplicate code if code changed during edit (optional, but good practice)
+                if (updatedLanguages[currentEditingLanguageIndex].code !== newLanguageCode && updatedLanguages.some(lang => lang.code === newLanguageCode)) {
+                    showNotification(`"${newLanguageCode}" dil kodu zaten mevcut. Lütfen farklı bir kod girin.`, "warning");
+                    return;
+                }
                 updatedLanguages[currentEditingLanguageIndex] = newLanguage;
             } else {
+                // Check for duplicate code when adding new
+                if (updatedLanguages.some(lang => lang.code === newLanguageCode)) {
+                    showNotification(`"${newLanguageCode}" dil kodu zaten mevcut. Lütfen farklı bir kod girin.`, "warning");
+                    return;
+                }
                 updatedLanguages.push(newLanguage);
             }
 
             try {
                 await updateDoc(doc(db, 'pufemo', 'settings'), { languages: updatedLanguages });
-                alert("Dil ayarı başarıyla kaydedildi!");
+                showNotification("Dil ayarı başarıyla kaydedildi!", "success");
                 hideLanguageForm();
                 loadSettings();
             } catch (error) {
                 console.error("Dil ayarı kaydedilirken hata:", error);
-                alert("Dil ayarı kaydedilirken bir hata oluştu: " + error.message);
+                showNotification("Dil ayarı kaydedilirken bir hata oluştu: " + error.message, "error");
             }
         });
 
 
         // --- Initialization ---
         const initAdminPanel = () => {
-            // Auth state listener ilk görünümü belirleyecek
+            // Auth state listener will determine the initial view
         };
 
         document.addEventListener('DOMContentLoaded', initAdminPanel);
