@@ -654,7 +654,8 @@
         }
 
         .product-seo-table button,
-        .order-table button {
+        .order-table button,
+        .order-table select { /* YENİ: order-table içindeki select için stil */
             padding: 6px 12px;
             font-size: 0.9rem;
             border-radius: 5px;
@@ -673,6 +674,26 @@
         .order-table button.view-order-details:hover {
             background-color: #2980b9;
         }
+        
+        /* YENİ: Durum seçici için özel stil */
+        .order-status-select {
+            border: 1px solid #ccc;
+            background-color: #f0f0f0;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            cursor: pointer;
+        }
+        .order-status-select:hover {
+            background-color: #e0e0e0;
+        }
+        /* Durum renkleri (isteğe bağlı, CSS sınıfları ile eklenebilir) */
+        .status-pending { color: orange; font-weight: 600; }
+        .status-processing { color: blue; font-weight: 600; }
+        .status-shipped { color: #27ae60; font-weight: 600; } /* green */
+        .status-delivered { color: green; font-weight: 600; }
+        .status-cancelled { color: red; font-weight: 600; }
+
 
         /* Modal Stilleri */
         .modal {
@@ -748,7 +769,7 @@
                     <li class="nav-item active" data-page="product-management"><span class="nav-item-name">Ürünler</span></li>
                     <li class="nav-item" data-page="category-management"><span class="nav-item-name">Kategoriler</span></li>
                     <li class="nav-item" data-page="country-pricing-management"><span class="nav-item-name">Ülkelere Göre Fiyatlandırma</span></li>
-                    <li class="nav-item" data-page="order-management"><span class="nav-item-name">Siparişler</span></li> <!-- YENİ EKLEME: Siparişler Menü Öğesi -->
+                    <li class="nav-item" data-page="order-management"><span class="nav-item-name">Siparişler</span></li> <!-- EKLENDİ -->
                 </ul>
             </nav>
         </aside>
@@ -1034,7 +1055,7 @@
                 </div>
             </div>
 
-            <!-- YENİ EKLEME: Sipariş Yönetimi Sayfa Bölümü -->
+            <!-- YENİ EKLENEN KISIM: Sipariş Yönetimi Sayfa Bölümü -->
             <div id="order-management" class="page">
                 <h1>Sipariş Yönetimi</h1>
                 <div class="form-section">
@@ -1057,7 +1078,7 @@
                     </table>
                 </div>
             </div>
-            <!-- YENİ EKLEME SONU: Sipariş Yönetimi Sayfa Bölümü -->
+            <!-- EKLENEN KISIM SONU: Sipariş Yönetimi Sayfa Bölümü -->
 
         </main>
     </div>
@@ -1144,7 +1165,7 @@
                 },
                 categories: [],
                 products: [],
-                orders: [] // YENİ EKLEME: localState'e siparişler dizisi eklendi
+                orders: [] // EKLENDİ: localState'e siparişler dizisi eklendi
             };
             
             const loadingOverlay = document.getElementById('loading-overlay');
@@ -1188,10 +1209,10 @@
             const saveSeoTemplateBtn = document.getElementById('save-seo-template-btn');
             const savedSeoTemplatesContainer = document.getElementById('saved-seo-templates-container');
 
-            // YENİ EKLEME: Sipariş Yönetimi UI Elementleri
+            // EKLENDİ: Sipariş Yönetimi UI Elementleri
             const orderListBody = document.getElementById('order-list-body');
             const orderSearchInput = document.getElementById('order-search-input');
-            // YENİ EKLEME SONU
+            // EKLENDİ SONU
 
             const fontAwesomeIcons = [
                 "fa-solid fa-couch", "fa-solid fa-chair", "fa-solid fa-bed", "fa-solid fa-lamp",
@@ -1202,6 +1223,10 @@
                 "fa-solid fa-percent", "fa-solid fa-dollar-sign", "fa-solid fa-euro-sign", "fa-solid fa-yen-sign",
                 "fa-solid fa-rupee-sign", "fa-solid fa-basket-shopping", "fa-solid fa-cart-shopping", "fa-solid fa-bag-shopping"
             ];
+
+            // EKLENDİ: Tanımlanmış sipariş durumları
+            const orderStatuses = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
+            // EKLENDİ SONU
 
             const showLoading = () => loadingOverlay.classList.remove('hidden');
             const hideLoading = () => loadingOverlay.classList.add('hidden');
@@ -1254,11 +1279,10 @@
                     localState.categories = categoriesDoc.exists ? categoriesDoc.data().tree || [] : [];
                     localState.products = productsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-                    // YENİ EKLEME: Siparişleri çek
-                    // Not: Index sayfasındaki `placeOrder` fonksiyonunun `pufemo-orders` koleksiyonuna yazacak şekilde güncellendiğinden emin olun.
+                    // EKLENDİ: Siparişleri çek
                     const ordersSnapshot = await db.collection('pufemo-orders').orderBy('orderTimestamp', 'desc').get();
                     localState.orders = ordersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    // YENİ EKLEME SONU
+                    // EKLENDİ SONU
 
                 } catch (error) {
                     alert('Veri yüklenirken hata: ' + error.message);
@@ -1598,7 +1622,22 @@
                 formLi.querySelector('.cancel-new-category').addEventListener('click', () => { formLi.remove(); });
             }
 
-            // === YENİ EKLEME: Sipariş Yönetimi Fonksiyonları ===
+            // EKLENDİ: Sipariş Yönetimi Fonksiyonları
+            async function updateOrderStatus(orderId, newStatus) {
+                showLoading();
+                try {
+                    await db.collection('pufemo-orders').doc(orderId).update({ status: newStatus });
+                    alert('Sipariş durumu başarıyla güncellendi!');
+                    await fetchData(); // Veriyi yeniden çekip listeyi güncelle
+                    renderOrders(orderSearchInput.value); // Mevcut arama terimini koruyarak listeyi yeniden render et
+                } catch (error) {
+                    alert('Sipariş durumu güncellenirken hata: ' + error.message);
+                    console.error("Sipariş durumu güncelleme hatası:", error);
+                } finally {
+                    hideLoading();
+                }
+            }
+
             function renderOrders(searchTerm = '') {
                 orderListBody.innerHTML = '';
                 let filteredOrders = localState.orders;
@@ -1620,16 +1659,24 @@
 
                 filteredOrders.forEach(order => {
                     const row = orderListBody.insertRow();
-                    // orderTimestamp Firebase Timestamp objesi ise doğru şekilde dönüştür
                     const orderDate = order.orderTimestamp && order.orderTimestamp.toDate ? order.orderTimestamp.toDate().toLocaleString() : 'N/A';
                     const totalAmount = `${(order.totalAmount || 0).toFixed(2)} ${order.currency || ''}`;
+
+                    // Durum seçiciyi oluştur
+                    let statusOptionsHtml = orderStatuses.map(status =>
+                        `<option value="${status}" ${order.status === status ? 'selected' : ''}>${status}</option>`
+                    ).join('');
 
                     row.innerHTML = `
                         <td style="padding: 10px; border: 1px solid var(--border-color);">${(order.id || 'N/A').substring(0, 8)}...</td>
                         <td style="padding: 10px; border: 1px solid var(--border-color);">${orderDate}</td>
                         <td style="padding: 10px; border: 1px solid var(--border-color);">${order.fullName || 'N/A'} (${order.email || 'N/A'})</td>
                         <td style="padding: 10px; border: 1px solid var(--border-color);">${totalAmount}</td>
-                        <td style="padding: 10px; border: 1px solid var(--border-color);">${order.status || 'N/A'}</td>
+                        <td style="padding: 10px; border: 1px solid var(--border-color);">
+                            <select class="order-status-select" data-order-id="${order.id || ''}" onchange="updateOrderStatusFromEvent(event)">
+                                ${statusOptionsHtml}
+                            </select>
+                        </td>
                         <td style="padding: 10px; border: 1px solid var(--border-color);"><button class="btn btn-info btn-sm view-order-details" data-order-id="${order.id || ''}">Detay</button></td>
                     `;
                 });
@@ -1646,15 +1693,27 @@
                 });
             }
 
+            // Durum seçici onchange olayı için global yardımcı fonksiyon
+            window.updateOrderStatusFromEvent = async (event) => {
+                const orderId = event.target.dataset.orderId;
+                const newStatus = event.target.value;
+                await updateOrderStatus(orderId, newStatus);
+            };
+
             function showOrderDetailsModal(order) {
-                // Modal HTML'ini dinamik olarak oluştur
                 let modalHtml = `
                     <div id="orderDetailsModal" class="modal">
                         <div class="modal-content" style="max-width: 700px;">
                             <h2>Sipariş Detayları (${(order.id || 'N/A').substring(0, 8)}...)</h2>
                             <p><strong>Sipariş No:</strong> ${order.id || 'N/A'}</p>
                             <p><strong>Tarih:</strong> ${order.orderTimestamp && order.orderTimestamp.toDate ? order.orderTimestamp.toDate().toLocaleString() : 'N/A'}</p>
-                            <p><strong>Durum:</strong> ${order.status || 'N/A'}</p>
+                            <p><strong>Durum:</strong> 
+                                <select id="modal-order-status-select" class="order-status-select" data-order-id="${order.id || ''}">
+                                    ${orderStatuses.map(status =>
+                                        `<option value="${status}" ${order.status === status ? 'selected' : ''}>${status}</option>`
+                                    ).join('')}
+                                </select>
+                            </p>
                             <p><strong>Müşteri:</strong> ${order.fullName || 'N/A'}</p>
                             <p><strong>E-posta:</strong> ${order.email || 'N/A'}</p>
                             <p><strong>Telefon:</strong> ${order.phone || 'N/A'}</p>
@@ -1678,6 +1737,16 @@
                 document.body.insertAdjacentHTML('beforeend', modalHtml);
 
                 const modal = document.getElementById('orderDetailsModal');
+                // Modal içindeki durum seçiciye event listener ekle
+                modal.querySelector('#modal-order-status-select').addEventListener('change', async (event) => {
+                    const orderId = event.target.dataset.orderId;
+                    const newStatus = event.target.value;
+                    await updateOrderStatus(orderId, newStatus);
+                    // Modalı kapatıp listeyi yenilemek yerine, sadece güncelleyip modali açık bırakabiliriz
+                    // Ya da modali kapatıp listeyi yeniden render etmek daha iyi bir UX olabilir
+                    modal.remove(); // Durum değişince modali kapat
+                });
+
                 modal.querySelector('#closeOrderDetailsModal').addEventListener('click', () => {
                     modal.remove();
                 });
@@ -1687,7 +1756,7 @@
                     }
                 });
             }
-            // YENİ EKLEME SONU: Sipariş Yönetimi Fonksiyonları
+            // EKLENDİ SONU: Sipariş Yönetimi Fonksiyonları
 
             // === 6. OLAY DİNLEYİCİLER (EVENT LISTENERS) ===
             document.querySelector('.sidebar-nav').addEventListener('click', e => {
@@ -1720,7 +1789,7 @@
                     renderCountryPricingList();
                 } else if (pageId === 'seo-management') {
                     renderSeoManagement();
-                } else if (pageId === 'order-management') { // YENİ EKLEME: Sipariş Yönetimi Sayfası
+                } else if (pageId === 'order-management') { // EKLENDİ: Sipariş Yönetimi Sayfası
                     renderOrders();
                 }
             });
@@ -2910,11 +2979,11 @@
                 // Varsayılan olarak "Ürün Yönetimi" sekmesini aç
                 document.querySelector('.sidebar-nav .nav-item[data-page="product-management"]').click();
 
-                // YENİ EKLEME: Arama kutusuna yazıldığında siparişleri filtrele
+                // EKLENDİ: Arama kutusuna yazıldığında siparişleri filtrele
                 orderSearchInput.addEventListener('input', (e) => {
                     renderOrders(e.target.value);
                 });
-                // YENİ EKLEME SONU
+                // EKLENDİ SONU
             }
             
             init();
