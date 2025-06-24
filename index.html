@@ -78,6 +78,7 @@
             background-color: var(--primary-color); border-radius: 3px; 
             transition: all 0.3s ease-in-out; 
         }
+        .hamburger-menu.open span { background-color: var(--light-text-color); }
         .hamburger-menu.open span:nth-child(1) { transform: translateY(11px) rotate(45deg); }
         .hamburger-menu.open span:nth-child(2) { opacity: 0; }
         .hamburger-menu.open span:nth-child(3) { transform: translateY(-11px) rotate(-45deg); }
@@ -246,7 +247,7 @@
             box-shadow: var(--box-shadow); text-align: center; max-width: 450px; width: 90%;
             transform: translateY(-20px); transition: transform 0.3s ease;
         }
-        .welcome-modal-overlay.active .welcome-modal-content { transform: translateY(0); }
+        .welcome-modal-content.active .welcome-modal-content { transform: translateY(0); }
         .welcome-modal-content h2 { font-size: 2rem; color: var(--primary-color); margin-bottom: 15px; }
         .welcome-modal-content p { font-size: 1.1rem; color: var(--text-color); margin-bottom: 25px; }
         .welcome-modal-content .control-select {
@@ -481,7 +482,7 @@
         <div id="dynamic-product-sections"></div>
     </main>
 
-    <footer class="main-footer">
+    <footer>
         <div class="container">
             <div class="footer-content">
                 <div class="footer-section">
@@ -580,9 +581,12 @@
             products: []
         };
         // Dil, para birimi ve ülke bilgisi artık başlangıçta varsayılan, sonra welcome modal veya manuel seçimle güncellenecek
-        let currentLang = DEFAULT_FALLBACK_LANG; 
-        let currentCurrency = 'USD';
-        let currentCountryCode = DEFAULT_COUNTRY_CODE;
+        // localStorage'dan okunan dil ve para birimi tercihlerini koru
+        let currentLang = localStorage.getItem('pufemo-language') || DEFAULT_FALLBACK_LANG; 
+        let currentCurrency = localStorage.getItem('pufemo-currency') || 'USD';
+        // Ülke seçimi her zaman sorulacağı için localStorage'dan okumayı kaldırıyoruz,
+        // ancak init anında varsayılan bir değerle başlayacak.
+        let currentCountryCode = DEFAULT_COUNTRY_CODE; 
 
         // Make staticTranslations globally accessible (for other scripts if any, and for robustness)
         window.staticTranslations = {
@@ -590,7 +594,7 @@
             'mobile_menu_title': { tr: 'Kategoriler', en: 'Categories', el: 'Κατηγορίες', ru: 'Категории', de: 'Kategorien', fr: 'Catégories', it: 'Categorie' },
             'main_section_title': { tr: 'Öne Çıkan Ürünler', en: 'Featured Products', el: 'Προτεινόμενα Προϊόντα', ru: 'Рекомендуемые товары', de: 'Ausgewählte Produkte', fr: 'Produits Phares', it: 'Produits en Vedette' },
             'footer-title-pufemo': { tr: 'PUFEMO', en: 'PUFEMO', el: 'PUFEMO', ru: 'ПУΦΕΜΟ', de: 'PUFEMO', fr: 'PUFEMO', it: 'PUFEMO' },
-            'footer-desc-pufemo': { tr: 'Hayallerinizdeki konforu ve estetiği evinize taşıyoruz.', en: 'We bring the comfort and aesthetics of your dreams to your home.', el: 'Φέρνουμε την άνεση και την αισθητική των ονείρων σας στο σπίτι σας.', ru: 'Мы приносим комфорт и эстетику в ваш дом.', de: 'Wir bringen den Komfort und die Ästhetik Ihrer Träume in Ihr Zuhause.', fr: 'Nous apportons le confort et l\'esthétique de vos rêves à votre domicile.', it: 'Portiamo il comfort e l\'estetica dei vostri sogni nella vostra casa.' },
+            'footer-desc-pufemo': { tr: 'Hayallerinizdeki konforu ve estetiği evinize taşıyoruz.', en: 'We bring the comfort and aesthetics of your dreams to your home.', el: 'Φέρνουμε την άνεση και την αισθητική των ονείρων σας στο σπίze σας.', ru: 'Мы приносим комфорт и эстетику в ваш дом.', de: 'Wir bringen den Komfort und die Ästhetik Ihrer Träume in Ihr Zuhause.', fr: 'Nous apportons le confort et l\'esthétique de vos rêves à votre domicile.', it: 'Portiamo il comfort e l\'estetica dei vostri sogni nella vostra casa.' },
             'footer-title-fast-links': { tr: 'Hızlı Bağlantılar', en: 'Quick Links', el: 'Γρήγοροι Σύνδεσμοι', ru: 'Быстрые ссылки', de: 'Schnelllinks', fr: 'Liens Rapides', it: 'Link Veloci' },
             'footer-link-about': { tr: 'Hakkımızda', en: 'About Us', el: 'Σχετικά με εμάς', ru: 'О нас', de: 'Über Uns', fr: 'À Propos', it: 'Chi Siamo' },
             'footer-link-contact': { tr: 'İletişim', en: 'Contact', el: 'Επικοινωνία', ru: 'Контакт', de: 'Kontakt', fr: 'Contact', it: 'Contatti' },
@@ -651,8 +655,7 @@
             // Language and currency preferences are saved to localStorage to persist user choices
             localStorage.setItem('pufemo-language', currentLang);
             localStorage.setItem('pufemo-currency', currentCurrency);
-            // We no longer save 'pufemo-country' to localStorage as per the new requirement
-            // localStorage.setItem('pufemo-country', countryCode); // This line removed
+            // 'pufemo-country' localStorage'a kaydedilmiyor, çünkü her girişte sorulması isteniyor.
         };
         
         const formatPrice = (basePrice, discountPrice = null) => {
@@ -931,6 +934,7 @@
         };
 
         const setupControls = () => { 
+            console.log("setupControls function fired!"); // Hata ayıklama için eklendi
             const languageSelector = document.getElementById('language-selector');
             const currencySelector = document.getElementById('currency-selector');
             const countrySelector = document.getElementById('country-selector');
@@ -940,7 +944,7 @@
 
             const languagesFromDB = siteData.settings.languages || [];
             languageSelector.innerHTML = languagesFromDB.map(l => `<option value="${l.code}">${countryCodeToEmoji(l.flag)} ${l.name}</option>`).join('');
-            languageSelector.value = currentLang; // currentLang zaten set edilmiş olacak
+            languageSelector.value = currentLang;
             languageSelector.style.display = languagesFromDB.length > 0 ? 'block' : 'none';
             
             const currencies = siteData.settings?.currencySymbols || {};
@@ -949,7 +953,7 @@
                 const symbol = currencies[c] || c;
                 return `<option value="${c}">${symbol} ${c}</option>`;
             }).join('');
-            currencySelector.value = currentCurrency; // currentCurrency zaten set edilmiş olacak
+            currencySelector.value = currentCurrency;
             currencySelector.style.display = availableCurrencies.length > 0 ? 'block' : 'none';
             
             const countries = siteData.settings.countryPricing || {};
@@ -960,17 +964,17 @@
 
             if (Object.keys(countries).length > 0) {
                 countrySelector.innerHTML = countryOptionsHtml;
-                countrySelector.value = currentCountryCode; // currentCountryCode zaten set edilmiş olacak
+                countrySelector.value = currentCountryCode;
                 countrySelector.parentElement.style.display = 'block';
 
-                // welcomeCountrySelect'in doldurulması fetchData içinde yapılıyor
-                // welcomeCountrySelect.innerHTML = countryOptionsHtml; 
-                // welcomeCountrySelect.value = currentCountryCode;
+                welcomeCountrySelect.innerHTML = countryOptionsHtml;
+                // welcomeCountrySelect.value = currentCountryCode; // Bu zaten fetchData içinde yapıldı, tekrara gerek yok
             } else {
                 countrySelector.parentElement.style.display = 'none';
-                welcomeModalOverlay.style.display = 'none'; // Firebase'de ülke yoksa modalı gizle
+                welcomeModalOverlay.style.display = 'none';
             }
 
+            // Olay dinleyicilerini kaldır ve yeniden ata (birden fazla atanmasını önlemek için)
             languageSelector.removeEventListener('change', handleLanguageChange);
             currencySelector.removeEventListener('change', handleCurrencyChange);
             countrySelector.removeEventListener('change', handleCountryChange);
@@ -999,13 +1003,13 @@
         // Event Handler Functions for Selects & Modals
         const handleLanguageChange = (e) => {
             currentLang = e.target.value;
-            localStorage.setItem('pufemo-language', currentLang); // Dil tercihi kaydediliyor
+            localStorage.setItem('pufemo-language', currentLang);
             renderAll();
         };
 
         const handleCurrencyChange = (e) => {
             currentCurrency = e.target.value;
-            localStorage.setItem('pufemo-currency', currentCurrency); // Para birimi tercihi kaydediliyor
+            localStorage.setItem('pufemo-currency', currentCurrency);
             renderAll();
         };
 
@@ -1016,18 +1020,23 @@
         };
 
         const handleWelcomeModalConfirm = () => {
+            console.log("Welcome modal confirm button click handler fired!"); // BU SATIRI EKLEDİK
             const selectedCountry = welcomeCountrySelect.value;
             if (selectedCountry) {
+                console.log("Selected country in modal:", selectedCountry); // BU SATIRI EKLEDİK
                 currentCountryCode = selectedCountry; 
                 updateLanguageAndCurrencyForCountry(currentCountryCode); 
                 welcomeModalOverlay.classList.remove('active');
+                console.log("Welcome modal closed. Calling renderAll()..."); // BU SATIRI EKLEDİK
                 renderAll(); 
             } else {
                 alert(translate('select_country_alert'));
+                console.warn("Welcome modal: No country selected."); // BU SATIRI EKLEDİK
             }
         };
 
         const renderAll = () => { 
+            console.log("renderAll function fired!"); // Hata ayıklama için eklendi
             renderStaticText();
             setupControls();
             renderCategories();
@@ -1037,10 +1046,12 @@
         
         async function fetchData() { 
             try {
+                console.log("fetchData: Starting data fetch..."); // Hata ayıklama için eklendi
                 // Her şeyden önce settings'i çek, çünkü dil ve para birimi bu verilere bağlı
                 const settingsDoc = await getDoc(doc(db, 'pufemo', 'settings'));
                 if (settingsDoc.exists()) {
                     siteData.settings = settingsDoc.data(); 
+                    console.log("fetchData: Settings fetched.", siteData.settings); // Hata ayıklama için eklendi
                 } else {
                     console.warn('Settings belgesi Firebase\'de mevcut değil! Varsayılan ayarlar kullanılacak.');
                 }
@@ -1053,13 +1064,17 @@
 
                 if (categoriesDoc.exists()) {
                     siteData.categories = categoriesDoc.data(); 
+                    console.log("fetchData: Categories fetched.", siteData.categories); // Hata ayıklama için eklendi
                 } else {
                     console.warn('Kategoriler belgesi Firebase\'de mevcut değil!');
                 }
                 siteData.products = productsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                console.log("fetchData: Products fetched.", siteData.products.length, "products."); // Hata ayıklama için eklendi
 
                 // Hoş geldiniz modalı ve genel kontroller için ülke verilerini hazırla
                 const availableCountries = Object.keys(siteData.settings.countryPricing || {});
+                console.log("fetchData: Available countries from settings:", availableCountries); // Hata ayıklama için eklendi
+
                 if (availableCountries.length > 0) {
                     // Welcome modal SELECT'ini doldur
                     welcomeCountrySelect.innerHTML = Object.entries(siteData.settings.countryPricing).map(([code, data]) => {
@@ -1073,6 +1088,7 @@
 
                     // Bu ilk ülkeye göre dil ve para birimini ayarla
                     updateLanguageAndCurrencyForCountry(currentCountryCode); 
+                    console.log(`fetchData: Initial currentCountryCode set to ${currentCountryCode}.`); // Hata ayıklama için eklendi
                 } else {
                     console.warn("Firebase ayarlarında tanımlı ülke bulunamadı. Hoş geldin modalı gösterilmiyor.");
                 }
@@ -1086,24 +1102,27 @@
         }
         
         async function init() { 
+            console.log("init: Starting initialization process."); // Hata ayıklama için eklendi
             loadingOverlay.classList.remove('hidden');
             if (loadingTextP) loadingTextP.textContent = translate('loading_text');
 
             await fetchData(); // Verileri çek ve initial ayarları yap
             
             const availableCountries = Object.keys(siteData.settings.countryPricing || {});
+            console.log("init: Countries available after fetch:", availableCountries); // Hata ayıklama için eklendi
 
             if (availableCountries.length > 0) {
                 welcomeModalOverlay.classList.add('active'); // Her zaman hoş geldiniz modalını göster
-                // Bu noktada welcomeModalConfirmButton'a tıklanana kadar sayfa renderAll() yapmayacak.
-                // Eğer ülkelerden biri seçilirse handleWelcomeModalConfirm içinde renderAll çağrılacak.
+                console.log("init: Welcome modal activated."); // Hata ayıklama için eklendi
+                // renderAll() hoş geldiniz modalı onaylandıktan sonra çağrılacak
             } else {
                 console.warn("Firebase ayarlarında tanımlı ülke bulunamadı. Hoş geldin modalı gösterilmiyor.");
                 welcomeModalOverlay.style.display = 'none'; 
-                renderAll(); // Ülke yoksa direkt render et ve yükleme ekranını kapat
+                renderAll(); // Ülke yoksa direkt render et
             }
 
-            loadingOverlay.classList.add('hidden'); // Yükleme ekranını kapat
+            loadingOverlay.classList.add('hidden'); 
+            console.log("init: Loading overlay hidden."); // Hata ayıklama için eklendi
         }
 
         // --- Authentication Functions ---
