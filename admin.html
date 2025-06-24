@@ -34,6 +34,10 @@
   #login-container h2 {
     margin-bottom: 20px; text-align:center;
   }
+  #login-container form {
+    display: flex;
+    flex-direction: column;
+  }
   #login-container input {
     width: 100%; margin-bottom: 15px; padding: 10px; font-size: 14px; border: 1px solid #ccc; border-radius: 5px;
   }
@@ -53,9 +57,11 @@
 <div id="login-container">
   <h2>Admin Girişi</h2>
   <div id="error-msg"></div>
-  <input type="email" id="email" placeholder="E-posta" value="emirmob09@gmail.com" />
-  <input type="password" id="password" placeholder="Şifre" value="1emıremo" />
-  <button id="login-btn">Giriş Yap</button>
+  <form id="login-form">
+    <input type="email" id="email" placeholder="E-posta" value="emirmob09@gmail.com" required />
+    <input type="password" id="password" placeholder="Şifre" value="1emıremo" required />
+    <button type="submit" id="login-btn">Giriş Yap</button>
+  </form>
 </div>
 
 <header id="header" style="display:none;">PUFEMO Yönetim Paneli</header>
@@ -96,15 +102,14 @@
   const nav = document.getElementById('nav');
   const content = document.getElementById('content');
   const errorMsg = document.getElementById('error-msg');
-  const loginBtn = document.getElementById('login-btn');
-  const emailInput = document.getElementById('email');
-  const passwordInput = document.getElementById('password');
+  const loginForm = document.getElementById('login-form');
   const logoutBtn = document.getElementById('logout-btn');
 
-  loginBtn.onclick = () => {
+  loginForm.addEventListener('submit', e => {
+    e.preventDefault();
     errorMsg.textContent = '';
-    const email = emailInput.value.trim();
-    const password = passwordInput.value;
+    const email = loginForm.email.value.trim();
+    const password = loginForm.password.value;
 
     if (!email || !password) {
       errorMsg.textContent = 'Lütfen e-posta ve şifre girin.';
@@ -123,7 +128,7 @@
       .catch(err => {
         errorMsg.textContent = 'Giriş başarısız: ' + err.message;
       });
-  };
+  });
 
   logoutBtn.onclick = () => {
     signOut(auth);
@@ -163,7 +168,7 @@
     }
   }
 
-  // ÜRÜN YÖNETİMİ
+  // Ürün Yönetimi
   async function renderProducts() {
     content.innerHTML = `
       <h2>Ürün Yönetimi</h2>
