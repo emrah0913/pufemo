@@ -3,129 +3,374 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PUFEMO - Modern ve Konforlu Mobilyalar</title>
+    <title>Pufemo - Modern E-Ticaret</title>
     
-    <link rel="stylesheet" href="1_style.css">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
     
+    <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide-react@latest/dist/umd/lucide-react.js"></script>
+    
+    <style>
+        /* Custom stiller ve font tanımı */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
 </head>
-<body data-page="index">
+<body class="bg-gray-50 text-gray-800">
 
-    <div id="welcomeModalOverlay" class="welcome-modal-overlay">
-        <div class="welcome-modal-content">
-            <h2 id="welcome-modal-title"></h2>
-            <p id="welcome-modal-message"></p>
-            <select id="welcomeCountrySelect" class="control-select"></select>
-            <button id="welcomeModalConfirmButton"></button>
+    <!-- Ülke Seçim Modalı -->
+    <div id="country-selection-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl p-8 max-w-sm w-full animate-fade-in">
+            <h2 class="text-2xl font-bold text-center mb-4">Hoş Geldiniz!</h2>
+            <p class="text-center text-gray-600 mb-6">Alışveriş deneyiminizi kişiselleştirmek için lütfen ülkenizi seçin.</p>
+            <div class="mb-4">
+                <label for="country-select" class="block text-sm font-medium text-gray-700 mb-1">Ülke</label>
+                <select id="country-select" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                    <option value="TR" data-lang="tr" data-currency="₺">🇹🇷 Türkiye</option>
+                    <option value="GB" data-lang="en" data-currency="£">🇬🇧 Birleşik Krallık</option>
+                    <option value="GR" data-lang="el" data-currency="€">🇬🇷 Yunanistan</option>
+                    <option value="RU" data-lang="ru" data-currency="₽">🇷🇺 Rusya</option>
+                    <option value="DE" data-lang="de" data-currency="€">🇩🇪 Almanya</option>
+                    <option value="FR" data-lang="fr" data-currency="€">🇫🇷 Fransa</option>
+                    <option value="AE" data-lang="ar" data-currency="$">🇦🇪 Birleşik Arap Emirlikleri</option>
+                </select>
+            </div>
+            <button id="save-country-btn" class="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700 transition-colors duration-300">
+                Kaydet ve Devam Et
+            </button>
         </div>
     </div>
 
-    <div id="cartSidebar" class="cart-sidebar">
-        <div class="cart-sidebar-header">
-            <h2 id="cart-sidebar-title">Sepetiniz</h2>
-            <button id="closeCartBtn" class="cart-sidebar-close-btn">&times;</button>
-        </div>
-        <div id="cartItemsContainer" class="cart-items-container no-scrollbar">
-            <p id="emptyCartMessage" class="empty-cart-message">Sepetiniz boş.</p>
-        </div>
-        <div class="cart-summary">
-            <h3 id="cartTotalText">Toplam: <span id="cartTotal">0.00 TL</span></h3>
-            <button id="checkoutBtn" class="cart-checkout-button">Satın Al</button>
-        </div>
-    </div>
+    <!-- Üst Bar (Header) -->
+    <header class="bg-white shadow-md sticky top-0 z-40">
+        <div class="container mx-auto px-4">
+            <div class="flex items-center justify-between h-20">
+                <!-- Logo -->
+                <a href="index.html" class="text-3xl font-bold text-indigo-600">Pufemo</a>
 
-    <div class="promo-bar">
-        <span id="promo-text-content" class="promo-text"></span>
-    </div>
+                <!-- Navigasyon -->
+                <nav class="hidden md:flex items-center space-x-8">
+                    <a href="index.html" class="text-gray-600 hover:text-indigo-600 font-medium transition-colors">Anasayfa</a>
+                    <a href="#categories" class="text-gray-600 hover:text-indigo-600 font-medium transition-colors">Kategoriler</a>
+                    <a href="#products" class="text-gray-600 hover:text-indigo-600 font-medium transition-colors">Ürünler</a>
+                    <a href="orders.html" class="text-gray-600 hover:text-indigo-600 font-medium transition-colors">Siparişlerim</a>
+                </nav>
 
-    <div id="loading-overlay" class="loading-overlay">
-        <i class="fa-solid fa-couch fa-bounce" style="font-size: 3rem;"></i>
-        <p id="loading-text"></p>
-    </div>
-
-    <div id="mobile-nav-overlay" class="mobile-nav-overlay"></div>
-
-    <header class="main-header">
-        <div class="header-top">
-            <a href="3_index.html" class="logo" id="main-logo-link"></a>
-        </div>
-        <div class="container">
-            <button class="hamburger-menu" id="hamburger-menu-btn" aria-label="Menüyü aç/kapat"><span></span><span></span><span></span></button>
-            <div class="header-controls">
-                <select id="language-selector" class="control-select"></select>
-                <select id="currency-selector" class="control-select"></select>
-                <a href="6_siparisler.html" class="cart-icon" id="my-orders-link" title="Siparişlerim">
-                    <i class="fa-solid fa-box-open"></i>
-                </a>
-                <a href="#" class="cart-icon" id="cart-icon-link" title="Sepetim">
-                    <i class="fa-solid fa-cart-shopping"></i><span class="cart-badge" id="cartItemCount">0</span>
-                </a>
+                <!-- Sağ İkonlar -->
+                <div class="flex items-center space-x-5">
+                    <div id="language-currency-display" class="flex items-center space-x-2 text-sm">
+                        <span id="current-flag"></span>
+                        <span id="current-currency" class="font-semibold"></span>
+                    </div>
+                    <a href="cart.html" class="relative text-gray-500 hover:text-indigo-600">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-shopping-cart"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.16"/></svg>
+                        <span id="cart-item-count" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">0</span>
+                    </a>
+                    <!-- Mobil menü butonu (ileride eklenebilir) -->
+                </div>
             </div>
         </div>
     </header>
 
-    <nav id="mobile-nav" class="mobile-nav">
-        <ul>
-            <li><a href="3_index.html">Anasayfa</a></li>
-            <li><a href="6_siparisler.html" id="mobile-my-orders-link">Siparişlerim</a></li>
-            </ul>
-    </nav>
+    <main class="container mx-auto px-4 py-8 md:py-12">
+        <!-- Slider Alanı -->
+        <section id="slider" class="bg-gray-200 rounded-xl h-64 md:h-96 mb-12 flex items-center justify-center">
+            <div class="text-center p-4">
+                <h2 class="text-3xl md:text-5xl font-bold text-gray-800">Sezonun Trendleri</h2>
+                <p class="text-gray-600 mt-2 md:mt-4">Evinize stil katacak en yeni koleksiyonlarımızı keşfedin.</p>
+            </div>
+        </section>
 
-    <nav class="category-nav"><div class="container"><ul id="category-menu-container"></ul></div></nav>
+        <!-- Kategori Alanı -->
+        <section id="categories" class="mb-12">
+            <h2 class="text-2xl md:text-3xl font-bold mb-6 text-center">Kategoriler</h2>
+            <div id="category-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6">
+                <!-- Kategoriler buraya dinamik olarak yüklenecek -->
+                 <div class="p-4 bg-white rounded-lg animate-pulse h-24"></div>
+                 <div class="p-4 bg-white rounded-lg animate-pulse h-24"></div>
+                 <div class="p-4 bg-white rounded-lg animate-pulse h-24"></div>
+                 <div class="p-4 bg-white rounded-lg animate-pulse h-24"></div>
+                 <div class="p-4 bg-white rounded-lg animate-pulse h-24"></div>
+            </div>
+        </section>
 
-    <div id="homepage-view" class="page-content active">
-        <section class="hero-banner" id="hero-banner-container">
-            </section>
-
-        <main class="container">
-            <section id="main-product-section" class="section featured-products">
-                <h1 class="section-title" id="main-section-title"></h1>
-                <div class="product-grid" id="product-grid-container">
+        <!-- Ürün Listeleme Alanı -->
+        <section id="products">
+            <h2 class="text-2xl md:text-3xl font-bold mb-6 text-center">Öne Çıkan Ürünler</h2>
+            <div id="product-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-8">
+                <!-- Ürünler buraya dinamik olarak yüklenecek -->
+                <div class="bg-white rounded-lg shadow-md overflow-hidden animate-pulse">
+                    <div class="w-full h-48 bg-gray-200"></div>
+                    <div class="p-4">
+                        <div class="h-6 bg-gray-200 rounded w-3/4 mb-2"></div>
+                        <div class="h-8 bg-gray-200 rounded w-1/2"></div>
                     </div>
-                <p id="noProductsMessage" style="text-align: center; display: none;">Gösterilecek ürün bulunmamaktadır.</p>
-            </section>
-            <div id="dynamic-product-sections">
-                 </div>
-        </main>
-    </div>
-    
-    <footer class="main-footer">
-        <div class="container">
-            <div class="footer-content">
-                <div class="footer-section">
-                    <h4 id="footer-title-pufemo"></h4>
-                    <p id="footer-desc-pufemo"></p>
                 </div>
-                <div class="footer-section">
-                    <h4 id="footer-title-fast-links"></h4>
-                    <ul>
-                        <li><a href="#" id="footer-link-about"></a></li>
-                        <li><a href="#" id="footer-link-contact"></a></li>
-                        <li><a href="#" id="footer-link-privacy"></a></li>
-                    </ul>
+                 <div class="bg-white rounded-lg shadow-md overflow-hidden animate-pulse">
+                    <div class="w-full h-48 bg-gray-200"></div>
+                    <div class="p-4">
+                        <div class="h-6 bg-gray-200 rounded w-3/4 mb-2"></div>
+                        <div class="h-8 bg-gray-200 rounded w-1/2"></div>
+                    </div>
                 </div>
-                <div class="footer-section">
-                    <h4 id="footer-title-follow-us"></h4>
-                    <ul>
-                        <li><a href="#">Facebook</a></li>
-                        <li><a href="#">Instagram</a></li>
-                        <li><a href="#">Pinterest</a></li>
-                    </ul>
+                 <div class="bg-white rounded-lg shadow-md overflow-hidden animate-pulse">
+                    <div class="w-full h-48 bg-gray-200"></div>
+                    <div class="p-4">
+                        <div class="h-6 bg-gray-200 rounded w-3/4 mb-2"></div>
+                        <div class="h-8 bg-gray-200 rounded w-1/2"></div>
+                    </div>
+                </div>
+                 <div class="bg-white rounded-lg shadow-md overflow-hidden animate-pulse">
+                    <div class="w-full h-48 bg-gray-200"></div>
+                    <div class="p-4">
+                        <div class="h-6 bg-gray-200 rounded w-3/4 mb-2"></div>
+                        <div class="h-8 bg-gray-200 rounded w-1/2"></div>
+                    </div>
                 </div>
             </div>
+        </section>
+    </main>
 
-            <div class="country-selector-container">
-                <label for="country-selector" id="country-selector-label"></label>
-                <select id="country-selector" class="control-select"></select>
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white mt-16">
+        <div class="container mx-auto px-4 py-12">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div>
+                    <h3 class="text-xl font-bold mb-4">Pufemo</h3>
+                    <p class="text-gray-400">Kaliteli ve modern tasarımlar.</p>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">Hızlı Bağlantılar</h3>
+                    <ul>
+                        <li class="mb-2"><a href="#" class="hover:text-indigo-400">Hakkımızda</a></li>
+                        <li class="mb-2"><a href="#" class="hover:text-indigo-400">İletişim</a></li>
+                        <li class="mb-2"><a href="#" class="hover:text-indigo-400">Gizlilik Politikası</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">Müşteri Hizmetleri</h3>
+                    <ul>
+                        <li class="mb-2"><a href="#" class="hover:text-indigo-400">Sıkça Sorulan Sorular</a></li>
+                        <li class="mb-2"><a href="#" class="hover:text-indigo-400">İade ve Değişim</a></li>
+                    </ul>
+                </div>
+                 <div>
+                    <h3 class="text-lg font-semibold mb-4">Bizi Takip Edin</h3>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-gray-400 hover:text-white">Facebook</a>
+                        <a href="#" class="text-gray-400 hover:text-white">Instagram</a>
+                    </div>
+                </div>
             </div>
-
-            <div class="footer-bottom" id="footer-copyright"></div>
+            <div class="text-center text-gray-500 border-t border-gray-700 mt-8 pt-6">
+                © 2024 Pufemo. Tüm hakları saklıdır.
+            </div>
         </div>
     </footer>
 
-    <script type="module" src="2_script.js"></script>
+    <script type="module">
+        // Firebase SDK'larını import et
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- Firebase Yapılandırması ---
+        // Not: Gerçek projede bu bilgileri güvenli bir şekilde yönetin.
+        const firebaseConfig = {
+            apiKey: "AIzaSyDYkzZzNXB22U4oEXxOoPh-puwuE8kz0g4",
+            authDomain: "pufemo-com.firebaseapp.com",
+            projectId: "pufemo-com",
+            storageBucket: "pufemo-com.firebasestorage.app",
+            messagingSenderId: "983352837227",
+            appId: "1:983352837227:web:defaa8dae215776e2e1d2e",
+        };
+
+        // Firebase'i başlat
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // --- DOM Elementleri ---
+        const countryModal = document.getElementById('country-selection-modal');
+        const countrySelect = document.getElementById('country-select');
+        const saveCountryBtn = document.getElementById('save-country-btn');
+        const productGrid = document.getElementById('product-grid');
+        const categoryGrid = document.getElementById('category-grid');
+        const cartItemCount = document.getElementById('cart-item-count');
+        const currentFlagEl = document.getElementById('current-flag');
+        const currentCurrencyEl = document.getElementById('current-currency');
+
+        // --- Global State ---
+        let userPreferences = {};
+        
+        // --- Çeviri ve Dil Yönetimi ---
+        // Not: Gerçek uygulamada bu yapı bir JSON dosyasından veya Firestore'dan gelebilir.
+        const translations = {
+            tr: { pageTitle: "Pufemo - Anasayfa" },
+            en: { pageTitle: "Pufemo - Home" },
+            el: { pageTitle: "Pufemo - Αρχική σελίδα" },
+            // Diğer diller eklenecek...
+        };
+
+        // --- Fonksiyonlar ---
+
+        /**
+         * Sayfa ilk yüklendiğinde çalışacak ana fonksiyon.
+         * Kullanıcının ülke seçimini kontrol eder ve verileri yükler.
+         */
+        function initializeAppLogic() {
+            // localStorage'dan kullanıcı tercihlerini yükle
+            const savedPrefs = localStorage.getItem('pufemoUserPreferences');
+            
+            if (savedPrefs) {
+                userPreferences = JSON.parse(savedPrefs);
+                // Modal'ı gösterme, doğrudan içeriği yükle
+                loadPageContent();
+            } else {
+                // İlk ziyaret, modal'ı göster
+                countryModal.classList.remove('hidden');
+            }
+
+            updateCartCount();
+            setupEventListeners();
+        }
+
+        /**
+         * Ülke seçimi kaydedildiğinde çalışır.
+         */
+        function handleSaveCountry() {
+            const selectedOption = countrySelect.options[countrySelect.selectedIndex];
+            userPreferences = {
+                country: selectedOption.value,
+                lang: selectedOption.dataset.lang,
+                currencySymbol: selectedOption.dataset.currency,
+                flag: selectedOption.textContent.split(' ')[0]
+            };
+            
+            localStorage.setItem('pufemoUserPreferences', JSON.stringify(userPreferences));
+            countryModal.classList.add('hidden');
+            
+            loadPageContent();
+        }
+        
+        /**
+         * Kullanıcı tercihlerine göre sayfa içeriğini yükler.
+         */
+        function loadPageContent() {
+            updateHeaderUI();
+            fetchCategories();
+            fetchProducts();
+            // applyTranslations(); // Dil çeviri fonksiyonu çağrılabilir
+        }
+
+        /**
+         * Header'daki bayrak ve para birimi göstergesini günceller.
+         */
+        function updateHeaderUI() {
+            if (userPreferences.flag && userPreferences.currencySymbol) {
+                currentFlagEl.textContent = userPreferences.flag;
+                currentCurrencyEl.textContent = userPreferences.currencySymbol;
+            }
+        }
+        
+        /**
+         * Firestore'dan kategorileri çeker ve ekrana render eder.
+         */
+        async function fetchCategories() {
+            try {
+                const querySnapshot = await getDocs(collection(db, "categories"));
+                categoryGrid.innerHTML = ''; // Yükleme animasyonunu temizle
+                querySnapshot.forEach((doc) => {
+                    const category = doc.data();
+                    // Dil desteği için category.name[userPreferences.lang] gibi bir yapı kullanılabilir
+                    const categoryName = category.name.tr || category.name.en; // Örnek fallback
+                    const categoryEl = `
+                        <a href="#" class="block bg-white p-4 rounded-lg shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 text-center">
+                            <h3 class="font-semibold text-gray-800">${categoryName}</h3>
+                        </a>
+                    `;
+                    categoryGrid.innerHTML += categoryEl;
+                });
+            } catch (error) {
+                console.error("Kategoriler yüklenirken hata oluştu: ", error);
+                categoryGrid.innerHTML = '<p class="text-red-500 col-span-full text-center">Kategoriler yüklenemedi.</p>';
+            }
+        }
+
+        /**
+         * Firestore'dan ürünleri çeker ve ekrana render eder.
+         */
+        async function fetchProducts() {
+            try {
+                const querySnapshot = await getDocs(collection(db, "products"));
+                productGrid.innerHTML = ''; // Yükleme animasyonunu temizle
+                querySnapshot.forEach((doc) => {
+                    const product = doc.data();
+                    const productId = doc.id;
+
+                    // Ülkeye özel fiyatı al. Eğer yoksa, varsayılan (TR) fiyatı kullan.
+                    const price = product.prices[userPreferences.country] || product.prices['TR'];
+                    const currencySymbol = userPreferences.currencySymbol || '₺';
+                    
+                    // Dile özel ürün adını al
+                    const productName = product.name[userPreferences.lang] || product.name.tr;
+
+                    const productEl = `
+                        <div class="bg-white rounded-xl shadow-lg overflow-hidden group transition-all duration-300 hover:shadow-2xl">
+                            <a href="product.html?id=${productId}" class="block">
+                                <div class="overflow-hidden">
+                                     <img src="${product.imageUrl || 'https://placehold.co/400x400/e2e8f0/cbd5e0?text=Urun'}" 
+                                         alt="${productName}" 
+                                         class="w-full h-56 object-cover group-hover:scale-110 transition-transform duration-500"
+                                         onerror="this.onerror=null;this.src='https://placehold.co/400x400/e2e8f0/cbd5e0?text=Hata';">
+                                </div>
+                                <div class="p-5">
+                                    <h3 class="text-lg font-semibold text-gray-900 truncate">${productName}</h3>
+                                    <p class="text-2xl font-bold text-indigo-600 mt-2">${currencySymbol}${price.toFixed(2)}</p>
+                                </div>
+                            </a>
+                        </div>
+                    `;
+                    productGrid.innerHTML += productEl;
+                });
+            } catch (error) {
+                console.error("Ürünler yüklenirken hata oluştu: ", error);
+                productGrid.innerHTML = '<p class="text-red-500 col-span-full text-center">Ürünler yüklenemedi.</p>';
+            }
+        }
+        
+        /**
+         * Sepetteki ürün sayısını localStorage'dan okuyup günceller.
+         */
+        function updateCartCount() {
+            const cart = JSON.parse(localStorage.getItem('pufemoCart')) || [];
+            const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+            cartItemCount.textContent = totalItems;
+        }
+
+        /**
+         * Tüm olay dinleyicilerini (event listeners) ayarlar.
+         */
+        function setupEventListeners() {
+            saveCountryBtn.addEventListener('click', handleSaveCountry);
+            // Dinamik olarak eklenen elemanlar için olay delegasyonu gerekebilir.
+        }
+
+        // Uygulamayı başlat
+        document.addEventListener('DOMContentLoaded', initializeAppLogic);
+
+    </script>
 </body>
 </html>
