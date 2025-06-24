@@ -3,280 +3,494 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pufemo - Modern E-Ticaret</title>
-    
+    <title>PUFEMO - Modern Mobilya Mağazası</title>
+
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Google Fonts: Inter -->
+
+    <!-- Google Fonts: Poppins -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Custom Styles -->
     <style>
-        body { font-family: 'Inter', sans-serif; }
-        .animate-fade-in { animation: fadeIn 0.5s ease-in-out; }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f8f9fa;
         }
-        .header-select {
-            background-color: white; border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 0.25rem 0.5rem;
-            font-size: 0.875rem; line-height: 1.25rem; -webkit-appearance: none; -moz-appearance: none;
-            appearance: none; background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
-            background-position: right 0.5rem center; background-repeat: no-repeat; background-size: 1.5em 1.5em; padding-right: 2.5rem;
+        .free-shipping-badge {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            background-color: #10B981; /* Tailwind green-500 */
+            color: white;
+            padding: 4px 10px;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .product-card:hover .product-image {
+            transform: scale(1.05);
+        }
+        .product-image {
+            transition: transform 0.3s ease-in-out;
+        }
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0,0,0,0.7);
+            z-index: 50;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        /* Basit bir slider animasyonu için */
+        @keyframes fadeIn {
+            from { opacity: .4 }
+            to { opacity: 1 }
+        }
+        .fade-in {
+            animation: fadeIn 1.5s;
         }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-800">
+<body class="bg-gray-50">
 
-    <!-- Modallar -->
-    <div id="auth-modal" class="hidden fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center p-4"></div>
-    <div id="country-selection-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-4"></div>
+    <!-- =================================================================
+         ÜLKE / DİL / PARA BİRİMİ SEÇİM MODALI
+    ================================================================== -->
+    <div id="country-selection-modal" class="modal-overlay hidden">
+        <div class="bg-white rounded-lg shadow-2xl p-8 w-11/12 md:w-1/3 text-center">
+            <h2 class="text-2xl font-bold mb-4 text-gray-800">Hangi ülkede yaşıyorsunuz?</h2>
+            <p class="text-gray-600 mb-6">Size özel fiyatlar ve teslimat seçenekleri için lütfen ülkenizi seçin.</p>
+            <div class="mb-6">
+                <select id="country-selector" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <!-- Ülkeler Admin Panel'den dinamik olarak buraya yüklenecek -->
+                    <option value="TR" data-lang="TR" data-currency="TRY" selected>🇹🇷 Türkiye</option>
+                    <option value="DE" data-lang="DE" data-currency="EUR">🇩🇪 Almanya</option>
+                    <option value="US" data-lang="EN" data-currency="USD">🇺🇸 Amerika Birleşik Devletleri</option>
+                    <option value="GB" data-lang="EN" data-currency="GBP">🇬🇧 Birleşik Krallık</option>
+                </select>
+            </div>
+            <button id="save-country-selection" class="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700 transition duration-300">
+                Devam Et
+            </button>
+        </div>
+    </div>
 
-    <!-- Üst Bar (Header) -->
-    <header class="bg-white shadow-md sticky top-0 z-40">
-        <div class="container mx-auto px-4">
-            <div class="flex items-center justify-between h-20">
-                <a href="index.html" class="text-3xl font-bold text-indigo-600">Pufemo</a>
-                <div class="flex items-center space-x-4">
-                    <div id="preference-changers" class="hidden items-center space-x-3">
-                        <select id="country-changer" class="header-select"></select>
-                        <select id="language-changer" class="header-select"></select>
-                        <select id="currency-changer" class="header-select"></select>
+    <!-- =================================================================
+         HEADER
+    ================================================================== -->
+    <header class="bg-white shadow-sm sticky top-0 z-40">
+        <!-- Top Bar: Dil/Para Birimi Seçimi -->
+        <div class="bg-gray-100 text-gray-600 text-xs py-1 px-4 md:px-8">
+            <div class="container mx-auto flex justify-between items-center">
+                <span>Modern tasarımlar, eşsiz fiyatlar!</span>
+                <div id="settings-display" class="flex items-center space-x-4 cursor-pointer">
+                    <!-- Bu alan JS ile doldurulacak -->
+                    <span id="current-selection-text">🇹🇷 Türkiye / Türkçe (TR) / TRY</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Header -->
+        <div class="container mx-auto px-4 md:px-8 py-4">
+            <div class="flex justify-between items-center">
+                <!-- Logo -->
+                <a href="index.html" class="text-3xl font-bold text-indigo-600">PUFEMO</a>
+
+                <!-- Arama Çubuğu -->
+                <div class="hidden md:block w-1/3 lg:w-1/2">
+                    <div class="relative">
+                        <input type="text" placeholder="Ürün, kategori veya marka ara..." class="w-full bg-gray-100 border border-transparent focus:ring-2 focus:ring-indigo-500 focus:border-transparent rounded-full py-2 pl-4 pr-10">
+                        <svg class="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                     </div>
-                    <a href="cart.html" class="relative text-gray-500 hover:text-indigo-600">
+                </div>
+
+                <!-- İkonlar -->
+                <div class="flex items-center space-x-4 md:space-x-6">
+                    <a href="admin.html" class="text-gray-600 hover:text-indigo-600">
+                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    </a>
+                    <a href="orders.html" class="text-gray-600 hover:text-indigo-600">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+                    </a>
+                    <a href="cart.html" class="relative text-gray-600 hover:text-indigo-600">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.16"/></svg>
                         <span id="cart-item-count" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">0</span>
                     </a>
                 </div>
             </div>
         </div>
+
+        <!-- Navigasyon -->
+        <nav class="border-t border-gray-200">
+            <div class="container mx-auto px-4 md:px-8">
+                <ul class="flex items-center justify-center space-x-8 font-medium text-gray-700 h-14">
+                    <!-- Kategoriler Admin Panel'den dinamik olarak buraya yüklenecek -->
+                    <li><a href="#" class="hover:text-indigo-600">Koltuk Takımları</a></li>
+                    <li><a href="#" class="hover:text-indigo-600">Köşe Koltuklar</a></li>
+                    <li><a href="#" class="hover:text-indigo-600">Yatak Odaları</a></li>
+                    <li><a href="#" class="hover:text-indigo-600">Yemek Odaları</a></li>
+                    <li><a href="#" class="hover:text-indigo-600">Genç Odaları</a></li>
+                    <li><a href="#" class="hover:text-indigo-600">Mutfak & Masa</a></li>
+                    <li><a href="#" class="hover:text-indigo-600 text-red-500 font-bold">Kampanyalar</a></li>
+                </ul>
+            </div>
+        </nav>
     </header>
 
-    <main class="container mx-auto px-4 py-8 md:py-12">
-        <section id="slider" class="relative bg-gray-200 rounded-xl h-64 md:h-96 mb-12 flex items-center justify-center text-center">
-            <div>
-                <h2 id="slider-title" class="text-3xl md:text-5xl font-bold text-gray-800">Sezonun Trendleri</h2>
-                <p id="slider-subtitle" class="text-gray-600 mt-2 md:mt-4">Evinize stil katacak en yeni koleksiyonlarımızı keşfedin.</p>
+    <main>
+        <!-- =================================================================
+             SLIDER (KAHRAMAN ALANI)
+        ================================================================== -->
+        <section id="slider-container" class="relative w-full h-[60vh] bg-gray-200 overflow-hidden">
+            <!-- Slider'lar Admin Panel'den dinamik olarak buraya yüklenecek -->
+            <div class="slider-item fade-in" style="background-image: url('https://placehold.co/1920x700/6366f1/ffffff?text=Modern+ve+%C5%9E%C4%B1k+Tasarımlar'); background-size: cover; background-position: center; height: 100%;">
+                <div class="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center text-white text-center">
+                    <div>
+                        <h2 class="text-4xl md:text-6xl font-bold mb-4">Oturma Odanızı Yeniden Keşfedin</h2>
+                        <p class="text-lg md:text-xl mb-8 max-w-2xl mx-auto">Konfor ve estetiği bir araya getiren koleksiyonumuzla tanışın.</p>
+                        <a href="#" class="bg-indigo-600 text-white font-bold py-3 px-8 rounded-full hover:bg-indigo-700 transition duration-300">Şimdi Keşfet</a>
+                    </div>
+                </div>
+            </div>
+            <!-- Diğer slider item'ları buraya eklenebilir -->
+        </section>
+
+        <!-- =================================================================
+             ÖNE ÇIKAN KATEGORİLER
+        ================================================================== -->
+        <section class="py-16 bg-white">
+            <div class="container mx-auto px-4 md:px-8">
+                <h2 class="text-3xl font-bold text-center text-gray-800 mb-12">Kategoriler</h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                    <!-- Kategoriler Admin Panel'den dinamik olarak buraya yüklenecek -->
+                    <div class="group relative rounded-lg overflow-hidden shadow-lg">
+                        <img src="https://placehold.co/600x400/a5b4fc/ffffff?text=Koltuk+Tak%C4%B1mlar%C4%B1" alt="Koltuk Takımları" class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500">
+                        <div class="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
+                            <h3 class="text-white text-2xl font-bold">Koltuk Takımları</h3>
+                        </div>
+                    </div>
+                     <div class="group relative rounded-lg overflow-hidden shadow-lg">
+                        <img src="https://placehold.co/600x400/818cf8/ffffff?text=Yatak+Odalar%C4%B1" alt="Yatak Odaları" class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500">
+                        <div class="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
+                            <h3 class="text-white text-2xl font-bold">Yatak Odaları</h3>
+                        </div>
+                    </div>
+                     <div class="group relative rounded-lg overflow-hidden shadow-lg">
+                        <img src="https://placehold.co/600x400/6366f1/ffffff?text=Yemek+Masalar%C4%B1" alt="Yemek Masaları" class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500">
+                        <div class="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
+                            <h3 class="text-white text-2xl font-bold">Yemek Masaları</h3>
+                        </div>
+                    </div>
+                     <div class="group relative rounded-lg overflow-hidden shadow-lg">
+                        <img src="https://placehold.co/600x400/4f46e5/ffffff?text=Bah%C3%A7e+Mobilyalar%C4%B1" alt="Bahçe Mobilyaları" class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500">
+                        <div class="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
+                            <h3 class="text-white text-2xl font-bold">Bahçe Mobilyaları</h3>
+                        </div>
+                    </div>
+                </div>
             </div>
         </section>
 
-        <section id="categories" class="mb-12">
-            <h2 id="categories-title" class="text-2xl md:text-3xl font-bold mb-6 text-center">Kategoriler</h2>
-            <div id="category-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6"></div>
+        <!-- =================================================================
+             ÖNE ÇIKAN ÜRÜNLER
+        ================================================================== -->
+        <section class="py-16">
+            <div class="container mx-auto px-4 md:px-8">
+                <h2 class="text-3xl font-bold text-center text-gray-800 mb-12">Öne Çıkan Ürünler</h2>
+                <div id="product-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                    <!-- Ürünler Firestore'dan dinamik olarak buraya yüklenecek -->
+                    <!-- Örnek Ürün Kartı 1 -->
+                    <div class="product-card bg-white rounded-lg shadow-md overflow-hidden group">
+                        <div class="relative">
+                            <a href="product.html">
+                                <img src="https://placehold.co/400x400/e0e7ff/3730a3?text=Chester+Koltuk" alt="Chester Koltuk" class="w-full h-64 object-cover product-image">
+                            </a>
+                            <div class="free-shipping-badge">ÜCRETSİZ KARGO</div>
+                        </div>
+                        <div class="p-4">
+                            <h3 class="font-semibold text-lg text-gray-800 truncate">Elegance Chester Koltuk</h3>
+                            <p class="text-gray-500 text-sm mb-2">Kadife Kumaş</p>
+                            <div class="flex items-center justify-between">
+                                <span class="text-xl font-bold text-indigo-600">24.999,00 TL</span>
+                                <button class="p-2 rounded-full bg-gray-200 hover:bg-indigo-500 hover:text-white transition-colors">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Örnek Ürün Kartı 2 -->
+                    <div class="product-card bg-white rounded-lg shadow-md overflow-hidden group">
+                        <div class="relative">
+                           <a href="product.html">
+                                <img src="https://placehold.co/400x400/c7d2fe/4338ca?text=Modern+Masa" alt="Modern Yemek Masası" class="w-full h-64 object-cover product-image">
+                           </a>
+                        </div>
+                        <div class="p-4">
+                            <h3 class="font-semibold text-lg text-gray-800 truncate">Loft Ahşap Yemek Masası</h3>
+                            <p class="text-gray-500 text-sm mb-2">Ceviz Rengi</p>
+                            <div class="flex items-center justify-between">
+                                <span class="text-xl font-bold text-indigo-600">12.500,00 TL</span>
+                                <button class="p-2 rounded-full bg-gray-200 hover:bg-indigo-500 hover:text-white transition-colors">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Örnek Ürün Kartı 3 -->
+                    <div class="product-card bg-white rounded-lg shadow-md overflow-hidden group">
+                         <div class="relative">
+                            <a href="product.html">
+                                <img src="https://placehold.co/400x400/a5b4fc/4f46e5?text=Avangart+Yatak" alt="Avangart Yatak Odası" class="w-full h-64 object-cover product-image">
+                            </a>
+                            <div class="free-shipping-badge">ÜCRETSİZ KARGO</div>
+                        </div>
+                        <div class="p-4">
+                            <h3 class="font-semibold text-lg text-gray-800 truncate">Versay Yatak Odası Takımı</h3>
+                            <p class="text-gray-500 text-sm mb-2">Lake Boya</p>
+                            <div class="flex items-center justify-between">
+                                <span class="text-xl font-bold text-indigo-600">78.000,00 TL</span>
+                                <button class="p-2 rounded-full bg-gray-200 hover:bg-indigo-500 hover:text-white transition-colors">
+                                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Örnek Ürün Kartı 4 -->
+                    <div class="product-card bg-white rounded-lg shadow-md overflow-hidden group">
+                        <div class="relative">
+                            <a href="product.html">
+                                <img src="https://placehold.co/400x400/818cf8/5b21b6?text=K%C3%B6%C5%9Fe+Koltuk" alt="Köşe Koltuk" class="w-full h-64 object-cover product-image">
+                            </a>
+                        </div>
+                        <div class="p-4">
+                            <h3 class="font-semibold text-lg text-gray-800 truncate">Zen Köşe Koltuk Takımı</h3>
+                            <p class="text-gray-500 text-sm mb-2">Nubuk Kumaş</p>
+                            <div class="flex items-center justify-between">
+                                <span class="text-xl font-bold text-indigo-600">32.750,00 TL</span>
+                                <button class="p-2 rounded-full bg-gray-200 hover:bg-indigo-500 hover:text-white transition-colors">
+                                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-center mt-12">
+                    <a href="#" class="bg-indigo-600 text-white font-bold py-3 px-8 rounded-full hover:bg-indigo-700 transition duration-300">Tüm Ürünleri Gör</a>
+                </div>
+            </div>
         </section>
 
-        <section id="products">
-            <h2 id="products-title" class="text-2xl md:text-3xl font-bold mb-6 text-center">Öne Çıkan Ürünler</h2>
-            <div id="product-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-8"></div>
+        <!-- =================================================================
+             MÜŞTERİ YORUMLARI
+        ================================================================== -->
+        <section class="py-16 bg-white">
+            <div class="container mx-auto px-4 md:px-8">
+                <h2 class="text-3xl font-bold text-center text-gray-800 mb-12">Müşterilerimiz Ne Diyor?</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <!-- Yorumlar Admin Panel'den dinamik olarak buraya yüklenecek -->
+                    <div class="bg-gray-100 p-8 rounded-lg">
+                        <div class="flex items-center mb-4">
+                            <span class="text-yellow-400">★★★★★</span>
+                        </div>
+                        <p class="text-gray-600 mb-4">"PUFEMO'dan aldığım koltuk takımı salonuma harika bir hava kattı. Kalitesi ve konforu beklentimin çok üzerinde. Teşekkürler!"</p>
+                        <p class="font-bold text-gray-800">Ayşe Yılmaz</p>
+                        <p class="text-sm text-gray-500">İstanbul, Türkiye</p>
+                    </div>
+                    <div class="bg-gray-100 p-8 rounded-lg">
+                        <div class="flex items-center mb-4">
+                            <span class="text-yellow-400">★★★★★</span>
+                        </div>
+                        <p class="text-gray-600 mb-4">"Almanya'ya sipariş vermeme rağmen ürünlerim sorunsuz ve hızlı bir şekilde elime ulaştı. Paketleme çok özenliydi."</p>
+                        <p class="font-bold text-gray-800">Hans Müller</p>
+                        <p class="text-sm text-gray-500">Berlin, Almanya</p>
+                    </div>
+                    <div class="bg-gray-100 p-8 rounded-lg">
+                        <div class="flex items-center mb-4">
+                            <span class="text-yellow-400">★★★★☆</span>
+                        </div>
+                        <p class="text-gray-600 mb-4">"Yemek masasının kurulumu biraz zamanımı aldı ama sonuç mükemmel. Malzeme kalitesi gerçekten çok iyi."</p>
+                        <p class="font-bold text-gray-800">Zeynep Kaya</p>
+                        <p class="text-sm text-gray-500">Ankara, Türkiye</p>
+                    </div>
+                </div>
+            </div>
         </section>
     </main>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    <!-- =================================================================
+         FOOTER
+    ================================================================== -->
+    <footer class="bg-gray-800 text-white">
+        <div class="container mx-auto px-4 md:px-8 py-16">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div>
+                    <h3 class="text-xl font-bold mb-4">PUFEMO</h3>
+                    <p class="text-gray-400">Hayalinizdeki evi tasarlamanız için modern, kaliteli ve şık mobilyalar.</p>
+                </div>
+                <div>
+                    <h3 class="font-bold mb-4">Kurumsal</h3>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="#" class="hover:text-white">Hakkımızda</a></li>
+                        <li><a href="#" class="hover:text-white">Gizlilik Politikası</a></li>
+                        <li><a href="#" class="hover:text-white">İade Koşulları</a></li>
+                        <li><a href="#" class="hover:text-white">İletişim</a></li>
+                    </ul>
+                </div>
+                 <div>
+                    <h3 class="font-bold mb-4">Kategoriler</h3>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="#" class="hover:text-white">Koltuk Takımları</a></li>
+                        <li><a href="#" class="hover:text-white">Yatak Odaları</a></li>
+                        <li><a href="#" class="hover:text-white">Yemek Odaları</a></li>
+                        <li><a href="#" class="hover:text-white">Aksesuarlar</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="font-bold mb-4">Bültenimize Abone Olun</h3>
+                    <p class="text-gray-400 mb-4">Kampanyalardan ve yeni ürünlerden ilk siz haberdar olun.</p>
+                    <div class="flex">
+                        <input type="email" placeholder="E-posta adresiniz" class="w-full rounded-l-lg p-2 text-gray-800">
+                        <button class="bg-indigo-600 text-white px-4 rounded-r-lg hover:bg-indigo-700">Abone Ol</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="bg-gray-900 py-4">
+            <div class="container mx-auto px-4 md:px-8 text-center text-gray-500 text-sm">
+                &copy; 2024 PUFEMO. Tüm hakları saklıdır.
+            </div>
+        </div>
+    </footer>
 
+
+    <!-- Firebase App (from the core Firebase SDK) is always required and must be listed first -->
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-analytics.js";
+        
+        // Your web app's Firebase configuration from the user
         const firebaseConfig = {
             apiKey: "AIzaSyDYkzZzNXB22U4oEXxOoPh-puwuE8kz0g4",
             authDomain: "pufemo-com.firebaseapp.com",
             projectId: "pufemo-com",
-            storageBucket: "pufemo-com.firebasestorage.app",
+            storageBucket: "pufemo-com.appspot.com", // Corrected storage bucket name
             messagingSenderId: "983352837227",
             appId: "1:983352837227:web:defaa8dae215776e2e1d2e",
+            measurementId: "G-RH8XHC7P91"
         };
+
+        // Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
+        const analytics = getAnalytics(app);
 
-        const siteConfig = {
-            countries: [
-                { code: 'TR', name: 'Türkiye', flag: '🇹🇷', lang: 'tr', currency: 'TRY' },
-                { code: 'GB', name: 'United Kingdom', flag: '🇬🇧', lang: 'en', currency: 'GBP' },
-                { code: 'GR', name: 'Ελλάδα', flag: '🇬🇷', lang: 'el', currency: 'EUR' },
-                { code: 'RU', name: 'Россия', flag: '🇷🇺', lang: 'ru', currency: 'RUB' },
-                { code: 'DE', name: 'Deutschland', flag: '🇩🇪', lang: 'de', currency: 'EUR' },
-                { code: 'FR', name: 'France', flag: '🇫🇷', lang: 'fr', currency: 'EUR' },
-                { code: 'AE', name: 'United Arab Emirates', flag: '🇦🇪', lang: 'ar', currency: 'USD' }
-            ],
-            languages: [
-                { code: 'tr', name: 'Türkçe' }, { code: 'en', name: 'English' },
-                { code: 'el', name: 'Ελληνικά' }, { code: 'ru', name: 'Русский' },
-                { code: 'de', name: 'Deutsch' }, { code: 'fr', name: 'Français' }, { code: 'ar', name: 'العربية' }
-            ],
-            currencies: [
-                { code: 'TRY', symbol: '₺' }, { code: 'EUR', symbol: '€' },
-                { code: 'USD', symbol: '$' }, { code: 'GBP', symbol: '£' }, { code: 'RUB', symbol: '₽' }
-            ]
-        };
-
-        const authModalEl = document.getElementById('auth-modal');
-        const countryModalEl = document.getElementById('country-selection-modal');
-        const categoryGrid = document.getElementById('category-grid');
-
-        let userPreferences = {};
-
-        // --- Ana Akış ve Diğer Fonksiyonlar ---
-
-        function initializeModals() {
-            authModalEl.innerHTML = `
-                <div class="bg-white rounded-xl shadow-2xl p-8 max-w-sm w-full animate-fade-in">
-                    <h2 class="text-2xl font-bold text-center mb-6">Giriş Yap</h2>
-                    <form id="login-form">
-                        <input type="email" id="login-email" placeholder="E-posta" class="w-full p-3 mb-3 border border-gray-300 rounded-lg" required>
-                        <input type="password" id="login-password" placeholder="Şifre" class="w-full p-3 mb-4 border border-gray-300 rounded-lg" required>
-                        <button type="submit" class="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700 transition-colors">Giriş Yap</button>
-                    </form>
-                    <div class="text-center my-4 text-gray-500">veya</div>
-                    <button id="anonymous-login-btn" class="w-full bg-gray-200 text-gray-800 font-bold py-3 px-4 rounded-lg hover:bg-gray-300 transition-colors">
-                        Misafir Olarak Devam Et
-                    </button>
-                    <p id="auth-error" class="text-red-500 text-center mt-4 text-sm"></p>
-                </div>`;
-            
-            countryModalEl.innerHTML = `
-                <div class="bg-white rounded-xl shadow-2xl p-8 max-w-sm w-full animate-fade-in">
-                    <h2 class="text-2xl font-bold text-center mb-4">Hoş Geldiniz!</h2>
-                    <p class="text-center text-gray-600 mb-6">Alışveriş deneyiminizi kişiselleştirmek için lütfen ülkenizi seçin.</p>
-                    <div id="initial-country-select-container"></div>
-                    <button id="save-country-btn" class="w-full mt-4 bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700">
-                        Kaydet ve Devam Et
-                    </button>
-                </div>`;
-                
-            document.getElementById('login-form').addEventListener('submit', handleLogin);
-            document.getElementById('anonymous-login-btn').addEventListener('click', handleAnonymousLogin);
-            document.getElementById('save-country-btn').addEventListener('click', handleSaveCountry);
-        }
-
+        // --- AUTHENTICATION ---
         onAuthStateChanged(auth, user => {
-            authModalEl.classList.add('hidden');
             if (user) {
-                const savedPrefs = localStorage.getItem(`pufemoUserPreferences_${user.uid}`);
-                if (savedPrefs) {
-                    userPreferences = JSON.parse(savedPrefs);
-                    loadPageContent();
-                } else {
-                    populateInitialCountrySelect();
-                    countryModalEl.classList.remove('hidden');
-                }
+                // User is signed in.
+                console.log("Kullanıcı giriş yaptı:", user.uid);
+                // If the user was anonymous, their cart can be migrated here.
             } else {
-                authModalEl.classList.remove('hidden');
+                // User is signed out. Sign in anonymously.
+                signInAnonymously(auth).catch(error => {
+                    console.error("Anonim giriş başarısız:", error);
+                });
+                console.log("Kullanıcı anonim olarak giriş yaptı.");
             }
         });
 
-        async function handleLogin(e) {
-             e.preventDefault();
-             const email = document.getElementById('login-email').value;
-             const password = document.getElementById('login-password').value;
-             try { await signInWithEmailAndPassword(auth, email, password); } 
-             catch (error) { document.getElementById('auth-error').textContent = "E-posta veya şifre hatalı."; }
-        }
-        async function handleAnonymousLogin() {
-            try { await signInAnonymously(auth); } 
-            catch (error) { document.getElementById('auth-error').textContent = "Misafir girişi başarısız oldu."; }
+        // --- COUNTRY & LANGUAGE SETTINGS ---
+        const countryModal = document.getElementById('country-selection-modal');
+        const saveCountryBtn = document.getElementById('save-country-selection');
+        const countrySelector = document.getElementById('country-selector');
+        const settingsDisplay = document.getElementById('settings-display');
+        const currentSelectionText = document.getElementById('current-selection-text');
+
+        // Function to update the display in the header
+        function updateSettingsDisplay(settings) {
+            const selectedOption = countrySelector.querySelector(`option[value="${settings.country}"]`);
+            currentSelectionText.textContent = `${selectedOption.textContent} / ${settings.lang} / ${settings.currency}`;
         }
         
-        function populateInitialCountrySelect() {
-            const container = document.getElementById('initial-country-select-container');
-            const select = document.createElement('select');
-            select.id = 'country-select';
-            select.className = 'w-full p-3 border border-gray-300 rounded-lg';
-            siteConfig.countries.forEach(c => { select.innerHTML += `<option value="${c.code}">${c.flag} ${c.name}</option>`; });
-            container.innerHTML = '';
-            container.appendChild(select);
-        }
-
-        function handleSaveCountry() {
-            const countryCode = document.getElementById('country-select').value;
-            const selectedCountry = siteConfig.countries.find(c => c.code === countryCode);
-            userPreferences = { country: selectedCountry.code, lang: selectedCountry.lang, currency: selectedCountry.currency };
-            const user = auth.currentUser;
-            if(user) localStorage.setItem(`pufemoUserPreferences_${user.uid}`, JSON.stringify(userPreferences));
-            countryModalEl.classList.add('hidden');
-            loadPageContent();
-        }
-
-        function populatePreferenceChangers() {
-            const countryChanger = document.getElementById('country-changer');
-            const languageChanger = document.getElementById('language-changer');
-            const currencyChanger = document.getElementById('currency-changer');
-            countryChanger.innerHTML = siteConfig.countries.map(c => `<option value="${c.code}" ${c.code === userPreferences.country ? 'selected' : ''}>${c.flag} ${c.code}</option>`).join('');
-            languageChanger.innerHTML = siteConfig.languages.map(l => `<option value="${l.code}" ${l.code === userPreferences.lang ? 'selected' : ''}>${l.name}</option>`).join('');
-            currencyChanger.innerHTML = siteConfig.currencies.map(c => `<option value="${c.code}" ${c.code === userPreferences.currency ? 'selected' : ''}>${c.symbol}</option>`).join('');
-            document.getElementById('preference-changers').classList.remove('hidden');
-        }
-
-        function saveAndReload() {
-            const user = auth.currentUser;
-            if(user) {
-                localStorage.setItem(`pufemoUserPreferences_${user.uid}`, JSON.stringify(userPreferences));
-                loadPageContent();
+        // On page load, check if settings exist in localStorage
+        function checkCountrySelection() {
+            const settings = localStorage.getItem('pufemo_settings');
+            if (!settings) {
+                countryModal.classList.remove('hidden');
+            } else {
+                const parsedSettings = JSON.parse(settings);
+                updateSettingsDisplay(parsedSettings);
+                // TODO: Load content based on saved settings (language, currency, prices)
+                console.log("Ayarlar yüklendi:", parsedSettings);
             }
         }
+
+        // Save selection to localStorage
+        saveCountryBtn.addEventListener('click', () => {
+            const selectedOption = countrySelector.options[countrySelector.selectedIndex];
+            const settings = {
+                country: selectedOption.value,
+                lang: selectedOption.dataset.lang,
+                currency: selectedOption.dataset.currency,
+            };
+            localStorage.setItem('pufemo_settings', JSON.stringify(settings));
+            countryModal.classList.add('hidden');
+            updateSettingsDisplay(settings);
+            // TODO: Reload page or dynamically fetch new content
+            location.reload(); // Simple solution for now
+        });
+
+        // Show modal when settings display is clicked
+        settingsDisplay.addEventListener('click', () => {
+             countryModal.classList.remove('hidden');
+        });
+
+        // --- DYNAMIC CONTENT LOADING (Placeholders) ---
         
-        function loadPageContent() {
-            populatePreferenceChangers();
-            fetchCategories();
-            fetchProducts();
+        // This is where you would fetch data from Firestore
+        // For example:
+        async function fetchFeaturedProducts() {
+            // const productRef = collection(db, "products");
+            // const q = query(productRef, where("featured", "==", true), limit(8));
+            // const querySnapshot = await getDocs(q);
+            // const productList = document.getElementById('product-list');
+            // productList.innerHTML = ''; // Clear static content
+            // querySnapshot.forEach((doc) => {
+            //     const product = doc.data();
+            //     // Create and append product card HTML here based on product data
+            // });
+            console.log("fetchFeaturedProducts() fonksiyonu çağrılacak.");
         }
 
-        async function fetchProducts() {
-            const productGrid = document.getElementById('product-grid');
-            try {
-                const querySnapshot = await getDocs(collection(db, "products"));
-                productGrid.innerHTML = '';
-                const currencyInfo = siteConfig.currencies.find(c => c.code === userPreferences.currency);
-                const currencySymbol = currencyInfo ? currencyInfo.symbol : '$';
-                querySnapshot.forEach(doc => {
-                    const p = doc.data();
-                    const pPrices = p.prices || {}; const pNames = p.name || {};
-                    const price = pPrices[userPreferences.country] || pPrices['TR'] || 0;
-                    const pName = pNames[userPreferences.lang] || pNames.tr || "İsimsiz Ürün";
-                    productGrid.innerHTML += `
-                        <div class="bg-white rounded-xl shadow-lg overflow-hidden group">
-                            <a href="product.html?id=${doc.id}" class="block">
-                               <img src="${p.imageUrl || 'https://placehold.co/400x400'}" alt="${pName}" class="w-full h-56 object-cover group-hover:scale-110 transition-transform duration-500" onerror="this.src='https://placehold.co/400x400'">
-                               <div class="p-5">
-                                   <h3 class="text-lg font-semibold text-gray-900 truncate">${pName}</h3>
-                                   <p class="text-2xl font-bold text-indigo-600 mt-2">${currencySymbol}${price.toFixed(2)}</p>
-                               </div>
-                            </a>
-                        </div>`;
-                });
-            } catch (error) { console.error("Ürünler yüklenemedi:", error); }
-        }
-        
         async function fetchCategories() {
-             try {
-                const querySnapshot = await getDocs(collection(db, "categories"));
-                categoryGrid.innerHTML = '';
-                querySnapshot.forEach((doc) => {
-                    const cat = doc.data();
-                    const catNames = cat.name || {};
-                    const catName = catNames[userPreferences.lang] || catNames.tr || "İsimsiz Kategori";
-                    categoryGrid.innerHTML += `
-                    <a href="#" class="block bg-white p-4 rounded-lg shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 text-center">
-                        <h3 class="font-semibold">${catName}</h3>
-                    </a>`;
-                });
-            } catch (error) { console.error("Kategoriler yüklenemedi:", error); }
-        }
-
-        // --- Event Listenerları Başlat ---
-        function setupEventListeners() {
-            document.getElementById('country-changer').addEventListener('change', (e) => {
-                const newCountry = siteConfig.countries.find(c => c.code === e.target.value);
-                userPreferences.country = newCountry.code; userPreferences.lang = newCountry.lang; userPreferences.currency = newCountry.currency;
-                saveAndReload();
-            });
-            document.getElementById('language-changer').addEventListener('change', e => { userPreferences.lang = e.target.value; saveAndReload(); });
-            document.getElementById('currency-changer').addEventListener('change', e => { userPreferences.currency = e.target.value; saveAndReload(); });
+            console.log("fetchCategories() fonksiyonu çağrılacak.");
         }
         
-        initializeModals();
-        setupEventListeners();
+        async function fetchSliderItems() {
+             console.log("fetchSliderItems() fonksiyonu çağrılacak.");
+        }
+
+        // Initial calls when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            checkCountrySelection();
+            
+            // Call functions to load dynamic content
+            fetchFeaturedProducts();
+            fetchCategories();
+            fetchSliderItems();
+        });
 
     </script>
 </body>
