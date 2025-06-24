@@ -236,19 +236,18 @@
         });
 
         async function checkAdminStatus(user) {
-            // If the user is an anonymous guest, they are definitely not an admin.
-            // Directly show the unauthorized screen and prompt them to log out to sign in.
             if (user.isAnonymous) {
                 showScreen('unauthorized');
                 return;
             }
             try {
-                const adminRef = doc(db, 'admins', user.uid);
-                const adminDoc = await getDoc(adminRef);
-                if (adminDoc.exists()) {
+                const userRef = doc(db, 'users', user.uid);
+                const userDoc = await getDoc(userRef);
+                
+                // DÜZELTME: Belgenin varlığını VE 'role' alanının 'admin' olup olmadığını kontrol et
+                if (userDoc.exists() && userDoc.data().role === 'admin') {
                     showScreen('admin');
                 } else {
-                    // The user logged in, but their UID is not in the 'admins' list.
                     showScreen('unauthorized');
                 }
             } catch (error) {
@@ -259,7 +258,7 @@
         }
         
         const handleLogin = () => {
-            loginErrorDiv.classList.add('hidden'); // Clear previous errors
+            loginErrorDiv.classList.add('hidden'); 
             signInWithEmailAndPassword(auth, emailInput.value, passwordInput.value)
                 .catch(() => showLoginError("E-posta veya şifre hatalı."));
         };
@@ -273,7 +272,7 @@
                 loginScreen.classList.remove('hidden');
             } else if (screenName === 'admin') {
                 adminPanel.classList.remove('hidden');
-                feather.replace(); // Render icons
+                feather.replace();
                 loadInitialData();
             } else if (screenName === 'unauthorized') {
                 unauthorizedScreen.classList.remove('hidden');
@@ -303,7 +302,6 @@
 
         // --- DATA LOADING AND RENDERING ---
         async function loadInitialData() {
-            // Activate the first tab by default
             const firstLink = sidebarNav.querySelector('.sidebar-link');
              if(firstLink) {
                 firstLink.classList.add('active');
@@ -317,7 +315,7 @@
                 const ordersRef = collection(db, "orders");
                 const querySnapshot = await getDocs(ordersRef);
                 const ordersTableBody = document.getElementById('orders-table-body');
-                ordersTableBody.innerHTML = ''; // Clear existing rows
+                ordersTableBody.innerHTML = '';
 
                 if (querySnapshot.empty) {
                      ordersTableBody.innerHTML = '<tr><td colspan="6" class="text-center p-4 text-gray-500">Henüz sipariş bulunmamaktadır.</td></tr>';
@@ -425,7 +423,7 @@
                 });
                 alert("Sipariş başarıyla güncellendi!");
                 orderDetailsModal.classList.add('hidden');
-                loadOrders(); // Listeyi yenile
+                loadOrders();
             } catch (error) {
                 console.error("Sipariş güncellenirken hata:", error);
                 alert("Sipariş güncellenemedi.");
@@ -447,7 +445,6 @@
         cancelOrderUpdateBtn.addEventListener('click', () => orderDetailsModal.classList.add('hidden'));
         saveOrderChangesBtn.addEventListener('click', saveOrderChanges);
         
-        // Başlangıçta ilk sekmeyi aktif yap
         document.addEventListener('DOMContentLoaded', () => {
             const firstLink = sidebarNav.querySelector('.sidebar-link');
             if(firstLink) {
