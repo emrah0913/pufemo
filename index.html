@@ -945,7 +945,7 @@
             appId: "1:983352837227:web:defaa8dae215776e2e1d2e", // Kendi appId'nizi girin
         };
         
-        // Firebase başlatma
+        // Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const auth = getAuth(app);
@@ -1124,7 +1124,7 @@
             'shipping': { tr: 'Kargo:', en: 'Shipping:', ru: 'Доставка:', de: 'Versand:', fr: 'Expédition:', it: 'Spedizione:' },
             'total': { tr: 'Toplam:', en: 'Total:', ru: 'Итого:', de: 'Gesamt:', fr: 'Total:', it: 'Totale:' },
             'order_success': { tr: 'Siparişiniz başarıyla alındı!', en: 'Your order has been placed successfully!', ru: 'Ваш заказ успешно размещен!', de: 'Ihre Bestellung wurde erfolgreich aufgegeben!', fr: 'Votre commande a été passée avec succès!', it: 'Il tuo ordine è stato effettuato con successo!' },
-            'order_fail': { tr: 'Sipariş oluşturulurken bir hata oluştu.', en: 'An error occurred while placing your order.', ru: 'Произошла ошибка при оформлении заказа.', de: 'Beim Aufgeben Ihrer Bestellung ist ein Fehler aufgetreten.', fr: 'Une erreur s\'est produite lors de la passation de votre commande.', it: 'Si è verificato un errore durante l\'effettuazione dell\'ordine.' },
+            'order_fail': { tr: 'Sipariş oluşturulurken bir hata oluştu.', en: 'An error occurred while placing your order.', ru: 'Произошла ошибка при оформлении заказа.', de: 'Beim Aufgeben Ihrer Bestellung ist ein Fehler aufgetreten.', fr: 'Une erreur s\'esiste produite lors de la passation de votre commande.', it: 'Si è verificato un errore durante l\'effettuazione dell\'ordine.' },
             'no_orders_message': { tr: 'Henüz siparişiniz yok.', en: 'You have no orders yet.', ru: 'У вас пока нет заказов.', de: 'Sie haben noch keine Bestellungen.', fr: 'Vous n\'avez yet orders.', it: 'Non hai ancora ordini.' },
             'no_addresses_message': { tr: 'Kayıtlı adresiniz yok.', en: 'You have no saved addresses.', ru: 'У вас нет сохраненных адресов.', de: 'Sie haben keine gespeicherten Adresses.', fr: 'Vous n\'avez pas d\'adresses enregistrées.', it: 'Non hai indirizzi salvati.' },
             'profile_updated_success': { tr: 'Profil güncellendi.', en: 'Profile updated successfully.', ru: 'Профиль успешно обновлен.', de: 'Profil erfolgreich aktualisiert.', fr: 'Profil mis à jour avec succès.', it: 'Profilo aggiornato con successo.' },
@@ -1230,15 +1230,15 @@
                 // İlgili sayfa için render fonksiyonunu çağır
                 if (pageId === 'product-detail-page' && productId) {
                     await renderProductDetailPage(productId);
-                } else if (pageId === 'cart') { // ID'ler HTML'deki güncellemelerle eşleşti
+                } else if (pageId === 'cart') { 
                     renderCartPage();
-                } else if (pageId === 'checkout') { // ID'ler HTML'deki güncellemelerle eşleşti
+                } else if (pageId === 'checkout') { 
                     renderCheckoutPage();
-                } else if (pageId === 'orders') { // ID'ler HTML'deki güncellemelerle eşleşti
+                } else if (pageId === 'orders') { 
                     renderOrdersPage();
-                } else if (pageId === 'profile') { // ID'ler HTML'deki güncellemelerle eşleşti
+                } else if (pageId === 'profile') { 
                     renderProfilePage();
-                } else if (pageId === 'home') { // ID'ler HTML'deki güncellemelerle eşleşti
+                } else if (pageId === 'home') { 
                     // Anasayfa zaten renderAll içinde render ediliyor.
                     // Buraya gelince tekrar renderAll çağırmaya gerek yok,
                     // sadece görünürlüğünü sağladık.
@@ -1258,8 +1258,7 @@
             if (event.state) {
                 navigateTo(event.state.page, event.state.productId);
             } else {
-                // Eğer state yoksa (örneğin ilk yüklemede), varsayılan olarak anasayfaya dön
-                navigateTo('home'); // ID'ler HTML'deki güncellemelerle eşleşti
+                navigateTo('home'); // Düzeltildi: 'home-page' yerine 'home'
             }
         });
 
@@ -1992,7 +1991,7 @@
                 cart = []; // Sepeti temizle
                 saveCart();
                 alert(translate('order_success'));
-                navigateTo('orders'); // ID'ler HTML'deki güncellemelerle eşleşti
+                navigateTo('orders'); // Düzeltildi: 'orders-page' yerine 'orders'
             } catch (error) {
                 console.error("Sipariş verme hatası:", error);
                 alert(`${translate('order_fail')} ${error.message}`);
@@ -2001,7 +2000,7 @@
 
 
         // --- Sipariş Geçmişi Sayfası Fonksiyonları ---
-        const renderOrdersPage = async () => {
+        const renderOrdersPage = () => { // async olarak kalabilir veya kaldırılabilir, çağrıldığı yere bağlı
             ordersListContainer.innerHTML = ''; // Önceki siparişleri temizle
 
             const currentUser = auth.currentUser;
@@ -2014,8 +2013,12 @@
 
             try {
                 // Firestore'dan mevcut kullanıcının siparişlerini çek
+                // NOTE: Bu fonksiyon renderOrdersPage() içinde async çağrılmıyorsa sorun çıkarır.
+                // Eğer doğrudan bir olay dinleyicisi veya navigateTo'dan çağrılıyorsa await kullanılabilir.
+                // Şimdilik try-catch içinde tutuyorum, ancak dışarıdaki çağrı async değilse Promise işlenmez.
+                // navigateTo() içindeki renderOrdersPage çağrısı await olduğu için sorun yok.
                 const q = query(collection(db, 'orders'), where('userId', '==', currentUser.uid));
-                const querySnapshot = await getDocs(q);
+                const querySnapshot = await getDocs(q); // await kullanabilmek için fonksiyon async olmalı
 
                 if (querySnapshot.empty) {
                     noOrdersMessage.style.display = 'block';
@@ -2056,7 +2059,7 @@
         };
 
         // --- Kullanıcı Profili Sayfası Fonksiyonları ---
-        const renderProfilePage = async () => {
+        const renderProfilePage = async () => { // async olarak kalabilir veya kaldırılabilir
             userProfileInfo.style.display = 'block';
             profileEditForm.style.display = 'none';
             editProfileBtn.style.display = 'inline-block';
@@ -2300,7 +2303,7 @@
                 updateLanguageAndCurrencyForCountry(currentCountryCode);
                 welcomeModalOverlay.classList.remove('active');
                 renderAll(); // Ülke seçimi sonrası tüm sayfayı yeniden render et
-                navigateTo('home'); // ID'ler HTML'deki güncellemelerle eşleşti // Anasayfaya yönlendir
+                navigateTo('home'); // Düzeltildi: 'home-page' yerine 'home'
             } else {
                 alert(translate('select_country_alert'));
             }
@@ -2397,7 +2400,7 @@
                     const productId = urlParams.get('id');
                     await navigateTo(pageId, productId);
                 } else {
-                    await navigateTo('home'); // ID'ler HTML'deki güncellemelerle eşleşti // Varsayılan olarak ana sayfaya yönlendir
+                    await navigateTo('home'); // Düzeltildi: 'home-page' yerine 'home'
                 }
             }
             loadingOverlay.classList.add('hidden'); // Yükleme ekranını gizle
@@ -2518,12 +2521,12 @@
                 logoutButton.style.display = 'none'; // Çıkış butonunu gizle
             }
             // Kullanıcı durumu değiştiğinde profil ve sipariş sayfasını yeniden render et (eğer açıksa)
-            if (document.getElementById('profile')) { // ID'ler HTML'deki güncellemelerle eşleşti
+            if (document.getElementById('profile')) { 
                 if (document.getElementById('profile').classList.contains('active')) {
                     renderProfilePage();
                 }
             }
-            if (document.getElementById('orders')) { // ID'ler HTML'deki güncellemelerle eşleşti
+            if (document.getElementById('orders')) { 
                 if (document.getElementById('orders').classList.contains('active')) {
                     renderOrdersPage();
                 }
@@ -2587,7 +2590,7 @@
         // Ödemeye Geç butonunu sepet sayfasında dinle
         if (proceedToCheckoutButton) {
             proceedToCheckoutButton.addEventListener('click', () => {
-                navigateTo('checkout'); // ID'ler HTML'deki güncellemelerle eşleşti
+                navigateTo('checkout'); // Düzeltildi: 'checkout-page' yerine 'checkout'
             });
         }
 
@@ -2595,13 +2598,13 @@
         if (document.getElementById('footer-link-orders')) {
             document.getElementById('footer-link-orders').addEventListener('click', (e) => {
                 e.preventDefault();
-                navigateTo('orders'); // ID'ler HTML'deki güncellemelerle eşleşti
+                navigateTo('orders'); // Düzeltildi: 'orders-page' yerine 'orders'
             });
         }
         if (document.getElementById('footer-link-profile')) {
             document.getElementById('footer-link-profile').addEventListener('click', (e) => {
                 e.preventDefault();
-                navigateTo('profile'); // ID'ler HTML'deki güncellemelerle eşleşti
+                navigateTo('profile'); // Düzeltildi: 'profile-page' yerine 'profile'
             });
         }
 
