@@ -1,152 +1,581 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>PUFEMO - Admin Panel</title>
-  <style>
-    body { font-family: Arial, sans-serif; background:#f8f9fa; padding:20px; margin:0; }
-    .container { max-width: 1000px; margin:auto; background:#fff; padding:25px; border-radius:8px; box-shadow:0 4px 8px rgba(0,0,0,0.1); }
-    h2 { text-align:center; margin-bottom:20px; }
-    select, button { padding:8px 15px; margin-right:10px; border-radius:5px; border:1px solid #ccc; cursor:pointer; }
-    .order { border-radius:6px; padding:15px; margin-bottom:20px; }
-    .status-bekliyor { background-color: #fff3cd; }
-    .status-hazirlaniyor { background-color: #cce5ff; }
-    .status-kargoda { background-color: #b8daff; }
-    .status-teslim { background-color: #d4edda; }
-    .order h3 { margin:0 0 10px 0; }
-    .order p { margin:5px 0; font-size:14px; }
-    .order ul { padding-left:20px; }
-  </style>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script type="module">
-    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-    import { getFirestore, collection, getDocs, doc, updateDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
-    import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>PUFEMO - Tam Admin Paneli</title>
+<style>
+  body { font-family: Arial, sans-serif; background:#f5f7fa; margin:0; }
+  header { background:#27ae60; color:#fff; padding:15px 30px; font-size:22px; font-weight:bold; }
+  nav { background:#fff; padding:15px 30px; display:flex; gap:20px; flex-wrap: wrap; }
+  nav button { background:#27ae60; color:#fff; border:none; padding:10px 20px; border-radius:5px; cursor:pointer; }
+  nav button:hover { background:#219150; }
+  main { padding: 20px 30px; min-height: 600px; background:#fff; }
+  table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+  th, td { border: 1px solid #ccc; padding: 10px; text-align: left; }
+  th { background: #eee; }
+  .delete-btn, .small-btn {
+    background: #e74c3c; margin: 0; padding: 6px 10px; font-size: 12px; border-radius: 3px;
+    color:#fff; border:none; cursor:pointer;
+  }
+  .delete-btn:hover, .small-btn:hover { background: #c0392b; }
+  input, textarea, select, button {
+    padding: 10px; margin-bottom: 15px; border-radius: 5px; border: 1px solid #ccc; font-size: 14px;
+  }
+  button.submit-btn {
+    background: #27ae60; color: white; border: none; cursor: pointer;
+  }
+  button.submit-btn:hover {
+    background: #219150;
+  }
+</style>
+</head>
+<body>
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyDYkzZzNXB22U4oEXxOoPh-puwuE8kz0g4",
-      authDomain: "pufemo-com.firebaseapp.com",
-      projectId: "pufemo-com",
-      storageBucket: "pufemo-com.firebasestorage.app",
-      messagingSenderId: "983352837227",
-      appId: "1:983352837227:web:defaa8dae215776e2e",
-      measurementId: "G-RH8XHC7P91"
-    };
+<header>PUFEMO Yönetim Paneli</header>
+<nav>
+  <button onclick="showSection('products')">Ürünler</button>
+  <button onclick="showSection('categories')">Kategoriler</button>
+  <button onclick="showSection('countries')">Ülkeler</button>
+  <button onclick="showSection('variants')">Varyantlar</button>
+  <button onclick="showSection('orders')">Siparişler</button>
+</nav>
+<main id="content">
+  <p>Modül seçiniz...</p>
+</main>
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    const auth = getAuth(app);
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+  import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+  import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 
-    const ADMIN_UID = "H6sELZRKnKdmyBH42tyItpglwRJ3"; // Senin verdiğin UID
+  const firebaseConfig = {
+    apiKey: "AIzaSyDYkzZzNXB22U4oEXxOoPh-puwuE8kz0g4",
+    authDomain: "pufemo-com.firebaseapp.com",
+    projectId: "pufemo-com",
+    storageBucket: "pufemo-com.firebasestorage.app",
+    messagingSenderId: "983352837227",
+    appId: "1:983352837227:web:defaa8dae215776e2e",
+    measurementId: "G-RH8XHC7P91"
+  };
 
-    let ordersData = [];
-    let filteredStatus = 'all';
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const auth = getAuth(app);
+  const ADMIN_UID = "H6sELZRKnKdmyBH42tyItpglwRJ3";
 
-    function getStatusClass(status) {
-      switch(status?.toLowerCase()) {
-        case 'bekliyor': return 'status-bekliyor';
-        case 'hazırlanıyor': return 'status-hazirlaniyor';
-        case 'kargoda': return 'status-kargoda';
-        case 'teslim edildi': return 'status-teslim';
-        default: return '';
-      }
+  let currentUser = null;
+
+  onAuthStateChanged(auth, user => {
+    if (!user || user.uid !== ADMIN_UID) {
+      document.body.innerHTML = '<p style="text-align:center; padding:20px; font-size:18px;">Yetkiniz yok. Lütfen admin girişi yapınız.</p>';
+      return;
+    }
+    currentUser = user;
+    showSection('products');
+  });
+
+  const content = document.getElementById('content');
+
+  async function showSection(name) {
+    switch(name) {
+      case 'products': await renderProducts(); break;
+      case 'categories': await renderCategories(); break;
+      case 'countries': await renderCountries(); break;
+      case 'variants': await renderVariants(); break;
+      case 'orders': await renderOrders(); break;
+      default: content.innerHTML = '<p>Modül seçiniz...</p>';
+    }
+  }
+
+  // --- ÜRÜNLER ---
+
+  async function renderProducts() {
+    content.innerHTML = `
+      <h2>Ürün Yönetimi</h2>
+      <form id="product-form">
+        <input type="text" id="title-tr" placeholder="Ürün Adı (Türkçe)" required />
+        <input type="text" id="title-en" placeholder="Product Name (English)" required />
+        <textarea id="desc-tr" placeholder="Ürün Açıklaması (Türkçe)"></textarea>
+        <textarea id="desc-en" placeholder="Product Description (English)"></textarea>
+        <input type="number" id="base-price" placeholder="Ana Fiyat (₺)" required min="0" step="0.01" />
+        <input type="text" id="image-url" placeholder="Görsel URL" />
+        <select id="category-select" required>
+          <option value="">Kategori Seçiniz</option>
+        </select>
+        <button type="submit" class="submit-btn">Yeni Ürün Ekle</button>
+      </form>
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th><th>Türkçe Adı</th><th>İngilizce Adı</th><th>Kategori</th><th>Ana Fiyat (₺)</th><th>İşlemler</th>
+          </tr>
+        </thead>
+        <tbody id="product-list"></tbody>
+      </table>
+    `;
+    await loadCategoriesIntoSelect();
+    await loadProducts();
+
+    document.getElementById('product-form').addEventListener('submit', async e => {
+      e.preventDefault();
+      await addProduct();
+    });
+  }
+
+  async function loadCategoriesIntoSelect() {
+    const select = document.getElementById('category-select');
+    select.innerHTML = '<option value="">Kategori Seçiniz</option>';
+    const snapshot = await getDocs(collection(db, 'categories'));
+    snapshot.forEach(docSnap => {
+      const cat = docSnap.data();
+      const title = cat.translations?.tr?.title || 'Kategori';
+      select.innerHTML += `<option value="${docSnap.id}">${title}</option>`;
+    });
+  }
+
+  async function loadProducts() {
+    const tbody = document.getElementById('product-list');
+    tbody.innerHTML = '<tr><td colspan="6">Yükleniyor...</td></tr>';
+    const snapshot = await getDocs(collection(db, 'products'));
+    const categoriesSnap = await getDocs(collection(db, 'categories'));
+    const categoriesMap = {};
+    categoriesSnap.forEach(d => categoriesMap[d.id] = d.data());
+
+    let html = '';
+    snapshot.forEach(docSnap => {
+      const p = docSnap.data();
+      const cat = categoriesMap[p.categoryId];
+      const catName = cat ? (cat.translations?.tr?.title || 'Kategori') : 'Kategori Yok';
+      html += `
+        <tr>
+          <td>${docSnap.id}</td>
+          <td>${p.translations?.tr?.title || '-'}</td>
+          <td>${p.translations?.en?.title || '-'}</td>
+          <td>${catName}</td>
+          <td>${p.basePrice.toFixed(2)} ₺</td>
+          <td><button class="delete-btn" onclick="deleteProduct('${docSnap.id}')">Sil</button></td>
+        </tr>
+      `;
+    });
+    tbody.innerHTML = html || '<tr><td colspan="6" style="text-align:center;">Ürün bulunamadı.</td></tr>';
+  }
+
+  async function addProduct() {
+    const titleTr = document.getElementById('title-tr').value.trim();
+    const titleEn = document.getElementById('title-en').value.trim();
+    const descTr = document.getElementById('desc-tr').value.trim();
+    const descEn = document.getElementById('desc-en').value.trim();
+    const basePrice = parseFloat(document.getElementById('base-price').value);
+    const imageUrl = document.getElementById('image-url').value.trim();
+    const categoryId = document.getElementById('category-select').value;
+
+    if (!titleTr || !titleEn || isNaN(basePrice) || !categoryId) {
+      alert('Lütfen tüm zorunlu alanları doldurun.');
+      return;
     }
 
-    function renderOrders() {
-      const container = document.getElementById('order-list');
-      container.innerHTML = '';
-      const filtered = filteredStatus === 'all' ? ordersData : ordersData.filter(o => o.status.toLowerCase() === filteredStatus);
+    const newProduct = {
+      basePrice,
+      categoryId,
+      translations: {
+        tr: { title: titleTr, description: descTr },
+        en: { title: titleEn, description: descEn }
+      },
+      images: imageUrl ? [imageUrl] : []
+    };
 
-      filtered.forEach(order => {
-        const list = order.cart.map(i => `<li>${i.name} x ${i.qty}</li>`).join('');
-        const orderDiv = document.createElement('div');
-        orderDiv.className = `order ${getStatusClass(order.status)}`;
-        orderDiv.innerHTML = `
+    try {
+      await addDoc(collection(db, 'products'), newProduct);
+      alert('Ürün başarıyla eklendi.');
+      await loadProducts();
+      document.getElementById('product-form').reset();
+    } catch (err) {
+      console.error(err);
+      alert('Ürün eklenirken hata oluştu.');
+    }
+  }
+
+  window.deleteProduct = async function(id) {
+    if (!confirm('Ürünü silmek istediğinize emin misiniz?')) return;
+    try {
+      await deleteDoc(doc(db, 'products', id));
+      alert('Ürün silindi.');
+      await loadProducts();
+    } catch (err) {
+      console.error(err);
+      alert('Ürün silinirken hata oluştu.');
+    }
+  };
+
+  // --- KATEGORİLER ---
+
+  async function renderCategories() {
+    content.innerHTML = `
+      <h2>Kategori Yönetimi</h2>
+      <form id="category-form">
+        <input type="text" id="name-tr" placeholder="Kategori Adı (Türkçe)" required />
+        <input type="text" id="name-en" placeholder="Category Name (English)" required />
+        <button type="submit" class="submit-btn">Yeni Kategori Ekle</button>
+      </form>
+      <table>
+        <thead>
+          <tr><th>ID</th><th>Türkçe Adı</th><th>İngilizce Adı</th><th>İşlemler</th></tr>
+        </thead>
+        <tbody id="category-list"></tbody>
+      </table>
+    `;
+    await loadCategories();
+
+    document.getElementById('category-form').addEventListener('submit', async e => {
+      e.preventDefault();
+      await addCategory();
+    });
+  }
+
+  async function loadCategories() {
+    const tbody = document.getElementById('category-list');
+    tbody.innerHTML = '<tr><td colspan="4">Yükleniyor...</td></tr>';
+    const snapshot = await getDocs(collection(db, 'categories'));
+    let html = '';
+    snapshot.forEach(docSnap => {
+      const c = docSnap.data();
+      html += `
+        <tr>
+          <td>${docSnap.id}</td>
+          <td>${c.translations?.tr?.title || '-'}</td>
+          <td>${c.translations?.en?.title || '-'}</td>
+          <td><button class="delete-btn" onclick="deleteCategory('${docSnap.id}')">Sil</button></td>
+        </tr>
+      `;
+    });
+    tbody.innerHTML = html || '<tr><td colspan="4" style="text-align:center;">Kategori bulunamadı.</td></tr>';
+  }
+
+  async function addCategory() {
+    const nameTr = document.getElementById('name-tr').value.trim();
+    const nameEn = document.getElementById('name-en').value.trim();
+
+    if (!nameTr || !nameEn) {
+      alert('Lütfen tüm alanları doldurun.');
+      return;
+    }
+
+    const newCategory = {
+      translations: {
+        tr: { title: nameTr },
+        en: { title: nameEn }
+      }
+    };
+
+    try {
+      await addDoc(collection(db, 'categories'), newCategory);
+      alert('Kategori başarıyla eklendi.');
+      await loadCategories();
+      document.getElementById('category-form').reset();
+    } catch (err) {
+      console.error(err);
+      alert('Kategori eklenirken hata oluştu.');
+    }
+  }
+
+  window.deleteCategory = async function(id) {
+    if (!confirm('Kategoriyi silmek istediğinize emin misiniz?')) return;
+    try {
+      await deleteDoc(doc(db, 'categories', id));
+      alert('Kategori silindi.');
+      await loadCategories();
+    } catch (err) {
+      console.error(err);
+      alert('Kategori silinirken hata oluştu.');
+    }
+  };
+
+  // --- ÜLKELER ---
+
+  async function renderCountries() {
+    content.innerHTML = `
+      <h2>Ülke Yönetimi</h2>
+      <form id="country-form">
+        <input type="text" id="country-id" placeholder="Ülke Kodu (örn: tr, uk)" required />
+        <input type="text" id="country-name" placeholder="Ülke Adı" required />
+        <input type="text" id="currency" placeholder="Para Birimi (örn: TRY, GBP)" required />
+        <input type="text" id="language" placeholder="Dil Kodu (örn: tr, en)" required />
+        <input type="number" id="price-multiplier" placeholder="Fiyat Çarpanı (örn: 1.7)" required step="0.01" min="0.01" />
+        <button type="submit" class="submit-btn">Yeni Ülke Ekle</button>
+      </form>
+      <table>
+        <thead>
+          <tr><th>Ülke Kodu</th><th>Ülke Adı</th><th>Para Birimi</th><th>Dil Kodu</th><th>Fiyat Çarpanı</th><th>İşlemler</th></tr>
+        </thead>
+        <tbody id="country-list"></tbody>
+      </table>
+    `;
+    await loadCountries();
+
+    document.getElementById('country-form').addEventListener('submit', async e => {
+      e.preventDefault();
+      await addCountry();
+    });
+  }
+
+  async function loadCountries() {
+    const tbody = document.getElementById('country-list');
+    tbody.innerHTML = '<tr><td colspan="6">Yükleniyor...</td></tr>';
+    const snapshot = await getDocs(collection(db, 'countries'));
+    let html = '';
+    snapshot.forEach(docSnap => {
+      const c = docSnap.data();
+      html += `
+        <tr>
+          <td>${docSnap.id}</td>
+          <td>${c.name}</td>
+          <td>${c.currency}</td>
+          <td>${c.language}</td>
+          <td>${c.priceMultiplier.toFixed(2)}</td>
+          <td><button class="delete-btn" onclick="deleteCountry('${docSnap.id}')">Sil</button></td>
+        </tr>
+      `;
+    });
+    tbody.innerHTML = html || '<tr><td colspan="6" style="text-align:center;">Ülke bulunamadı.</td></tr>';
+  }
+
+  async function addCountry() {
+    const id = document.getElementById('country-id').value.trim().toLowerCase();
+    const name = document.getElementById('country-name').value.trim();
+    const currency = document.getElementById('currency').value.trim().toUpperCase();
+    const language = document.getElementById('language').value.trim().toLowerCase();
+    const priceMultiplier = parseFloat(document.getElementById('price-multiplier').value);
+
+    if (!id || !name || !currency || !language || isNaN(priceMultiplier) || priceMultiplier <= 0) {
+      alert('Lütfen tüm alanları doğru doldurun.');
+      return;
+    }
+
+    try {
+      await addDoc(collection(db, 'countries'), {
+        name,
+        currency,
+        language,
+        priceMultiplier
+      });
+      alert('Ülke başarıyla eklendi.');
+      await loadCountries();
+      document.getElementById('country-form').reset();
+    } catch (err) {
+      console.error(err);
+      alert('Ülke eklenirken hata oluştu.');
+    }
+  }
+
+  window.deleteCountry = async function(id) {
+    if (!confirm('Ülkeyi silmek istediğinize emin misiniz?')) return;
+    try {
+      await deleteDoc(doc(db, 'countries', id));
+      alert('Ülke silindi.');
+      await loadCountries();
+    } catch (err) {
+      console.error(err);
+      alert('Ülke silinirken hata oluştu.');
+    }
+  };
+
+  // --- VARYANTLAR ---
+
+  async function renderVariants() {
+    content.innerHTML = `
+      <h2>Ürün Varyantları Yönetimi</h2>
+      <form id="variant-form">
+        <input type="text" id="variant-product-id" placeholder="Ürün ID" required />
+        <input type="text" id="variant-type" placeholder="Varyant Tipi (örn: Renk, Ölçü)" required />
+        <input type="text" id="variant-value" placeholder="Varyant Değeri (örn: Kırmızı, Large)" required />
+        <input type="number" id="variant-price-diff" placeholder="Fiyat Farkı (₺)" step="0.01" value="0" />
+        <input type="text" id="variant-image-url" placeholder="Varyant Görsel URL" />
+        <button type="submit" class="submit-btn">Yeni Varyant Ekle</button>
+      </form>
+      <table>
+        <thead>
+          <tr><th>ID</th><th>Ürün ID</th><th>Tip</th><th>Değer</th><th>Fiyat Farkı</th><th>İşlemler</th></tr>
+        </thead>
+        <tbody id="variant-list"></tbody>
+      </table>
+    `;
+    await loadVariants();
+
+    document.getElementById('variant-form').addEventListener('submit', async e => {
+      e.preventDefault();
+      await addVariant();
+    });
+  }
+
+  async function loadVariants() {
+    const tbody = document.getElementById('variant-list');
+    tbody.innerHTML = '<tr><td colspan="6">Yükleniyor...</td></tr>';
+    const snapshot = await getDocs(collection(db, 'variants'));
+    let html = '';
+    snapshot.forEach(docSnap => {
+      const v = docSnap.data();
+      html += `
+        <tr>
+          <td>${docSnap.id}</td>
+          <td>${v.productId}</td>
+          <td>${v.type}</td>
+          <td>${v.value}</td>
+          <td>${v.priceDifference.toFixed(2)} ₺</td>
+          <td><button class="delete-btn" onclick="deleteVariant('${docSnap.id}')">Sil</button></td>
+        </tr>
+      `;
+    });
+    tbody.innerHTML = html || '<tr><td colspan="6" style="text-align:center;">Varyant bulunamadı.</td></tr>';
+  }
+
+  async function addVariant() {
+    const productId = document.getElementById('variant-product-id').value.trim();
+    const type = document.getElementById('variant-type').value.trim();
+    const value = document.getElementById('variant-value').value.trim();
+    const priceDifference = parseFloat(document.getElementById('variant-price-diff').value) || 0;
+    const imageUrl = document.getElementById('variant-image-url').value.trim();
+
+    if (!productId || !type || !value) {
+      alert('Lütfen tüm zorunlu alanları doldurun.');
+      return;
+    }
+
+    try {
+      await addDoc(collection(db, 'variants'), {
+        productId,
+        type,
+        value,
+        priceDifference,
+        imageUrl: imageUrl || ''
+      });
+      alert('Varyant başarıyla eklendi.');
+      await loadVariants();
+      document.getElementById('variant-form').reset();
+    } catch (err) {
+      console.error(err);
+      alert('Varyant eklenirken hata oluştu.');
+    }
+  }
+
+  window.deleteVariant = async function(id) {
+    if (!confirm('Varyantı silmek istediğinize emin misiniz?')) return;
+    try {
+      await deleteDoc(doc(db, 'variants', id));
+      alert('Varyant silindi.');
+      await loadVariants();
+    } catch (err) {
+      console.error(err);
+      alert('Varyant silinirken hata oluştu.');
+    }
+  };
+
+  // --- SİPARİŞLER ---
+
+  async function renderOrders() {
+    content.innerHTML = `
+      <h2>Sipariş Yönetimi</h2>
+      <select id="order-filter" style="padding:10px; margin-bottom:20px;">
+        <option value="all">Tüm Durumlar</option>
+        <option value="bekliyor">Bekliyor</option>
+        <option value="hazırlanıyor">Hazırlanıyor</option>
+        <option value="kargoda">Kargoda</option>
+        <option value="teslim edildi">Teslim Edildi</option>
+      </select>
+      <div id="order-list"></div>
+    `;
+
+    document.getElementById('order-filter').addEventListener('change', e => {
+      loadOrders(e.target.value);
+    });
+
+    await loadOrders('all');
+  }
+
+  let ordersData = [];
+
+  async function loadOrders(filterStatus) {
+    const list = document.getElementById('order-list');
+    list.innerHTML = 'Yükleniyor...';
+
+    const snapshot = await getDocs(collection(db, 'orders'));
+    ordersData = [];
+    snapshot.forEach(docSnap => {
+      ordersData.push({ id: docSnap.id, ...docSnap.data() });
+    });
+
+    if (filterStatus !== 'all') {
+      ordersData = ordersData.filter(o => (o.status || '').toLowerCase() === filterStatus);
+    }
+
+    if (ordersData.length === 0) {
+      list.innerHTML = '<p style="text-align:center;">Sipariş bulunamadı.</p>';
+      return;
+    }
+
+    let html = '';
+    ordersData.forEach(order => {
+      html += `
+        <div style="border:1px solid #ccc; border-radius:6px; padding:15px; margin-bottom:15px; background:#fff;">
           <h3>${order.name} - ${order.total} ${order.currency}</h3>
           <p><strong>Tarih:</strong> ${new Date(order.timestamp).toLocaleString()}</p>
           <p><strong>Telefon:</strong> ${order.phone}</p>
           <p><strong>Adres:</strong> ${order.address}</p>
-          <p><strong>Sipariş:</strong></p>
-          <ul>${list}</ul>
           <p><strong>Durum:</strong>
-            <select onchange="updateStatus('${order.id}', this.value)">
+            <select onchange="updateOrderStatus('${order.id}', this.value)">
               <option value="Bekliyor" ${order.status === 'Bekliyor' ? 'selected' : ''}>Bekliyor</option>
               <option value="Hazırlanıyor" ${order.status === 'Hazırlanıyor' ? 'selected' : ''}>Hazırlanıyor</option>
               <option value="Kargoda" ${order.status === 'Kargoda' ? 'selected' : ''}>Kargoda</option>
               <option value="Teslim Edildi" ${order.status === 'Teslim Edildi' ? 'selected' : ''}>Teslim Edildi</option>
             </select>
           </p>
-          <button onclick="downloadPDF('${order.id}')">PDF İndir</button>
-        `;
-        container.appendChild(orderDiv);
-      });
-    }
-
-    async function updateStatus(id, status) {
-      const ref = doc(db, "orders", id);
-      await updateDoc(ref, { status });
-      ordersData = ordersData.map(o => o.id === id ? {...o, status} : o);
-      renderOrders();
-      alert("Sipariş durumu güncellendi.");
-    }
-
-    async function downloadPDF(orderId) {
-      const { jsPDF } = window.jspdf;
-      const order = ordersData.find(o => o.id === orderId);
-      if (!order) return alert("Sipariş bulunamadı.");
-
-      const doc = new jsPDF();
-      doc.setFontSize(16);
-      doc.text(`Sipariş Detayı - ${order.name}`, 10, 20);
-      doc.setFontSize(12);
-      doc.text(`Tarih: ${new Date(order.timestamp).toLocaleString()}`, 10, 30);
-      doc.text(`Telefon: ${order.phone}`, 10, 40);
-      doc.text(`Adres: ${order.address}`, 10, 50);
-      doc.text(`Toplam: ${order.total} ${order.currency}`, 10, 60);
-      doc.text("Ürünler:", 10, 70);
-
-      order.cart.forEach((item, i) => {
-        doc.text(`${i + 1}. ${item.name} x ${item.qty}`, 15, 80 + i * 10);
-      });
-
-      doc.save(`siparis_${order.id}.pdf`);
-    }
-
-    function filterChange(event) {
-      filteredStatus = event.target.value.toLowerCase();
-      renderOrders();
-    }
-
-    onAuthStateChanged(auth, async user => {
-      if (!user || user.uid !== ADMIN_UID) {
-        document.body.innerHTML = '<p style="text-align:center;">Yetkiniz yok. Lütfen admin girişi yapınız.</p>';
-        return;
-      }
-      const snapshot = await getDocs(collection(db, "orders"));
-      ordersData = [];
-      snapshot.forEach(docSnap => {
-        ordersData.push({ id: docSnap.id, ...docSnap.data() });
-      });
-      renderOrders();
+          <p><strong>Ürünler:</strong></p>
+          <ul>${order.cart.map(item => `<li>${item.name} x ${item.qty}</li>`).join('')}</ul>
+          <button class="small-btn" onclick="downloadOrderPDF('${order.id}')">PDF İndir</button>
+        </div>
+      `;
     });
 
-    window.updateStatus = updateStatus;
-    window.downloadPDF = downloadPDF;
-    window.filterChange = filterChange;
-  </script>
-</head>
-<body>
-  <div class="container">
-    <h2>Admin - Sipariş Yönetimi</h2>
-    <select onchange="filterChange(event)">
-      <option value="all">Tüm Durumlar</option>
-      <option value="bekliyor">Bekliyor</option>
-      <option value="hazırlanıyor">Hazırlanıyor</option>
-      <option value="kargoda">Kargoda</option>
-      <option value="teslim edildi">Teslim Edildi</option>
-    </select>
-    <div id="order-list"></div>
-  </div>
+    list.innerHTML = html;
+  }
+
+  async function updateOrderStatus(orderId, status) {
+    const ref = doc(db, 'orders', orderId);
+    await updateDoc(ref, { status });
+    alert('Sipariş durumu güncellendi.');
+    await loadOrders(document.getElementById('order-filter').value);
+  }
+
+  async function downloadOrderPDF(orderId) {
+    const { jsPDF } = await import('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+    const order = ordersData.find(o => o.id === orderId);
+    if (!order) return alert('Sipariş bulunamadı.');
+
+    const doc = new jsPDF();
+    doc.setFontSize(16);
+    doc.text(`Sipariş Detayı - ${order.name}`, 10, 20);
+    doc.setFontSize(12);
+    doc.text(`Tarih: ${new Date(order.timestamp).toLocaleString()}`, 10, 30);
+    doc.text(`Telefon: ${order.phone}`, 10, 40);
+    doc.text(`Adres: ${order.address}`, 10, 50);
+    doc.text(`Toplam: ${order.total} ${order.currency}`, 10, 60);
+    doc.text("Ürünler:", 10, 70);
+
+    order.cart.forEach((item, i) => {
+      doc.text(`${i + 1}. ${item.name} x ${item.qty}`, 15, 80 + i * 10);
+    });
+
+    doc.save(`siparis_${order.id}.pdf`);
+  }
+
+  window.showSection = showSection;
+  window.deleteProduct = deleteProduct;
+  window.deleteCategory = deleteCategory;
+  window.deleteCountry = deleteCountry;
+  window.deleteVariant = deleteVariant;
+  window.updateOrderStatus = updateOrderStatus;
+  window.downloadOrderPDF = downloadOrderPDF;
+</script>
+
 </body>
 </html>
