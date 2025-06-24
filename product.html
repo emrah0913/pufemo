@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ürün Detayı - PUFEMO</title>
+  <style>
+    /* Stil aynen önceki mesajdaki gibi... */
+    body { font-family: Arial, sans-serif; margin: 20px; background: #f5f7fa; }
+    .container { max-width: 900px; margin: auto; background: #fff; padding: 20px; border-radius: 8px; }
+    .images { display: flex; gap: 10px; }
+    .main-image { width: 400px; height: 400px; object-fit: contain; border: 1px solid #ccc; border-radius: 8px; }
+    .thumbnails { display: flex; flex-direction: column; gap: 10px; }
+    .thumbnail { width: 70px; height: 70px; object-fit: cover; cursor: pointer; border: 2px solid transparent; border-radius: 5px; }
+    .thumbnail.selected { border-color: #27ae60; }
+    h1 { margin-top: 0; }
+    p.description { white-space: pre-line; }
+    .price { font-size: 24px; font-weight: bold; margin: 20px 0; }
+    select, button { padding: 10px; font-size: 16px; border-radius: 5px; margin-right: 10px; }
+    button { cursor: pointer; background: #27ae60; color: white; border: none; }
+    button:hover { background: #219150; }
+    .free-shipping { color: #27ae60; font-weight: bold; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="images">
+      <img id="mainImage" class="main-image" src="" alt="Ürün Görseli" />
+      <div class="thumbnails" id="thumbnailContainer"></div>
+    </div>
+
+    <h1 id="productTitle">Yükleniyor...</h1>
+    <p class="description" id="productDescription"></p>
+
+    <div>
+      <label for="variantSelect">Varyant Seçin:</label>
+      <select id="variantSelect"></select>
+    </div>
+
+    <div class="price" id="priceDisplay"></div>
+
+    <button id="addToCartBtn">Sepete Ekle</button>
+    <button id="buyNowBtn">Satın Al</button>
+
+    <div class="free-shipping" id="freeShippingMsg" style="display:none;">Ücretsiz Kargo</div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, doc, getDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    // Firebase ayarları
+    const firebaseConfig = {
+      apiKey: "AIzaSyDYkzZzNXB22U4oEXxOoPh-puwuE8kz0g4",
+      authDomain: "pufemo-com.firebaseapp.com",
+      projectId: "pufemo-com",
+      storageBucket: "pufemo-com.firebasestorage.app",
+      messagingSenderId: "983352837227",
+      appId: "1:983352837227:web:defaa8dae215776e2e1d2e",
+      measurementId: "G-RH8XHC7P91"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // URL'den ?id parametresi alıyoruz
+    const urlParams = new URLSearchParams(window.location.search);
+    const productId = urlParams.get("id");
+    if (!productId) {
+      alert("Ürün ID'si bulunamadı!");
+      throw new Error("Ürün ID'si eksik");
+    }
+
+    // Kullanıcı tercihleri (dil, ülke, para birimi)
+    // Bunu admin panelde seçip localStorage.setItem('lang', 'tr'); vs. yaparsın
+    const lang = localStorage.getItem("lang") || "tr";
+    const country = localStorage.getItem("country") || "tr";
+
+    let countryData = null;
+    let productData = null;
+    let variants = [];
+    let selectedVariant = null;
+
+    async function loadCountryData() {
+      const countryDoc = await getDoc(doc(db, "countries", country));
+      if (countryDoc.exists()) {
+        countryData = countryDoc.data();
+      } else {
+        countryData = { priceMultiplier: 1, currency: "TRY" };
+      }
+    }
+
+    async function loadProduct() {
+      const docSnap = await getDoc(doc(db, "products", productId));
+      if (!docSnap.exists()) {
+        alert("Ürün bulunamadı!");
+        return;
+      }
+      productData = docSnap.data();
+
+      document.getElementById("productTitle").textContent = productData.translations?.[lang]?.title || productData.translations?.tr?.title || "İsim yok";
+      document.getElementById("productDescription").textContent = productData.translations?.[lang]?.description || productData.translations?.tr?.description || "";
+
+      const mainImg = productData.images && productData.images.length > 0 ? productData.images[0] : "";
+      document.getElementById("mainImage").src = mainImg;
+
+      const thumbnailContainer = document.getElementById("thumbnailContainer");
+      thumbnailContainer.innerHTML = "";
+      if (productData.images) {
+        productData.images.forEach((img, i) => {
+          const thumb = document.createElement("img");
+          thumb.src = img;
+          thumb.className = "thumbnail";
+          if (i === 0) thumb.classList.add("selected");
+          thumb.onclick = () => {
+            document.getElementById("mainImage").src = img;
+            document.querySelectorAll(".thumbnail").forEach(t => t.classList.remove("selected"));
+            thumb.classList.add("selected");
+          };
+          thumbnailContainer.appendChild(thumb);
+        });
+      }
+    }
+
+    async function loadVariants() {
+      variants = [];
+      const q = query(collection(db, "variants"), where("productId", "==", productId));
+      const querySnapshot = await getDocs(q);
+      querySnapshot.forEach(docSnap => {
+        variants.push({ id: docSnap.id, ...docSnap.data() });
+      });
+    }
+
+    function renderVariantOptions() {
+      const select = document.getElementById("variantSelect");
+      select.innerHTML = "";
+
+      if (variants.length === 0) {
+        select.style.display = "none";
+        selectedVariant = null;
+        updatePrice();
+        return;
+      }
+
+      select.style.display = "inline-block";
+
+      variants.forEach((v, i) => {
+        const option = document.createElement("option");
+        option.value = v.id;
+        option.textContent = `${v.type}: ${v.value}`;
+        select.appendChild(option);
+      });
+
+      selectedVariant = variants[0];
+      select.value = variants[0].id;
+      updatePrice();
+    }
+
+    function updatePrice() {
+      if (!productData) return;
+
+      const basePrice = productData.basePrice || 0;
+      const priceDiff = selectedVariant ? (selectedVariant.priceDifference || 0) : 0;
+
+      let finalPrice = (basePrice + priceDiff) * (countryData?.priceMultiplier || 1);
+      finalPrice = finalPrice.toFixed(2);
+
+      document.getElementById("priceDisplay").textContent = `${finalPrice} ${countryData?.currency || "TRY"}`;
+
+      if (productData.freeShipping) {
+        document.getElementById("freeShippingMsg").style.display = "block";
+      } else {
+        document.getElementById("freeShippingMsg").style.display = "none";
+      }
+    }
+
+    function addToCart() {
+      let cart = JSON.parse(localStorage.getItem("cart") || "[]");
+
+      let variantInfo = selectedVariant ? {
+        variantId: selectedVariant.id,
+        type: selectedVariant.type,
+        value: selectedVariant.value,
+        priceDifference: selectedVariant.priceDifference || 0,
+        imageUrl: selectedVariant.imageUrl || ""
+      } : null;
+
+      const cartItem = {
+        productId,
+        name: productData.translations?.[lang]?.title || productData.translations?.tr?.title,
+        basePrice: productData.basePrice,
+        variant: variantInfo,
+        price: (productData.basePrice + (variantInfo?.priceDifference || 0)) * (countryData?.priceMultiplier || 1),
+        qty: 1,
+        image: variantInfo?.imageUrl || (productData.images?.[0] || "")
+      };
+
+      const existingIndex = cart.findIndex(item => item.productId === productId && item.variant?.variantId === variantInfo?.variantId);
+      if (existingIndex > -1) {
+        cart[existingIndex].qty++;
+      } else {
+        cart.push(cartItem);
+      }
+
+      localStorage.setItem("cart", JSON.stringify(cart));
+      alert("Sepete eklendi!");
+    }
+
+    function buyNow() {
+      addToCart();
+      window.location.href = "checkout.html"; // ödeme sayfası örneği
+    }
+
+    document.getElementById("variantSelect").addEventListener("change", e => {
+      selectedVariant = variants.find(v => v.id === e.target.value);
+      updatePrice();
+
+      if (selectedVariant?.imageUrl) {
+        document.getElementById("mainImage").src = selectedVariant.imageUrl;
+        document.querySelectorAll(".thumbnail").forEach(t => t.classList.remove("selected"));
+      }
+    });
+
+    document.getElementById("addToCartBtn").onclick = addToCart;
+    document.getElementById("buyNowBtn").onclick = buyNow;
+
+    async function init() {
+      await loadCountryData();
+      await loadProduct();
+      await loadVariants();
+      renderVariantOptions();
+      updatePrice();
+    }
+
+    init();
+
+  </script>
+</body>
+</html>
