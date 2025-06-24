@@ -46,7 +46,7 @@
             transition: background-color 0.3s ease;
         }
         .admin-login-box button:hover { background-color: #27ae60; }
-        .admin-login-box .error-message { color: var(--secondary-color); margin-top: 15px; font-size: 0.9rem; display: none; }
+        .admin-login-box .error-message { color: #e74c3c; margin-top: 15px; font-size: 0.9rem; display: none; }
 
         /* Dashboard Yapısı */
         .admin-dashboard {
@@ -70,7 +70,8 @@
             background-color: rgba(255,255,255,0.15);
         }
         .admin-logout-btn {
-            background-color: var(--secondary-color); color: var(--admin-light-text-color);
+            background-color: #e74c3c; /* Kırmızı tonu */
+            color: var(--admin-light-text-color);
             padding: 10px 15px; border: none; border-radius: var(--admin-border-radius);
             cursor: pointer; width: 100%; margin-top: 30px; font-weight: 500;
             transition: background-color 0.3s ease;
@@ -170,6 +171,10 @@
             display: flex; justify-content: center; align-items: center;
             cursor: pointer; font-size: 0.8rem;
         }
+        .variant-row { margin-bottom: 20px; border: 1px dashed #ccc; padding: 15px; border-radius: var(--admin-border-radius); }
+        .variant-row hr { margin: 15px 0; border: none; border-top: 1px dashed #eee; }
+        .remove-variant-btn { background-color: #e74c3c; color: white; padding: 5px 10px; border-radius: 4px; border: none; cursor: pointer; margin-top: 10px; }
+
 
         /* Responsive */
         @media (max-width: 768px) {
@@ -180,7 +185,7 @@
             .admin-sidebar h3 { margin-bottom: 15px; }
             .admin-content { padding: 20px; }
             .admin-table th, .admin-table td { padding: 8px 10px; font-size: 0.9rem; }
-            .admin-table th:nth-child(n+3), .admin-table td:nth-child(n+3) { display: none; } /* Küçük ekranlarda bazı sütunları gizle */
+            /* .admin-table th:nth-child(n+3), .admin-table td:nth-child(n+3) { display: none; } /* Küçük ekranlarda bazı sütunları gizle */
         }
     </style>
 </head>
@@ -623,7 +628,9 @@
     <script type="module">
         // Firebase Modüler SDK Import'ları
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-        import { getFirestore, collection, doc, getDoc, setDoc, updateDoc, deleteDoc, query, where, getDocs, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+        // getAnalytics'i admin panelinde kullanmıyoruz, kaldırılabilir veya tutulabilir.
+        // import { getAnalytics } from "firebase/analytics"; 
+        import { getFirestore, collection, doc, getDoc, setDoc, updateDoc, deleteDoc, query, where, getDocs, addDoc, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
         import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
         import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
 
@@ -632,16 +639,18 @@
             apiKey: "AIzaSyDYkzZzNXB22U4oEXxOoPh-puwuE8kz0g4",
             authDomain: "pufemo-com.firebaseapp.com",
             projectId: "pufemo-com",
-            storageBucket: "pufemo-com.appspot.com",
+            storageBucket: "pufemo-com.appspot.com", // Bu alan firebaseConfig içinde böyle olmalı
             messagingSenderId: "983352837227",
             appId: "1:983352837227:web:defaa8dae215776e2e1d2e",
+            // measurementId: "G-RH8XHC7P91" // Admin panelinde Analytics genellikle kullanılmaz
         };
         
-        // Firebase başlatma
+        // Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const auth = getAuth(app);
         const storage = getStorage(app);
+        // const analytics = getAnalytics(app); // Admin panelinde kullanmıyorsak yorum satırı yapabiliriz
 
         // --- DOM Elements ---
         const adminLoginView = document.getElementById('admin-login-view');
@@ -854,76 +863,32 @@
             return obj.content.tr?.[field] || obj.content.en?.[field] || '';
         };
 
-        // --- Authentication ---
-        adminLoginForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            clearErrorMessage(loginErrorMessage);
-            const email = adminEmailInput.value;
-            const password = adminPasswordInput.value;
+        // Helper to get translated content for specific language
+        const getTranslatedContentForLang = (obj, field, langCode) => {
+            return obj?.content?.[langCode]?.[field] || '';
+        };
 
-            try {
-                const userCredential = await signInWithEmailAndPassword(auth, email, password);
-                const user = userCredential.user;
-                const userDoc = await getDoc(doc(db, 'users', user.uid));
-
-                if (userDoc.exists() && userDoc.data().role === 'admin') {
-                    showView('admin-dashboard-view');
-                    adminUserEmailSpan.textContent = user.email;
-                    console.log("Admin logged in!");
-                } else {
-                    await signOut(auth); // Admin değilse çıkış yap
-                    displayErrorMessage('Bu hesap yönetici yetkisine sahip değil.', loginErrorMessage);
-                }
-            } catch (error) {
-                displayErrorMessage(`Giriş hatası: ${error.message}`, loginErrorMessage);
-                console.error("Admin Login Error:", error);
+        const deleteMediaFromPreview = (index, url, previewId) => {
+            document.getElementById(previewId).innerHTML = '';
+            if (previewId.startsWith('variant-image-preview-')) {
+                 document.getElementById(`variant-image-url-${index}`).value = '';
+            } else if (previewId === 'logo-image-preview') {
+                 document.getElementById('logo-image-url').value = '';
+            } else if (previewId === 'banner-image-preview') {
+                 document.getElementById('banner-image-url').value = '';
             }
-        });
 
-        adminLogoutBtn.addEventListener('click', async () => {
-            try {
-                await signOut(auth);
-                showView('admin-login-view');
-                adminEmailInput.value = '';
-                adminPasswordInput.value = '';
-                console.log("Admin logged out.");
-            } catch (error) {
-                console.error("Logout Error:", error);
-            }
-        });
+            // Opsiyonel: Firebase Storage'dan da silmek isterseniz
+            // const storageRef = ref(storage, url);
+            // deleteObject(storageRef).then(() => {
+            //     console.log('Dosya Storage\'dan silindi:', url);
+            // }).catch((error) => {
+            //     console.error('Dosya Storage\'dan silinirken hata:', error);
+            // });
+        };
 
-        // Auth State Listener
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                try {
-                    const userDoc = await getDoc(doc(db, 'users', user.uid));
-                    if (userDoc.exists() && userDoc.data().role === 'admin') {
-                        showView('admin-dashboard-view');
-                        adminUserEmailSpan.textContent = user.email;
-                    } else {
-                        await signOut(auth); // Yetkisiz kullanıcı
-                        showView('admin-login-view');
-                    }
-                } catch (error) {
-                    console.error("Auth state check error:", error);
-                    await signOut(auth); // Hata olursa çıkış yap
-                    showView('admin-login-view');
-                }
-            } else {
-                showView('admin-login-view');
-            }
-        });
 
-        // --- SPA Navigasyon için Sidebar Bağlantıları ---
-        sidebarLinks.forEach(link => {
-            link.addEventListener('click', (e) => {
-                e.preventDefault();
-                const sectionId = e.target.getAttribute('href').substring(1) + '-section';
-                showAdminSection(sectionId);
-            });
-        });
-
-        // --- Products Management ---
+        // --- Products Management Functions ---
         const loadProducts = async () => {
             productsTableBody.innerHTML = '<tr><td colspan="6">Ürünler yükleniyor...</td></tr>';
             try {
@@ -1064,79 +1029,6 @@
             }
         };
 
-        const deleteMediaFromPreview = (index, url, previewId) => {
-            document.getElementById(previewId).innerHTML = '';
-            if (previewId.startsWith('variant-image-preview-')) {
-                 document.getElementById(`variant-image-url-${index}`).value = '';
-            } else if (previewId === 'logo-image-preview') {
-                 document.getElementById('logo-image-url').value = '';
-            } else if (previewId === 'banner-image-preview') {
-                 document.getElementById('banner-image-url').value = '';
-            }
-
-            // Opsiyonel: Firebase Storage'dan da silmek isterseniz
-            // const storageRef = ref(storage, url);
-            // deleteObject(storageRef).then(() => {
-            //     console.log('Dosya Storage\'dan silindi:', url);
-            // }).catch((error) => {
-            //     console.error('Dosya Storage\'dan silinirken hata:', error);
-            // });
-        };
-
-
-        addProductBtn.addEventListener('click', () => showProductForm(false));
-        cancelProductFormBtn.addEventListener('click', hideProductForm);
-        addVariantBtn.addEventListener('click', () => addVariantRow());
-
-        productForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const productId = productIdInput.value;
-            const variants = [];
-            Array.from(productVariantsContainer.children).forEach((variantDiv, index) => {
-                variants.push({
-                    id: currentEditingProduct?.variants?.[index]?.id || Math.random().toString(36).substring(2, 11), // Mevcut id'yi koru veya yeni oluştur
-                    name: variantDiv.querySelector(`input[id^="variant-name-"]`).value,
-                    priceTL: parseFloat(variantDiv.querySelector(`input[id^="variant-price-"]`).value) || null,
-                    discountedPriceTL: parseFloat(variantDiv.querySelector(`input[id^="variant-discounted-price-"]`).value) || null,
-                    stock: parseInt(variantDiv.querySelector(`input[id^="variant-stock-"]`).value) || 0,
-                    media: variantDiv.querySelector(`input[id^="variant-image-url-"]`).value ? [{ type: 'image', url: variantDiv.querySelector(`input[id^="variant-image-url-"]`).value }] : []
-                });
-            });
-
-            const productData = {
-                content: {
-                    tr: {
-                        name: productNameTrInput.value,
-                        description: productDescTrTextarea.value,
-                    },
-                    en: {
-                        name: productNameEnInput.value,
-                        description: productDescEnTextarea.value,
-                    }
-                },
-                basePriceTL: parseFloat(productBasePriceInput.value),
-                baseDiscountedPriceTL: parseFloat(productDiscountedPriceInput.value) || null,
-                isFreeShipping: productIsFreeShippingCheckbox.checked,
-                isInShowcase: productIsInShowcaseCheckbox.checked,
-                variants: variants
-            };
-
-            try {
-                if (productId) {
-                    await updateDoc(doc(db, 'products', productId), productData);
-                    alert("Ürün başarıyla güncellendi!");
-                } else {
-                    await addDoc(collection(db, 'products'), productData);
-                    alert("Ürün başarıyla eklendi!");
-                }
-                hideProductForm();
-                loadProducts();
-            } catch (error) {
-                console.error("Ürün kaydedilirken hata:", error);
-                alert("Ürün kaydedilirken bir hata oluştu: " + error.message);
-            }
-        });
-
         const editProduct = (productId) => {
             const product = adminSiteData.products.find(p => p.id === productId);
             if (!product) return;
@@ -1174,12 +1066,8 @@
             }
         };
 
-        // Helper to get translated content for specific language
-        const getTranslatedContentForLang = (obj, field, langCode) => {
-            return obj?.content?.[langCode]?.[field] || '';
-        };
 
-        // --- Categories Management ---
+        // --- Categories Management Functions ---
         const loadCategories = async () => {
             categoriesList.innerHTML = '<li>Kategoriler yükleniyor...</li>';
             try {
@@ -1230,7 +1118,7 @@
                 option.value = cat.id;
                 option.textContent = `${prefix}${getTranslatedContentForLang({ content: cat.name }, 'name', 'tr')}`;
                 parentCategorySelect.appendChild(option);
-                if (cat.children && cat.children.length > 0) {
+                if (cat.children) { // Sadece varsa children'ı kontrol et
                     populateParentCategorySelect(cat.children, prefix + '-- ', level + 1);
                 }
             });
@@ -1272,9 +1160,6 @@
             document.querySelectorAll('.delete-category-btn').forEach(btn => btn.addEventListener('click', () => deleteCategory(btn.dataset.id)));
         };
 
-        addCategoryBtn.addEventListener('click', () => showCategoryForm(false));
-        cancelCategoryFormBtn.addEventListener('click', hideCategoryForm);
-
         const showCategoryForm = (isEdit = false) => {
             categoryFormContainer.style.display = 'block';
             categoryFormTitle.textContent = isEdit ? 'Düzenle' : 'Ekle';
@@ -1290,67 +1175,6 @@
             categoryForm.reset();
             currentEditingCategory = null;
         };
-
-        categoryForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const categoryId = categoryIdInput.value;
-            const parentId = parentCategorySelect.value;
-            const newCategory = {
-                id: categoryId || Math.random().toString(36).substring(2, 11),
-                name: {
-                    tr: categoryNameTrInput.value,
-                    en: categoryNameEnInput.value,
-                },
-                children: []
-            };
-
-            let updatedTree = JSON.parse(JSON.stringify(adminSiteData.categories.tree)); // Deep copy
-
-            if (categoryId) { // Edit existing
-                const updateNode = (nodes) => {
-                    return nodes.map(node => {
-                        if (node.id === categoryId) {
-                            return newCategory;
-                        }
-                        if (node.children) {
-                            return { ...node, children: updateNode(node.children) };
-                        }
-                        return node;
-                    });
-                };
-                updatedTree = updateNode(updatedTree);
-                alert("Kategori başarıyla güncellendi!");
-            } else { // Add new
-                if (parentId) {
-                    const addNodeToParent = (nodes) => {
-                        return nodes.map(node => {
-                            if (node.id === parentId) {
-                                return { ...node, children: [...(node.children || []), newCategory] };
-                            }
-                            if (node.children) {
-                                return { ...node, children: addNodeToParent(node.children) };
-                            }
-                            return node;
-                        });
-                    };
-                    updatedTree = addNodeToParent(updatedTree);
-                } else {
-                    updatedTree.push(newCategory);
-                }
-                alert("Kategori başarıyla eklendi!");
-            }
-
-            try {
-                await updateDoc(doc(db, 'pufemo', 'categories'), { tree: updatedTree });
-                adminSiteData.categories.tree = updatedTree; // State'i güncelle
-                hideCategoryForm();
-                renderCategoriesList(adminSiteData.categories.tree); // UI'ı yenile
-                populateParentCategorySelect(adminSiteData.categories.tree); // Selectbox'ı yenile
-            } catch (error) {
-                console.error("Kategori kaydedilirken hata:", error);
-                alert("Kategori kaydedilirken bir hata oluştu: " + error.message);
-            }
-        });
 
         const editCategory = (id) => {
             const category = findCategoryById(id, adminSiteData.categories.tree);
@@ -1392,7 +1216,7 @@
             }
         };
 
-        // --- Orders Management ---
+        // --- Orders Management Functions ---
         const loadOrders = async () => {
             ordersTableBody.innerHTML = '<tr><td colspan="6">Siparişler yükleniyor...</td></tr>';
             try {
@@ -1428,7 +1252,7 @@
 
                 row.innerHTML = `
                     <td>${order.id.substring(0, 8)}...</td>
-                    <td>${order.userId.substring(0, 8)}...</td>
+                    <td>${order.userId ? order.userId.substring(0, 8) + '...' : 'Misafir'}</td>
                     <td>${orderDate} ${orderTime}</td>
                     <td>${order.totalTL ? (order.totalTL * (adminSiteData.settings?.exchangeRates?.[order.currency] || 1)).toFixed(2) : 'N/A'} ${adminSiteData.settings?.currencySymbols?.[order.currency] || order.currency}</td>
                     <td><span class="status-badge ${statusClass}">${order.status}</span></td>
@@ -1447,10 +1271,10 @@
             currentEditingOrder = order;
             orderDetailIdSpan.textContent = order.id.substring(0, 8);
             orderDetailsContent.innerHTML = `
-                <p><strong>Kullanıcı ID:</strong> ${order.userId}</p>
+                <p><strong>Kullanıcı ID:</strong> ${order.userId || 'Misafir'}</p>
                 <p><strong>Sipariş Tarihi:</strong> ${new Date(order.orderDate).toLocaleString('tr-TR')}</p>
-                <p><strong>Kargo Adresi:</strong> ${order.shippingAddress.address1}, ${order.shippingAddress.city}, ${order.shippingAddress.country}</p>
-                <p><strong>Ödeme Yöntemi:</strong> ${order.paymentMethod}</p>
+                <p><strong>Kargo Adresi:</strong> ${order.shippingAddress?.address1 || ''}, ${order.shippingAddress?.city || ''}, ${order.shippingAddress?.country || ''}</p>
+                <p><strong>Ödeme Yöntemi:</strong> ${order.paymentMethod || 'Belirtilmemiş'}</p>
                 <hr>
                 <h4>Ürünler:</h4>
                 <ul>
@@ -1470,30 +1294,13 @@
             orderDetailView.style.display = 'block';
         };
 
-        closeOrderDetailBtn.addEventListener('click', () => {
-            orderDetailView.style.display = 'none';
-            currentEditingOrder = null;
-        });
-
-        updateOrderStatusBtn.addEventListener('click', async () => {
-            if (!currentEditingOrder) return;
-            const newStatus = orderStatusSelect.value;
-            try {
-                await updateDoc(doc(db, 'orders', currentEditingOrder.id), { status: newStatus });
-                alert("Sipariş durumu güncellendi!");
-                orderDetailView.style.display = 'none';
-                loadOrders(); // Listeyi yenile
-            } catch (error) {
-                console.error("Sipariş durumu güncellenirken hata:", error);
-                alert("Sipariş durumu güncellenirken bir hata oluştu: " + error.message);
-            }
-        });
-
-        // --- Users Management ---
+        // --- Users Management Functions ---
         const loadUsers = async () => {
             usersTableBody.innerHTML = '<tr><td colspan="5">Kullanıcılar yükleniyor...</td></tr>';
             try {
-                const usersSnap = await getDocs(collection(db, 'users'));
+                // Not: Eğer Firestore koleksiyon adınız 'users' değil 'uyeler' ise bu satırı güncelleyin:
+                // const usersSnap = await getDocs(collection(db, 'uyeler'));
+                const usersSnap = await getDocs(collection(db, 'users')); // Varsayılan olarak 'users' kullanılıyor
                 adminSiteData.users = usersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderUsersTable();
             } catch (error) {
@@ -1531,7 +1338,9 @@
             const newRole = prompt(`Kullanıcı "${user.email}" için yeni rolü girin (customer, admin):`, user.role || 'customer');
             if (newRole && ['customer', 'admin'].includes(newRole)) {
                 try {
-                    await updateDoc(doc(db, 'users', userId), { role: newRole });
+                    // Not: Eğer Firestore koleksiyon adınız 'users' değil 'uyeler' ise bu satırı güncelleyin:
+                    // await updateDoc(doc(db, 'uyeler', userId), { role: newRole });
+                    await updateDoc(doc(db, 'users', userId), { role: newRole }); // Varsayılan olarak 'users' kullanılıyor
                     alert(`Kullanıcı rolü "${newRole}" olarak güncellendi.`);
                     loadUsers();
                 } catch (error) {
@@ -1543,7 +1352,7 @@
             }
         };
 
-        // --- Settings Management ---
+        // --- Settings Management Functions ---
         const loadSettings = async () => {
             try {
                 const settingsDoc = await getDoc(doc(db, 'pufemo', 'settings'));
@@ -1605,6 +1414,482 @@
             }
         };
 
+        // Banner Management Functions
+        const renderBannerList = (banners) => {
+            bannerListContainer.innerHTML = '';
+            if (banners.length === 0) {
+                bannerListContainer.innerHTML = '<p>Henüz banner eklenmemiş.</p>';
+                return;
+            }
+            banners.forEach((banner, index) => {
+                const bannerDiv = document.createElement('div');
+                bannerDiv.className = 'admin-form-container'; // Reuse form-container style
+                bannerDiv.innerHTML = `
+                    <h3>Banner ${index + 1}</h3>
+                    <p>Başlık (TR): ${banner.content?.tr?.title || 'Yok'}</p>
+                    <p>Resim/Video: ${banner.image_url ? `<img src="${banner.image_url}" style="max-width: 100px; max-height: 100px; object-fit: contain;">` : 'Yok'}</p>
+                    <div class="admin-form-actions">
+                        <button type="button" class="edit-banner-btn save-btn" data-index="${index}">Düzenle</button>
+                        <button type="button" class="delete-banner-btn cancel-btn" data-index="${index}">Sil</button>
+                    </div>
+                `;
+                bannerListContainer.appendChild(bannerDiv);
+            });
+            document.querySelectorAll('.edit-banner-btn').forEach(btn => btn.addEventListener('click', () => editBanner(parseInt(btn.dataset.index))));
+            document.querySelectorAll('.delete-banner-btn').forEach(btn => btn.addEventListener('click', () => deleteBanner(parseInt(btn.dataset.index))));
+        };
+
+        const showBannerForm = (isEdit = false) => {
+            bannerFormContainer.style.display = 'block';
+            bannerFormTitle.textContent = isEdit ? 'Düzenle' : 'Ekle';
+            if (!isEdit) {
+                bannerForm.reset();
+                bannerIndexInput.value = '';
+                currentEditingBannerIndex = -1;
+                bannerImagePreview.innerHTML = '';
+            }
+        };
+
+        const hideBannerForm = () => {
+            bannerFormContainer.style.display = 'none';
+            bannerForm.reset();
+            currentEditingBannerIndex = -1;
+        };
+
+        const editBanner = (index) => {
+            const banner = adminSiteData.settings.banner[index];
+            if (!banner) return;
+
+            currentEditingBannerIndex = index;
+            bannerIndexInput.value = index;
+            bannerTitleTrInput.value = banner.content?.tr?.title || '';
+            bannerSubtitleTrInput.value = banner.content?.tr?.subtitle || '';
+            bannerTitleEnInput.value = banner.content?.en?.title || '';
+            bannerSubtitleEnInput.value = banner.content?.en?.subtitle || '';
+            bannerLinkUrlInput.value = banner.link_url || '';
+            bannerImageUrlInput.value = banner.image_url || '';
+            bannerImagePreview.innerHTML = '';
+            if (banner.image_url) {
+                const isVideo = banner.image_url.includes('.mp4'); // Simple check
+                bannerImagePreview.innerHTML = `<div class="media-item">${isVideo ? `<video src="${banner.image_url}" controls></video>` : `<img src="${banner.image_url}">`}<button class="delete-media" data-index="${index}" data-url="${banner.image_url}">X</button></div>`;
+                 bannerImagePreview.querySelector('.delete-media').addEventListener('click', (e) => deleteMediaFromPreview(e.target.dataset.index, e.target.dataset.url, 'banner-image-preview'));
+            }
+            bannerStyleTitleColorInput.value = banner.style?.title_color || '#ffffff';
+            bannerStyleTitleFontSizeInput.value = banner.style?.title_font_size || '2.8rem';
+            bannerStyleSubtitleColorInput.value = banner.style?.subtitle_color || '#ffffff';
+            bannerStyleSubtitleFontSizeInput.value = banner.style?.subtitle_font_size || '1.2rem';
+            bannerStyleButtonBgColorInput.value = banner.style?.button_bg_color || '#e74c3c';
+            bannerStyleButtonTextColorInput.value = banner.style?.button_text_color || '#ffffff';
+            bannerStyleButtonBorderRadiusInput.value = banner.style?.button_border_radius || '5px';
+
+            showBannerForm(true);
+        };
+
+        const deleteBanner = async (index) => {
+            if (!confirm("Bu bannerı silmek istediğinize emin misiniz?")) return;
+            let updatedBanners = [...(adminSiteData.settings?.banner || [])];
+            const [deletedBanner] = updatedBanners.splice(index, 1); // Silineni al
+
+            try {
+                await updateDoc(doc(db, 'pufemo', 'settings'), { banner: updatedBanners });
+                // Opsiyonel: Eğer Firebase Storage'dan da silmek isterseniz
+                // if (deletedBanner && deletedBanner.image_url) {
+                //     const storageRef = ref(storage, deletedBanner.image_url);
+                //     await deleteObject(storageRef);
+                //     console.log('Banner medya dosyası Storage\'dan silindi.');
+                // }
+                alert("Banner başarıyla silindi!");
+                loadSettings();
+            } catch (error) {
+                console.error("Banner silinirken hata:", error);
+                alert("Banner silinirken bir hata oluştu: " + error.message);
+            }
+        };
+
+        // Country & Currency Management Functions
+        const renderCountryCurrencyList = (countryPricing) => {
+            countryCurrencyList.innerHTML = '';
+            const countries = Object.entries(countryPricing);
+            if (countries.length === 0) {
+                countryCurrencyList.innerHTML = '<p>Henüz ülke/para birimi bilgisi eklenmemiş.</p>';
+                return;
+            }
+            countries.forEach(([code, data]) => {
+                const div = document.createElement('div');
+                div.className = 'admin-form-container'; // Reuse style
+                div.innerHTML = `
+                    <h3>${countryCodeToEmoji(data.flag)} ${data.name?.tr || data.name?.en || code.toUpperCase()} (${code})</h3>
+                    <p>Para Birimi: ${data.currencyCode} (${adminSiteData.settings.currencySymbols?.[data.currencyCode] || data.currencyCode})</p>
+                    <p>Varsayılan Dil: ${data.defaultLanguage}</p>
+                    <p>Döviz Kuru (USD'ye göre): ${adminSiteData.settings.exchangeRates?.[data.currencyCode]?.toFixed(4) || 'Yok'}</p>
+                    <p>Fiyat Ayarlaması: %${data.adjustment || 0}</p>
+                    <div class="admin-form-actions">
+                        <button type="button" class="edit-country-currency-btn save-btn" data-code="${code}">Düzenle</button>
+                        <button type="button" class="delete-country-currency-btn cancel-btn" data-code="${code}">Sil</button>
+                    </div>
+                `;
+                countryCurrencyList.appendChild(div);
+            });
+            document.querySelectorAll('.edit-country-currency-btn').forEach(btn => btn.addEventListener('click', () => editCountryCurrency(btn.dataset.code)));
+            document.querySelectorAll('.delete-country-currency-btn').forEach(btn => btn.addEventListener('click', () => deleteCountryCurrency(btn.dataset.code)));
+        };
+
+        const showCountryCurrencyForm = (isEdit = false) => {
+            countryCurrencyFormContainer.style.display = 'block';
+            countryCurrencyFormTitle.textContent = isEdit ? 'Düzenle' : 'Ekle';
+            if (!isEdit) {
+                countryCurrencyForm.reset();
+                countryCurrencyCodeInput.value = '';
+                countryCurrencyCodeInput.readOnly = false; // Yeni eklerken kod düzenlenebilir
+                currentEditingCountryCode = null;
+            } else {
+                countryCurrencyCodeInput.readOnly = true; // Düzenlerken kod değiştirilemez
+            }
+        };
+
+        const hideCountryCurrencyForm = () => {
+            countryCurrencyFormContainer.style.display = 'none';
+            countryCurrencyForm.reset();
+            currentEditingCountryCode = null;
+        };
+
+        const editCountryCurrency = (code) => {
+            const country = adminSiteData.settings.countryPricing[code];
+            const currencySymbol = adminSiteData.settings.currencySymbols[country.currencyCode];
+            const exchangeRate = adminSiteData.settings.exchangeRates[country.currencyCode];
+
+            if (!country) return;
+
+            currentEditingCountryCode = code;
+            countryCurrencyCodeInput.value = code;
+            countryNameTrInput.value = country.name?.tr || '';
+            countryNameEnInput.value = country.name?.en || '';
+            currencyCodeInput.value = country.currencyCode || '';
+            currencySymbolInput.value = currencySymbol || '';
+            exchangeRateInput.value = exchangeRate || 1;
+            defaultLanguageInput.value = country.defaultLanguage || '';
+            flagEmojiInput.value = country.flag || '';
+            priceAdjustmentInput.value = country.adjustment || 0;
+
+            showCountryCurrencyForm(true);
+        };
+
+        const deleteCountryCurrency = async (code) => {
+            if (!confirm("Bu ülke/para birimi bilgisini silmek istediğinize emin misiniz?")) return;
+
+            let updatedCountryPricing = { ...(adminSiteData.settings.countryPricing || {}) };
+            let updatedCurrencySymbols = { ...(adminSiteData.settings.currencySymbols || {}) };
+            let updatedExchangeRates = { ...(adminSiteData.settings.exchangeRates || {}) };
+
+            const deletedCountry = updatedCountryPricing[code];
+            const deletedCurrencyCode = deletedCountry.currencyCode;
+
+            delete updatedCountryPricing[code];
+            // Eğer silinen para birimi başka bir ülke tarafından kullanılmıyorsa, sembolünü ve kurunu da sil
+            const isCurrencyUsedByOtherCountries = Object.values(updatedCountryPricing).some(c => c.currencyCode === deletedCurrencyCode);
+            if (!isCurrencyUsedByOtherCountries) {
+                delete updatedCurrencySymbols[deletedCurrencyCode];
+                delete updatedExchangeRates[deletedCurrencyCode];
+            }
+
+            try {
+                await updateDoc(doc(db, 'pufemo', 'settings'), {
+                    countryPricing: updatedCountryPricing,
+                    currencySymbols: updatedCurrencySymbols,
+                    exchangeRates: updatedExchangeRates
+                });
+                alert("Ülke/Para Birimi ayarı başarıyla silindi!");
+                loadSettings();
+            } catch (error) {
+                console.error("Ülke/Para Birimi ayarı silinirken hata:", error);
+                alert("Ülke/Para Birimi ayarı silinirken bir hata oluştu: " + error.message);
+            }
+        };
+
+        // Language Management Functions
+        const renderLanguageList = (languages) => {
+            languageListContainer.innerHTML = '';
+            if (languages.length === 0) {
+                languageListContainer.innerHTML = '<p>Henüz dil eklenmemiş.</p>';
+                return;
+            }
+            languages.forEach((lang, index) => {
+                const langDiv = document.createElement('div');
+                langDiv.className = 'admin-form-container'; // Reuse form-container style
+                langDiv.innerHTML = `
+                    <h3>${countryCodeToEmoji(lang.flag)} ${lang.name} (${lang.code})</h3>
+                    <div class="admin-form-actions">
+                        <button type="button" class="edit-language-btn save-btn" data-index="${index}">Düzenle</button>
+                        <button type="button" class="delete-language-btn cancel-btn" data-index="${index}">Sil</button>
+                    </div>
+                `;
+                languageListContainer.appendChild(langDiv);
+            });
+            document.querySelectorAll('.edit-language-btn').forEach(btn => btn.addEventListener('click', () => editLanguage(parseInt(btn.dataset.index))));
+            document.querySelectorAll('.delete-language-btn').forEach(btn => btn.addEventListener('click', () => deleteLanguage(parseInt(btn.dataset.index))));
+        };
+
+        const showLanguageForm = (isEdit = false) => {
+            languageFormContainer.style.display = 'block';
+            languageFormTitle.textContent = isEdit ? 'Düzenle' : 'Ekle';
+            if (!isEdit) {
+                languageForm.reset();
+                languageIndexInput.value = '';
+                languageCodeInput.readOnly = false;
+                currentEditingLanguageIndex = -1;
+            } else {
+                languageCodeInput.readOnly = true;
+            }
+        };
+
+        const hideLanguageForm = () => {
+            languageFormContainer.style.display = 'none';
+            languageForm.reset();
+            currentEditingLanguageIndex = -1;
+        };
+
+        const editLanguage = (index) => {
+            const language = adminSiteData.settings.languages[index];
+            if (!language) return;
+
+            currentEditingLanguageIndex = index;
+            languageIndexInput.value = index;
+            languageCodeInput.value = language.code || '';
+            languageNameInput.value = language.name || '';
+            languageFlagInput.value = language.flag || '';
+
+            showLanguageForm(true);
+        };
+
+        const deleteLanguage = async (index) => {
+            if (!confirm("Bu dili silmek istediğinize emin misiniz?")) return;
+            let updatedLanguages = [...(adminSiteData.settings?.languages || [])];
+            updatedLanguages.splice(index, 1);
+
+            try {
+                await updateDoc(doc(db, 'pufemo', 'settings'), { languages: updatedLanguages });
+                alert("Dil ayarı başarıyla silindi!");
+                loadSettings();
+            } catch (error) {
+                console.error("Dil ayarı silinirken hata:", error);
+                alert("Dil ayarı silinirken bir hata oluştu: " + error.message);
+            }
+        };
+
+
+        // --- Event Listeners ---
+        adminLoginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            clearErrorMessage(loginErrorMessage);
+            const email = adminEmailInput.value;
+            const password = adminPasswordInput.value;
+
+            try {
+                const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                const user = userCredential.user;
+                
+                // NOT: Eğer kullanıcı verilerinizi 'uyeler' koleksiyonunda tutuyorsanız, aşağıdaki satırı güncelleyin:
+                // const userDoc = await getDoc(doc(db, 'uyeler', user.uid));
+                const userDoc = await getDoc(doc(db, 'users', user.uid)); // Varsayılan: 'users'
+
+                if (userDoc.exists() && userDoc.data().role === 'admin') {
+                    showView('admin-dashboard-view');
+                    adminUserEmailSpan.textContent = user.email;
+                    console.log("Admin logged in!");
+                } else {
+                    await signOut(auth); // Admin değilse çıkış yap
+                    displayErrorMessage('Bu hesap yönetici yetkisine sahip değil.', loginErrorMessage);
+                    return; // Hata durumunda fonksiyonu sonlandır
+                }
+            } catch (error) {
+                displayErrorMessage(`Giriş hatası: ${error.message}`, loginErrorMessage);
+                console.error("Admin Login Error:", error);
+                return; // Hata durumunda fonksiyonu sonlandır
+            }
+        });
+
+        adminLogoutBtn.addEventListener('click', async () => {
+            try {
+                await signOut(auth);
+                showView('admin-login-view');
+                adminEmailInput.value = '';
+                adminPasswordInput.value = '';
+                console.log("Admin logged out.");
+            } catch (error) {
+                console.error("Logout Error:", error);
+            }
+        });
+
+        // Auth State Listener
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                try {
+                    // Not: Eğer kullanıcı verilerinizi 'uyeler' koleksiyonunda tutuyorsanız, aşağıdaki satırı güncelleyin:
+                    // const userDoc = await getDoc(doc(db, 'uyeler', user.uid));
+                    const userDoc = await getDoc(doc(db, 'users', user.uid)); // Varsayılan: 'users'
+                    if (userDoc.exists() && userDoc.data().role === 'admin') {
+                        showView('admin-dashboard-view');
+                        adminUserEmailSpan.textContent = user.email;
+                    } else {
+                        await signOut(auth); // Yetkisiz kullanıcı
+                        showView('admin-login-view');
+                    }
+                } catch (error) {
+                    console.error("Auth state check error:", error);
+                    await signOut(auth); // Hata olursa çıkış yap
+                    showView('admin-login-view');
+                }
+            } else {
+                showView('admin-login-view');
+            }
+        });
+
+        sidebarLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const sectionId = e.target.getAttribute('href').substring(1) + '-section';
+                showAdminSection(sectionId);
+            });
+        });
+
+        // Product Management Event Listeners
+        addProductBtn.addEventListener('click', () => showProductForm(false));
+        cancelProductFormBtn.addEventListener('click', hideProductForm);
+        addVariantBtn.addEventListener('click', () => addVariantRow());
+        productForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const productId = productIdInput.value;
+            const variants = [];
+            Array.from(productVariantsContainer.children).forEach((variantDiv, index) => {
+                variants.push({
+                    id: currentEditingProduct?.variants?.[index]?.id || Math.random().toString(36).substring(2, 11), // Mevcut id'yi koru veya yeni oluştur
+                    name: variantDiv.querySelector(`input[id^="variant-name-"]`).value,
+                    priceTL: parseFloat(variantDiv.querySelector(`input[id^="variant-price-"]`).value) || null,
+                    discountedPriceTL: parseFloat(variantDiv.querySelector(`input[id^="variant-discounted-price-"]`).value) || null,
+                    stock: parseInt(variantDiv.querySelector(`input[id^="variant-stock-"]`).value) || 0,
+                    media: variantDiv.querySelector(`input[id^="variant-image-url-"]`).value ? [{ type: 'image', url: variantDiv.querySelector(`input[id^="variant-image-url-"]`).value }] : []
+                });
+            });
+
+            const productData = {
+                content: {
+                    tr: {
+                        name: productNameTrInput.value,
+                        description: productDescTrTextarea.value,
+                    },
+                    en: {
+                        name: productNameEnInput.value,
+                        description: productDescEnTextarea.value,
+                    }
+                },
+                basePriceTL: parseFloat(productBasePriceInput.value),
+                baseDiscountedPriceTL: parseFloat(productDiscountedPriceInput.value) || null,
+                isFreeShipping: productIsFreeShippingCheckbox.checked,
+                isInShowcase: productIsInShowcaseCheckbox.checked,
+                variants: variants
+            };
+
+            try {
+                if (productId) {
+                    await updateDoc(doc(db, 'products', productId), productData);
+                    alert("Ürün başarıyla güncellendi!");
+                } else {
+                    await addDoc(collection(db, 'products'), productData);
+                    alert("Ürün başarıyla eklendi!");
+                }
+                hideProductForm();
+                loadProducts();
+            } catch (error) {
+                console.error("Ürün kaydedilirken hata:", error);
+                alert("Ürün kaydedilirken bir hata oluştu: " + error.message);
+            }
+        });
+
+        // Category Management Event Listeners
+        addCategoryBtn.addEventListener('click', () => showCategoryForm(false));
+        cancelCategoryFormBtn.addEventListener('click', hideCategoryForm);
+        categoryForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const categoryId = categoryIdInput.value;
+            const parentId = parentCategorySelect.value;
+            const newCategory = {
+                id: categoryId || Math.random().toString(36).substring(2, 11),
+                name: {
+                    tr: categoryNameTrInput.value,
+                    en: categoryNameEnInput.value,
+                },
+                children: []
+            };
+
+            let updatedTree = JSON.parse(JSON.stringify(adminSiteData.categories.tree)); // Deep copy
+
+            if (categoryId) { // Edit existing
+                const updateNode = (nodes) => {
+                    return nodes.map(node => {
+                        if (node.id === categoryId) {
+                            return newCategory;
+                        }
+                        if (node.children) {
+                            return { ...node, children: updateNode(node.children) };
+                        }
+                        return node;
+                    });
+                };
+                updatedTree = updateNode(updatedTree);
+                alert("Kategori başarıyla güncellendi!");
+            } else { // Add new
+                if (parentId) {
+                    const addNodeToParent = (nodes) => {
+                        return nodes.map(node => {
+                            if (node.id === parentId) {
+                                return { ...node, children: [...(node.children || []), newCategory] };
+                            }
+                            if (node.children) {
+                                return { ...node, children: addNodeToParent(node.children) };
+                            }
+                            return node;
+                        });
+                    };
+                    updatedTree = addNodeToParent(updatedTree);
+                } else {
+                    updatedTree.push(newCategory);
+                }
+                alert("Kategori başarıyla eklendi!");
+            }
+
+            try {
+                await updateDoc(doc(db, 'pufemo', 'categories'), { tree: updatedTree });
+                adminSiteData.categories.tree = updatedTree; // State'i güncelle
+                hideCategoryForm(); // Formu gizle
+                renderCategoriesList(adminSiteData.categories.tree); // UI'ı yenile
+                populateParentCategorySelect(adminSiteData.categories.tree); // Selectbox'ı yenile
+            } catch (error) {
+                console.error("Kategori kaydedilirken hata:", error);
+                alert("Kategori kaydedilirken bir hata oluştu: " + error.message);
+            }
+        });
+
+        // Order Management Event Listeners
+        closeOrderDetailBtn.addEventListener('click', () => {
+            orderDetailView.style.display = 'none';
+            currentEditingOrder = null;
+        });
+
+        updateOrderStatusBtn.addEventListener('click', async () => {
+            if (!currentEditingOrder) return;
+            const newStatus = orderStatusSelect.value;
+            try {
+                await updateDoc(doc(db, 'orders', currentEditingOrder.id), { status: newStatus });
+                alert("Sipariş durumu güncellendi!");
+                orderDetailView.style.display = 'none';
+                loadOrders(); // Listeyi yenile
+            } catch (error) {
+                console.error("Sipariş durumu güncellenirken hata:", error);
+                alert("Sipariş durumu güncellenirken bir hata oluştu: " + error.message);
+            }
+        });
+
+        // Settings Management Event Listeners
         uploadLogoImageBtn.addEventListener('click', async () => {
             if (logoImageFileInput.files.length === 0) {
                 alert("Lütfen bir resim dosyası seçin.");
@@ -1658,51 +1943,9 @@
             }
         });
 
-        // Banner Management
-        const renderBannerList = (banners) => {
-            bannerListContainer.innerHTML = '';
-            if (banners.length === 0) {
-                bannerListContainer.innerHTML = '<p>Henüz banner eklenmemiş.</p>';
-                return;
-            }
-            banners.forEach((banner, index) => {
-                const bannerDiv = document.createElement('div');
-                bannerDiv.className = 'admin-form-container'; // Reuse form-container style
-                bannerDiv.innerHTML = `
-                    <h3>Banner ${index + 1}</h3>
-                    <p>Başlık (TR): ${banner.content?.tr?.title || 'Yok'}</p>
-                    <p>Resim/Video: ${banner.image_url ? `<img src="${banner.image_url}" style="max-width: 100px; max-height: 100px; object-fit: contain;">` : 'Yok'}</p>
-                    <div class="admin-form-actions">
-                        <button type="button" class="edit-banner-btn save-btn" data-index="${index}">Düzenle</button>
-                        <button type="button" class="delete-banner-btn cancel-btn" data-index="${index}">Sil</button>
-                    </div>
-                `;
-                bannerListContainer.appendChild(bannerDiv);
-            });
-            document.querySelectorAll('.edit-banner-btn').forEach(btn => btn.addEventListener('click', () => editBanner(parseInt(btn.dataset.index))));
-            document.querySelectorAll('.delete-banner-btn').forEach(btn => btn.addEventListener('click', () => deleteBanner(parseInt(btn.dataset.index))));
-        };
-
+        // Banner Management Event Listeners
         addBannerBtn.addEventListener('click', () => showBannerForm(false));
         cancelBannerFormBtn.addEventListener('click', hideBannerForm);
-
-        const showBannerForm = (isEdit = false) => {
-            bannerFormContainer.style.display = 'block';
-            bannerFormTitle.textContent = isEdit ? 'Düzenle' : 'Ekle';
-            if (!isEdit) {
-                bannerForm.reset();
-                bannerIndexInput.value = '';
-                currentEditingBannerIndex = -1;
-                bannerImagePreview.innerHTML = '';
-            }
-        };
-
-        const hideBannerForm = () => {
-            bannerFormContainer.style.display = 'none';
-            bannerForm.reset();
-            currentEditingBannerIndex = -1;
-        };
-
         uploadBannerImageBtn.addEventListener('click', async () => {
             if (bannerImageFileInput.files.length === 0) {
                 alert("Lütfen bir resim/video dosyası seçin.");
@@ -1768,107 +2011,9 @@
             }
         });
 
-        const editBanner = (index) => {
-            const banner = adminSiteData.settings.banner[index];
-            if (!banner) return;
-
-            currentEditingBannerIndex = index;
-            bannerIndexInput.value = index;
-            bannerTitleTrInput.value = banner.content?.tr?.title || '';
-            bannerSubtitleTrInput.value = banner.content?.tr?.subtitle || '';
-            bannerTitleEnInput.value = banner.content?.en?.title || '';
-            bannerSubtitleEnInput.value = banner.content?.en?.subtitle || '';
-            bannerLinkUrlInput.value = banner.link_url || '';
-            bannerImageUrlInput.value = banner.image_url || '';
-            bannerImagePreview.innerHTML = '';
-            if (banner.image_url) {
-                const isVideo = banner.image_url.includes('.mp4'); // Simple check
-                bannerImagePreview.innerHTML = `<div class="media-item">${isVideo ? `<video src="${banner.image_url}" controls></video>` : `<img src="${banner.image_url}">`}<button class="delete-media" data-index="${index}" data-url="${banner.image_url}">X</button></div>`;
-                 bannerImagePreview.querySelector('.delete-media').addEventListener('click', (e) => deleteMediaFromPreview(e.target.dataset.index, e.target.dataset.url, 'banner-image-preview'));
-            }
-            bannerStyleTitleColorInput.value = banner.style?.title_color || '#ffffff';
-            bannerStyleTitleFontSizeInput.value = banner.style?.title_font_size || '2.8rem';
-            bannerStyleSubtitleColorInput.value = banner.style?.subtitle_color || '#ffffff';
-            bannerStyleSubtitleFontSizeInput.value = banner.style?.subtitle_font_size || '1.2rem';
-            bannerStyleButtonBgColorInput.value = banner.style?.button_bg_color || '#e74c3c';
-            bannerStyleButtonTextColorInput.value = banner.style?.button_text_color || '#ffffff';
-            bannerStyleButtonBorderRadiusInput.value = banner.style?.button_border_radius || '5px';
-
-            showBannerForm(true);
-        };
-
-        const deleteBanner = async (index) => {
-            if (!confirm("Bu bannerı silmek istediğinize emin misiniz?")) return;
-            let updatedBanners = [...(adminSiteData.settings?.banner || [])];
-            const [deletedBanner] = updatedBanners.splice(index, 1); // Silineni al
-
-            try {
-                await updateDoc(doc(db, 'pufemo', 'settings'), { banner: updatedBanners });
-                // Opsiyonel: Eğer Firebase Storage'dan da silmek isterseniz
-                // if (deletedBanner && deletedBanner.image_url) {
-                //     const storageRef = ref(storage, deletedBanner.image_url);
-                //     await deleteObject(storageRef);
-                //     console.log('Banner medya dosyası Storage\'dan silindi.');
-                // }
-                alert("Banner başarıyla silindi!");
-                loadSettings();
-            } catch (error) {
-                console.error("Banner silinirken hata:", error);
-                alert("Banner silinirken bir hata oluştu: " + error.message);
-            }
-        };
-
-
-        // Country & Currency Management
-        const renderCountryCurrencyList = (countryPricing) => {
-            countryCurrencyList.innerHTML = '';
-            const countries = Object.entries(countryPricing);
-            if (countries.length === 0) {
-                countryCurrencyList.innerHTML = '<p>Henüz ülke/para birimi bilgisi eklenmemiş.</p>';
-                return;
-            }
-            countries.forEach(([code, data]) => {
-                const div = document.createElement('div');
-                div.className = 'admin-form-container'; // Reuse style
-                div.innerHTML = `
-                    <h3>${countryCodeToEmoji(data.flag)} ${data.name?.tr || data.name?.en || code.toUpperCase()} (${code})</h3>
-                    <p>Para Birimi: ${data.currencyCode} (${adminSiteData.settings.currencySymbols?.[data.currencyCode] || data.currencyCode})</p>
-                    <p>Varsayılan Dil: ${data.defaultLanguage}</p>
-                    <p>Döviz Kuru (USD'ye göre): ${adminSiteData.settings.exchangeRates?.[data.currencyCode]?.toFixed(4) || 'Yok'}</p>
-                    <p>Fiyat Ayarlaması: %${data.adjustment || 0}</p>
-                    <div class="admin-form-actions">
-                        <button type="button" class="edit-country-currency-btn save-btn" data-code="${code}">Düzenle</button>
-                        <button type="button" class="delete-country-currency-btn cancel-btn" data-code="${code}">Sil</button>
-                    </div>
-                `;
-                countryCurrencyList.appendChild(div);
-            });
-            document.querySelectorAll('.edit-country-currency-btn').forEach(btn => btn.addEventListener('click', () => editCountryCurrency(btn.dataset.code)));
-            document.querySelectorAll('.delete-country-currency-btn').forEach(btn => btn.addEventListener('click', () => deleteCountryCurrency(btn.dataset.code)));
-        };
-
+        // Country & Currency Management Event Listeners
         addCountryCurrencyBtn.addEventListener('click', () => showCountryCurrencyForm(false));
         cancelCountryCurrencyFormBtn.addEventListener('click', hideCountryCurrencyForm);
-
-        const showCountryCurrencyForm = (isEdit = false) => {
-            countryCurrencyFormContainer.style.display = 'block';
-            countryCurrencyFormTitle.textContent = isEdit ? 'Düzenle' : 'Ekle';
-            if (!isEdit) {
-                countryCurrencyForm.reset();
-                countryCurrencyCodeInput.value = '';
-                countryCurrencyCodeInput.readOnly = false; // Yeni eklerken kod düzenlenebilir
-                currentEditingCountryCode = null;
-            } else {
-                countryCurrencyCodeInput.readOnly = true; // Düzenlerken kod değiştirilemez
-            }
-        };
-
-        const hideCountryCurrencyForm = () => {
-            countryCurrencyFormContainer.style.display = 'none';
-            countryCurrencyForm.reset();
-            currentEditingCountryCode = null;
-        };
-
         countryCurrencyForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const countryCode = countryCurrencyCodeInput.value.toUpperCase();
@@ -1908,104 +2053,9 @@
             }
         });
 
-        const editCountryCurrency = (code) => {
-            const country = adminSiteData.settings.countryPricing[code];
-            const currencySymbol = adminSiteData.settings.currencySymbols[country.currencyCode];
-            const exchangeRate = adminSiteData.settings.exchangeRates[country.currencyCode];
-
-            if (!country) return;
-
-            currentEditingCountryCode = code;
-            countryCurrencyCodeInput.value = code;
-            countryNameTrInput.value = country.name?.tr || '';
-            countryNameEnInput.value = country.name?.en || '';
-            currencyCodeInput.value = country.currencyCode || '';
-            currencySymbolInput.value = currencySymbol || '';
-            exchangeRateInput.value = exchangeRate || 1;
-            defaultLanguageInput.value = country.defaultLanguage || '';
-            flagEmojiInput.value = country.flag || '';
-            priceAdjustmentInput.value = country.adjustment || 0;
-
-            showCountryCurrencyForm(true);
-        };
-
-        const deleteCountryCurrency = async (code) => {
-            if (!confirm("Bu ülke/para birimi bilgisini silmek istediğinize emin misiniz?")) return;
-
-            let updatedCountryPricing = { ...(adminSiteData.settings.countryPricing || {}) };
-            let updatedCurrencySymbols = { ...(adminSiteData.settings.currencySymbols || {}) };
-            let updatedExchangeRates = { ...(adminSiteData.settings.exchangeRates || {}) };
-
-            const deletedCountry = updatedCountryPricing[code];
-            const deletedCurrencyCode = deletedCountry.currencyCode;
-
-            delete updatedCountryPricing[code];
-            // Eğer silinen para birimi başka bir ülke tarafından kullanılmıyorsa, sembolünü ve kurunu da sil
-            const isCurrencyUsedByOtherCountries = Object.values(updatedCountryPricing).some(c => c.currencyCode === deletedCurrencyCode);
-            if (!isCurrencyUsedByOtherCountries) {
-                delete updatedCurrencySymbols[deletedCurrencyCode];
-                delete updatedExchangeRates[deletedCurrencyCode];
-            }
-
-            try {
-                await updateDoc(doc(db, 'pufemo', 'settings'), {
-                    countryPricing: updatedCountryPricing,
-                    currencySymbols: updatedCurrencySymbols,
-                    exchangeRates: updatedExchangeRates
-                });
-                alert("Ülke/Para Birimi ayarı başarıyla silindi!");
-                loadSettings();
-            } catch (error) {
-                console.error("Ülke/Para Birimi ayarı silinirken hata:", error);
-                alert("Ülke/Para Birimi ayarı silinirken bir hata oluştu: " + error.message);
-            }
-        };
-
-        // Language Management
-        const renderLanguageList = (languages) => {
-            languageListContainer.innerHTML = '';
-            if (languages.length === 0) {
-                languageListContainer.innerHTML = '<p>Henüz dil eklenmemiş.</p>';
-                return;
-            }
-            languages.forEach((lang, index) => {
-                const langDiv = document.createElement('div');
-                langDiv.className = 'admin-form-container'; // Reuse form-container style
-                langDiv.innerHTML = `
-                    <h3>${countryCodeToEmoji(lang.flag)} ${lang.name} (${lang.code})</h3>
-                    <div class="admin-form-actions">
-                        <button type="button" class="edit-language-btn save-btn" data-index="${index}">Düzenle</button>
-                        <button type="button" class="delete-language-btn cancel-btn" data-index="${index}">Sil</button>
-                    </div>
-                `;
-                languageListContainer.appendChild(langDiv);
-            });
-            document.querySelectorAll('.edit-language-btn').forEach(btn => btn.addEventListener('click', () => editLanguage(parseInt(btn.dataset.index))));
-            document.querySelectorAll('.delete-language-btn').forEach(btn => btn.addEventListener('click', () => deleteLanguage(parseInt(btn.dataset.index))));
-        };
-
+        // Language Management Event Listeners
         addLanguageBtn.addEventListener('click', () => showLanguageForm(false));
         cancelLanguageFormBtn.addEventListener('click', hideLanguageForm);
-
-        const showLanguageForm = (isEdit = false) => {
-            languageFormContainer.style.display = 'block';
-            languageFormTitle.textContent = isEdit ? 'Düzenle' : 'Ekle';
-            if (!isEdit) {
-                languageForm.reset();
-                languageIndexInput.value = '';
-                languageCodeInput.readOnly = false;
-                currentEditingLanguageIndex = -1;
-            } else {
-                languageCodeInput.readOnly = true;
-            }
-        };
-
-        const hideLanguageForm = () => {
-            languageFormContainer.style.display = 'none';
-            languageForm.reset();
-            currentEditingLanguageIndex = -1;
-        };
-
         languageForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const newLanguage = {
@@ -2032,38 +2082,10 @@
             }
         });
 
-        const editLanguage = (index) => {
-            const language = adminSiteData.settings.languages[index];
-            if (!language) return;
-
-            currentEditingLanguageIndex = index;
-            languageIndexInput.value = index;
-            languageCodeInput.value = language.code || '';
-            languageNameInput.value = language.name || '';
-            languageFlagInput.value = language.flag || '';
-
-            showLanguageForm(true);
-        };
-
-        const deleteLanguage = async (index) => {
-            if (!confirm("Bu dili silmek istediğinize emin misiniz?")) return;
-            let updatedLanguages = [...(adminSiteData.settings?.languages || [])];
-            updatedLanguages.splice(index, 1);
-
-            try {
-                await updateDoc(doc(db, 'pufemo', 'settings'), { languages: updatedLanguages });
-                alert("Dil ayarı başarıyla silindi!");
-                loadSettings();
-            } catch (error) {
-                console.error("Dil ayarı silinirken hata:", error);
-                alert("Dil ayarı silinirken bir hata oluştu: " + error.message);
-            }
-        };
-
 
         // --- Initialization ---
         const initAdminPanel = () => {
-            // Check auth state will determine initial view
+            // Auth state listener ilk görünümü belirleyecek
         };
 
         document.addEventListener('DOMContentLoaded', initAdminPanel);
