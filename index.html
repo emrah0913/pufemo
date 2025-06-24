@@ -481,7 +481,8 @@
         <div id="dynamic-product-sections"></div>
     </main>
 
-    <footer class="main-footer"> <div class="container">
+    <footer class="main-footer"> 
+        <div class="container">
             <div class="footer-content">
                 <div class="footer-section">
                     <h4 id="footer-title-pufemo"></h4>
@@ -578,10 +579,11 @@
             categories: { tree: [] },
             products: []
         };
-        // Dil ve para birimi başlangıçta localStorage'dan okunacak veya varsayılan olacak
+        // Dil ve para birimi başlangıçta localStorage'dan okunacak veya varsayılan (İngilizce) olacak
         let currentLang = localStorage.getItem('pufemo-language') || DEFAULT_FALLBACK_LANG; 
         let currentCurrency = localStorage.getItem('pufemo-currency') || 'USD';
-        let currentCountryCode = localStorage.getItem('pufemo-country') || DEFAULT_COUNTRY_CODE; // İlk açılışta localStorage'daki ülke kullanılacak
+        // Ülke kodu ise localStorage'dan okunacak veya Firebase'den gelen ilk ülke olacak
+        let currentCountryCode = localStorage.getItem('pufemo-country') || DEFAULT_COUNTRY_CODE; 
 
         // Make staticTranslations globally accessible (for other scripts if any, and for robustness)
         window.staticTranslations = {
@@ -650,7 +652,7 @@
             // Language and currency preferences are saved to localStorage to persist user choices
             localStorage.setItem('pufemo-language', currentLang);
             localStorage.setItem('pufemo-currency', currentCurrency);
-            localStorage.setItem('pufemo-country', countryCode); // Ülke de kaydediliyor
+            localStorage.setItem('pufemo-country', countryCode); // Ülke de kaydediliyor, bir dahaki girişte dil bu ülkenin varsayılan dili olacak
         };
         
         const formatPrice = (basePrice, discountPrice = null) => {
@@ -680,6 +682,7 @@
 
         // --- Render Functions ---
         const renderStaticText = () => {
+            console.log("renderStaticText: Updating static text elements."); // Hata ayıklama logu
             document.documentElement.lang = currentLang;
 
             if (loadingTextP) loadingTextP.textContent = translate('loading_text');
@@ -694,10 +697,21 @@
             if (document.getElementById('footer-copyright')) document.getElementById('footer-copyright').innerHTML = translate('footer-copyright');
             if (document.getElementById('country-selector-label')) document.getElementById('country-selector-label').textContent = translate('country_selector_label');
 
-            // Hoş geldiniz modal metinlerinin çevirisi burada yapılıyor
-            if (welcomeModalTitle) welcomeModalTitle.textContent = translate('welcome_modal_title');
-            if (welcomeModalMessage) welcomeModalMessage.textContent = translate('welcome_modal_message');
-            if (welcomeModalConfirmButton) welcomeModalConfirmButton.textContent = translate('welcome_modal_confirm_button');
+            // Hoş geldiniz modal metinlerinin çevirisi
+            if (welcomeModalTitle) {
+                welcomeModalTitle.textContent = translate('welcome_modal_title');
+                console.log("renderStaticText: welcomeModalTitle updated to:", welcomeModalTitle.textContent); // Hata ayıklama
+            } else { console.warn("welcomeModalTitle element not found!"); }
+            
+            if (welcomeModalMessage) {
+                welcomeModalMessage.textContent = translate('welcome_modal_message');
+                console.log("renderStaticText: welcomeModalMessage updated to:", welcomeModalMessage.textContent); // Hata ayıklama
+            } else { console.warn("welcomeModalMessage element not found!"); }
+
+            if (welcomeModalConfirmButton) {
+                welcomeModalConfirmButton.textContent = translate('welcome_modal_confirm_button');
+                console.log("renderStaticText: welcomeModalConfirmButton updated to:", welcomeModalConfirmButton.textContent); // Hata ayıklama
+            } else { console.warn("welcomeModalConfirmButton element not found!"); }
             
             if (cartPageLinkEl) cartPageLinkEl.title = translate('cart_page_link_title');
 
@@ -972,14 +986,10 @@
             languageSelector.removeEventListener('change', handleLanguageChange);
             currencySelector.removeEventListener('change', handleCurrencyChange);
             countrySelector.removeEventListener('change', handleCountryChange);
-            // welcomeModalConfirmButton'a artık doğrudan HTML'den click eklenmediği için bu kaldırıldı:
-            // welcomeModalConfirmButton.removeEventListener('click', handleWelcomeModalConfirm); 
 
             languageSelector.addEventListener('change', handleLanguageChange);
             currencySelector.addEventListener('change', handleCurrencyChange);
             countrySelector.addEventListener('change', handleCountryChange);
-            // welcomeModalConfirmButton'a artık doğrudan HTML'den click eklenmediği için bu kaldırıldı:
-            // welcomeModalConfirmButton.addEventListener('click', handleWelcomeModalConfirm); 
             
             const toggleMenu = () => {
                 hamburgerBtn.classList.toggle('open');
@@ -1015,35 +1025,35 @@
             renderAll();
         };
 
-        // Welcome modalın onay butonu için global olarak tanımlanmış handler (Event Delegation ile çağrılacak)
+        // Welcome modalın onay butonu için handler (Event Delegation ile çağrılacak)
         const handleWelcomeModalConfirm = () => { 
-            console.log("Welcome modal confirm button click handler fired!"); 
+            console.log("handleWelcomeModalConfirm: fired!"); 
             const selectedCountry = welcomeCountrySelect.value;
             if (selectedCountry) {
-                console.log("Selected country in modal:", selectedCountry); 
+                console.log("handleWelcomeModalConfirm: Selected country:", selectedCountry); 
                 currentCountryCode = selectedCountry; 
                 updateLanguageAndCurrencyForCountry(currentCountryCode); 
                 welcomeModalOverlay.classList.remove('active');
-                console.log("Welcome modal closed. Calling renderAll()..."); 
+                console.log("handleWelcomeModalConfirm: Welcome modal closed. Calling renderAll()..."); 
                 renderAll(); 
             } else {
                 alert(translate('select_country_alert'));
-                console.warn("Welcome modal: No country selected."); 
+                console.warn("handleWelcomeModalConfirm: No country selected."); 
             }
         };
 
         const renderAll = () => { 
             console.log("renderAll function fired!"); 
-            renderStaticText();
-            setupControls();
-            renderCategories();
-            renderBanner();
-            renderProducts();
+            renderStaticText(); // Metinleri çevirir
+            setupControls(); // Kontrolleri ayarlar
+            renderCategories(); // Kategorileri render eder
+            renderBanner(); // Bannerı render eder
+            renderProducts(); // Ürünleri render eder
         };
         
         async function fetchData() { 
+            console.log("fetchData: Starting data fetch..."); 
             try {
-                console.log("fetchData: Starting data fetch..."); 
                 const settingsDoc = await getDoc(doc(db, 'pufemo', 'settings'));
                 if (settingsDoc.exists()) {
                     siteData.settings = settingsDoc.data(); 
@@ -1054,7 +1064,7 @@
                 
                 const [categoriesDoc, productsSnap] = await Promise.all([
                     getDoc(doc(db, 'pufemo', 'categories')),
-                    getDocs(query(collection(db, 'products'), where('isInShowcase', '==', true))) // Düzeltilen kısım: 'products' oldu
+                    getDocs(query(collection(db, 'products'), where('isInShowcase', '==', true))) // Koleksiyon adı 'products'
                 ]);
 
                 if (categoriesDoc.exists()) {
@@ -1066,7 +1076,7 @@
                 siteData.products = productsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 console.log("fetchData: Products fetched.", siteData.products.length, "products."); 
                 if (siteData.products.length === 0) {
-                    console.warn("No products found with 'isInShowcase: true'. Please check your 'products' collection in Firestore.");
+                    console.warn("No products found with 'isInShowcase: true'. Please check your 'products' collection in Firestore and ensure isInShowcase field is boolean true.");
                 }
 
                 const availableCountries = Object.keys(siteData.settings.countryPricing || {});
@@ -1074,12 +1084,11 @@
 
                 if (availableCountries.length > 0) {
                     welcomeCountrySelect.innerHTML = Object.entries(siteData.settings.countryPricing).map(([code, data]) => {
-                        // Ülke adını çevirirken localStorage'daki dile veya varsayılan dile bak.
-                        const countryName = data.name?.[localStorage.getItem('pufemo-language') || DEFAULT_FALLBACK_LANG] || code.toUpperCase(); 
+                        const countryName = data.name?.[DEFAULT_FALLBACK_LANG] || code.toUpperCase(); // Welcome modal açılmadan önce currentLang netleşmediyse İngilizce kullan
                         return `<option value="${code}">${countryCodeToEmoji(data.flag)} ${countryName}</option>`;
                     }).join('');
                     
-                    // currentCountryCode'u, localStorage'da kaydedilmiş bir ülke varsa o, yoksa Firebase'deki ilk ülke yap
+                    // currentCountryCode'u, localStorage'da kaydedilmiş ülke varsa o, yoksa Firebase'deki ilk ülke yap
                     currentCountryCode = localStorage.getItem('pufemo-country') || availableCountries[0];
                     welcomeCountrySelect.value = currentCountryCode; // Modalın başlangıç değeri
 
@@ -1110,8 +1119,8 @@
             if (availableCountries.length > 0) {
                 welcomeModalOverlay.classList.add('active'); 
                 console.log("init: Welcome modal activated."); 
-                // renderAll() hoş geldiniz modalı onaylandıktan sonra çağrılacak
-                // Bu noktada, hoş geldiniz modalı metinleri zaten translate() ile doldurulmuş olmalı.
+                // ÖNEMLİ: Modal açıldıktan hemen sonra metinlerini güncelle
+                renderStaticText(); // Modal açılınca başlık ve buton metnini göster
             } else {
                 console.warn("Firebase ayarlarında tanımlı ülke bulunamadı. Hoş geldin modalı gösterilmiyor.");
                 welcomeModalOverlay.style.display = 'none'; 
