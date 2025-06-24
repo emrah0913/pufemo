@@ -228,16 +228,29 @@
 
         // --- AUTH LOGIC ---
         onAuthStateChanged(auth, user => {
-            if (user) checkAdminStatus(user);
-            else showScreen('login');
+            if (user) {
+                checkAdminStatus(user);
+            } else {
+                showScreen('login');
+            }
         });
 
         async function checkAdminStatus(user) {
+            // If the user is an anonymous guest, they are definitely not an admin.
+            // Directly show the unauthorized screen and prompt them to log out to sign in.
+            if (user.isAnonymous) {
+                showScreen('unauthorized');
+                return;
+            }
             try {
                 const adminRef = doc(db, 'admins', user.uid);
                 const adminDoc = await getDoc(adminRef);
-                if (adminDoc.exists()) showScreen('admin');
-                else showScreen('unauthorized');
+                if (adminDoc.exists()) {
+                    showScreen('admin');
+                } else {
+                    // The user logged in, but their UID is not in the 'admins' list.
+                    showScreen('unauthorized');
+                }
             } catch (error) {
                 console.error("Admin status check failed:", error);
                 showLoginError("Yetki kontrolü sırasında bir hata oluştu.");
@@ -245,14 +258,20 @@
             }
         }
         
-        const handleLogin = () => signInWithEmailAndPassword(auth, emailInput.value, passwordInput.value).catch(() => showLoginError("E-posta veya şifre hatalı."));
+        const handleLogin = () => {
+            loginErrorDiv.classList.add('hidden'); // Clear previous errors
+            signInWithEmailAndPassword(auth, emailInput.value, passwordInput.value)
+                .catch(() => showLoginError("E-posta veya şifre hatalı."));
+        };
+        
         const handleLogout = () => signOut(auth);
 
         // --- UI CONTROL ---
         function showScreen(screenName) {
             [loginScreen, adminPanel, unauthorizedScreen].forEach(el => el.classList.add('hidden'));
-            if (screenName === 'login') loginScreen.classList.remove('hidden');
-            else if (screenName === 'admin') {
+            if (screenName === 'login') {
+                loginScreen.classList.remove('hidden');
+            } else if (screenName === 'admin') {
                 adminPanel.classList.remove('hidden');
                 feather.replace(); // Render icons
                 loadInitialData();
@@ -284,8 +303,12 @@
 
         // --- DATA LOADING AND RENDERING ---
         async function loadInitialData() {
-            // Aktif olan sekmeye göre veri yükle. Başlangıçta dashboard yüklenecek.
-            document.querySelector('.sidebar-link.active').click();
+            // Activate the first tab by default
+            const firstLink = sidebarNav.querySelector('.sidebar-link');
+             if(firstLink) {
+                firstLink.classList.add('active');
+                document.querySelector(firstLink.hash).classList.remove('hidden');
+            }
             loadOrders();
         }
 
@@ -426,7 +449,10 @@
         
         // Başlangıçta ilk sekmeyi aktif yap
         document.addEventListener('DOMContentLoaded', () => {
-             sidebarNav.querySelector('.sidebar-link').classList.add('active');
+            const firstLink = sidebarNav.querySelector('.sidebar-link');
+            if(firstLink) {
+                firstLink.click();
+            }
         });
 
     </script>
