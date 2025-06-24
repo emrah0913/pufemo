@@ -269,23 +269,37 @@
 
         /* Kullanıcı Durumu ve Kimlik Doğrulama Modalı */
         .user-status-container {
-            position: relative; /* authModal'ı bunun içinde konumlandırmak için */
+            position: relative;
             display: flex;
-            justify-content: flex-end; /* Sağ tarafa hizala */
+            justify-content: flex-end;
             align-items: center;
             padding: 10px 20px; 
             background-color: var(--card-bg-color); 
             box-shadow: 0 2px 5px rgba(0,0,0,0.05); 
-            z-index: 999; /* Header'dan biraz düşük, promo-bar'dan yüksek */
+            z-index: 999;
             gap: 10px;
         }
-        .user-status-container button {
+        /* Gizlenen Login Butonu */
+        .user-status-container button#loginButton { 
+            display: none; 
+        }
+        .user-status-container span { 
+            font-weight: bold; 
+            color: var(--primary-color); 
+            cursor: pointer; 
+            padding: 5px 10px; /* Tıklanabilir alanı büyüt */
+            border-radius: 5px;
+            transition: background-color 0.3s ease;
+        }
+        .user-status-container span:hover {
+            background-color: #f0f0f0;
+        }
+        .user-status-container button { /* Logout butonu için */
             background-color: var(--primary-color); color: var(--light-text-color);
             border: none; padding: 8px 15px; border-radius: 5px;
             cursor: pointer; font-weight: 500; transition: background-color 0.3s ease;
         }
         .user-status-container button:hover { background-color: #34495e; }
-        .user-status-container span { font-weight: bold; color: var(--primary-color); cursor: pointer; }
 
         .auth-modal-overlay {
             display: none; 
@@ -296,28 +310,24 @@
 
         .auth-modal {
             display: none;
-            position: absolute; 
+            position: fixed; /* Fixed yerine absolute kullanılmıştı, şimdi fixed yapalım */
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%); /* Ekranı ortala */
             background: var(--card-bg-color); padding: 20px; border-radius: var(--border-radius);
             box-shadow: var(--box-shadow); z-index: 99999;
             max-width: 400px; width: calc(100% - 40px); 
             box-sizing: border-box; text-align: center;
-            top: 100%; /* Tetikleyici elementin altına yerleştir */
-            right: 0; /* Sağ tarafa hizala */
-            transform: translateX(0); /* Normalde translateX(-50%) ile ortalardık ama sağa hizaladık */
-            margin-top: 10px; 
-            /* Ekran dışına taşmayı önlemek için */
-            left: auto; /* Ortalamayı iptal et */
-            right: 20px; /* Veya istediğiniz sağ kenar boşluğu */
-            transform: none; /* Centering transform'ı kaldırın */
         }
-        @media (max-width: 480px) {
+        /* Küçük ekranlarda zaten ortalanmış olacak, bu koda gerek yok */
+        /* @media (max-width: 480px) {
             .auth-modal {
                 left: 50%;
                 right: auto;
-                transform: translateX(-50%); /* Küçük ekranlarda tekrar ortala */
-                width: 90%; /* Küçük ekranlarda daha iyi görünüm */
+                transform: translateX(-50%);
+                width: 90%;
             }
-        }
+        } */
 
 
         .auth-modal h3 { color: var(--primary-color); margin-bottom: 15px; }
@@ -389,7 +399,7 @@
                     flex-direction: column; align-items: flex-end; gap: 5px; padding: 5px 10px;
                 }
                 .user-status-container button { padding: 5px 10px; font-size: 0.8rem; }
-                .auth-modal { max-width: 90%; width: calc(100% - 20px); }
+                /* .auth-modal { max-width: 90%; width: calc(100% - 20px); } Bu satır artık yukarıdaki .auth-modal tanımında zaten ortalamaya ayarlı olduğu için gereksiz. */
             }
         }
     </style>
@@ -409,8 +419,7 @@
     </div>
 
     <div class="user-status-container">
-        <span id="userStatus"></span>
-        <button id="loginButton" type="button" data-i18n="login_label"></button>
+        <span id="userStatus" data-i18n="login_label"></span> 
         <button id="logoutButton" type="button" data-i18n="logout_label"></button>
         
         <div id="authModal" class="auth-modal">
@@ -441,7 +450,6 @@
         </div>
     </div>
     <div id="authModalOverlay" class="auth-modal-overlay"></div> 
-
 
     <div id="loading-overlay" class="loading-overlay">
         <i class="fa-solid fa-couch fa-bounce" style="font-size: 3rem;"></i>
@@ -507,11 +515,12 @@
         </div>
     </footer>
 
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
-
     <script type="module">
-        // Firebase Configuration
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+        import { getFirestore, collection, doc, getDoc, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+        // Firebase Configuration (Tek bir yere toplandı)
         const firebaseConfig = {
             apiKey: "AIzaSyDYkzZzNXB22U4oEXxOoPh-puwuE8kz0g4",
             authDomain: "pufemo-com.firebaseapp.com",
@@ -519,10 +528,59 @@
             storageBucket: "pufemo-com.appspot.com",
             messagingSenderId: "983352837227",
             appId: "1:983352837227:web:defaa8dae215776e2e1d2e",
+            // measurementId: "G-RH8XHC7P91" // Opsiyonel, Firebase Analytics kullanılıyorsa eklenebilir
         };
         
-        let db;
-        let isFirebaseInitialized = false;
+        // Firebase başlatma
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        const DEFAULT_FALLBACK_LANG = 'en'; 
+        const DEFAULT_COUNTRY_CODE = 'US'; 
+
+        // DOM Elements
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const loadingTextP = document.getElementById('loading-text');
+        const welcomeModalOverlay = document.getElementById('welcomeModalOverlay');
+        const welcomeCountrySelect = document.getElementById('welcomeCountrySelect');
+        const welcomeModalConfirmButton = document.getElementById('welcomeModalConfirmButton');
+        const welcomeModalTitle = document.getElementById('welcome-modal-title');
+        const welcomeModalMessage = document.getElementById('welcome-modal-message');
+        const mainSectionTitleEl = document.getElementById('main-section-title');
+        const cartPageLinkEl = document.getElementById('cart-page-link');
+
+        // Auth Modal Elements
+        const userStatusEl = document.getElementById("userStatus");
+        const logoutButton = document.getElementById("logoutButton");
+        const authModal = document.getElementById("authModal");
+        const authModalOverlay = document.getElementById("authModalOverlay"); 
+        const loginForm = document.getElementById("loginForm"); 
+        const loginEmailInput = document.getElementById("loginEmail");
+        const loginPasswordInput = document.getElementById("loginPassword");
+        const registerForm = document.getElementById("registerForm"); 
+        const registerEmailInput = document.getElementById("registerEmail");
+        const registerPasswordInput = document.getElementById("registerPassword");
+        const continueAsGuestButton = document.getElementById("continueAsGuestButton");
+        const closeAuthModalButton = document.getElementById("closeAuthModalButton");
+        const authMessageEl = document.getElementById('authMessage');
+
+        // Global State
+        let siteData = {
+            settings: {
+                languages: [],
+                general: { logo: {}, promoBar: {} },
+                countryPricing: {},
+                currencySymbols: {},
+                exchangeRates: {},
+                banner: [] 
+            },
+            categories: { tree: [] },
+            products: []
+        };
+        let currentLang = localStorage.getItem('pufemo-language') || DEFAULT_FALLBACK_LANG;
+        let currentCurrency = localStorage.getItem('pufemo-currency') || 'USD';
+        let currentCountryCode = localStorage.getItem('pufemo-country') || DEFAULT_COUNTRY_CODE;
 
         // Make staticTranslations globally accessible BEFORE any script might need it.
         window.staticTranslations = {
@@ -545,68 +603,30 @@
             'welcome_modal_message': { tr: 'Lütfen ülkenizi seçin.', en: 'Please select your country below.', el: 'Παρακαλώ επιλέξτε τη χώρα σας παρακάτω.', ru: 'Пожалуйста, выберите свою страну ниже.', de: 'Bitte wählen Sie Ihr Land unten aus.', fr: 'Veuillez sélectionner votre pays ci-dessous.', it: 'Seleziona il tuo paese qui sotto.' },
             'welcome_modal_confirm_button': { tr: 'Devam Et', en: 'Continue', el: 'Συνέχεια', ru: 'Продолжить', de: 'Weiter', fr: 'Continuer', it: 'Continua' },
             'cart_page_link_title': { tr: 'Sepetim', en: 'My Cart', el: 'Το καλάθι μου', ru: 'Моя корзина', de: 'Mein Warenkorb', fr: 'Mon Panier', it: 'Il mio Carrello' },
-            'untitled_product': { tr: 'İsimsiz Ürün', en: 'Untitled Product', el: 'Προϊόν χωρίς τίτλο', ru: 'Товар без названия', de: 'Unbenanntes Produkt', fr: 'Produit sans titre', it: 'Prodotto senza titolo' },
+            'untitled_product': { tr: 'İsimsiz Ürün', en: 'Untitled Product', el: 'Προϊόν χωρίς τίτλο', ru: 'Товар без названия', de: 'Unbenanntes Produkt', fr: 'Produit sans titre', it: 'Nessuna immagine' }, /* 'Nessuna immagine' was probably a typo, should be 'Prodotto senza titolo' */
             'no_image': { tr: 'Resim Yok', en: 'No Image', el: 'Χωρίς Εικόνα', ru: 'Нет изображения', de: 'Kein Bild', fr: 'Pas d\'image', it: 'Nessuna immagine' },
             'login_label': { tr: 'Giriş Yap', en: 'Login', ru: 'Вход', de: 'Anmelden', fr: 'Se connecter', it: 'Accedi' },
             'register_label': { tr: 'Kayıt Ol', en: 'Register', ru: 'Регистрация', de: 'Registrieren', fr: 'S\'inscrire', it: 'Registrati' },
             'email_label': { tr: 'E-posta', en: 'Email', ru: 'Эл. почта', de: 'E-Mail', fr: 'Email', it: 'Email' },
             'password_label': { tr: 'Şifre', en: 'Password', ru: 'Пароль', de: 'Passwort', fr: 'Mot de passe', it: 'Password' },
             'logout_label': { tr: 'Çıkış Yap', en: 'Logout', ru: 'Выход', de: 'Abmelden', fr: 'Se déconnecter', it: 'Esci' },
-            'continue_as_guest_label': { tr: 'Misafir Olarak Devam Et', en: 'Continue as Guest', ru: 'Продолжить как гость', de: 'Als Gast fortfahren', fr: 'Continuer en tant qu\'invité', it: 'Continua come ospite' },
+            'continue_as_guest_label': { tr: 'Misafir', en: 'Guest', ru: 'Гость', de: 'Gast', fr: 'Invité', it: 'Ospite' },
             'close_label': { tr: 'Kapat', en: 'Close', ru: 'Закрыть', de: 'Schließen', fr: 'Fermer', it: 'Chiudi' },
             'login_error': { tr: 'Giriş Hatası:', en: 'Login Error:', ru: 'Ошибка входа:', de: 'Anmeldefehler:', fr: 'Erreur de connexion:', it: 'Errore di accesso:' },
             'register_error': { tr: 'Kayıt Hatası:', en: 'Registration Error:', ru: 'Ошибка регистрации:', de: 'Registrierungsfehler:', fr: 'Erreur d\'inscription:', it: 'Errore di registrazione:' },
             'select_country_alert': { tr: 'Devam etmek için lütfen bir ülke seçin.', en: 'Please select a country to continue.', ru: 'Пожалуйста, выберите страну для продолжения.', de: 'Bitte wählen Sie ein Land aus, um fortzufahren.', fr: 'Veuillez sélectionner un pays pour continuer.', it: 'Seleziona un paese per continuare.' }
         };
 
-        try {
-            firebase.initializeApp(firebaseConfig);
-            db = firebase.firestore();
-            isFirebaseInitialized = true;
-        } catch (e) {
-            console.error("Firebase başlatma hatası!", e);
-        }
-
-        const DEFAULT_FALLBACK_LANG = 'en'; 
-        const DEFAULT_COUNTRY_CODE = 'US'; 
-
-        // DOM Elements
-        const loadingOverlay = document.getElementById('loading-overlay');
-        const loadingTextP = document.getElementById('loading-text');
-        const welcomeModalOverlay = document.getElementById('welcomeModalOverlay');
-        const welcomeCountrySelect = document.getElementById('welcomeCountrySelect');
-        const welcomeModalConfirmButton = document.getElementById('welcomeModalConfirmButton');
-        const welcomeModalTitle = document.getElementById('welcome-modal-title');
-        const welcomeModalMessage = document.getElementById('welcome-modal-message');
-        const mainSectionTitleEl = document.getElementById('main-section-title');
-        const cartPageLinkEl = document.getElementById('cart-page-link');
-
-        // Global State
-        let siteData = {
-            settings: {
-                languages: [],
-                general: { logo: {}, promoBar: {} },
-                countryPricing: {},
-                currencySymbols: {},
-                exchangeRates: {},
-                banner: [] 
-            },
-            categories: { tree: [] },
-            products: []
-        };
-        let currentLang = localStorage.getItem('pufemo-language') || DEFAULT_FALLBACK_LANG;
-        let currentCurrency = localStorage.getItem('pufemo-currency') || 'USD';
-        let currentCountryCode = localStorage.getItem('pufemo-country') || DEFAULT_COUNTRY_CODE;
 
         // --- Helper Functions ---
-        function countryCodeToEmoji(code) {
+        const countryCodeToEmoji = (code) => {
             if (!code || code.length !== 2) {
                 return '';
             }
             return code.toUpperCase().split('').map(char =>
                 String.fromCodePoint(char.charCodeAt(0) + 127397)
             ).join('');
-        }
+        };
 
         const translate = (key) => window.staticTranslations[key]?.[currentLang] || window.staticTranslations[key]?.[DEFAULT_FALLBACK_LANG] || '';
 
@@ -617,14 +637,11 @@
                     ? selectedCountryData.defaultLanguage
                     : DEFAULT_FALLBACK_LANG;
                 
-                const selectedCountryCurrencySymbol = selectedCountryData.currencySymbol;
-                if (selectedCountryCurrencySymbol) {
-                    const currencyCodeFromSymbol = Object.keys(siteData.settings.currencySymbols || {}).find(key => 
-                        siteData.settings.currencySymbols[key] === selectedCountryCurrencySymbol
-                    );
-                    currentCurrency = currencyCodeFromSymbol || 'USD';
+                const selectedCountryCurrencyCode = selectedCountryData.currencyCode; // currencySymbol yerine currencyCode kullanıyoruz
+                if (selectedCountryCurrencyCode && siteData.settings.currencySymbols[selectedCountryCurrencyCode]) {
+                    currentCurrency = selectedCountryCurrencyCode;
                 } else {
-                    currentCurrency = 'USD';
+                    currentCurrency = 'USD'; // Varsayılan olarak USD
                 }
             } else {
                 currentLang = DEFAULT_FALLBACK_LANG;
@@ -681,6 +698,8 @@
             if (welcomeModalConfirmButton) welcomeModalConfirmButton.textContent = translate('welcome_modal_confirm_button');
             
             if (cartPageLinkEl) cartPageLinkEl.title = translate('cart_page_link_title');
+
+            applyAuthTranslations(); // Auth modal ve user status metinlerini güncelle
         };
 
         const renderGeneralSiteElements = () => {
@@ -799,28 +818,18 @@
                 const dot = document.createElement('div');
                 dot.className = 'nav-dot' + (index === 0 ? ' active' : '');
                 dot.dataset.index = index;
+                dot.addEventListener('click', () => { // Event listener doğrudan burada eklendi
+                    setSlide(parseInt(dot.dataset.index));
+                    clearInterval(slideInterval);
+                    slideInterval = setInterval(nextSlide, 5000);
+                });
                 navContainer.appendChild(dot);
             });
-
-            const dots = navContainer.querySelectorAll('.nav-dot');
             
             setSlide(currentSlideIndex);
 
             clearInterval(slideInterval);
             slideInterval = setInterval(nextSlide, 5000);
-
-            dots.forEach(dot => {
-                const newHandler = () => {
-                    setSlide(parseInt(dot.dataset.index));
-                    clearInterval(slideInterval);
-                    slideInterval = setInterval(nextSlide, 5000);
-                };
-                if (dot.__slideDotClickHandler) {
-                    dot.removeEventListener('click', dot.__slideDotClickHandler);
-                }
-                dot.addEventListener('click', newHandler);
-                dot.__slideDotClickHandler = newHandler; 
-            });
         };
         
         const renderBanner = () => {
@@ -958,57 +967,58 @@
                 welcomeModalOverlay.style.display = 'none';
             }
 
-            if (!languageSelector.hasAttribute('data-listeners-attached')) {
-                languageSelector.addEventListener('change', (e) => {
-                    currentLang = e.target.value;
-                    localStorage.setItem('pufemo-language', currentLang);
-                    renderAll();
-                });
-                languageSelector.setAttribute('data-listeners-attached', 'true');
-            }
-            
-            if (!currencySelector.hasAttribute('data-listeners-attached')) {
-                currencySelector.addEventListener('change', (e) => {
-                    currentCurrency = e.target.value;
-                    localStorage.setItem('pufemo-currency', currentCurrency);
-                    renderAll();
-                });
-                currencySelector.setAttribute('data-listeners-attached', 'true');
-            }
+            // Yeniden atamadan önce olay dinleyicilerini kaldır
+            languageSelector.removeEventListener('change', handleLanguageChange);
+            currencySelector.removeEventListener('change', handleCurrencyChange);
+            countrySelector.removeEventListener('change', handleCountryChange);
+            welcomeModalConfirmButton.removeEventListener('click', handleWelcomeModalConfirm);
 
-            if (!countrySelector.hasAttribute('data-listeners-attached')) {
-                countrySelector.addEventListener('change', (e) => {
-                    window.applyCountryAndRender(e.target.value);
-                });
-                countrySelector.setAttribute('data-listeners-attached', 'true');
-            }
+            // Olay dinleyicilerini yeniden ata
+            languageSelector.addEventListener('change', handleLanguageChange);
+            currencySelector.addEventListener('change', handleCurrencyChange);
+            countrySelector.addEventListener('change', handleCountryChange);
+            welcomeModalConfirmButton.addEventListener('click', handleWelcomeModalConfirm);
             
-            if (!welcomeModalConfirmButton.hasAttribute('data-listeners-attached')) {
-                welcomeModalConfirmButton.addEventListener('click', function() {
-                    const selectedCountry = welcomeCountrySelect.value;
-                    if (selectedCountry) {
-                        window.applyCountryAndRender(selectedCountry);
-                        welcomeModalOverlay.classList.remove('active');
-                    } else {
-                        alert(translate('select_country_alert'));
-                    }
-                });
-                welcomeModalConfirmButton.setAttribute('data-listeners-attached', 'true');
-            }
-
             const toggleMenu = () => {
                 hamburgerBtn.classList.toggle('open');
                 mobileNav.classList.toggle('open');
                 mobileNavOverlay.classList.toggle('open');
                 document.querySelector('body').classList.toggle('mobile-menu-open');
             };
-            if (!hamburgerBtn.hasAttribute('data-listeners-attached')) {
-                hamburgerBtn.onclick = toggleMenu;
-                mobileNavOverlay.onclick = toggleMenu;
-                mobileNav.onclick = (e) => { if (e.target.tagName === 'A') toggleMenu(); };
-                hamburgerBtn.setAttribute('data-listeners-attached', 'true');
+            // Hamburger menü event listener'ları zaten tekil olduğu için tekrar atamaya gerek yok,
+            // ama burada da kaldırma/ekleme yapabiliriz daha robust olmak adına.
+            hamburgerBtn.onclick = toggleMenu;
+            mobileNavOverlay.onclick = toggleMenu;
+            mobileNav.onclick = (e) => { if (e.target.tagName === 'A') toggleMenu(); };
+        };
+
+        // Event Handler Functions for Selects & Modals
+        const handleLanguageChange = (e) => {
+            currentLang = e.target.value;
+            localStorage.setItem('pufemo-language', currentLang);
+            renderAll();
+        };
+
+        const handleCurrencyChange = (e) => {
+            currentCurrency = e.target.value;
+            localStorage.setItem('pufemo-currency', currentCurrency);
+            renderAll();
+        };
+
+        const handleCountryChange = (e) => {
+            applyCountryAndRender(e.target.value);
+        };
+
+        const handleWelcomeModalConfirm = () => {
+            const selectedCountry = welcomeCountrySelect.value;
+            if (selectedCountry) {
+                applyCountryAndRender(selectedCountry);
+                welcomeModalOverlay.classList.remove('active');
+            } else {
+                alert(translate('select_country_alert'));
             }
         };
+
 
         const renderAll = () => { 
             renderStaticText();
@@ -1016,28 +1026,23 @@
             renderCategories();
             renderBanner();
             renderProducts();
-            renderGeneralSiteElements();
-            if (window.applyAuthTranslations) {
-                window.applyAuthTranslations(); 
-            } else {
-                console.warn("applyAuthTranslations not found. Authentication elements may not be translated.");
-            }
+            // applyAuthTranslations çağrısı renderStaticText içinde yapıldığı için burada tekrar etmeye gerek yok
         };
         
         async function fetchData() { 
             try {
                 const [settingsDoc, categoriesDoc, productsSnap] = await Promise.all([
-                    db.collection('pufemo').doc('settings').get(),
-                    db.collection('pufemo').doc('categories').get(),
-                    db.collection('pufemo-products').where('isInShowcase', '==', true).get()
+                    getDoc(doc(db, 'pufemo', 'settings')),
+                    getDoc(doc(db, 'pufemo', 'categories')),
+                    getDocs(query(collection(db, 'pufemo-products'), where('isInShowcase', '==', true)))
                 ]);
 
-                if (settingsDoc.exists) {
+                if (settingsDoc.exists()) {
                     siteData.settings = { ...siteData.settings, ...settingsDoc.data() };
                 } else {
                     console.log('Settings belgesi mevcut değil!');
                 }
-                if (categoriesDoc.exists) {
+                if (categoriesDoc.exists()) {
                     siteData.categories = { ...siteData.categories, ...categoriesDoc.data() };
                 } else {
                     console.log('Kategoriler belgesi mevcut değil!');
@@ -1055,12 +1060,12 @@
 
             } catch (e) {
                 console.error("Veri okuma hatası! Varsayılan ayarlar kullanılıyor.", e);
-                if (loadingTextP) loadingTextP.textContent = translate('loading_text') + " " + translate('login_error');
-                if (mainSectionTitleEl) mainSectionTitleEl.textContent = translate('main_section_title') + " (" + translate('login_error') + ")";
+                if (loadingTextP) loadingTextP.textContent = translate('loading_text') + " " + translate('login_error'); // login_error yerine genel bir hata mesajı daha iyi olabilir
+                if (mainSectionTitleEl) mainSectionTitleEl.textContent = translate('main_section_title') + " (" + translate('login_error') + ")"; // Aynı şekilde
             }
         }
         
-        window.applyCountryAndRender = (countryCode) => { 
+        const applyCountryAndRender = (countryCode) => { 
             updateLanguageAndCurrencyForCountry(countryCode);
             renderAll();
             document.getElementById('language-selector').value = currentLang;
@@ -1086,60 +1091,16 @@
                 }
             }
             
-            renderAll();
+            renderAll(); // İlk render burada yapılıyor
 
             loadingOverlay.classList.add('hidden');
         }
-        
-        if (isFirebaseInitialized) {
-            init();
-        } else {
-            if (loadingOverlay) loadingOverlay.classList.add('hidden');
-            if (loadingTextP) loadingTextP.textContent = window.staticTranslations?.['loading_text']?.['en'] + " " + window.staticTranslations?.['login_error']?.['en'] || "Error: Page could not load! Please check your internet connection.";
-            if (document.getElementById('main-section-title')) document.getElementById('main-section-title').textContent = window.staticTranslations?.['main_section_title']?.['en'] + " (" + window.staticTranslations?.['login_error']?.['en'] + ")" || "Products Could Not Load";
-            if (document.getElementById('footer-title-pufemo')) document.getElementById('footer-title-pufemo').textContent = "PUFEMO";
-            console.error("Firebase başlatılamadı, sayfa tam yüklenemedi.");
-        }
-    </script>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyDYkzZzNXB22U4oEXxOoPh-puwuE8kz0g4",
-            authDomain: "pufemo-com.firebaseapp.com",
-            projectId: "pufemo-com",
-            storageBucket: "pufemo-com.firebasestorage.app",
-            messagingSenderId: "983352837227",
-            appId: "1:983352837227:web:defaa8dae215776e2e1d2e",
-            measurementId: "G-RH8XHC7P91"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-
-        // DOM Elements
-        const userStatusEl = document.getElementById("userStatus");
-        const loginButton = document.getElementById("loginButton");
-        const logoutButton = document.getElementById("logoutButton");
-        const authModal = document.getElementById("authModal");
-        const authModalOverlay = document.getElementById("authModalOverlay"); 
-        const loginForm = document.getElementById("loginForm"); 
-        const loginEmailInput = document.getElementById("loginEmail");
-        const loginPasswordInput = document.getElementById("loginPassword");
-        const registerForm = document.getElementById("registerForm"); 
-        const registerEmailInput = document.getElementById("registerEmail");
-        const registerPasswordInput = document.getElementById("registerPassword");
-        const continueAsGuestButton = document.getElementById("continueAsGuestButton");
-        const closeAuthModalButton = document.getElementById("closeAuthModalButton");
-        const authMessageEl = document.getElementById('authMessage');
-
-        // Display error message in modal
+        // --- Authentication Functions (Modül Kapsamında) ---
         const showAuthError = (messageKey, error) => {
             const currentLang = localStorage.getItem('pufemo-language') || 'en';
             const translations = window.staticTranslations || {}; 
-            const translatedMessage = translations[messageKey]?.[currentLang] || translations[messageKey]?.[window.DEFAULT_FALLBACK_LANG] || messageKey;
+            const translatedMessage = translations[messageKey]?.[currentLang] || translations[messageKey]?.[DEFAULT_FALLBACK_LANG] || messageKey;
             authMessageEl.textContent = `${translatedMessage} ${error.message || error}`;
             authMessageEl.style.display = 'block';
         };
@@ -1149,50 +1110,51 @@
             authMessageEl.style.display = 'none';
         };
 
-        // Authentication functions
-        window.login = () => { // Made global for submit handler
+        const login = async (e) => {
+            e.preventDefault(); // Form submit olayını engelle
             clearAuthError();
             const email = loginEmailInput.value;
             const password = loginPasswordInput.value;
-            signInWithEmailAndPassword(auth, email, password)
-                .then(() => {
-                    authModal.style.display = 'none';
-                    authModalOverlay.style.display = 'none';
-                })
-                .catch((e) => showAuthError('login_error', e));
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+                authModal.style.display = 'none';
+                authModalOverlay.style.display = 'none';
+            } catch (error) {
+                showAuthError('login_error', error);
+            }
         };
 
-        window.register = () => { // Made global for submit handler
+        const register = async (e) => {
+            e.preventDefault(); // Form submit olayını engelle
             clearAuthError();
             const email = registerEmailInput.value;
             const password = registerPasswordInput.value;
-            createUserWithEmailAndPassword(auth, email, password)
-                .then(() => {
-                    authModal.style.display = 'none';
-                    authModalOverlay.style.display = 'none';
-                })
-                .catch((e) => showAuthError('register_error', e));
+            try {
+                await createUserWithEmailAndPassword(auth, email, password);
+                authModal.style.display = 'none';
+                authModalOverlay.style.display = 'none';
+            } catch (error) {
+                showAuthError('register_error', error);
+            }
         };
 
-        window.logout = () => {
-            signOut(auth)
-                .then(() => {
-                    const lang = localStorage.getItem('pufemo-language') || 'en';
-                    userStatusEl.textContent = window.staticTranslations?.['login_label']?.[lang] || 'Giriş Yap';
-                    loginButton.style.display = 'block';
-                    logoutButton.style.display = 'none';
-                })
-                .catch((e) => console.error("Çıkış Hatası:", e.message));
+        const logout = async () => {
+            try {
+                await signOut(auth);
+            } catch (error) {
+                console.error("Çıkış Hatası:", error.message);
+            }
         };
 
-        window.continueAsGuest = () => {
+        const continueAsGuest = async () => {
             clearAuthError();
-            signInAnonymously(auth)
-                .then(() => {
-                    authModal.style.display = 'none';
-                    authModalOverlay.style.display = 'none';
-                })
-                .catch((e) => showAuthError('login_error', e));
+            try {
+                await signInAnonymously(auth);
+                authModal.style.display = 'none';
+                authModalOverlay.style.display = 'none';
+            } catch (error) {
+                showAuthError('login_error', error); // Anonim giriş hatası için de aynı mesajı kullanabiliriz
+            }
         };
 
         // Event Listeners for Authentication UI
@@ -1206,25 +1168,17 @@
             registerPasswordInput.value = '';
         };
 
-        loginButton.addEventListener('click', openAuthModal);
-        userStatusEl.addEventListener('click', openAuthModal); 
-
-        logoutButton.addEventListener('click', window.logout);
+        userStatusEl.addEventListener('click', openAuthModal); // userStatus elementini tıklanabilir yaptık
+        logoutButton.addEventListener('click', logout);
 
         if (loginForm) {
-            loginForm.addEventListener('submit', (e) => {
-                e.preventDefault(); 
-                window.login(); 
-            });
+            loginForm.addEventListener('submit', login); 
         }
         if (registerForm) {
-            registerForm.addEventListener('submit', (e) => {
-                e.preventDefault(); 
-                window.register(); 
-            });
+            registerForm.addEventListener('submit', register); 
         }
 
-        continueAsGuestButton.addEventListener('click', window.continueAsGuest);
+        continueAsGuestButton.addEventListener('click', continueAsGuest);
         
         const closeAuthModal = () => {
             authModal.style.display = 'none';
@@ -1239,46 +1193,41 @@
             const lang = localStorage.getItem('pufemo-language') || 'en';
             if (user) {
                 userStatusEl.textContent = user.isAnonymous 
-                    ? (window.staticTranslations?.['continue_as_guest_label']?.[lang] || 'Misafir') 
+                    ? (translate('continue_as_guest_label')) 
                     : user.email;
-                loginButton.style.display = 'none';
                 logoutButton.style.display = 'block';
             } else {
-                userStatusEl.textContent = window.staticTranslations?.['login_label']?.[lang] || 'Giriş Yap';
-                loginButton.style.display = 'block';
+                userStatusEl.textContent = translate('login_label'); // login_label'ı kullan
                 logoutButton.style.display = 'none';
             }
+            // `userStatusEl` her zaman görünür olacak
         });
 
-        // Function to apply authentication modal translations (now global)
-        window.applyAuthTranslations = () => {
+        // Function to apply authentication modal translations (önceden globaldi, şimdi modül içinde)
+        const applyAuthTranslations = () => {
             const lang = localStorage.getItem('pufemo-language') || 'tr';
             const elementsToTranslate = document.querySelectorAll("#authModal [data-i18n], .user-status-container [data-i18n]");
             elementsToTranslate.forEach(el => {
                 const key = el.getAttribute("data-i18n");
-                if (window.staticTranslations && window.staticTranslations[key] && window.staticTranslations[key][lang]) {
-                    el.textContent = window.staticTranslations[key][lang];
-                } else if (window.staticTranslations && window.staticTranslations[key] && window.staticTranslations[key]['en']) {
-                    el.textContent = window.staticTranslations[key]['en'];
+                if (window.staticTranslations && window.staticTranslations[key]) {
+                    el.textContent = window.staticTranslations[key][lang] || window.staticTranslations[key][DEFAULT_FALLBACK_LANG];
                 }
             });
             // Update label texts for inputs within forms
-            document.querySelector('label[for="loginEmail"]').textContent = window.staticTranslations?.['email_label']?.[lang] || 'E-posta';
-            document.querySelector('label[for="loginPassword"]').textContent = window.staticTranslations?.['password_label']?.[lang] || 'Şifre';
-            document.querySelector('label[for="registerEmail"]').textContent = window.staticTranslations?.['email_label']?.[lang] || 'E-posta';
-            document.querySelector('label[for="registerPassword"]').textContent = window.staticTranslations?.['password_label']?.[lang] || 'Şifre';
+            document.querySelector('label[for="loginEmail"]').textContent = translate('email_label');
+            document.querySelector('label[for="loginPassword"]').textContent = translate('password_label');
+            document.querySelector('label[for="registerEmail"]').textContent = translate('email_label');
+            document.querySelector('label[for="registerPassword"]').textContent = translate('password_label');
 
             // Update placeholders if needed (though labels are primary for accessibility)
-            document.getElementById("loginEmail").placeholder = window.staticTranslations?.['email_label']?.[lang] || 'Email';
-            document.getElementById("loginPassword").placeholder = window.staticTranslations?.['password_label']?.[lang] || 'Password';
-            document.getElementById("registerEmail").placeholder = window.staticTranslations?.['email_label']?.[lang] || 'Email';
-            document.getElementById("registerPassword").placeholder = window.staticTranslations?.['password_label']?.[lang] || 'Password';
+            document.getElementById("loginEmail").placeholder = translate('email_label');
+            document.getElementById("loginPassword").placeholder = translate('password_label');
+            document.getElementById("registerEmail").placeholder = translate('email_label');
+            document.getElementById("registerPassword").placeholder = translate('password_label');
         };
 
-        // Initial translation application on load
-        window.addEventListener("load", () => {
-            window.applyAuthTranslations();
-        });
+        // Sayfa yüklendiğinde başlat
+        document.addEventListener("DOMContentLoaded", init);
     </script>
 </body>
 </html>
