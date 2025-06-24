@@ -1518,16 +1518,18 @@
 
         // Firebase yapılandırması ve uygulama ID'si global değişkenlerden alınır
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        // Proje kimliği eksik hatasını gidermek için firebaseConfig'e placeholder ekleniyor
+        // Hataları gidermek için sağlanan Firebase proje bilgilerini kullanın.
+        // EĞER __firebase_config Canvas ortamında doğru set edildiyse, o kullanılacaktır.
+        // Aksi takdirde, aşağıdaki manuel yapılandırma kullanılacaktır.
         const firebaseConfig = typeof __firebase_config !== 'undefined' && __firebase_config !== '' 
             ? JSON.parse(__firebase_config) 
             : {
-                apiKey: "AIzaSyDYkzZzNXB22U4oEXxOoPh-puwuE8kz0g4", // Sizin API anahtarınız
+                apiKey: "AIzaSyDYkzZzNXB22U4oEXxOoPh-puwuE8kz0g4",
                 authDomain: "pufemo-com.firebaseapp.com",
                 projectId: "pufemo-com",
                 storageBucket: "pufemo-com.appspot.com",
                 messagingSenderId: "983352837227",
-                appId: "1:983352837227:web:defaa8dae215776e2e1d2e", // Bu, web uygulamasının App ID'si
+                appId: "1:983352837227:web:defaa8dae215776e2e1d2e",
             };
         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
@@ -1536,6 +1538,19 @@
         let auth;
         let userId = '';
         let isAuthReady = false;
+
+        // siteData değişkenini burada global olarak tanımlayın
+        let siteData = {
+            settings: {
+                languages: [],
+                general: { logo: {}, promoBar: {} },
+                countryPricing: {},
+                currencySymbols: {},
+                exchangeRates: {},
+                banner: { slides: [] } // Banner verisi için varsayılan boş dizi
+            },
+            categories: { tree: [] }
+        };
 
         // Geçici bir global kullanıcı ID'si ataması (oturum açmadan önce)
         let tempUserId = localStorage.getItem('tempUserId') || crypto.randomUUID();
@@ -1656,7 +1671,7 @@
             'default_button_text': { tr: 'Alışverişe Başla', en: 'Shop Now', el: 'Αγοράστε τώρα', ru: 'Купить сейчас', de: 'Jetzt einkaufen', fr: 'Acheter maintenant', it: 'Acquista ora' },
             'free_shipping_text': { tr: 'Ücretsiz Kargo', en: 'Free Shipping', el: 'Δωρεάν Αποστολή', ru: 'Бесплатная доставка', de: 'Kostenloser Versand', fr: 'Livraison Gratuite', it: 'Spedizione Gratuita' },
             'free_shipping_promo': { tr: 'Ücretsiz Kargo İmkanı! Türkiye\'nin Her Yerine Mobilyalarınız Kapınızda!', en: 'Free Shipping Available! Furniture at Your Doorstep Anywhere in Turkey!', el: 'Διαθέσιμη δωρεάν αποστολή! Έπιπλα στην πόρτα σας οπουδήποτε στην Ελλάδα!', ru: 'Доступна бесплатная доставка! Мебель доставим до вашей двери в любую точку России!', de: 'Kostenloser Versand mümkün! Möbel direkt vor Ihre Haustür in ganz Deutschland!', fr: 'Livraison Gratuite Disponible ! Vos meubles à votre porte partout en France !', it: 'Spedizione Gratuita Disponibile! I tuoi mobili a casa tua in tutta Italia!' },
-            'country_selector_label': { tr: 'Ülke Seçimi:', en: 'Select Country:', el: 'Επιλέξτε Χώρα:', ru: 'Выбрать страну:', de: 'Land auswählen:', fr: 'Sélectionner le pays :', it: 'Seleziona Paese:' },
+            'country_selector_label': { tr: 'Ülke Seçimi:', en: 'Select Country:', el: 'Επιλέψτε Χώρα:', ru: 'Выбрать страну:', de: 'Land auswählen:', fr: 'Sélectionner le pays :', it: 'Seleziona Paese:' },
             'welcome_modal_title': { tr: 'Hoş Geldiniz!', en: 'Welcome!', el: 'Καλώς ήρθατε!', ru: 'Добро пожаловать!', de: 'Willkommen!', fr: 'Bienvenue !', it: 'Benvenuto!' },
             'welcome_modal_message': { tr: 'Lütfen ülkenizi seçin.', en: 'Please select your country below.', el: 'Παρακαλώ επιλέξτε τη χώρα σας παρακάτω.', ru: 'Пожалуйста, выберите свою страну ниже.', de: 'Bitte wählen Sie Ihr Land unten aus.', fr: 'Veuillez sélectionner votre pays ci-dessous.', it: 'Seleziona il tuo paese qui sotto.' },
             'welcome_modal_confirm_button': { tr: 'Devam Et', en: 'Continue', el: 'Συνέχεια', ru: 'Продолжить', de: 'Weiter', fr: 'Continuer', it: 'Continua' },
@@ -1666,16 +1681,16 @@
             'your_cart': { tr: 'Sepetiniz', en: 'Your Cart', el: 'Το καλάθι σας', ru: 'Ваша корзина', de: 'Ihr Warenkorb', fr: 'Votre panier', it: 'Il tuo carrello' },
             'total': { tr: 'Toplam:', en: 'Total:', el: 'Σύνολο:', ru: 'Итого:', de: 'Gesamt:', fr: 'Total :', it: 'Totale:' },
             'checkout': { tr: 'Satın Al', en: 'Checkout', el: 'Ολοκλήρωση Αγοράς', ru: 'Оформить заказ', de: 'Zur Kasse gehen', fr: 'Passer à la caisse', it: 'Procedi all\'acquisto' },
-            'empty_cart_message': { tr: 'Sepetiniz boş.', en: 'Your cart is empty.', el: 'Το καλάθι σας είναι άδειο.', ru: 'Ваша корзина пуста.', de: 'Ihr Warenkorb ist leer.', fr: 'Votre panier is vide.', it: 'Il tuo carrello è vuoto.' },
-            'product_loading_error': { tr: 'Ürünler yüklenirken bir hata oluştu.', en: 'An error occurred while loading products.', el: 'Προέκυψε σφάλμα κατά τη φόρτωση προϊόντων.', ru: 'При загрузке товаров произошла ошибка.', de: 'Beim Laden der Produkte ist ein Fehler aufgetreten.', fr: 'Une erreur s\'est produite lors du chargement des ürünler.', it: 'Si è verificato un errore durante il caricamento dei prodotti.' },
+            'empty_cart_message': { tr: 'Sepetiniz boş.', en: 'Your cart is empty.', el: 'Το καλάθι σας είναι άδειο.', ru: 'Ваша корzina пуста.', de: 'Ihr Warenkorb ist leer.', fr: 'Votre panier is vide.', it: 'Il tuo carrello è vuoto.' },
+            'product_loading_error': { tr: 'Ürünler yüklenirken bir hata oluştu.', en: 'An error occurred while loading products.', el: 'Προέκυψε σφάλμα κατά τη φόρτωση προϊόντων.', ru: 'При загрузке товаров произошла ошибка.', de: 'Beim Laden der Products ist ein Fehler aufgetreten.', fr: 'Une erreur s\'est produite lors du chargement des ürünler.', it: 'Si è verificato un errore durante il caricamento dei prodotti.' },
             'add_to_cart': { tr: 'Sepete Ekle', en: 'Add to Cart', el: 'Προσθήκη στο καλάθι', ru: 'Добавить в корзину', de: 'In den Warenkorb', fr: 'Ajouter au panier', it: 'Aggiungi al carrello' },
             'product_title_default': { tr: 'Ürün Başlığı', en: 'Product Title', el: 'Τίτλος Προϊόντος', ru: 'Название продукта', de: 'Produkttitel', fr: 'Titre du Produit', it: 'Titolo Prodotto' },
             'product_description_loading': { tr: 'Yükleniyor...', en: 'Loading...', el: 'Φορτώνεται...', ru: 'Загрузка...', de: 'Wird geladen...', fr: 'Chargement...', it: 'Caricamento...' },
-            'product_description_no_info': { tr: 'Bu ürün hakkında detaylı bilgi bulunmamaktadır.', en: 'No detailed information is available for this product.', el: 'Δεν υπάρχουν διαθέσιμες λεπτομέρειες για αυτό το προϊόν.', ru: 'Подробная информация об этом продукте отсутствует.', de: 'Keine detaillierten Informationen zu diesem Produkt verfügbar.', fr: 'Aucune information détaillée n\'est disponible pour ce prodotto.', it: 'Nessuna informazione dettagliata disponibile per questo prodotto.' },
+            'product_description_no_info': { tr: 'Bu ürün hakkında detaylı bilgi bulunmamaktadır.', en: 'No detailed information is available for this product.', el: 'Δεν υπάρχουν διαθέσιμες λεπτομέρειες για αυτό το προϊόν.', ru: 'Подробная информация об этом продукте отсутствует.', de: 'Keine detaillierten Informationen zu diesem Produkt verfügbar.', fr: 'Aucune information détaillée n\'est available for this prodotto.', it: 'Nessuna informazione dettagliata disponibile per questo prodotto.' },
             'product_not_found_title': { tr: 'Ürün Bulunamadı', en: 'Product Not Found', el: 'Το προϊόν δεν βρέθηκε', ru: 'Продукт не найден', de: 'Produkt nicht gefunden', fr: 'Produit non trouvé', it: 'Prodotto non trovato' },
             'product_not_found_desc': { tr: 'Aradığınız ürün bulunamamaktadır.', en: 'The product you are looking for cannot be found.', el: 'Το προϊόν που αναζητάτε δεν μπορεί να βρεθεί.', ru: 'Искомый товар не найден.', de: 'Das gesuchte Produkt konnte nicht gefunden werden.', fr: 'Le produit que vous recherchez is introuvable.', it: 'Il prodotto che stai cercando non è stato trovato.' },
             'error_loading_product_title': { tr: 'Hata Oluştu', en: 'Error Occurred', el: 'Σφάλμα παρουσιάστηκε', ru: 'Произошла ошибка', de: 'Fehler aufgetreten', fr: 'Erreur survenue', it: 'Si è verificato un errore' },
-            'error_loading_product_desc': { tr: 'Ürün bilgileri yüklenemedi. Lütfen daha sonra tekrar deneyin.', en: 'Product information could not be loaded. Please try again later.', el: 'Δεν ήταν δυνατή η φόρτωση των πληροφοριών προϊόντος. Παρακαλώ δοκιμάστε ξανά αργότερα.', ru: 'Не удалось загрузить информацию о товаре. Пожалуйста, попробуйте еще раз позже.', de: 'Produktinformationen konnten nicht geladen werden. Bitte versuchen Sie es später erneut.', fr: 'Les informations sur le produit n\'ont pas pu être chargées. Veuillez réessayer plus tard.', it: 'Impossibile caricare le informazioni sul prodotto. Si prega di riprovare più tardi.' },
+            'error_loading_product_desc': { tr: 'Ürün bilgileri yüklenemedi. Lütfen daha sonra tekrar deneyin.', en: 'Product information could not be loaded. Please try again later.', el: 'Δεν ήταν δυνατή η φόρτωση των πληροφοριών προϊόντος. Παρακαλώ δοκιμάστε ξανά αργότερα.', ru: 'Не удалось загрузить информацию о товаре. Пожалуйста, попробуйте еще раз позже.', de: 'Produktinformationen konnten nicht geladen werden. Bitte versuchen Sie es später erneut.', fr: 'Les informations sur le product n\'ont pas pu être loaded. Veuillez réessayer plus tard.', it: 'Impossibile caricare le informazioni sul prodotto. Si prega di riprovare più tardi.' },
             'add_to_cart_button': { tr: 'Sepete Ekle', en: 'Add to Cart', el: 'Προσθήκη στο καλάθι', ru: 'Добавить в корзину', de: 'In den Warenkorb', fr: 'Ajouter au panier', it: 'Aggiungi al carrello' },
             'buy_now_button': { tr: 'Şimdi Al', en: 'Buy Now', el: 'Αγορά τώρα', ru: 'Купить сейчас', de: 'Jetzt kaufen', fr: 'Acheter maintenant', it: 'Acquista ora' },
             'product_details_heading': { tr: 'Ürün Detayları', en: 'Product Details', el: 'Λεπτομέρειες προϊόντος', ru: 'Информация о продукте', de: 'Produktdetails', fr: 'Détails du Produit', it: 'Dettagli Prodotto' },
@@ -1690,14 +1705,14 @@
             'checkout_heading': { tr: 'Ödeme Bilgileri', en: 'Checkout Information', el: 'Πληροφορίες Πληρωμής', ru: 'Информация для оформления заказа', de: 'Kasseninformationen', fr: 'Informations de paiement', it: 'Informazioni di Pagamento' },
             'label-fullname': { tr: 'Ad Soyad', en: 'Full Name', el: 'Ονοματεπώνυμο', ru: 'Полное имя', de: 'Vollständiger Name', fr: 'Nom Complet', it: 'Nome Cognome' },
             'label-email': { tr: 'E-posta', en: 'Email', el: 'Email', ru: 'Электронная почта', de: 'E-Mail', fr: 'Email', it: 'Email' },
-            'label-phone': { tr: 'Telefon Numarası', en: 'Phone Number', el: 'Αριθμός Τηλεφώνου', ru: 'Номер телефона', de: 'Telefonnummer', fr: 'Numéro de Téléphone', it: 'Numero di Telefono' },
+            'label-phone': { tr: 'Telefon Numarası', en: 'Phone Number', el: 'Αριθμός Τηλεφώνου', ru: 'Номер телефона', de: 'Telefonnummer', fr: 'Numéro de Téléphone', it: 'Numero de Téléphone' },
             'label-address': { tr: 'Açık Adres', en: 'Full Address', el: 'Πλήρης Διεύθυνση', ru: 'Полный adres', de: 'Vollständige Adresse', fr: 'Adresse Complète', it: 'Indirizzo Completo' },
             'label-country': { tr: 'Ülke', en: 'Country', el: 'Χώρα', ru: 'Страна', de: 'Land', fr: 'Pays', it: 'Paese' },
             'label-zipcode': { tr: 'Posta Kodu', en: 'Zip Code', el: 'Ταχυδρομικός Κώδικας', ru: 'Почтовый indeks', de: 'Postleitzahl', fr: 'Code Postal', it: 'CAP' },
             'checkout-summary-heading': { tr: 'Sipariş Özeti', en: 'Order Summary', el: 'Σύνοψη Παραγγελίας', ru: 'Сводка заказа', de: 'Bestellübersicht', fr: 'Récapitulatif de la commande', it: 'Riepilogo Ordine' },
             'checkout-summary-total-label': { tr: 'Genel Toplam:', en: 'Grand Total:', el: 'Γενικό Σύνολο:', ru: 'Общая сумма:', de: 'Gesamtsumme:', fr: 'Total Général :', it: 'Totale Complessivo:' },
             'payment-method-heading': { tr: 'Ödeme Yöntemi', en: 'Payment Method', el: 'Μέθοδος Πληρωμής', ru: 'Способ оплаты', de: 'Zahlungsmethode', fr: 'Mode de Paiement', it: 'Metodo di Pagamento' },
-            'payment-method-iban-info': { tr: 'Şu anda sadece IBAN/Havale ile ödeme kabul edilmektedir.', en: 'Currently, only bank transfer (IBAN) is accepted.', el: 'Προς το παρόν, γίνεται δεκτή μόνο η τραπεζική μεταφορά (IBAN).', ru: 'В настоящее время принимаются только банковские переводы (IBAN).', de: 'Derzeit wird nur Banküberweisung (IBAN) akzeptiert.', fr: 'Actuellement, seul le virement bancaire (IBAN) is accepté.', it: 'Attualmente è accettato solo il bonifico bancario (IBAN).' },
+            'payment-method-iban-info': { tr: 'Şu anda sadece IBAN/Havale ile ödeme kabul edilmektedir.', en: 'Currently, only bank transfer (IBAN) is accepted.', el: 'Προς το παρόν, γίνεται δεκτή μόνο η τραπεζική μεταφορά (IBAN).', ru: 'В настоящее время принимаются μόνο banka havaleleri (IBAN).', de: 'Derzeit wird nur Banküberweisung (IBAN) akzeptiert.', fr: 'Actuellement, seul le virement bancaire (IBAN) is accepté.', it: 'Attualmente è accettato solo il bonifico bancario (IBAN).' },
             'place-order-btn': { tr: 'Sipariş Ver', en: 'Place Order', el: 'Υποβολή Παραγγελίας', ru: 'Разместить заказ', de: 'Bestellung aufgeben', fr: 'Passer la Commande', it: 'Effettua Ordine' },
             // Sipariş Başarılı Metinleri
             'order-success-title': { tr: 'Siparişiniz Alındı!', en: 'Order Received!', el: 'Η παραγγελία σας παραλήφθηκε!', ru: 'Заказ принят!', de: 'Bestellung erhalten!', fr: 'Commande Reçue !', it: 'Ordine Ricevuto!' },
@@ -2278,6 +2293,82 @@
         function getStaticText(key) {
             return staticTranslations[key]?.[currentLang] || staticTranslations[key]?.['en'] || key;
         }
+
+        /**
+         * HTML'deki statik metin elementlerini güncel dile göre çevirir.
+         * Yeni eklenen renderStaticText fonksiyonu
+         */
+        function renderStaticText() {
+            document.documentElement.lang = currentLang;
+
+            // Header ve Footer
+            if (welcomeModalTitle) welcomeModalTitle.textContent = getStaticText('welcome_modal_title');
+            if (welcomeModalMessage) welcomeModalMessage.textContent = getStaticText('welcome_modal_message');
+            if (welcomeModalConfirmButton) welcomeModalConfirmButton.textContent = getStaticText('welcome_modal_confirm_button');
+
+            if (document.getElementById('cart-sidebar-title')) document.getElementById('cart-sidebar-title').textContent = getStaticText('your_cart');
+            if (document.getElementById('cartTotalText')) document.getElementById('cartTotalText').textContent = getStaticText('total');
+            if (document.getElementById('checkoutBtn')) document.getElementById('checkoutBtn').textContent = getStaticText('checkout');
+            if (document.getElementById('emptyCartMessage')) document.getElementById('emptyCartMessage').textContent = getStaticText('empty_cart_message');
+
+
+            const promoTextContent = document.getElementById('promo-text-content');
+            if (promoTextContent) promoTextContent.textContent = getStaticText('free_shipping_promo');
+            
+            const mainSectionTitle = document.getElementById('main-section-title');
+            if (mainSectionTitle) mainSectionTitle.textContent = getStaticText('main_section_title');
+
+            const footerTitlePufemo = document.getElementById('footer-title-pufemo');
+            if (footerTitlePufemo) footerTitlePufemo.textContent = getStaticText('footer-title-pufemo');
+            const footerDescPufemo = document.getElementById('footer-desc-pufemo');
+            if (footerDescPufemo) footerDescPufemo.textContent = getStaticText('footer-desc-pufemo');
+            const footerTitleFastLinks = document.getElementById('footer-title-fast-links');
+            if (footerTitleFastLinks) footerTitleFastLinks.textContent = getStaticText('footer-title-fast-links');
+            const footerLinkAbout = document.getElementById('footer-link-about');
+            if (footerLinkAbout) footerLinkAbout.textContent = getStaticText('footer-link-about');
+            const footerLinkContact = document.getElementById('footer-link-contact');
+            if (footerLinkContact) footerLinkContact.textContent = getStaticText('footer-link-contact');
+            const footerLinkPrivacy = document.getElementById('footer-link-privacy');
+            if (footerLinkPrivacy) footerLinkPrivacy.textContent = getStaticText('footer-link-privacy');
+            const footerTitleFollowUs = document.getElementById('footer-title-follow-us');
+            if (footerTitleFollowUs) footerTitleFollowUs.textContent = getStaticText('footer-title-follow-us');
+            const footerCopyright = document.getElementById('footer-copyright');
+            if (footerCopyright) footerCopyright.innerHTML = getStaticText('footer-copyright');
+            const countrySelectorLabel = document.getElementById('country-selector-label');
+            if (countrySelectorLabel) countrySelectorLabel.textContent = getStaticText('country_selector_label');
+
+            if (cartPageLinkEl) cartPageLinkEl.title = getStaticText('cart_page_link_title');
+            
+            // Product Detail Page
+            if (btnCartEl) btnCartEl.innerHTML = `<i class="fa-solid fa-cart-plus"></i> ${getStaticText('add_to_cart_button')}`;
+            if (btnBuyEl) btnBuyEl.textContent = getStaticText('buy_now_button');
+            if (productDetailsHeadingEl) productDetailsHeadingEl.textContent = getStaticText('product_details_heading');
+            if (variantTitleEl) variantTitleEl.textContent = getStaticText('variant_selection_label');
+            if (quantityLabelEl) quantityLabelEl.textContent = getStaticText('quantity_label');
+            if (totalPriceLabelEl) totalPriceLabelEl.textContent = getStaticText('total_price_label');
+            if (relatedVariantsTitleEl) relatedVariantsTitleEl.textContent = getStaticText('related_products_title');
+            if (freeShippingEl) freeShippingEl.textContent = getStaticText('free_shipping_tag');
+
+            // Checkout Page
+            if (checkoutHeading) checkoutHeading.textContent = getStaticText('checkout_heading');
+            if (labelFullname) labelFullname.textContent = getStaticText('label-fullname');
+            if (labelEmail) labelEmail.textContent = getStaticText('label-email');
+            if (labelPhone) labelPhone.textContent = getStaticText('label-phone');
+            if (labelAddress) labelAddress.textContent = getStaticText('label-address');
+            if (labelCountry) labelCountry.textContent = getStaticText('label-country');
+            if (labelZipcode) labelZipcode.textContent = getStaticText('label-zipcode');
+            if (checkoutSummaryHeading) checkoutSummaryHeading.textContent = getStaticText('checkout-summary-heading');
+            if (checkoutSummaryTotalLabel) checkoutSummaryTotalLabel.textContent = getStaticText('checkout-summary-total-label');
+            if (paymentMethodHeading) paymentMethodHeading.textContent = getStaticText('payment-method-heading');
+            if (paymentMethodIbanInfo) paymentMethodIbanInfo.textContent = getStaticText('payment-method-iban-info');
+            if (placeOrderBtn) placeOrderBtn.textContent = getStaticText('place-order-btn');
+
+            // Order Success Page
+            if (orderSuccessTitle) orderSuccessTitle.textContent = getStaticText('order-success-title');
+            if (orderSuccessMessage) orderSuccessMessage.textContent = getStaticText('order-success-message');
+            if (continueShoppingBtn) continueShoppingBtn.textContent = getStaticText('continue-shopping-btn');
+        }
+
 
         const renderGeneralSiteElements = () => {
             const generalSettings = siteData.settings.general || {};
