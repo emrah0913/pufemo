@@ -94,6 +94,7 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics.js";
   import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
   import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -101,33 +102,37 @@
     apiKey: "AIzaSyDYkzZzNXB22U4oEXxOoPh-puwuE8kz0g4",
     authDomain: "pufemo-com.firebaseapp.com",
     projectId: "pufemo-com",
-    storageBucket: "pufemo-com.appspot.com",
+    storageBucket: "pufemo-com.firebasestorage.app",
     messagingSenderId: "983352837227",
-    appId: "1:983352837227:web:defaa8dae215776e2e1d2e"
+    appId: "1:983352837227:web:defaa8dae215776e2e",
+    measurementId: "G-RH8XHC7P91"
   };
 
   const app = initializeApp(firebaseConfig);
+  const analytics = getAnalytics(app);
   const auth = getAuth(app);
   const db = getFirestore(app);
 
-  // Basit ülke/dil/para birimi ayarı (İleride modal ile geliştirilebilir)
   const country = localStorage.getItem('country') || 'tr';
   const language = localStorage.getItem('lang') || 'tr';
   const currency = localStorage.getItem('currency') || 'TRY';
   const rates = { TRY: 1, USD: 32, EUR: 35, GBP: 40, RUB: 0.35 };
 
   const userInfoEl = document.getElementById('user-info');
-  const loginBtn = document.getElementById('login-btn');
   const productListEl = document.getElementById('product-list');
 
-  loginBtn.addEventListener('click', () => {
-    if (auth.currentUser) {
-      signOut(auth);
-    } else {
-      const provider = new GoogleAuthProvider();
-      signInWithPopup(auth, provider).catch(console.error);
-    }
-  });
+  function setupLoginButton() {
+    const loginBtn = document.getElementById('login-btn');
+    if (!loginBtn) return;
+    loginBtn.onclick = () => {
+      if (auth.currentUser) {
+        signOut(auth);
+      } else {
+        const provider = new GoogleAuthProvider();
+        signInWithPopup(auth, provider).catch(console.error);
+      }
+    };
+  }
 
   onAuthStateChanged(auth, user => {
     if (user) {
@@ -138,10 +143,7 @@
       document.getElementById('logout-btn').onclick = () => signOut(auth);
     } else {
       userInfoEl.innerHTML = `<button id="login-btn">Giriş Yap</button>`;
-      document.getElementById('login-btn').onclick = () => {
-        const provider = new GoogleAuthProvider();
-        signInWithPopup(auth, provider).catch(console.error);
-      };
+      setupLoginButton();
     }
   });
 
