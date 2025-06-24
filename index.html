@@ -70,7 +70,7 @@
             max-width: 150px; /* Belirgin bir genişlik */
             height: auto; 
             display: block; /* Bloğa çevirerek ortalamayı kolaylaştır */
-            margin: 0 auto; /* Eğer dış kapsayıcı flex değilse yatayda ortala */
+            margin: 0 auto; /* Yatayda ortalama */
             visibility: visible !important; /* Görünürlüğü garanti et */
             opacity: 1 !important; /* Saydamlığı garanti et */
             max-height: 80px; /* Çok büyük olmasını engelle */
@@ -952,8 +952,8 @@
         const db = getFirestore(app);
         const auth = getAuth(app);
 
-        const DEFAULT_FALLBACK_LANG = 'en';
-        const DEFAULT_COUNTRY_CODE = 'US';
+        const DEFAULT_FALLBACK_LANG = 'en'; // Varsayılan yedek dil (burayı 'tr' olarak da bırakabilirsiniz)
+        const DEFAULT_COUNTRY_CODE = 'US'; // Varsayılan yedek ülke kodu (burayı 'TR' olarak da bırakabilirsiniz)
 
         // DOM Elements (Ortak Kullanılanlar)
         const loadingOverlay = document.getElementById('loading-overlay');
@@ -1000,6 +1000,7 @@
         let currentProduct = null; // Ürün detay sayfasında gösterilen ürün
         let cart = JSON.parse(localStorage.getItem('pufemo-cart') || '[]'); // Sepet verileri
 
+        // Statik Çeviriler - admin panelinden gelen dinamik çeviriler ile karışmamasına dikkat edin
         window.staticTranslations = {
             'loading_text': { tr: 'PUFEMO Yükleniyor...', en: 'Loading PUFEMO...', el: 'Φόρτωση PUFEMO...', ru: 'Загрузка PUFEMO...', de: 'PUFEMO wird geladen...', fr: 'Chargement de PUFEMO...', it: 'Caricamento PUFEMO...' },
             'mobile_menu_title': { tr: 'Kategoriler', en: 'Categories', el: 'Κατηγορίες', ru: 'Категории', de: 'Kategorien', fr: 'Catégories', it: 'Categorie' },
@@ -1035,14 +1036,14 @@
             'register_error': { tr: 'Kayıt Hatası:', en: 'Registration Error:', ru: 'Ошибка регистрации:', de: 'Registrierungsfehler:', fr: 'Erreur d\'inscription:', it: 'Errore di registrazione:' },
             'select_country_alert': { tr: 'Devam etmek için lütfen bir ülke seçin.', en: 'Please select a country to continue.', ru: 'Пожалуйста, выберите страну для продолжения.', de: 'Bitte wählen Sie ein Land aus, um fortzufahren.', fr: 'Veuillez sélectionner un pays pour continuer.', it: 'Seleziona un paese per continuare.' },
             'product_not_found': { tr: 'Ürün bulunamadı.', en: 'Product not found.', ru: 'Товар не найден.', de: 'Produkt nicht gefunden.', fr: 'Produit introuvable.', it: 'Prodotto non trovato.' },
-            'add_to_cart_success': { tr: 'Ürün sepete eklendi!', en: 'Product added to cart!', ru: 'Товар добавлен в корзину!', de: 'Produkt zum Warenkorb hinzugefügt!', fr: 'Produit ajouté au panier !', it: 'Prodotto aggiunto al carrello!' },
+            'add_to_cart_success': { tr: 'Ürün sepete eklendi!', en: 'Product added to cart!', ru: 'Товар добавлен в корзину!', de: 'Produkt zum Warenkorb hinzugefügt!', fr: 'Produit ajouté au panier!', it: 'Prodotto aggiunto al carrello!' },
             'out_of_stock': { tr: 'Stokta yok', en: 'Out of stock', ru: 'Нет в наличии', de: 'Nicht auf Lager', fr: 'En rupture de stock', it: 'Esaurito' },
             'in_stock': { tr: 'Stokta mevcut', en: 'In stock', ru: 'В наличии', de: 'Auf Lager', fr: 'En stock', it: 'Disponibile' },
             'cart_empty': { tr: 'Sepetiniz boş.', en: 'Your cart is empty.', ru: 'Ваша корзина пуста.', de: 'Ihr Warenkorb ist leer.', fr: 'Votre panier est vide.', it: 'Il tuo carrello è vuoto.' },
-            'subtotal': { tr: 'Ara Toplam:', en: 'Subtotal:', ru: 'Промежуточный итог:', de: 'Zwischensumme:', fr: 'Sous-total :', it: 'Subtotale:' },
-            'shipping': { tr: 'Kargo:', en: 'Shipping:', ru: 'Доставка:', de: 'Versand:', fr: 'Expédition :', it: 'Spedizione:' },
-            'total': { tr: 'Toplam:', en: 'Total:', ru: 'Итого:', de: 'Gesamt:', fr: 'Total :', it: 'Totale:' },
-            'order_success': { tr: 'Siparişiniz başarıyla alındı!', en: 'Your order has been placed successfully!', ru: 'Ваш заказ успешно размещен!', de: 'Ihre Bestellung wurde erfolgreich aufgegeben!', fr: 'Votre commande a été passée avec succès !', it: 'Il tuo ordine è stato effettuato con successo!' },
+            'subtotal': { tr: 'Ara Toplam:', en: 'Subtotal:', ru: 'Промежуточный итог:', de: 'Zwischensumme:', fr: 'Sous-total:', it: 'Subtotale:' },
+            'shipping': { tr: 'Kargo:', en: 'Shipping:', ru: 'Доставка:', de: 'Versand:', fr: 'Expédition:', it: 'Spedizione:' },
+            'total': { tr: 'Toplam:', en: 'Total:', ru: 'Итого:', de: 'Gesamt:', fr: 'Total:', it: 'Totale:' },
+            'order_success': { tr: 'Siparişiniz başarıyla alındı!', en: 'Your order has been placed successfully!', ru: 'Ваш заказ успешно размещен!', de: 'Ihre Bestellung wurde erfolgreich aufgegeben!', fr: 'Votre commande a été passée avec succès!', it: 'Il tuo ordine è stato effettuato con successo!' },
             'order_fail': { tr: 'Sipariş oluşturulurken bir hata oluştu.', en: 'An error occurred while placing your order.', ru: 'Произошла ошибка при оформлении заказа.', de: 'Beim Aufgeben Ihrer Bestellung ist ein Fehler aufgetreten.', fr: 'Une erreur s\'est produite lors de la passation de votre commande.', it: 'Si è verificato un errore durante l\'effettuazione dell\'ordine.' },
             'no_orders_message': { tr: 'Henüz siparişiniz yok.', en: 'You have no orders yet.', ru: 'У вас пока нет заказов.', de: 'Sie haben noch keine Bestellungen.', fr: 'Vous n\'avez pas encore de commandes.', it: 'Non hai ancora ordini.' },
             'no_addresses_message': { tr: 'Kayıtlı adresiniz yok.', en: 'You have no saved addresses.', ru: 'У вас нет сохраненных адресов.', de: 'Sie haben keine gespeicherten Adressen.', fr: 'Vous n\'avez pas d\'adresses enregistrées.', it: 'Non hai indirizzi salvati.' },
@@ -2218,7 +2219,7 @@
             renderBanner(); // Bannerı render eder (sadece Anasayfa'da)
             renderProducts(); // Ürünleri render eder (sadece Anasayfa'da)
             updateCartBadge(); // Sepet ikonunu günceller
-            renderGeneralSiteElements(); // LOGO RENDER EDİLMESİNİ BURAYA ALDIM
+            renderGeneralSiteElements(); // LOGO RENDER EDİLMESİNİ BURADA GÜNCEL VERİLERLE TEKRAR SAĞLIYORUZ
         };
         
         async function fetchData() {
@@ -2263,6 +2264,7 @@
 
             } catch (e) {
                 console.error("Veri okuma hatası! Varsayılan ayarlar kullanılıyor.", e);
+                // Bu kısımda hala Firebase izin hatası alıyorsanız, güvenlik kurallarınızı tekrar kontrol edin.
                 if (loadingTextP) loadingTextP.textContent = `${translate('loading_text')} (${translate('login_error')})`;
                 if (mainSectionTitleEl) mainSectionTitleEl.textContent = `${translate('main_section_title')} (${translate('login_error')})`;
             }
@@ -2276,6 +2278,7 @@
             
             const availableCountries = Object.keys(siteData.settings.countryPricing || {});
 
+            // Hoş Geldiniz Modalını gösterme mantığı
             if (availableCountries.length > 0 && !localStorage.getItem('pufemo-country-selected')) { // İlk defa giriyorsa veya ülke seçimi yapılmadıysa modalı göster
                 welcomeModalOverlay.classList.add('active');
                 renderStaticText(); // Modal metinlerini güncelle
