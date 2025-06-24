@@ -20,75 +20,54 @@
             from { opacity: 0; transform: translateY(-10px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        /* Select stillerini basitleştirmek için */
         .header-select {
-            background-color: white;
-            border: 1px solid #e5e7eb;
-            border-radius: 0.5rem;
-            padding: 0.25rem 0.5rem;
-            font-size: 0.875rem;
-            line-height: 1.25rem;
-            -webkit-appearance: none;
-            -moz-appearance: none;
-            appearance: none;
-            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
-            background-position: right 0.5rem center;
-            background-repeat: no-repeat;
-            background-size: 1.5em 1.5em;
-            padding-right: 2.5rem;
+            background-color: white; border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 0.25rem 0.5rem;
+            font-size: 0.875rem; line-height: 1.25rem; -webkit-appearance: none; -moz-appearance: none;
+            appearance: none; background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+            background-position: right 0.5rem center; background-repeat: no-repeat; background-size: 1.5em 1.5em; padding-right: 2.5rem;
         }
+        .loader {
+            border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%;
+            width: 30px; height: 30px; animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
 
-    <!-- Kimlik Doğrulama Modalı -->
-    <div id="auth-modal" class="hidden fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-xl shadow-2xl p-8 max-w-sm w-full animate-fade-in">
-            <h2 class="text-2xl font-bold text-center mb-6">Giriş Yap</h2>
-            <form id="login-form">
-                <input type="email" id="login-email" placeholder="E-posta" class="w-full p-3 mb-3 border border-gray-300 rounded-lg" required>
-                <input type="password" id="login-password" placeholder="Şifre" class="w-full p-3 mb-4 border border-gray-300 rounded-lg" required>
-                <button type="submit" class="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700 transition-colors">Giriş Yap</button>
-            </form>
-            <div class="text-center my-4 text-gray-500">veya</div>
-            <button id="anonymous-login-btn" class="w-full bg-gray-200 text-gray-800 font-bold py-3 px-4 rounded-lg hover:bg-gray-300 transition-colors">
-                Misafir Olarak Devam Et
-            </button>
-            <p id="auth-error" class="text-red-500 text-center mt-4 text-sm"></p>
-        </div>
-    </div>
+    <!-- Modallar -->
+    <div id="auth-modal" class="hidden fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center p-4"></div>
+    <div id="country-selection-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-4"></div>
     
-    <!-- Ülke Seçim Modalı -->
-    <div id="country-selection-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-xl shadow-2xl p-8 max-w-sm w-full animate-fade-in">
-            <h2 class="text-2xl font-bold text-center mb-4">Hoş Geldiniz!</h2>
-            <p class="text-center text-gray-600 mb-6">Alışveriş deneyiminizi kişiselleştirmek için lütfen ülkenizi seçin.</p>
-            <div id="initial-country-select-container">
-                <!-- Ülke select'i JS ile buraya eklenecek -->
+    <!-- Gemini Kategori Açıklama Modalı -->
+    <div id="gemini-desc-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl p-8 max-w-md w-full animate-fade-in">
+            <div class="flex justify-between items-center mb-4">
+                <h2 id="gemini-modal-title" class="text-2xl font-bold">Kategori Açıklaması</h2>
+                <button id="close-gemini-modal-btn" class="text-gray-500 hover:text-gray-800">&times;</button>
             </div>
-            <button id="save-country-btn" class="w-full mt-4 bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700 transition-colors">
-                Kaydet ve Devam Et
-            </button>
+            <div id="gemini-modal-content" class="text-gray-700 min-h-[100px]">
+                <div class="flex items-center justify-center h-full">
+                    <div class="loader"></div>
+                </div>
+            </div>
         </div>
     </div>
+
 
     <!-- Üst Bar (Header) -->
     <header class="bg-white shadow-md sticky top-0 z-40">
         <div class="container mx-auto px-4">
             <div class="flex items-center justify-between h-20">
                 <a href="index.html" class="text-3xl font-bold text-indigo-600">Pufemo</a>
-                <nav class="hidden md:flex items-center space-x-8">
-                     <!-- Navigasyon Linkleri -->
-                </nav>
                 <div class="flex items-center space-x-4">
-                    <!-- Dil ve Para Birimi Seçicileri -->
-                    <div id="preference-changers" class="hidden flex items-center space-x-3">
+                    <div id="preference-changers" class="hidden items-center space-x-3">
                         <select id="country-changer" class="header-select"></select>
                         <select id="language-changer" class="header-select"></select>
                         <select id="currency-changer" class="header-select"></select>
                     </div>
                     <a href="cart.html" class="relative text-gray-500 hover:text-indigo-600">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.16"/></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.16"/></svg>
                         <span id="cart-item-count" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">0</span>
                     </a>
                 </div>
@@ -97,17 +76,21 @@
     </header>
 
     <main class="container mx-auto px-4 py-8 md:py-12">
-        <!-- Slider, Kategoriler ve Ürünler buraya gelecek -->
-        <section id="slider" class="bg-gray-200 rounded-xl h-64 md:h-96 mb-12 flex items-center justify-center">
-            <div class="text-center p-4">
-                <h2 id="slider-title" class="text-3xl md:text-5xl font-bold text-gray-800">Sezonun Trendleri</h2>
-                <p id="slider-subtitle" class="text-gray-600 mt-2 md:mt-4">Evinize stil katacak en yeni koleksiyonlarımızı keşfedin.</p>
+        <section id="slider" class="relative bg-gray-200 rounded-xl h-64 md:h-96 mb-12 flex items-center justify-center text-center">
+            <div>
+                <h2 id="slider-title" class="text-3xl md:text-5xl font-bold text-gray-800 transition-opacity duration-500">Sezonun Trendleri</h2>
+                <p id="slider-subtitle" class="text-gray-600 mt-2 md:mt-4 transition-opacity duration-500">Evinize stil katacak en yeni koleksiyonlarımızı keşfedin.</p>
             </div>
+            <button id="gemini-slogan-btn" class="absolute bottom-4 right-4 bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-semibold py-2 px-4 rounded-lg shadow-lg hover:scale-105 transition-transform">
+                ✨ Yeni Slogan Üret
+            </button>
         </section>
+
         <section id="categories" class="mb-12">
             <h2 id="categories-title" class="text-2xl md:text-3xl font-bold mb-6 text-center">Kategoriler</h2>
             <div id="category-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6"></div>
         </section>
+
         <section id="products">
             <h2 id="products-title" class="text-2xl md:text-3xl font-bold mb-6 text-center">Öne Çıkan Ürünler</h2>
             <div id="product-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-8"></div>
@@ -115,12 +98,10 @@
     </main>
 
     <script type="module">
-        // --- Firebase SDK'larını import et ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- Firebase Yapılandırması ---
         const firebaseConfig = {
             apiKey: "AIzaSyDYkzZzNXB22U4oEXxOoPh-puwuE8kz0g4",
             authDomain: "pufemo-com.firebaseapp.com",
@@ -133,8 +114,6 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // --- Yönetim Panelinden Gelecek Ayarlar (Simülasyon) ---
-        // Gerçekte bu veriler Firestore'dan çekilmelidir.
         const siteConfig = {
             countries: [
                 { code: 'TR', name: 'Türkiye', flag: '🇹🇷', lang: 'tr', currency: 'TRY' },
@@ -156,115 +135,185 @@
             ]
         };
 
-        // --- DOM Elementleri ---
-        const authModal = document.getElementById('auth-modal');
-        const loginForm = document.getElementById('login-form');
-        const anonymousLoginBtn = document.getElementById('anonymous-login-btn');
-        const authError = document.getElementById('auth-error');
-        const countryModal = document.getElementById('country-selection-modal');
-        const initialCountryContainer = document.getElementById('initial-country-select-container');
-        const saveCountryBtn = document.getElementById('save-country-btn');
-        const preferenceChangers = document.getElementById('preference-changers');
-        const countryChanger = document.getElementById('country-changer');
-        const languageChanger = document.getElementById('language-changer');
-        const currencyChanger = document.getElementById('currency-changer');
-        
+        const authModalEl = document.getElementById('auth-modal');
+        const countryModalEl = document.getElementById('country-selection-modal');
+        const geminiSloganBtn = document.getElementById('gemini-slogan-btn');
+        const geminiDescModal = document.getElementById('gemini-desc-modal');
+        const closeGeminiModalBtn = document.getElementById('close-gemini-modal-btn');
+        const categoryGrid = document.getElementById('category-grid');
+
         let userPreferences = {};
 
-        // --- Ana Kontrol Akışı ---
+        // --- GEMINI API Entegrasyonu ---
+        async function callGemini(prompt) {
+            const apiKey = ""; // Canvas ortamı tarafından sağlanır
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+            
+            const payload = {
+                contents: [{ role: "user", parts: [{ text: prompt }] }]
+            };
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API call failed with status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                
+                if (result.candidates && result.candidates.length > 0 && result.candidates[0].content.parts.length > 0) {
+                    return result.candidates[0].content.parts[0].text;
+                } else {
+                    return "İçerik üretilemedi. Lütfen tekrar deneyin.";
+                }
+            } catch (error) {
+                console.error("Gemini API hatası:", error);
+                return "Bir hata oluştu. Lütfen konsolu kontrol edin.";
+            }
+        }
+
+        async function generateSlogan() {
+            const sloganBtn = document.getElementById('gemini-slogan-btn');
+            const sliderTitle = document.getElementById('slider-title');
+            const sliderSubtitle = document.getElementById('slider-subtitle');
+            
+            sloganBtn.disabled = true;
+            sloganBtn.innerHTML = '<div class="loader w-6 h-6 mx-auto"></div>';
+            
+            const prompt = "Modern ve estetik bir ev dekorasyon/mobilya e-ticaret sitesi için dikkat çekici bir ana sayfa sloganı ve kısa bir alt başlık öner. Sadece slogan ve alt başlığı yaz, aralarına '/' işareti koy. Örneğin: 'Hayalindeki Yaşam Alanı / Tarzını yansıtan detaylarla tanış.'";
+            const responseText = await callGemini(prompt);
+            
+            sliderTitle.style.opacity = 0;
+            sliderSubtitle.style.opacity = 0;
+
+            setTimeout(() => {
+                if (responseText.includes('/')) {
+                    const [title, subtitle] = responseText.split('/');
+                    sliderTitle.textContent = title.trim();
+                    sliderSubtitle.textContent = subtitle.trim();
+                } else {
+                    sliderTitle.textContent = responseText;
+                    sliderSubtitle.textContent = "Yeni koleksiyonları keşfedin.";
+                }
+                sliderTitle.style.opacity = 1;
+                sliderSubtitle.style.opacity = 1;
+            }, 500);
+
+
+            sloganBtn.disabled = false;
+            sloganBtn.innerHTML = '✨ Yeni Slogan Üret';
+        }
+
+        async function generateCategoryDescription(categoryName) {
+            const modalContent = document.getElementById('gemini-modal-content');
+            const modalTitle = document.getElementById('gemini-modal-title');
+            
+            modalTitle.textContent = `${categoryName} Hakkında`;
+            modalContent.innerHTML = '<div class="flex items-center justify-center h-full"><div class="loader"></div></div>';
+            geminiDescModal.classList.remove('hidden');
+
+            const prompt = `Bir e-ticaret sitesi için '${categoryName}' kategorisini anlatan, 2-3 cümlelik kısa, samimi ve çekici bir tanıtım yazısı yaz.`;
+            const description = await callGemini(prompt);
+            
+            modalContent.innerHTML = `<p>${description.replace(/\n/g, '<br>')}</p>`;
+        }
+        
+        // --- Ana Akış ve Diğer Fonksiyonlar ---
+
+        function initializeModals() {
+            // Auth Modalı içeriği
+            authModalEl.innerHTML = `
+                <div class="bg-white rounded-xl shadow-2xl p-8 max-w-sm w-full animate-fade-in">
+                    <h2 class="text-2xl font-bold text-center mb-6">Giriş Yap</h2>
+                    <form id="login-form">
+                        <input type="email" id="login-email" placeholder="E-posta" class="w-full p-3 mb-3 border border-gray-300 rounded-lg" required>
+                        <input type="password" id="login-password" placeholder="Şifre" class="w-full p-3 mb-4 border border-gray-300 rounded-lg" required>
+                        <button type="submit" class="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700 transition-colors">Giriş Yap</button>
+                    </form>
+                    <div class="text-center my-4 text-gray-500">veya</div>
+                    <button id="anonymous-login-btn" class="w-full bg-gray-200 text-gray-800 font-bold py-3 px-4 rounded-lg hover:bg-gray-300 transition-colors">
+                        Misafir Olarak Devam Et
+                    </button>
+                    <p id="auth-error" class="text-red-500 text-center mt-4 text-sm"></p>
+                </div>`;
+            
+            // Country Modal içeriği
+            countryModalEl.innerHTML = `
+                <div class="bg-white rounded-xl shadow-2xl p-8 max-w-sm w-full animate-fade-in">
+                    <h2 class="text-2xl font-bold text-center mb-4">Hoş Geldiniz!</h2>
+                    <p class="text-center text-gray-600 mb-6">Alışveriş deneyiminizi kişiselleştirmek için lütfen ülkenizi seçin.</p>
+                    <div id="initial-country-select-container"></div>
+                    <button id="save-country-btn" class="w-full mt-4 bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700">
+                        Kaydet ve Devam Et
+                    </button>
+                </div>`;
+                
+            document.getElementById('login-form').addEventListener('submit', handleLogin);
+            document.getElementById('anonymous-login-btn').addEventListener('click', handleAnonymousLogin);
+            document.getElementById('save-country-btn').addEventListener('click', handleSaveCountry);
+        }
+
         onAuthStateChanged(auth, user => {
-            authModal.classList.add('hidden');
+            authModalEl.classList.add('hidden');
             if (user) {
-                // Kullanıcı giriş yapmış (e-posta veya anonim)
                 const savedPrefs = localStorage.getItem(`pufemoUserPreferences_${user.uid}`);
                 if (savedPrefs) {
                     userPreferences = JSON.parse(savedPrefs);
                     loadPageContent();
                 } else {
                     populateInitialCountrySelect();
-                    countryModal.classList.remove('hidden');
+                    countryModalEl.classList.remove('hidden');
                 }
             } else {
-                // Kullanıcı giriş yapmamış
-                authModal.classList.remove('hidden');
+                authModalEl.classList.remove('hidden');
             }
         });
 
-        // --- Kimlik Doğrulama Fonksiyonları ---
-        loginForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            authError.textContent = '';
-            const email = document.getElementById('login-email').value;
-            const password = document.getElementById('login-password').value;
-            try {
-                await signInWithEmailAndPassword(auth, email, password);
-            } catch (error) {
-                authError.textContent = "E-posta veya şifre hatalı.";
-                console.error("Giriş hatası:", error);
-            }
-        });
-
-        anonymousLoginBtn.addEventListener('click', async () => {
-            try {
-                await signInAnonymously(auth);
-            } catch (error) {
-                authError.textContent = "Misafir girişi başarısız oldu.";
-                console.error("Anonim giriş hatası:", error);
-            }
-        });
+        async function handleLogin(e) {
+             e.preventDefault();
+             const email = document.getElementById('login-email').value;
+             const password = document.getElementById('login-password').value;
+             try { await signInWithEmailAndPassword(auth, email, password); } 
+             catch (error) { document.getElementById('auth-error').textContent = "E-posta veya şifre hatalı."; }
+        }
+        async function handleAnonymousLogin() {
+            try { await signInAnonymously(auth); } 
+            catch (error) { document.getElementById('auth-error').textContent = "Misafir girişi başarısız oldu."; }
+        }
         
-        // --- Tercih Yönetimi Fonksiyonları ---
         function populateInitialCountrySelect() {
+            const container = document.getElementById('initial-country-select-container');
             const select = document.createElement('select');
             select.id = 'country-select';
             select.className = 'w-full p-3 border border-gray-300 rounded-lg';
-            siteConfig.countries.forEach(country => {
-                select.innerHTML += `<option value="${country.code}">${country.flag} ${country.name}</option>`;
-            });
-            initialCountryContainer.innerHTML = '';
-            initialCountryContainer.appendChild(select);
+            siteConfig.countries.forEach(c => { select.innerHTML += `<option value="${c.code}">${c.flag} ${c.name}</option>`; });
+            container.innerHTML = '';
+            container.appendChild(select);
         }
 
-        saveCountryBtn.addEventListener('click', () => {
+        function handleSaveCountry() {
             const countryCode = document.getElementById('country-select').value;
             const selectedCountry = siteConfig.countries.find(c => c.code === countryCode);
-            userPreferences = {
-                country: selectedCountry.code,
-                lang: selectedCountry.lang,
-                currency: selectedCountry.currency
-            };
+            userPreferences = { country: selectedCountry.code, lang: selectedCountry.lang, currency: selectedCountry.currency };
             const user = auth.currentUser;
-            if(user) {
-                localStorage.setItem(`pufemoUserPreferences_${user.uid}`, JSON.stringify(userPreferences));
-            }
-            countryModal.classList.add('hidden');
+            if(user) localStorage.setItem(`pufemoUserPreferences_${user.uid}`, JSON.stringify(userPreferences));
+            countryModalEl.classList.add('hidden');
             loadPageContent();
-        });
+        }
 
         function populatePreferenceChangers() {
+            const countryChanger = document.getElementById('country-changer');
+            const languageChanger = document.getElementById('language-changer');
+            const currencyChanger = document.getElementById('currency-changer');
             countryChanger.innerHTML = siteConfig.countries.map(c => `<option value="${c.code}" ${c.code === userPreferences.country ? 'selected' : ''}>${c.flag} ${c.code}</option>`).join('');
             languageChanger.innerHTML = siteConfig.languages.map(l => `<option value="${l.code}" ${l.code === userPreferences.lang ? 'selected' : ''}>${l.name}</option>`).join('');
             currencyChanger.innerHTML = siteConfig.currencies.map(c => `<option value="${c.code}" ${c.code === userPreferences.currency ? 'selected' : ''}>${c.symbol}</option>`).join('');
-            preferenceChangers.classList.remove('hidden');
-        }
-        
-        function addPreferenceChangerListeners() {
-            countryChanger.addEventListener('change', (e) => {
-                const newCountryCode = e.target.value;
-                const newCountry = siteConfig.countries.find(c => c.code === newCountryCode);
-                userPreferences.country = newCountry.code;
-                userPreferences.lang = newCountry.lang; // Ülke değişince dil de değişsin
-                userPreferences.currency = newCountry.currency; // Para birimi de
-                saveAndReload();
-            });
-            languageChanger.addEventListener('change', (e) => {
-                userPreferences.lang = e.target.value;
-                saveAndReload();
-            });
-            currencyChanger.addEventListener('change', (e) => {
-                userPreferences.currency = e.target.value;
-                saveAndReload();
-            });
+            document.getElementById('preference-changers').classList.remove('hidden');
         }
 
         function saveAndReload() {
@@ -275,62 +324,82 @@
             }
         }
         
-        // --- İçerik Yükleme Fonksiyonları ---
         function loadPageContent() {
             populatePreferenceChangers();
             fetchCategories();
             fetchProducts();
-            // applyTranslations(); // Çeviri fonksiyonu buraya gelecek
         }
 
         async function fetchProducts() {
             const productGrid = document.getElementById('product-grid');
             try {
                 const querySnapshot = await getDocs(collection(db, "products"));
-                productGrid.innerHTML = ''; 
+                productGrid.innerHTML = '';
                 const currencyInfo = siteConfig.currencies.find(c => c.code === userPreferences.currency);
                 const currencySymbol = currencyInfo ? currencyInfo.symbol : '$';
-
-                querySnapshot.forEach((doc) => {
-                    const product = doc.data();
-                    const price = product.prices[userPreferences.country] || product.prices['TR'];
-                    const productName = product.name[userPreferences.lang] || product.name.tr;
-                    
-                    const productEl = `
+                querySnapshot.forEach(doc => {
+                    const p = doc.data();
+                    const pPrices = p.prices || {}; const pNames = p.name || {};
+                    const price = pPrices[userPreferences.country] || pPrices['TR'] || 0;
+                    const pName = pNames[userPreferences.lang] || pNames.tr || "İsimsiz Ürün";
+                    productGrid.innerHTML += `
                         <div class="bg-white rounded-xl shadow-lg overflow-hidden group">
                             <a href="product.html?id=${doc.id}" class="block">
-                               <img src="${product.imageUrl || 'https://placehold.co/400x400/e2e8f0/cbd5e0?text=Urun'}" alt="${productName}" class="w-full h-56 object-cover group-hover:scale-110 transition-transform duration-500">
+                               <img src="${p.imageUrl || 'https://placehold.co/400x400'}" alt="${pName}" class="w-full h-56 object-cover group-hover:scale-110 transition-transform duration-500" onerror="this.src='https://placehold.co/400x400'">
                                <div class="p-5">
-                                   <h3 class="text-lg font-semibold text-gray-900 truncate">${productName}</h3>
+                                   <h3 class="text-lg font-semibold text-gray-900 truncate">${pName}</h3>
                                    <p class="text-2xl font-bold text-indigo-600 mt-2">${currencySymbol}${price.toFixed(2)}</p>
                                </div>
                             </a>
                         </div>`;
-                    productGrid.innerHTML += productEl;
                 });
-            } catch (error) {
-                console.error("Ürünler yüklenemedi:", error);
-                productGrid.innerHTML = '<p>Ürünler yüklenirken bir hata oluştu.</p>';
-            }
+            } catch (error) { console.error("Ürünler yüklenemedi:", error); }
         }
         
         async function fetchCategories() {
-            const categoryGrid = document.getElementById('category-grid');
              try {
                 const querySnapshot = await getDocs(collection(db, "categories"));
                 categoryGrid.innerHTML = '';
                 querySnapshot.forEach((doc) => {
-                    const category = doc.data();
-                    const categoryName = category.name[userPreferences.lang] || category.name.tr;
-                    categoryGrid.innerHTML += `<a href="#" class="block bg-white p-4 rounded-lg shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 text-center"><h3 class="font-semibold">${categoryName}</h3></a>`;
+                    const cat = doc.data();
+                    const catNames = cat.name || {};
+                    const catName = catNames[userPreferences.lang] || catNames.tr || "İsimsiz Kategori";
+                    categoryGrid.innerHTML += `
+                    <div class="relative bg-white p-4 rounded-lg shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 text-center">
+                        <h3 class="font-semibold">${catName}</h3>
+                        <button class="gemini-cat-btn absolute top-1 right-1 text-purple-600 hover:text-indigo-800" data-category-name="${catName}">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 18.5A2.5 2.5 0 0 1 7.5 21a2.5 2.5 0 0 1-4.81-1.19c.1-.98.99-2.31 2.31-2.31h.21a2.5 2.5 0 0 0 2.31-2.31v-.21a2.5 2.5 0 0 1 2.31-2.31 2.5 2.5 0 0 1 2.5 2.5Z"/><path d="M12 18.5a2.5 2.5 0 0 0 4.5-1.5c.34-.66 1.44-1.5 2.5-1.5s2.16.84 2.5 1.5a2.5 2.5 0 0 0 4.5 1.5c.34.66 1.44 1.5 2.5 1.5a2.5 2.5 0 0 1 0 5c-1.06 0-2.16-.84-2.5-1.5A2.5 2.5 0 0 0 21.5 17a2.5 2.5 0 0 0-4.5 1.5c-.34.66-1.44 1.5-2.5 1.5s-2.16-.84-2.5-1.5A2.5 2.5 0 0 0 9.5 17a2.5 2.5 0 0 0-4.5 1.5c-.34.66-1.44 1.5-2.5 1.5S.34 19.16 0 18.5a2.5 2.5 0 0 1 5-1.5c1.06 0 2.16.84 2.5 1.5A2.5 2.5 0 0 0 9.5 20a2.5 2.5 0 0 0 2.5-1.5Z"/></svg>
+                        </button>
+                    </div>`;
                 });
-            } catch (error) {
-                console.error("Kategoriler yüklenemedi:", error);
-            }
+            } catch (error) { console.error("Kategoriler yüklenemedi:", error); }
         }
 
         // --- Event Listenerları Başlat ---
-        addPreferenceChangerListeners();
+        function setupEventListeners() {
+            geminiSloganBtn.addEventListener('click', generateSlogan);
+            closeGeminiModalBtn.addEventListener('click', () => geminiDescModal.classList.add('hidden'));
+
+            categoryGrid.addEventListener('click', (e) => {
+                const btn = e.target.closest('.gemini-cat-btn');
+                if (btn) {
+                    const categoryName = btn.dataset.categoryName;
+                    generateCategoryDescription(categoryName);
+                }
+            });
+
+            document.getElementById('country-changer').addEventListener('change', (e) => {
+                const newCountry = siteConfig.countries.find(c => c.code === e.target.value);
+                userPreferences.country = newCountry.code; userPreferences.lang = newCountry.lang; userPreferences.currency = newCountry.currency;
+                saveAndReload();
+            });
+            document.getElementById('language-changer').addEventListener('change', e => { userPreferences.lang = e.target.value; saveAndReload(); });
+            document.getElementById('currency-changer').addEventListener('change', e => { userPreferences.currency = e.target.value; saveAndReload(); });
+        }
+        
+        initializeModals();
+        setupEventListeners();
+
     </script>
 </body>
 </html>
