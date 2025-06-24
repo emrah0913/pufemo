@@ -78,7 +78,6 @@
             background-color: var(--primary-color); border-radius: 3px; 
             transition: all 0.3s ease-in-out; 
         }
-        .hamburger-menu.open span { background-color: var(--light-text-color); }
         .hamburger-menu.open span:nth-child(1) { transform: translateY(11px) rotate(45deg); }
         .hamburger-menu.open span:nth-child(2) { opacity: 0; }
         .hamburger-menu.open span:nth-child(3) { transform: translateY(-11px) rotate(-45deg); }
@@ -580,13 +579,11 @@
             categories: { tree: [] },
             products: []
         };
-        // Dil, para birimi ve ülke bilgisi artık başlangıçta varsayılan, sonra welcome modal veya manuel seçimle güncellenecek
-        // localStorage'dan okunan dil ve para birimi tercihlerini koru
+        // Dil ve para birimi başlangıçta localStorage'dan okunacak veya varsayılan olacak
+        // Ülke kodu ise sadece modaldan gelecek veya ilk yüklemede varsayılan olacak
         let currentLang = localStorage.getItem('pufemo-language') || DEFAULT_FALLBACK_LANG; 
         let currentCurrency = localStorage.getItem('pufemo-currency') || 'USD';
-        // Ülke seçimi her zaman sorulacağı için localStorage'dan okumayı kaldırıyoruz,
-        // ancak init anında varsayılan bir değerle başlayacak.
-        let currentCountryCode = DEFAULT_COUNTRY_CODE; 
+        let currentCountryCode = DEFAULT_COUNTRY_CODE; // Bu değer init içinde ilk ülke ile güncellenecek
 
         // Make staticTranslations globally accessible (for other scripts if any, and for robustness)
         window.staticTranslations = {
@@ -655,7 +652,8 @@
             // Language and currency preferences are saved to localStorage to persist user choices
             localStorage.setItem('pufemo-language', currentLang);
             localStorage.setItem('pufemo-currency', currentCurrency);
-            // 'pufemo-country' localStorage'a kaydedilmiyor, çünkü her girişte sorulması isteniyor.
+            // 'pufemo-country' artık localStorage'a kaydediliyor, böylece bir dahaki girişte dil otomatik olarak ayarlanabilir.
+            localStorage.setItem('pufemo-country', countryCode); 
         };
         
         const formatPrice = (basePrice, discountPrice = null) => {
@@ -968,7 +966,6 @@
                 countrySelector.parentElement.style.display = 'block';
 
                 welcomeCountrySelect.innerHTML = countryOptionsHtml;
-                // welcomeCountrySelect.value = currentCountryCode; // Bu zaten fetchData içinde yapıldı, tekrara gerek yok
             } else {
                 countrySelector.parentElement.style.display = 'none';
                 welcomeModalOverlay.style.display = 'none';
@@ -978,12 +975,14 @@
             languageSelector.removeEventListener('change', handleLanguageChange);
             currencySelector.removeEventListener('change', handleCurrencyChange);
             countrySelector.removeEventListener('change', handleCountryChange);
-            // welcomeModalConfirmButton.removeEventListener('click', handleWelcomeModalConfirm); // Bu satır kaldırıldı
+            // welcomeModalConfirmButton'a artık doğrudan HTML'den click eklendiği için bu kaldırıldı:
+            // welcomeModalConfirmButton.removeEventListener('click', handleWelcomeModalConfirm); 
 
             languageSelector.addEventListener('change', handleLanguageChange);
             currencySelector.addEventListener('change', handleCurrencyChange);
             countrySelector.addEventListener('change', handleCountryChange);
-            // welcomeModalConfirmButton.addEventListener('click', handleWelcomeModalConfirm); // Bu satır kaldırıldı
+            // welcomeModalConfirmButton'a artık doğrudan HTML'den click eklendiği için bu kaldırıldı:
+            // welcomeModalConfirmButton.addEventListener('click', handleWelcomeModalConfirm); 
             
             const toggleMenu = () => {
                 hamburgerBtn.classList.toggle('open');
@@ -1021,7 +1020,7 @@
 
         // Welcome modalın onay butonu için global olarak tanımlanmış handler
         window.handleWelcomeModalConfirm = () => { // window objesine bağlandı
-            console.log("Welcome modal confirm button click handler fired from HTML!"); // BU SATIR HATA AYIKLAMA İÇİN KRİTİK
+            console.log("Welcome modal confirm button click handler fired from HTML!"); // HATA AYIKLAMA İÇİN KRİTİK
             const selectedCountry = welcomeCountrySelect.value;
             if (selectedCountry) {
                 console.log("Selected country in modal:", selectedCountry); 
@@ -1079,15 +1078,17 @@
                 if (availableCountries.length > 0) {
                     // Welcome modal SELECT'ini doldur
                     welcomeCountrySelect.innerHTML = Object.entries(siteData.settings.countryPricing).map(([code, data]) => {
-                        const countryName = data.name?.[DEFAULT_FALLBACK_LANG] || code.toUpperCase(); 
+                        // Burada welcome modal açılmadan önce currentLang tam olarak belli olmayabilir.
+                        // Bu yüzden ülke adını çevirirken localStorage'daki dile veya varsayılana bakalım.
+                        const countryName = data.name?.[localStorage.getItem('pufemo-language') || DEFAULT_FALLBACK_LANG] || code.toUpperCase(); 
                         return `<option value="${code}">${countryCodeToEmoji(data.flag)} ${countryName}</option>`;
                     }).join('');
                     
-                    // currentCountryCode'u Firebase'den gelen ilk ülkeye ayarla
-                    currentCountryCode = availableCountries[0]; 
-                    welcomeCountrySelect.value = currentCountryCode;
+                    // currentCountryCode'u, localStorage'da kaydedilmiş bir ülke varsa o, yoksa Firebase'deki ilk ülke yap
+                    currentCountryCode = localStorage.getItem('pufemo-country') || availableCountries[0];
+                    welcomeCountrySelect.value = currentCountryCode; // Modalın başlangıç değeri
 
-                    // Bu ilk ülkeye göre dil ve para birimini ayarla
+                    // Bu belirlenen ülkeye göre dil ve para birimini ayarla
                     updateLanguageAndCurrencyForCountry(currentCountryCode); 
                     console.log(`fetchData: Initial currentCountryCode set to ${currentCountryCode}.`); // Hata ayıklama için eklendi
                 } else {
