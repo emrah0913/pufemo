@@ -77,7 +77,16 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
     <script>
-        const firebaseConfig = { apiKey: "...", authDomain: "...", projectId: "..." }; // Kendi config bilginiz
+        // --- DOĞRU FIREBASE YAPILANDIRMASI ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyDYkzZzNXB22U4oEXxOoPh-puwuE8kz0g4",
+            authDomain: "pufemo-com.firebaseapp.com",
+            projectId: "pufemo-com",
+            storageBucket: "pufemo-com.firebasestorage.app",
+            messagingSenderId: "983352837227",
+            appId: "1:983352837227:web:defaa8dae215776e2e1d2e",
+            measurementId: "G-RH8XHC7P91"
+        };
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
@@ -93,7 +102,7 @@
         async function loadItems(collectionName, listId, formatter) {
             const listElement = document.getElementById(listId);
             listElement.innerHTML = '<li class="list-group-item">Yükleniyor...</li>';
-            const snapshot = await db.collection(collectionName).get();
+            const snapshot = await db.collection(collectionName).orderBy('name').get();
             listElement.innerHTML = '';
             snapshot.forEach(doc => {
                 const item = doc.data();
@@ -118,8 +127,8 @@
 
         document.getElementById('language-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const name = document.getElementById('languageName').value;
-            const code = document.getElementById('languageCode').value;
+            const name = document.getElementById('languageName').value.trim();
+            const code = document.getElementById('languageCode').value.trim();
             if (!name || !code) return;
             await db.collection('languages').add({ name, code });
             e.target.reset();
@@ -128,9 +137,9 @@
 
         document.getElementById('currency-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const name = document.getElementById('currencyName').value;
-            const code = document.getElementById('currencyCode').value;
-            const symbol = document.getElementById('currencySymbol').value;
+            const name = document.getElementById('currencyName').value.trim();
+            const code = document.getElementById('currencyCode').value.trim().toUpperCase();
+            const symbol = document.getElementById('currencySymbol').value.trim();
             if (!name || !code || !symbol) return;
             await db.collection('currencies').add({ name, code, symbol });
             e.target.reset();
