@@ -336,7 +336,7 @@
                 productDetailRelatedProducts: 'Related Products',
                 productDetailExplore: 'Explore',
                 productDetailShippingInfo: 'Shipping Information',
-                productDetailReturnExchange: 'Return and Exchange',
+                productDetailReturnAndExchange: 'Return and Exchange', // Fixed typo here
                 productDetailAdditionalInfo: 'Additional Information',
                 productDetailNoVariants: 'No variant options.',
                 productNotFound: 'Product not found!',
@@ -362,8 +362,7 @@
         const productNameEl = document.getElementById('product-name');
         const productSkuEl = document.getElementById('product-sku');
         const productPriceEl = document.getElementById('product-price');
-        // const mainProductImageEl = document.getElementById('main-product-image'); // Bu artık kullanılmıyor
-        const mainMediaDisplayEl = document.getElementById('main-media-display'); // Yeni ana medya kapsayıcısı
+        const mainMediaDisplayEl = document.getElementById('main-media-display'); // Ana medya kapsayıcısı
         const productThumbnailsEl = document.getElementById('product-thumbnails');
         const productVariantsEl = document.getElementById('product-variants');
         const quantityInput = document.getElementById('quantity');
@@ -388,10 +387,9 @@
         const menuRegisterLink = document.getElementById('menu-register-link');
 
         document.addEventListener('DOMContentLoaded', async () => {
-            await loadCommonData();
-            await populateHeaderSelectors();
+            await loadCommonDataAndPopulateHeader(); // loadCommonData ve populateHeaderSelectors birleştirildi
             updateHeaderDisplays();
-            updateStaticContent(); // Ortak metinler için footer vb. güncelle
+            updateStaticContent(); 
             updateCartItemCount();
 
             // Ürün ID'sini URL'den al
@@ -402,7 +400,6 @@
                 await loadProductDetails(productId);
             } else {
                 console.error("Ürün ID'si bulunamadı.");
-                // Ürün bulunamadı mesajı gösterilebilir
                 displayProductNotFound();
             }
 
@@ -419,7 +416,8 @@
             });
         });
 
-        async function loadCommonData() {
+        // Ortak verileri yükler ve header seçicilerini doldurur
+        async function loadCommonDataAndPopulateHeader() {
             try {
                 const [countriesSnapshot, languagesSnapshot, currenciesSnapshot, settingsDoc] = await Promise.all([
                     db.collection('countries').get(),
@@ -432,23 +430,27 @@
                 allLanguages = languagesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 allCurrencies = currenciesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 siteSettings = settingsDoc.exists ? settingsDoc.data() : {};
+
+                // Headerdaki seçicileri doldur
+                populateHeaderSelectors();
             } catch (error) {
                 console.error("Ortak Firebase verileri yüklenirken hata:", error);
                 alert("Site temel verileri yüklenirken bir sorun oluştu.");
-                // Hata durumunda varsayılan değerler
                 allCountries = []; allLanguages = []; allCurrencies = []; siteSettings = {};
                 localStorage.setItem(LS_SELECTED_LANGUAGE_CODE, 'en');
                 localStorage.setItem(LS_SELECTED_CURRENCY_CODE, 'USD');
+                populateHeaderSelectors(); // Hata durumunda bile Header'ı boş veya varsayılan değerlerle doldur
             }
         }
+
 
         // Medya gösterimini güncelleyen yardımcı fonksiyon
         function updateMainMediaDisplay(url) {
             mainMediaDisplayEl.innerHTML = ''; // Önceki içeriği temizle
 
             const isImage = url.match(/\.(jpeg|jpg|gif|png|webp)$/i);
-            const isMp4Video = url.match(/\.(mp4|webm|ogg)$/i);
-            const isYouTube = url.includes('youtube.com/watch?v=') || url.includes('youtu.be/');
+            const isMp4Video = url.match(/\.(mp4|webm|ogg|mov)$/i); // .mov eklendi
+            const isYouTube = url.includes('youtube.com/') || url.includes('youtu.be/');
             const isVimeo = url.includes('vimeo.com/');
 
             if (isImage) {
@@ -459,10 +461,10 @@
             } else if (isMp4Video) {
                 const video = document.createElement('video');
                 video.src = url;
-                video.controls = true; // Ana gösterimde kontrolleri göster
-                video.autoplay = true; // Otomatik oynat
-                video.muted = true; // Başlangıçta sessiz
-                video.loop = true; // Döngüde oynat
+                video.controls = true; 
+                video.autoplay = true; 
+                video.muted = true; 
+                video.loop = true; 
                 mainMediaDisplayEl.appendChild(video);
             } else if (isYouTube) {
                 let videoId = '';
@@ -473,7 +475,7 @@
                 
                 if (videoId) {
                     const iframe = document.createElement('iframe');
-                    iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=1`;
+                    iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=1`; // Doğru YouTube embed URL'si
                     iframe.setAttribute('frameborder', '0');
                     iframe.setAttribute('allow', 'autoplay; encrypted-media');
                     iframe.setAttribute('allowfullscreen', '');
@@ -482,7 +484,7 @@
                     mainMediaDisplayEl.innerHTML = '<p class="text-danger">Geçersiz YouTube URL\'si</p>';
                 }
             } else if (isVimeo) {
-                let videoId = url.split('vimeo.com/')[1];
+                let videoId = '';
                 const vimeoMatch = url.match(/(?:vimeo\.com\/)(\d+)/);
                 if (vimeoMatch && vimeoMatch[1]) {
                     videoId = vimeoMatch[1];
@@ -542,7 +544,7 @@
                     updateMainMediaDisplay(product.mediaUrls[0]); // İlk medyayı ana gösterimde göster
 
                     product.mediaUrls.forEach((url, index) => {
-                        const isVideo = url.match(/\.(mp4|webm|ogg)$/i) || url.includes('youtube.com/watch?v=') || url.includes('youtu.be/') || url.includes('vimeo.com/');
+                        const isVideo = url.match(/\.(mp4|webm|ogg|mov)$/i) || url.includes('youtube.com/') || url.includes('youtu.be/') || url.includes('vimeo.com/');
                         
                         let thumbEl;
                         if (isVideo) {
@@ -552,17 +554,13 @@
                             thumbEl.setAttribute('preload', 'metadata');
                             // YouTube/Vimeo için thumbnail URL'si çekme denemesi (API olmadan tam garanti vermez)
                             let videoId = '';
-                            if (url.includes('youtube.com/watch?v=') || url.includes('youtu.be/')) {
+                            if (url.includes('youtube.com/') || url.includes('youtu.be/')) {
                                 const youtubeMatch = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
                                 if (youtubeMatch && youtubeMatch[1]) videoId = youtubeMatch[1];
                                 if (videoId) thumbEl.poster = `https://img.youtube.com/vi/${videoId}/default.jpg`; // YouTube thumbnail
                             } else if (url.includes('vimeo.com/')) {
-                                const vimeoMatch = url.match(/(?:vimeo\.com\/)(\d+)/);
-                                if (vimeoMatch && vimeoMatch[1]) {
-                                    videoId = vimeoMatch[1];
-                                    // Vimeo API'ye doğrudan HTTP isteği gerekir, şimdilik basit bir placeholder
-                                    thumbEl.poster = `https://via.placeholder.com/80x80?text=Vimeo`;
-                                }
+                                // Vimeo thumbnail API çağrısı gerektirir, şimdilik basit placeholder
+                                thumbEl.poster = `https://via.placeholder.com/80x80?text=Vimeo`;
                             }
                             if (!thumbEl.poster) thumbEl.poster = `https://via.placeholder.com/80x80?text=Video`; // Genel video thumbnail
                             thumbEl.src = url; // Video URL'si
@@ -751,35 +749,7 @@
 
         // --- Header ve Footer İçin Ortak Fonksiyonlar (index.html'den kopyalandı) ---
 
-        async function loadCommonDataAndPopulateHeader() {
-            try {
-                const [countriesSnapshot, languagesSnapshot, currenciesSnapshot, settingsDoc] = await Promise.all([
-                    db.collection('countries').get(),
-                    db.collection('languages').get(),
-                    db.collection('currencies').get(),
-                    db.collection('settings').doc('siteConfig').get()
-                ]);
-
-                allCountries = countriesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                allLanguages = languagesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                allCurrencies = currenciesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                siteSettings = settingsDoc.exists ? settingsDoc.data() : {};
-
-                // Headerdaki seçicileri doldur
-                populateHeaderSelectors();
-            } catch (error) {
-                console.error("Ortak Firebase verileri yüklenirken hata:", error);
-                alert("Site temel verileri yüklenirken bir sorun oluştu.");
-                allCountries = []; allLanguages = []; allCurrencies = []; siteSettings = {};
-                localStorage.setItem(LS_SELECTED_LANGUAGE_CODE, 'en');
-                localStorage.setItem(LS_SELECTED_CURRENCY_CODE, 'USD');
-                // Hata durumunda bile Header'ı boş veya varsayılan değerlerle doldur
-                populateHeaderSelectors();
-            }
-        }
-
-
-        function populateHeaderSelectors() {
+        async function populateHeaderSelectors() {
             const currentLangCode = localStorage.getItem(LS_SELECTED_LANGUAGE_CODE) || 'tr';
             headerCountrySelect.innerHTML = '';
             allCountries.forEach(country => {
