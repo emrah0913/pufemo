@@ -340,16 +340,17 @@
                 authLoginBtn: 'Giriş Yap',
                 authRegisterBtn: 'Kayıt Ol',
                 authGuestBtn: 'Misafir Olarak Devam Et',
-                settingsSaved: 'Ayarlar güncellendi!', // Yeni eklendi
-                noSliders: 'Slider Mevcut Değil', // Yeni eklendi
-                noSlidersMessage: 'Yönetici panelinden slider ekleyebilirsiniz.', // Yeni eklendi
-                sliderLoadingError: 'Slider Yüklenirken Hata', // Yeni eklendi
-                noCategories: 'Gösterilecek öne çıkan kategori bulunamadı.', // Yeni eklendi
-                categoriesLoadingError: 'Kategoriler yüklenemedi.', // Yeni eklendi
-                noProducts: 'Gösterilecek yeni ürün bulunamadı.', // Yeni eklendi
-                productsLoadingError: 'Ürünler yüklenemedi. Firebase kurallarınızı ve dizinlerinizi kontrol edin.', // Yeni eklendi
-                footerAddressNotFound: 'Adres bilgisi bulunamadı.', // Yeni eklendi
-                promoDefaultText: 'Harika fırsatlar için bizi takip edin!' // Yeni eklendi
+                settingsSaved: 'Ayarlar güncellendi!', 
+                noSliders: 'Slider Mevcut Değil', 
+                noSlidersMessage: 'Yönetici panelinden slider ekleyebilirsiniz.', 
+                sliderLoadingError: 'Slider Yüklenirken Hata', 
+                noCategories: 'Gösterilecek öne çıkan kategori bulunamadı.', 
+                categoriesLoadingError: 'Kategoriler yükleniyor...', 
+                productsLoading: 'Ürünler yükleniyor...', // Yeni eklendi
+                noProducts: 'Gösterilecek yeni ürün bulunamadı.', 
+                productsLoadingError: 'Ürünler yüklenemedi. Firebase kurallarınızı ve dizinlerinizi kontrol edin.', 
+                footerAddressNotFound: 'Adres bilgisi bulunamadı.', 
+                promoDefaultText: 'Harika fırsatlar için bizi takip edin!' 
             },
             'en': {
                 welcomeModalTitle: 'Welcome!',
@@ -365,7 +366,8 @@
                 noSlidersMessage: 'You can add sliders from the admin panel.',
                 sliderLoadingError: 'Slider Loading Error',
                 noCategories: 'No featured categories found.',
-                categoriesLoadingError: 'Failed to load categories.',
+                categoriesLoadingError: 'Loading categories...',
+                productsLoading: 'Loading products...',
                 noProducts: 'No new products found.',
                 productsLoadingError: 'Failed to load products. Check your Firebase rules and indexes.',
                 footerAddressNotFound: 'Address not found.',
@@ -385,7 +387,8 @@
                 noSlidersMessage: 'Sie können Slider über das Admin-Panel hinzufügen.',
                 sliderLoadingError: 'Slider Ladefehler',
                 noCategories: 'Keine vorgestellten Kategorien gefunden.',
-                categoriesLoadingError: 'Kategorien konnten nicht geladen werden.',
+                categoriesLoadingError: 'Kategorien werden geladen...',
+                productsLoading: 'Produkte werden geladen...',
                 noProducts: 'Keine neuen Produkte gefunden.',
                 productsLoadingError: 'Produkte konnten nicht geladen werden. Überprüfen Sie Ihre Firebase-Regeln und -Indizes.',
                 footerAddressNotFound: 'Adresse nicht gefunden.',
@@ -405,7 +408,8 @@
                 noSlidersMessage: 'Μπορείτε να προσθέσετε slider από τον πίνακα διαχείρισης.',
                 sliderLoadingError: 'Σφάλμα φόρτωσης slider',
                 noCategories: 'Δεν βρέθηκαν επιλεγμένες κατηγορίες.',
-                categoriesLoadingError: 'Αδυναμία φόρτωσης κατηγοριών.',
+                categoriesLoadingError: 'Φόρτωση κατηγοριών...',
+                productsLoading: 'Φόρτωση προϊόντων...',
                 noProducts: 'Δεν βρέθηκαν νέα προϊόντα.',
                 productsLoadingError: 'Αδυναμία φόρτωσης προϊόντων. Ελέγξτε τους κανόνες και τους δείκτες του Firebase.',
                 footerAddressNotFound: 'Διεύθυνση δεν βρέθηκε.',
@@ -436,6 +440,10 @@
                 alert("Site verileri yüklenirken bir sorun oluştu. Lütfen daha sonra tekrar deneyin ve Firebase konsolunuzu kontrol edin.");
                 // Hata durumunda varsayılan olarak İngilizce metinleri gösterelim
                 updateAllModalTexts('en');
+                // Firebase'den veri yüklenemezse, allCountries, allLanguages, allCurrencies boş kalır.
+                // Bu durum aşağıdaki handleInitialModalsAndSelections'ı etkileyebilir.
+                // Basit bir varsayılan ülke/dil/para birimi seti oluşturulabilir
+                // (örneğin sadece TR/TRY/Türkçe varsayılanları ile)
             }
 
             // Modalları ve seçimleri yönet
@@ -459,40 +467,35 @@
         async function handleInitialModalsAndSelections() {
             // Ülke seçimini localStorage'dan al
             const storedCountryCode = localStorage.getItem(LS_SELECTED_COUNTRY_CODE);
-            let initialLangCode = 'en'; // Varsayılan başlangıç dili İngilizce
+            let initialLangCodeForModals = 'en'; // Varsayılan başlangıç dili İngilizce
 
             if (storedCountryCode) {
                 const selectedCountryData = allCountries.find(c => c.code === storedCountryCode);
                 if (selectedCountryData) {
-                    // Eğer daha önce bir ülke seçilmişse, modal metinleri için o ülkenin dilini kullan
-                    initialLangCode = selectedCountryData.language || 'tr'; // Firebase'den gelen dili kullan
-                    // localStorage'a kaydedilen dil ve para birimini ayarla
+                    initialLangCodeForModals = selectedCountryData.language || 'tr'; 
                     localStorage.setItem(LS_SELECTED_LANGUAGE_CODE, selectedCountryData.language || 'tr');
                     localStorage.setItem(LS_SELECTED_CURRENCY_CODE, selectedCountryData.currency || 'TRY');
                 } else {
-                    // Eğer storedCountryCode var ama veri tabanında bulunamazsa varsayılanları kullan
-                    localStorage.setItem(LS_SELECTED_LANGUAGE_CODE, 'tr');
+                    // Stored country not found in Firebase, fall back to default
+                    localStorage.setItem(LS_SELECTED_LANGUAGE_CODE, 'tr'); 
                     localStorage.setItem(LS_SELECTED_CURRENCY_CODE, 'TRY');
                 }
             } else {
-                // Hiç seçim yapılmamışsa varsayılan Türkçe dilini localStorage'a kaydet
-                // Bu durum, kullanıcı bir seçim yapana kadar varsayılan olarak TR olmasını sağlar.
-                // Ancak modal metinleri initialLangCode 'en' olduğu için İngilizce başlayacak.
+                // No stored country, set default TR for future use, but modal starts EN
                 localStorage.setItem(LS_SELECTED_LANGUAGE_CODE, 'tr'); 
                 localStorage.setItem(LS_SELECTED_CURRENCY_CODE, 'TRY');
             }
             
-            // Modal metinlerini belirlenen başlangıç diline ayarla (ilk kez geliyorsa İngilizce, sonraki gelişlerde önceki dil)
-            updateAllModalTexts(initialLangCode); // Modalların dilini ayarlar
+            // Modalların metinlerini belirlenen başlangıç diline ayarla (ilk kez geliyorsa İngilizce, sonraki gelişlerde önceki dil)
+            updateAllModalTexts(initialLangCodeForModals);
 
-            // Modal'daki ülke seçicisini doldur ve placeholder'ı ayarla
-            // Placeholder metni updateAllModalTexts içinde zaten güncelleniyor.
-            countrySelectModal.innerHTML = ''; // Mevcut seçenekleri temizle
+            // Modal'daki ülke seçicisini doldur
+            countrySelectModal.innerHTML = ''; // Mevcut seçenekleri temizle (önceki placeholder da dahil)
             allCountries.forEach(country => {
                 const option = document.createElement('option');
                 option.value = country.code;
                 // Ülke adının çevirisi varsa onu kullan, yoksa Firebase'den gelen doğrudan ismi kullan
-                const countryNameDisplay = country[`name_${initialLangCode}`] || country.name_tr || country.name;
+                const countryNameDisplay = country[`name_${initialLangCodeForModals}`] || country.name_tr || country.name;
                 option.textContent = countryNameDisplay; 
                 countrySelectModal.appendChild(option);
             });
@@ -500,6 +503,13 @@
             // Eğer bir önceki seçim varsa, onu varsayılan olarak seçili yap
             if (storedCountryCode) {
                 countrySelectModal.value = storedCountryCode;
+            } else {
+                // Eğer hiç seçim yoksa, placeholder'ı en başa ekle ve seçili yap
+                const placeholderOption = document.createElement('option');
+                placeholderOption.value = "";
+                placeholderOption.textContent = appTexts[initialLangCodeForModals].countrySelectPlaceholder;
+                countrySelectModal.prepend(placeholderOption);
+                countrySelectModal.value = ""; // Placeholder'ı seçili yap
             }
             
             // HER ZAMAN HOŞ GELDİNİZ MODALINI GÖSTER
@@ -515,24 +525,22 @@
             welcomeCountryPrompt.textContent = texts.welcomeModalCountryPrompt;
             selectCountryBtn.textContent = texts.welcomeModalContinueBtn;
             
-            // Ülke seçimi dropdown placeholder'ını da güncelle (yeniden doldurmak yerine sadece placeholder'ı güncelleyelim)
+            // Ülke seçimi dropdown placeholder'ını ve seçeneklerin dilini de güncelle
             const currentCountrySelectValue = countrySelectModal.value; // Mevcut seçili değeri koru
             
-            // Eğer dropdown henüz doldurulmamışsa (ilk yükleme gibi), önce placeholder'ı ekle
+            // Placeholder'ı güncelleyelim, eğer varsa
             let placeholderOption = countrySelectModal.querySelector('option[value=""]');
-            if (!placeholderOption) {
-                placeholderOption = document.createElement('option');
-                placeholderOption.value = "";
-                countrySelectModal.prepend(placeholderOption);
+            if (placeholderOption) {
+                placeholderOption.textContent = texts.countrySelectPlaceholder;
             }
-            placeholderOption.textContent = texts.countrySelectPlaceholder;
             
             // Seçeneklerin dilini güncelle (ülke adlarının çevirileri varsa)
             countrySelectModal.querySelectorAll('option').forEach(option => {
                 const countryCode = option.value;
-                if (countryCode) {
+                if (countryCode) { // Placeholder dışındaki option'lar için
                     const countryData = allCountries.find(c => c.code === countryCode);
                     if (countryData) {
+                        // Ülke adının o dildeki karşılığı varsa onu kullan, yoksa Türkçe veya orijinal adı kullan
                         option.textContent = countryData[`name_${languageCode}`] || countryData.name_tr || countryData.name;
                     }
                 }
@@ -559,11 +567,14 @@
         }
 
         async function populateHeaderSelectors() {
+            // Header'daki ülke seçicisini doldur
+            // Ülke adlarının çevirisi header dropdown'da da desteklenebilir.
+            const currentLangCode = localStorage.getItem(LS_SELECTED_LANGUAGE_CODE) || 'tr';
             headerCountrySelect.innerHTML = '';
             allCountries.forEach(country => {
                 const option = document.createElement('option');
                 option.value = country.code;
-                option.textContent = country.name; // Header seçicide ülke adı çevirisi yapılmadı, sadece ana adı
+                option.textContent = country[`name_${currentLangCode}`] || country.name_tr || country.name;
                 headerCountrySelect.appendChild(option);
             });
 
@@ -571,7 +582,7 @@
             allLanguages.forEach(lang => {
                 const option = document.createElement('option');
                 option.value = lang.code;
-                option.textContent = lang.name;
+                option.textContent = lang.name; // Dilin adı çeviriye ihtiyaç duymaz genellikle (Türkçe, English)
                 headerLanguageSelect.appendChild(option);
             });
 
@@ -616,7 +627,7 @@
             updateHeaderDisplays();
             updateStaticContent(); 
             
-            // Modalların dilini güncelle (ülke seçimi veya header'dan değişiklik yapıldığında)
+            // Modalların dilini güncelle
             const newLangCode = localStorage.getItem(LS_SELECTED_LANGUAGE_CODE) || 'tr';
             updateAllModalTexts(newLangCode);
 
@@ -633,6 +644,7 @@
                 welcomeCountryModal.hide();
                 authModal.show(); // Ülke seçildikten sonra yetkilendirme modalını göster
             } else {
+                // Kullanıcı boş bırakıp devam etmeye çalışırsa mevcut dil ile uyarı ver
                 const currentLang = localStorage.getItem(LS_SELECTED_LANGUAGE_CODE) || 'tr';
                 alert(appTexts[currentLang]?.welcomeModalCountryPrompt || appTexts['en'].welcomeModalCountryPrompt);
             }
@@ -765,7 +777,7 @@
             const newArrivalsContainer = document.getElementById('new-arrivals');
             const currentLanguageCode = localStorage.getItem(LS_SELECTED_LANGUAGE_CODE) || 'tr';
             const texts = appTexts[currentLanguageCode] || appTexts['en'];
-            newArrivalsContainer.innerHTML = `<p class="text-center col-12">${texts.productsLoadingError}</p>`;
+            newArrivalsContainer.innerHTML = `<p class="text-center col-12">${texts.productsLoading}</p>`;
 
 
             const currentCurrencyCode = localStorage.getItem(LS_SELECTED_CURRENCY_CODE) || 'TRY';
@@ -795,7 +807,7 @@
                     
                     const imageUrl = (product.mediaUrls && product.mediaUrls.length > 0) 
                                      ? product.mediaUrls[0] 
-                                     : `https://via.placeholder.com/300x200/f5f5f5/333333?text=${encodeURIComponent('Ürün')}`; 
+                                     : `https://via.placeholder.com/300x200/f5f5f5/333333?text=${encodeURIComponent(productName)}`; // Ürün adı placeholder olarak kullanıldı
                     
                     let price = product.basePriceTRY || 0; 
 
@@ -815,32 +827,3 @@
                                     <button class="btn btn-primary btn-sm add-to-cart-btn" data-product-id="${product.id}">Sepete Ekle</button>
                                 </div>
                             </div>
-                        </div>`;
-                });
-            } catch (error) {
-                console.error("Yeni ürünler yüklenirken hata:", error);
-                newArrivalsContainer.innerHTML = `<p class="text-center col-12 text-danger">${texts.productsLoadingError}</p>`;
-            }
-        }
-
-        // Sepet sayacı için basit bir placeholder (gerçek sepet mantığı daha sonra eklenecek)
-        function updateCartItemCount() {
-            const cartItems = JSON.parse(localStorage.getItem('pufemo_cart_items') || '[]');
-            document.getElementById('cart-item-count').textContent = cartItems.length;
-        }
-        // Sepete Ekle butonu için geçici bir event listener (gerçek sepet mantığı "sepet.html"de detaylandırılacak)
-        document.addEventListener('click', (e) => {
-            if (e.target.classList.contains('add-to-cart-btn')) {
-                const productId = e.target.dataset.productId;
-                alert(`Ürün ID: ${productId} sepete eklendi (geçici).`);
-                // Gerçek sepete ekleme mantığı burada
-                // Örn: let cart = JSON.parse(localStorage.getItem('pufemo_cart_items') || '[]');
-                // cart.push({ productId: productId, quantity: 1 });
-                // localStorage.setItem('pufemo_cart_items', JSON.stringify(cart));
-                updateCartItemCount();
-            }
-        });
-
-    </script>
-</body>
-</html>
