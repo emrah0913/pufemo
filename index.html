@@ -335,6 +335,7 @@
                 welcomeModalTitle: 'Hoş Geldiniz!',
                 welcomeModalCountryPrompt: 'Lütfen ülkenizi seçin:',
                 welcomeModalContinueBtn: 'Devam Et',
+                countrySelectPlaceholder: 'Ülke Seçiniz...', // Yeni eklendi
                 authModalTitle: 'Nasıl Devam Etmek İstersiniz?',
                 authLoginBtn: 'Giriş Yap',
                 authRegisterBtn: 'Kayıt Ol',
@@ -344,6 +345,7 @@
                 welcomeModalTitle: 'Welcome!',
                 welcomeModalCountryPrompt: 'Please select your country:',
                 welcomeModalContinueBtn: 'Continue',
+                countrySelectPlaceholder: 'Select your country...', // Yeni eklendi
                 authModalTitle: 'How would you like to proceed?',
                 authLoginBtn: 'Login',
                 authRegisterBtn: 'Register',
@@ -353,6 +355,7 @@
                 welcomeModalTitle: 'Willkommen!',
                 welcomeModalCountryPrompt: 'Bitte wählen Sie Ihr Land:',
                 welcomeModalContinueBtn: 'Weiter',
+                countrySelectPlaceholder: 'Land auswählen...', // Yeni eklendi
                 authModalTitle: 'Wie möchten Sie fortfahren?',
                 authLoginBtn: 'Anmelden',
                 authRegisterBtn: 'Registrieren',
@@ -381,9 +384,11 @@
             } catch (error) {
                 console.error("Başlangıç Firebase verileri yüklenirken hata:", error);
                 alert("Site verileri yüklenirken bir sorun oluştu. Lütfen daha sonra tekrar deneyin ve Firebase konsolunuzu kontrol edin.");
+                // Hata durumunda varsayılan olarak İngilizce metinleri gösterelim
+                updateAllModalTexts('en');
             }
 
-            // Modalların varsayılan olarak İngilizce başlamasını sağla
+            // Modalların metinlerini başta İngilizce olarak ayarla
             updateAllModalTexts('en');
 
             // Modalları ve seçimleri yönet
@@ -405,21 +410,44 @@
         });
 
         async function handleInitialModalsAndSelections() {
-            // Modal'daki ülke seçicisini doldur
-            countrySelectModal.innerHTML = '<option value="">Lütfen seçiniz...</option>'; // Select placeholder da ingilizce/turkce yapılabilir
+            // Ülke seçimini localStorage'dan al
+            const storedCountryCode = localStorage.getItem(LS_SELECTED_COUNTRY_CODE);
+            let initialLangCodeForModals = 'en'; // Modal metinleri için başlangıç dil kodu
+
+            if (storedCountryCode) {
+                const selectedCountryData = allCountries.find(c => c.code === storedCountryCode);
+                if (selectedCountryData) {
+                    // Eğer daha önce bir ülke seçilmişse, modal metinleri için o ülkenin dilini kullan
+                    initialLangCodeForModals = selectedCountryData.language || 'tr';
+                    // localStorage'a kaydedilen dil ve para birimini ayarla
+                    localStorage.setItem(LS_SELECTED_LANGUAGE_CODE, selectedCountryData.language || 'tr');
+                    localStorage.setItem(LS_SELECTED_CURRENCY_CODE, selectedCountryData.currency || 'TRY');
+                } else {
+                    // Eğer storedCountryCode var ama veri tabanında bulunamazsa varsayılanları kullan
+                    localStorage.setItem(LS_SELECTED_LANGUAGE_CODE, 'tr');
+                    localStorage.setItem(LS_SELECTED_CURRENCY_CODE, 'TRY');
+                }
+            } else {
+                // Hiç seçim yapılmamışsa varsayılan Türkçe dilini localStorage'a kaydet
+                localStorage.setItem(LS_SELECTED_LANGUAGE_CODE, 'tr');
+                localStorage.setItem(LS_SELECTED_CURRENCY_CODE, 'TRY');
+            }
+            
+            // Modal metinlerini belirlenen başlangıç diline ayarla (ilk kez geliyorsa İngilizce, sonraki gelişlerde önceki dil)
+            updateAllModalTexts(initialLangCodeForModals);
+
+            // Modal'daki ülke seçicisini doldur ve placeholder'ı ayarla
+            countrySelectModal.innerHTML = `<option value="">${appTexts[initialLangCodeForModals]?.countrySelectPlaceholder || appTexts['en'].countrySelectPlaceholder}</option>`;
             allCountries.forEach(country => {
                 const option = document.createElement('option');
                 option.value = country.code;
-                option.textContent = country.name;
+                option.textContent = country.name; // Ülke adının çevirisi yoksa direkt ismini kullanırız
                 countrySelectModal.appendChild(option);
             });
 
-            // Ülke seçimini localStorage'dan al, eğer varsa modalı varsayılan olarak seçili başlat
-            const storedCountryCode = localStorage.getItem(LS_SELECTED_COUNTRY_CODE);
+            // Eğer bir önceki seçim varsa, onu varsayılan olarak seçili yap
             if (storedCountryCode) {
                 countrySelectModal.value = storedCountryCode;
-                // Eğer daha önce bir ülke seçilmişse, mevcut seçimi yükleyip display'i güncellemeliyiz.
-                await setSelectedCountry(storedCountryCode); // Bu fonksiyon aynı zamanda dili ve para birimini ayarlar ve modal dilini günceller
             }
             
             // HER ZAMAN HOŞ GELDİNİZ MODALINI GÖSTER
@@ -434,6 +462,17 @@
             welcomeCountryModalLabel.textContent = texts.welcomeModalTitle;
             welcomeCountryPrompt.textContent = texts.welcomeModalCountryPrompt;
             selectCountryBtn.textContent = texts.welcomeModalContinueBtn;
+            // Ülke seçimi dropdown placeholder'ını da güncelle
+            const currentCountrySelectValue = countrySelectModal.value; // Mevcut seçimi koru
+            countrySelectModal.innerHTML = `<option value="">${texts.countrySelectPlaceholder}</option>`;
+            allCountries.forEach(country => {
+                const option = document.createElement('option');
+                option.value = country.code;
+                option.textContent = country.name; 
+                countrySelectModal.appendChild(option);
+            });
+            countrySelectModal.value = currentCountrySelectValue; // Seçimi geri yükle
+
 
             // Auth Modal Metinlerini Güncelle
             authModalLabel.textContent = texts.authModalTitle;
@@ -444,7 +483,7 @@
 
 
         function updateStaticContent() {
-            const currentLangCode = localStorage.getItem(LS_SELECTED_LANGUAGE_CODE) || 'tr'; // Varsayılan dil
+            const currentLangCode = localStorage.getItem(LS_SELECTED_LANGUAGE_CODE) || 'tr'; 
 
             document.getElementById('footer-company-address').textContent = siteSettings[`companyAddress_${currentLangCode}`] || 'Adres bilgisi bulunamadı.';
             document.getElementById('footer-contact-email').textContent = siteSettings.contactEmail || 'info@pufemo.com';
@@ -477,7 +516,6 @@
                 headerCurrencySelect.appendChild(option);
             });
 
-            // Mevcut seçimleri header select box'larında seçili hale getir
             headerCountrySelect.value = localStorage.getItem(LS_SELECTED_COUNTRY_CODE) || '';
             headerLanguageSelect.value = localStorage.getItem(LS_SELECTED_LANGUAGE_CODE) || '';
             headerCurrencySelect.value = localStorage.getItem(LS_SELECTED_CURRENCY_CODE) || '';
@@ -511,7 +549,7 @@
             updateHeaderDisplays();
             updateStaticContent(); 
             
-            // Auth modal ve Welcome modal dilini güncelle
+            // Modalların dilini güncelle (ülke seçimi veya header'dan değişiklik yapıldığında)
             const newLangCode = localStorage.getItem(LS_SELECTED_LANGUAGE_CODE) || 'tr';
             updateAllModalTexts(newLangCode);
 
@@ -528,7 +566,9 @@
                 welcomeCountryModal.hide();
                 authModal.show(); // Ülke seçildikten sonra yetkilendirme modalını göster
             } else {
-                alert('Lütfen bir ülke seçiniz.');
+                // Kullanıcı boş bırakıp devam etmeye çalışırsa mevcut dil ile uyarı ver
+                const currentLang = localStorage.getItem(LS_SELECTED_LANGUAGE_CODE) || 'tr';
+                alert(appTexts[currentLang]?.welcomeModalCountryPrompt || appTexts['en'].welcomeModalCountryPrompt);
             }
         });
 
@@ -543,14 +583,15 @@
             updateHeaderDisplays();
             updateStaticContent(); 
             
-            // Auth modal ve Welcome modal dilini güncelle (header'dan değişiklik yapıldığında)
+            // Modalların dilini güncelle (header'dan değişiklik yapıldığında)
             const newLangCode = localStorage.getItem(LS_SELECTED_LANGUAGE_CODE) || 'tr';
             updateAllModalTexts(newLangCode);
 
             loadHeroSlider();
             loadFeaturedCategories();
             loadNewArrivals();
-            alert('Ayarlar güncellendi!');
+            // Dil değişimi uyarısı
+            alert(appTexts[newLangCode]?.settingsSaved || (newLangCode === 'tr' ? 'Ayarlar güncellendi!' : 'Settings updated!')); 
         });
 
         // --- Dinamik İçerik Yükleme Fonksiyonları (Firebase'den veri çekecek) ---
@@ -568,10 +609,10 @@
                 
                 if (sliderSnapshot.empty) {
                     carouselInner.innerHTML = `<div class="carousel-item active">
-                        <img src="https://via.placeholder.com/1500x500/cccccc/ffffff?text=Slider+Mevcut+Değil" class="d-block w-100" alt="No Slider">
+                        <img src="https://via.placeholder.com/1500x500/cccccc/ffffff?text=No+Sliders+Available" class="d-block w-100" alt="No Slider">
                         <div class="carousel-caption d-none d-md-block">
-                            <h5>Slider Bulunamadı</h5>
-                            <p>Yönetici panelinden slider ekleyebilirsiniz.</p>
+                            <h5>No Sliders Found</h5>
+                            <p>You can add sliders from the admin panel.</p>
                         </div>
                     </div>`;
                     return;
@@ -580,9 +621,9 @@
                 sliderSnapshot.docs.forEach((doc, index) => {
                     const slider = doc.data();
                     const isActive = index === 0 ? 'active' : '';
-                    const title = slider[`title_${currentLanguageCode}`] || slider.title_tr || 'Başlık Yok';
-                    const description = slider[`description_${currentLanguageCode}`] || slider.description_tr || 'Açıklama Yok';
-                    const imageUrl = slider.imageUrl || 'https://via.placeholder.com/1500x500/cccccc/ffffff?text=Resim+Yok';
+                    const title = slider[`title_${currentLanguageCode}`] || slider.title_tr || 'No Title';
+                    const description = slider[`description_${currentLanguageCode}`] || slider.description_tr || 'No Description';
+                    const imageUrl = slider.imageUrl || 'https://via.placeholder.com/1500x500/cccccc/ffffff?text=Image+Missing';
                     const link = slider.linkUrl || '#'; 
 
                     carouselIndicators.innerHTML += `<button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="${index}" class="${isActive}" aria-current="${isActive ? 'true' : 'false'}" aria-label="Slide ${index + 1}"></button>`;
@@ -603,10 +644,10 @@
             } catch (error) {
                 console.error("Slider yüklenirken hata:", error);
                  carouselInner.innerHTML = `<div class="carousel-item active">
-                        <img src="https://via.placeholder.com/1500x500/cccccc/ffffff?text=Slider+Yüklenemedi" class="d-block w-100" alt="Slider Yüklenemedi">
+                        <img src="https://via.placeholder.com/1500x500/cccccc/ffffff?text=Slider+Loading+Error" class="d-block w-100" alt="Slider Yüklenemedi">
                         <div class="carousel-caption d-none d-md-block">
-                            <h5>Slider Yüklenirken Hata</h5>
-                            <p>Lütfen Firebase güvenlik kurallarınızı ve dizinlerinizi kontrol edin.</p>
+                            <h5>Slider Loading Error</h5>
+                            <p>Please check your Firebase security rules and indexes.</p>
                         </div>
                     </div>`;
             }
@@ -628,7 +669,7 @@
                     return;
                 }
                 
-                featuredCategoriesContainer.innerHTML = ''; // Temizle
+                featuredCategoriesContainer.innerHTML = ''; 
 
                 categoriesToShow.forEach(category => {
                     const categoryName = category[`name_${currentLanguageCode}`] || category.name_tr || 'Kategori Adı Yok';
