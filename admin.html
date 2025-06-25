@@ -3,455 +3,217 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PUFEMO - Yönetim Paneli</title>
-
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-
-    <!-- Google Fonts: Poppins -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <title>Ana Panel - PUFEMO Admin</title>
     
-    <!-- Feather Icons -->
-    <script src="https://unpkg.com/feather-icons"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
     <style>
         body {
-            font-family: 'Poppins', sans-serif;
-            background-color: #f1f5f9; /* Tailwind gray-100 */
+            display: flex;
+            background-color: #f0f2f5;
         }
-        .sidebar-link.active, .sidebar-link:hover {
-            background-color: #4338ca; /* indigo-700 */
+        #sidebar {
+            width: 280px;
+            min-height: 100vh;
+            background-color: #343a40;
             color: white;
+            position: fixed;
+            left: 0;
+            top: 0;
         }
-        .sidebar-link {
-            transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+        #main-content {
+            margin-left: 280px;
+            width: calc(100% - 280px);
+            padding: 20px;
         }
-        .content-section {
-            animation: fadeIn 0.5s ease-in-out;
+        .sidebar-header {
+            padding: 20px;
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            border-bottom: 1px solid #495057;
         }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+        .nav-link {
+            color: #adb5bd;
+            padding: 10px 20px;
         }
-        .tab.active {
-            border-bottom-color: #4f46e5;
-            color: #4f46e5;
-            font-weight: 600;
+        .nav-link.active, .nav-link:hover {
+            color: #ffffff;
+            background-color: #495057;
         }
-        .modal {
-            background-color: rgba(0,0,0,0.5);
-            animation: fadeIn 0.3s;
+        .nav-link .bi {
+            margin-right: 10px;
+        }
+        .card {
+            border: none;
+            box-shadow: 0 0 15px rgba(0,0,0,0.05);
         }
     </style>
 </head>
 <body>
 
-    <!-- =================================================================
-         LOGIN EKRANI
-    ================================================================== -->
-    <div id="login-screen" class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-        <div class="max-w-md w-full space-y-8 p-10 bg-white shadow-xl rounded-2xl">
-            <div>
-                <h1 class="text-center text-4xl font-extrabold text-indigo-600">PUFEMO</h1>
-                <h2 class="mt-6 text-center text-2xl font-bold text-gray-900">
-                    Yönetim Paneli Girişi
-                </h2>
+    <div id="sidebar">
+        <div class="sidebar-header">
+            PUFEMO
+        </div>
+        <ul class="nav flex-column">
+            <li class="nav-item">
+                <a class="nav-link active" href="admin.html">
+                    <i class="bi bi-grid-fill"></i>Ana Panel
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="orders.html">
+                    <i class="bi bi-box-seam-fill"></i>Sipariş Yönetimi
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="product-management.html">
+                    <i class="bi bi-tags-fill"></i>Ürün Yönetimi
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="category-management.html">
+                    <i class="bi bi-list-ul"></i>Kategori Yönetimi
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="country-pricing-management.html">
+                    <i class="bi bi-globe-americas"></i>Uluslararası Ayarlar
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#">
+                    <i class="bi bi-gear-fill"></i>Mağaza Ayarları
+                </a>
+            </li>
+             <li class="nav-item mt-auto">
+                <a class="nav-link" id="logout-button" href="#">
+                    <i class="bi bi-box-arrow-left"></i>Çıkış Yap
+                </a>
+            </li>
+        </ul>
+    </div>
+
+    <div id="main-content">
+        <nav class="navbar navbar-expand-lg navbar-light bg-light rounded mb-4">
+            <div class="container-fluid">
+                <span class="navbar-brand">Ana Panel</span>
             </div>
-            <div id="login-error" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
-                <strong class="font-bold">Hata!</strong>
-                <span class="block sm:inline" id="login-error-message"></span>
-            </div>
-            <div class="mt-8 space-y-6">
-                <div class="rounded-md shadow-sm -space-y-px">
-                    <input id="email-address" name="email" type="email" autocomplete="email" required class="appearance-none rounded-none relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm" placeholder="E-posta Adresi">
-                    <input id="password" name="password" type="password" autocomplete="current-password" required class="appearance-none rounded-none relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm" placeholder="Şifre">
+        </nav>
+
+        <div class="row">
+            <div class="col-md-3">
+                <div class="card text-white bg-primary mb-3">
+                    <div class="card-header">Bugünkü Ciro</div>
+                    <div class="card-body">
+                        <h5 class="card-title">₺ 1,250.75</h5>
+                        <p class="card-text">5 Sipariş</p>
+                    </div>
                 </div>
-                <button id="login-button" class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                    Giriş Yap
-                </button>
             </div>
-        </div>
-    </div>
-
-    <!-- =================================================================
-         YETKİ YOK EKRANI
-    ================================================================== -->
-    <div id="unauthorized-screen" class="hidden min-h-screen flex items-center justify-center text-center">
-        <div>
-            <h1 class="text-6xl font-bold text-red-500">Erişim Reddedildi</h1>
-            <p class="text-xl text-gray-700 mt-4">Bu sayfayı görüntüleme yetkiniz bulunmamaktadır.</p>
-            <button id="unauthorized-logout-button" class="mt-8 bg-indigo-600 text-white font-bold py-2 px-4 rounded hover:bg-indigo-700">Çıkış Yap</button>
-        </div>
-    </div>
-    
-    <!-- =================================================================
-         ADMIN PANELİ ANA YAPISI
-    ================================================================== -->
-    <div id="admin-panel" class="hidden">
-        <div class="flex h-screen bg-gray-100">
-            <!-- Sidebar -->
-            <aside class="w-64 flex-shrink-0 bg-gray-800 text-gray-300 flex flex-col">
-                <div class="text-white text-2xl font-bold p-4 text-center border-b border-gray-700">PUFEMO Admin</div>
-                <nav id="sidebar-nav" class="flex-1 px-2 py-4 space-y-2">
-                    <a href="#dashboard" data-section="dashboard-section" class="sidebar-link flex items-center py-2.5 px-4 rounded-lg">
-                        <i data-feather="home" class="mr-3"></i> İstatistikler
-                    </a>
-                    <a href="#orders" data-section="orders-section" class="sidebar-link flex items-center py-2.5 px-4 rounded-lg">
-                        <i data-feather="shopping-cart" class="mr-3"></i> Siparişler
-                    </a>
-                    <a href="#products" data-section="products-section" class="sidebar-link flex items-center py-2.5 px-4 rounded-lg">
-                        <i data-feather="box" class="mr-3"></i> Ürünler
-                    </a>
-                    <a href="#categories" data-section="categories-section" class="sidebar-link flex items-center py-2.5 px-4 rounded-lg">
-                        <i data-feather="layers" class="mr-3"></i> Kategoriler
-                    </a>
-                    <a href="#settings" data-section="settings-section" class="sidebar-link flex items-center py-2.5 px-4 rounded-lg">
-                        <i data-feather="settings" class="mr-3"></i> Ayarlar
-                    </a>
-                    <div class="!mt-auto">
-                        <a id="logout-button" href="#" class="sidebar-link flex items-center py-2.5 px-4 rounded-lg hover:!bg-red-600">
-                            <i data-feather="log-out" class="mr-3"></i> Çıkış Yap
-                        </a>
+            <div class="col-md-3">
+                <div class="card text-white bg-success mb-3">
+                    <div class="card-header">Bekleyen Siparişler</div>
+                    <div class="card-body">
+                        <h5 class="card-title">3</h5>
+                        <p class="card-text">Onay bekliyor</p>
                     </div>
-                </nav>
-            </aside>
-
-            <!-- Main Content -->
-            <main class="flex-1 p-6 md:p-8 overflow-y-auto">
-                
-                <!-- BÖLÜM: İstatistikler (Dashboard) -->
-                <section id="dashboard-section" class="content-section">
-                    <h2 class="text-3xl font-bold mb-6 text-gray-800">İstatistik Paneli</h2>
-                </section>
-
-                <!-- BÖLÜM: Siparişler -->
-                <section id="orders-section" class="content-section hidden">
-                    <h2 class="text-3xl font-bold mb-6 text-gray-800">Sipariş Yönetimi</h2>
-                    <div class="bg-white rounded-lg shadow-md overflow-x-auto">
-                        <table class="w-full">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th class="p-4 text-sm font-semibold tracking-wide text-left">Sipariş ID</th>
-                                    <th class="p-4 text-sm font-semibold tracking-wide text-left">Müşteri</th>
-                                    <th class="p-4 text-sm font-semibold tracking-wide text-left">Tarih</th>
-                                    <th class="p-4 text-sm font-semibold tracking-wide text-left">Tutar</th>
-                                    <th class="p-4 text-sm font-semibold tracking-wide text-left">Durum</th>
-                                    <th class="p-4 text-sm font-semibold tracking-wide text-left">Detay</th>
-                                </tr>
-                            </thead>
-                            <tbody id="orders-table-body" class="divide-y divide-gray-200">
-                                <!-- Siparişler Firestore'dan buraya yüklenecek -->
-                            </tbody>
-                        </table>
+                </div>
+            </div>
+             <div class="col-md-3">
+                <div class="card text-white bg-warning mb-3">
+                    <div class="card-header">Stoku Azalanlar</div>
+                    <div class="card-body">
+                        <h5 class="card-title">8 Ürün</h5>
+                        <p class="card-text">Kontrol et</p>
                     </div>
-                </section>
-
-                <!-- BÖLÜM: Ürün Yönetimi -->
-                <section id="products-section" class="content-section hidden">
-                     <h2 class="text-3xl font-bold mb-6 text-gray-800">Ürün Yönetimi</h2>
-                     <!-- Buraya ürün yönetimi içeriği gelecek -->
-                </section>
-
-                <!-- BÖLÜM: Kategori Yönetimi -->
-                <section id="categories-section" class="content-section hidden">
-                    <h2 class="text-3xl font-bold mb-6 text-gray-800">Kategori Yönetimi</h2>
-                    <!-- Buraya kategori yönetimi içeriği gelecek -->
-                </section>
-
-                <!-- BÖLÜM: Ayarlar -->
-                <section id="settings-section" class="content-section hidden">
-                    <h2 class="text-3xl font-bold mb-6 text-gray-800">Ayarlar</h2>
-                    <!-- Buraya ayarlar içeriği gelecek -->
-                </section>
-
-            </main>
-        </div>
-    </div>
-    
-    <!-- Sipariş Detay Modalı -->
-    <div id="order-details-modal" class="fixed inset-0 hidden modal items-center justify-center z-50">
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col">
-            <div class="flex justify-between items-center p-4 border-b">
-                <h3 class="text-xl font-bold">Sipariş Detayı</h3>
-                <button id="close-order-modal-btn" class="text-gray-500 hover:text-gray-800">&times;</button>
+                </div>
             </div>
-            <div id="order-modal-body" class="p-6 overflow-y-auto">
-                <!-- Sipariş detayları buraya dinamik olarak yüklenecek -->
-            </div>
-            <div class="p-4 border-t bg-gray-50 flex justify-end space-x-2">
-                <button id="cancel-order-update-btn" class="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300">İptal</button>
-                <button id="save-order-changes-btn" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700">Değişiklikleri Kaydet</button>
+            <div class="col-md-3">
+                <div class="card text-white bg-info mb-3">
+                    <div class="card-header">Yeni Müşteriler</div>
+                    <div class="card-body">
+                        <h5 class="card-title">12</h5>
+                        <p class="card-text">Bu hafta</p>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
-
-    <script type="module">
-        // Firebase v11+ Modular SDK
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, collection, getDocs, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         
+        <div class="card mt-4">
+             <div class="card-header">Son Siparişler</div>
+             <div class="card-body">
+                 <table class="table">
+                     <thead>
+                         <tr><th>Sipariş No</th><th>Müşteri</th><th>Tarih</th><th>Tutar</th><th>Durum</th></tr>
+                     </thead>
+                     <tbody>
+                         <tr><td>#PUF-1054</td><td>Ali Veli</td><td>25.06.2025</td><td>₺ 450.00</td><td><span class="badge bg-success">Teslim Edildi</span></td></tr>
+                         <tr><td>#PUF-1053</td><td>Ayşe Yılmaz</td><td>25.06.2025</td><td>€ 89.90</td><td><span class="badge bg-warning">Hazırlanıyor</span></td></tr>
+                         <tr><td>#PUF-1052</td><td>John Doe</td><td>24.06.2025</td><td>$ 120.00</td><td><span class="badge bg-info">Kargoda</span></td></tr>
+                     </tbody>
+                 </table>
+             </div>
+        </div>
+
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+
+    <script>
+        // --- FIREBASE YAPILANDIRMASI ---
         const firebaseConfig = {
-            apiKey: "AIzaSyDYkzZzNXB22U4oEXxOoPh-puwuE8kz0g4",
+            apiKey: "AIzaSy...", // Kendi Firebase proje bilgilerinizi buraya yapıştırın!
             authDomain: "pufemo-com.firebaseapp.com",
             projectId: "pufemo-com",
             storageBucket: "pufemo-com.appspot.com",
-            messagingSenderId: "983352837227",
-            appId: "1:983352837227:web:defaa8dae215776e2e1d2e",
-            measurementId: "G-RH8XHC7P91"
+            messagingSenderId: "...",
+            appId: "...",
+            measurementId: "G-..."
         };
 
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+        // Firebase'i başlat
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
 
-        // --- DOM Elements ---
-        const loginScreen = document.getElementById('login-screen');
-        const adminPanel = document.getElementById('admin-panel');
-        const unauthorizedScreen = document.getElementById('unauthorized-screen');
-        const loginButton = document.getElementById('login-button');
-        const logoutButton = document.getElementById('logout-button');
-        const unauthorizedLogoutButton = document.getElementById('unauthorized-logout-button');
-        const emailInput = document.getElementById('email-address');
-        const passwordInput = document.getElementById('password');
-        const loginErrorDiv = document.getElementById('login-error');
-        const loginErrorMessage = document.getElementById('login-error-message');
-        
-        const orderDetailsModal = document.getElementById('order-details-modal');
-        const orderModalBody = document.getElementById('order-modal-body');
-        const closeOrderModalBtn = document.getElementById('close-order-modal-btn');
-        const cancelOrderUpdateBtn = document.getElementById('cancel-order-update-btn');
-        const saveOrderChangesBtn = document.getElementById('save-order-changes-btn');
+        // --- GÜVENLİK KONTROLÜ ---
+        // Bu kod, admin panelindeki TÜM sayfalarda olmalıdır.
+        const adminUID = "4tOeNJRjbxPF9BBoynJNJIBxOqU2"; // Kendi Admin UID'niz
 
-
-        // --- AUTH LOGIC ---
-        onAuthStateChanged(auth, user => {
+        auth.onAuthStateChanged(user => {
             if (user) {
-                checkAdminStatus(user);
-            } else {
-                showScreen('login');
-            }
-        });
-
-        async function checkAdminStatus(user) {
-            if (user.isAnonymous) {
-                showScreen('unauthorized');
-                return;
-            }
-            try {
-                const userRef = doc(db, 'users', user.uid);
-                const userDoc = await getDoc(userRef);
-                
-                // DÜZELTME: Belgenin varlığını VE 'role' alanının 'admin' olup olmadığını kontrol et
-                if (userDoc.exists() && userDoc.data().role === 'admin') {
-                    showScreen('admin');
+                // Kullanıcı giriş yapmış. Şimdi admin olup olmadığını kontrol et.
+                if (user.uid !== adminUID) {
+                    // Bu kullanıcı admin değil. Giriş sayfasına yönlendir.
+                    console.log("Yetkisiz kullanıcı. Yönlendiriliyor...");
+                    window.location.href = 'admin-login.html';
                 } else {
-                    showScreen('unauthorized');
+                    // Kullanıcı admin. Sayfa yüklenebilir.
+                    console.log("Admin girişi başarılı.");
                 }
-            } catch (error) {
-                console.error("Admin status check failed:", error);
-                showLoginError("Yetki kontrolü sırasında bir hata oluştu.");
-                showScreen('login');
+            } else {
+                // Kimse giriş yapmamış. Giriş sayfasına yönlendir.
+                console.log("Giriş yapılmamış. Yönlendiriliyor...");
+                window.location.href = 'admin-login.html';
             }
-        }
-        
-        const handleLogin = () => {
-            loginErrorDiv.classList.add('hidden'); 
-            signInWithEmailAndPassword(auth, emailInput.value, passwordInput.value)
-                .catch(() => showLoginError("E-posta veya şifre hatalı."));
-        };
-        
-        const handleLogout = () => signOut(auth);
+        });
 
-        // --- UI CONTROL ---
-        function showScreen(screenName) {
-            [loginScreen, adminPanel, unauthorizedScreen].forEach(el => el.classList.add('hidden'));
-            if (screenName === 'login') {
-                loginScreen.classList.remove('hidden');
-            } else if (screenName === 'admin') {
-                adminPanel.classList.remove('hidden');
-                feather.replace();
-                loadInitialData();
-            } else if (screenName === 'unauthorized') {
-                unauthorizedScreen.classList.remove('hidden');
-            }
-        }
-        
-        function showLoginError(message) {
-            loginErrorMessage.textContent = message;
-            loginErrorDiv.classList.remove('hidden');
-        }
-
-        // --- NAVIGATION ---
-        const sidebarNav = document.getElementById('sidebar-nav');
-        const contentSections = document.querySelectorAll('.content-section');
-
-        sidebarNav.addEventListener('click', (e) => {
-            const link = e.target.closest('.sidebar-link');
-            if (!link || link.id === 'logout-button') return;
-            
+        // --- ÇIKIŞ YAPMA FONKSİYONU ---
+        const logoutButton = document.getElementById('logout-button');
+        logoutButton.addEventListener('click', (e) => {
             e.preventDefault();
-            sidebarNav.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
-            link.classList.add('active');
-            
-            const sectionId = link.dataset.section;
-            contentSections.forEach(section => section.classList.toggle('hidden', section.id !== sectionId));
+            auth.signOut().then(() => {
+                console.log('Çıkış başarılı.');
+                window.location.href = 'admin-login.html';
+            }).catch(error => {
+                console.error('Çıkış hatası', error);
+            });
         });
-
-        // --- DATA LOADING AND RENDERING ---
-        async function loadInitialData() {
-            const firstLink = sidebarNav.querySelector('.sidebar-link');
-             if(firstLink) {
-                firstLink.classList.add('active');
-                document.querySelector(firstLink.hash).classList.remove('hidden');
-            }
-            loadOrders();
-        }
-
-        async function loadOrders() {
-            try {
-                const ordersRef = collection(db, "orders");
-                const querySnapshot = await getDocs(ordersRef);
-                const ordersTableBody = document.getElementById('orders-table-body');
-                ordersTableBody.innerHTML = '';
-
-                if (querySnapshot.empty) {
-                     ordersTableBody.innerHTML = '<tr><td colspan="6" class="text-center p-4 text-gray-500">Henüz sipariş bulunmamaktadır.</td></tr>';
-                     return;
-                }
-
-                querySnapshot.forEach(doc => {
-                    const order = doc.data();
-                    const orderDate = order.createdAt?.toDate ? order.createdAt.toDate().toLocaleDateString('tr-TR') : 'N/A';
-                    const row = `
-                        <tr class="hover:bg-gray-50">
-                            <td class="p-4 text-sm text-gray-700 font-mono">${doc.id.substring(0, 8)}...</td>
-                            <td class="p-4 text-sm text-gray-700">${order.shippingAddress?.name || 'Misafir'}</td>
-                            <td class="p-4 text-sm text-gray-700">${orderDate}</td>
-                            <td class="p-4 text-sm text-gray-700 font-bold">${order.totalAmount} ${order.currency}</td>
-                            <td class="p-4 text-sm"><span class="px-2 py-1 font-semibold leading-tight text-green-700 bg-green-100 rounded-full">${order.status}</span></td>
-                            <td class="p-4 text-sm"><button data-order-id="${doc.id}" class="view-order-btn text-indigo-600 hover:text-indigo-900">Görüntüle</button></td>
-                        </tr>
-                    `;
-                    ordersTableBody.innerHTML += row;
-                });
-
-            } catch(error) {
-                console.error("Siparişler yüklenirken hata:", error);
-                 document.getElementById('orders-table-body').innerHTML = '<tr><td colspan="6" class="text-center p-4 text-red-500">Siparişler yüklenemedi.</td></tr>';
-            }
-        }
-
-        async function openOrderDetails(orderId) {
-            try {
-                const orderRef = doc(db, 'orders', orderId);
-                const orderDoc = await getDoc(orderRef);
-                if (!orderDoc.exists()) {
-                    alert('Sipariş bulunamadı!');
-                    return;
-                }
-                const order = orderDoc.data();
-                const address = order.shippingAddress;
-
-                let itemsHtml = order.items.map(item => `
-                    <div class="flex justify-between items-center py-2 border-b">
-                        <div>
-                            <p class="font-semibold">${item.name}</p>
-                            <p class="text-sm text-gray-500">SKU: ${item.sku} | Adet: ${item.quantity}</p>
-                        </div>
-                        <div class="font-semibold">${item.price} ${order.currency}</div>
-                    </div>
-                `).join('');
-
-                orderModalBody.innerHTML = `
-                    <input type="hidden" id="modal-order-id" value="${orderId}">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <h4 class="font-bold mb-2">Teslimat Adresi</h4>
-                            <p>${address.name}</p>
-                            <p>${address.street}</p>
-                            <p>${address.city}, ${address.postalCode}</p>
-                            <p>${address.country}</p>
-                            <p><strong>Tel:</strong> ${address.phone}</p>
-                            <p><strong>E-posta:</strong> ${address.email}</p>
-                        </div>
-                        <div>
-                            <h4 class="font-bold mb-2">Sipariş Özeti</h4>
-                            <div class="space-y-2">
-                                <div class="flex justify-between"><span>Ara Toplam:</span><span>${order.totalAmount} ${order.currency}</span></div>
-                                <div class="flex justify-between font-bold text-lg"><span>Toplam:</span><span>${order.totalAmount} ${order.currency}</span></div>
-                            </div>
-                            <div class="mt-4">
-                                <label for="order-status" class="block text-sm font-medium text-gray-700">Sipariş Durumu</label>
-                                <select id="order-status" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
-                                    <option ${order.status === 'Bekliyor' ? 'selected' : ''}>Bekliyor</option>
-                                    <option ${order.status === 'Hazırlanıyor' ? 'selected' : ''}>Hazırlanıyor</option>
-                                    <option ${order.status === 'Kargoda' ? 'selected' : ''}>Kargoda</option>
-                                    <option ${order.status === 'Teslim Edildi' ? 'selected' : ''}>Teslim Edildi</option>
-                                    <option ${order.status === 'İptal Edildi' ? 'selected' : ''}>İptal Edildi</option>
-                                </select>
-                            </div>
-                             <div class="mt-4">
-                                <label for="tracking-number" class="block text-sm font-medium text-gray-700">Kargo Takip Numarası</label>
-                                <input type="text" id="tracking-number" value="${order.trackingNumber || ''}" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-                            </div>
-                        </div>
-                    </div>
-                    <h4 class="font-bold mt-6 mb-2">Sipariş Edilen Ürünler</h4>
-                    <div class="border rounded-lg p-4">${itemsHtml}</div>
-                `;
-                orderDetailsModal.classList.remove('hidden');
-
-            } catch (error) {
-                console.error("Sipariş detayı açılırken hata:", error);
-                alert("Sipariş detayı yüklenemedi.");
-            }
-        }
-        
-        async function saveOrderChanges() {
-            const orderId = document.getElementById('modal-order-id').value;
-            const newStatus = document.getElementById('order-status').value;
-            const newTrackingNumber = document.getElementById('tracking-number').value;
-
-            try {
-                const orderRef = doc(db, 'orders', orderId);
-                await updateDoc(orderRef, {
-                    status: newStatus,
-                    trackingNumber: newTrackingNumber
-                });
-                alert("Sipariş başarıyla güncellendi!");
-                orderDetailsModal.classList.add('hidden');
-                loadOrders();
-            } catch (error) {
-                console.error("Sipariş güncellenirken hata:", error);
-                alert("Sipariş güncellenemedi.");
-            }
-        }
-        
-        document.getElementById('orders-table-body').addEventListener('click', e => {
-            const btn = e.target.closest('.view-order-btn');
-            if (btn) openOrderDetails(btn.dataset.orderId);
-        });
-
-        // --- EVENT LISTENERS ---
-        loginButton.addEventListener('click', handleLogin);
-        passwordInput.addEventListener('keypress', (e) => e.key === 'Enter' && handleLogin());
-        logoutButton.addEventListener('click', handleLogout);
-        unauthorizedLogoutButton.addEventListener('click', handleLogout);
-        
-        closeOrderModalBtn.addEventListener('click', () => orderDetailsModal.classList.add('hidden'));
-        cancelOrderUpdateBtn.addEventListener('click', () => orderDetailsModal.classList.add('hidden'));
-        saveOrderChangesBtn.addEventListener('click', saveOrderChanges);
-        
-        document.addEventListener('DOMContentLoaded', () => {
-            const firstLink = sidebarNav.querySelector('.sidebar-link');
-            if(firstLink) {
-                firstLink.click();
-            }
-        });
-
     </script>
+
 </body>
 </html>
