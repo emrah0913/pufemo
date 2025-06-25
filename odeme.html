@@ -191,7 +191,7 @@
                             <li class="list-group-item d-flex justify-content-between align-items-center order-summary-item">
                                 <span id="summary-shipping-label">Kargo:</span> <span id="summary-shipping">0.00 ₺</span>
                             </li>
-                            <li class="list-group-item d-flex justify-content-between align-items-center fw-bold order-summary-item">
+                            <li class="list-group-item d-flex justify-content-between align-items-center order-summary-item">
                                 <span id="summary-total-label">Toplam:</span> <span id="summary-total">0.00 ₺</span>
                             </li>
                         </ul>
@@ -448,8 +448,8 @@
             checkoutForm.addEventListener('submit', handleCheckoutSubmit);
 
             // Sayfa yüklendiğinde ödeme detaylarının ve fatura adresinin başlangıç durumunu ayarla
-            togglePaymentDetails(); // EKLENDİ
-            toggleBillingAddressFields(); // EKLENDİ
+            togglePaymentDetails(); 
+            toggleBillingAddressFields(); 
         });
 
         // Ortak verileri yükler ve header seçicilerini doldurur
@@ -491,10 +491,8 @@
         // Adres formundaki ülke seçicilerini doldurur
         function populateCountrySelectors() {
             const currentLanguageCode = localStorage.getItem(LS_SELECTED_LANGUAGE_CODE) || 'tr';
-            // Placeholder metnini appTexts'ten al
             const selectPlaceholderText = appTexts[currentLanguageCode]?.selectCountryPlaceholder || appTexts['en'].selectCountryPlaceholder;
 
-            // Gönderim Ülke Seçimi
             countrySelect.innerHTML = `<option value="">${selectPlaceholderText}</option>`;
             allCountries.forEach(country => {
                 const option = document.createElement('option');
@@ -503,7 +501,6 @@
                 countrySelect.appendChild(option);
             });
 
-            // Fatura Ülke Seçimi (Gönderim ile aynıysa klonla)
             billingCountrySelect.innerHTML = `<option value="">${selectPlaceholderText}</option>`;
             allCountries.forEach(country => {
                 const option = document.createElement('option');
@@ -512,14 +509,12 @@
                 billingCountrySelect.appendChild(option);
             });
 
-            // LocalStorage'dan ülkeyi alıp varsayılan seçimi yap
             const storedCountryCode = localStorage.getItem(LS_SELECTED_COUNTRY_CODE);
             if (storedCountryCode) {
                 countrySelect.value = storedCountryCode;
                 billingCountrySelect.value = storedCountryCode;
             }
 
-            // Ülke değiştiğinde özetin yeniden yüklenmesi için event listener
             countrySelect.addEventListener('change', loadCheckoutDataAndRenderSummary);
             billingCountrySelect.addEventListener('change', loadCheckoutDataAndRenderSummary);
         }
@@ -529,12 +524,9 @@
         async function loadCheckoutDataAndRenderSummary() {
             const currentLanguageCode = localStorage.getItem(LS_SELECTED_LANGUAGE_CODE) || 'tr';
             const currentCurrencyCode = localStorage.getItem(LS_SELECTED_CURRENCY_CODE) || 'TRY';
-            // Ödeme sayfasında, kullanıcının seçtiği ülkeyi localStorage'dan alıyoruz
-            // Veya adres formundaki Ülke seçiminden alıyoruz
             const currentCountryCode = countrySelect.value || localStorage.getItem(LS_SELECTED_COUNTRY_CODE) || 'TR'; 
             const texts = appTexts[currentLanguageCode] || appTexts['en'];
 
-            // Sayfa başlıklarını ve etiketleri güncelle
             document.getElementById('checkout-page-title').textContent = texts.checkoutPageTitle;
             document.getElementById('address-section-header').textContent = texts.addressSectionHeader;
             document.getElementById('shipping-address-title').textContent = texts.shippingAddressTitle;
@@ -582,7 +574,7 @@
 
             if (cartItems.length === 0) {
                 alert(texts.orderEmptyCart);
-                window.location.href = 'sepet.html'; // Sepet boşsa sepet sayfasına yönlendir
+                window.location.href = 'sepet.html'; 
                 return;
             }
 
@@ -592,7 +584,6 @@
             let fetchedProductsMap = new Map();
             if (uniqueProductIds.length > 0) {
                 try {
-                    // Firestore 'in' operatörü 10 ID ile sınırlıdır.
                     if (uniqueProductIds.length > 10) {
                         console.warn("Sepetinizde 10'dan fazla benzersiz ürün var. Firestore 'in' sorgusu sınırlıdır.");
                     }
@@ -685,15 +676,13 @@
             if (sameAddressCheckbox.checked) {
                 billingAddressFields.classList.add('d-none');
                 labelsAndInputs.forEach(el => el.removeAttribute('required'));
-                // name özelliklerini de kaldır, tarayıcı validasyonunu engellemek için
                 labelsAndInputs.forEach(el => el.removeAttribute('name')); 
             } else {
                 billingAddressFields.classList.remove('d-none');
                 labelsAndInputs.forEach(el => el.setAttribute('required', 'required'));
-                // name özelliklerini geri ekle (id'den türetebiliriz veya HTML'de zaten olmalıydı)
                 labelsAndInputs.forEach(el => { 
                     const id = el.id;
-                    if (id) el.setAttribute('name', id); // EKLENDİ (id'den name atama)
+                    if (id) el.setAttribute('name', id);
                 });
             }
         }
@@ -705,12 +694,12 @@
                 bankTransferDetails.classList.remove('d-none');
                 creditCardDetails.classList.add('d-none');
                 ccInputs.forEach(input => input.removeAttribute('required'));
-                ccInputs.forEach(input => input.removeAttribute('name')); // EKLENDİ (name'i kaldır)
+                ccInputs.forEach(input => input.removeAttribute('name')); 
             } else if (creditCardRadio.checked) {
                 bankTransferDetails.classList.add('d-none');
                 creditCardDetails.classList.remove('d-none');
                 ccInputs.forEach(input => input.setAttribute('required', 'required'));
-                ccInputs.forEach(input => { // EKLENDİ (name'i geri ekle)
+                ccInputs.forEach(input => { 
                     const id = input.id;
                     if (id) input.setAttribute('name', id);
                 });
@@ -857,8 +846,8 @@
 
         function updateHeaderDisplays() {
             const currentCountryCode = localStorage.getItem(LS_SELECTED_COUNTRY_CODE);
-            const currentLanguageCode = localStorage.getItem(LS_SELECTED_LANGUAGE_CODE);
-            const currentCurrencyCode = localStorage.getItem(LS_SELECTED_CURRENCY_CODE);
+            const currentLanguageCode = localStorage.getItem(LS_SELECTED_LANGUAGE_CODE) || 'tr'; 
+            const currentCurrencyCode = localStorage.getItem(LS_SELECTED_CURRENCY_CODE) || 'TRY'; 
 
             const selectedCountry = allCountries.find(c => c.code === currentCountryCode);
             const selectedLanguage = allLanguages.find(l => l.code === currentLanguageCode);
