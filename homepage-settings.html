@@ -14,7 +14,8 @@
         .nav-link { color: #adb5bd; padding: 10px 20px; }
         .nav-link.active, .nav-link:hover { color: #ffffff; background-color: #495057; }
         .nav-link .bi { margin-right: 10px; }
-        .slide-thumbnail { width: 150px; height: auto; }
+        .slide-thumbnail { width: 150px; height: auto; border-radius: 5px; }
+        .loading-spinner { display: none; }
     </style>
 </head>
 <body>
@@ -39,9 +40,13 @@
         </nav>
 
         <div class="card mb-4">
-            <div class="card-header">Slider Yönetimi</div>
+            <div class="card-header d-flex justify-content-between align-items-center">
+                Slider Yönetimi
+                <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#slideModal" onclick="prepareNewSlide()">
+                    <i class="bi bi-plus-circle"></i> Yeni Slide Ekle
+                </button>
+            </div>
             <div class="card-body">
-                <button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#slideModal">Yeni Slide Ekle</button>
                 <div id="slider-list" class="list-group"></div>
             </div>
         </div>
@@ -54,7 +59,7 @@
                         <label for="promoText" class="form-label">Sitenin üst kısmında görünecek yazı</label>
                         <input type="text" class="form-control" id="promoText">
                     </div>
-                    <button type="submit" class="btn btn-primary">Kaydet</button>
+                    <button type="submit" class="btn btn-primary">Yazıyı Kaydet</button>
                 </form>
             </div>
         </div>
@@ -63,7 +68,7 @@
     <div class="modal fade" id="slideModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
-                <div class="modal-header"><h5 class="modal-title">Slide Bilgileri</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-header"><h5 class="modal-title" id="slideModalLabel">Yeni Slide Ekle</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
                 <div class="modal-body">
                     <form id="slide-form">
                         <input type="hidden" id="slideId">
@@ -74,7 +79,10 @@
                         <div class="form-check"><input type="checkbox" class="form-check-input" id="slideIsActive" checked><label class="form-check-label" for="slideIsActive">Aktif</label></div>
                     </form>
                 </div>
-                <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button><button type="submit" form="slide-form" class="btn btn-primary">Kaydet</button></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+                    <button type="submit" form="slide-form" class="btn btn-primary" id="saveSlideBtn">Kaydet</button>
+                </div>
             </div>
         </div>
     </div>
@@ -85,12 +93,15 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage-compat.js"></script>
     <script>
-        const firebaseConfig = { apiKey: "AIzaSy...", authDomain: "...", projectId: "..." }; // Kendi config'iniz
+        const firebaseConfig = { apiKey: "AIzaSyDYkzZzNXB22U4oEXxOoPh-puwuE8kz0g4", authDomain: "pufemo-com.firebaseapp.com", projectId: "pufemo-com", storageBucket: "pufemo-com.firebasestorage.app", messagingSenderId: "983352837227", appId: "1:983352837227:web:defaa8dae215776e2e1d2e", measurementId: "G-RH8XHC7P91" };
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
         const storage = firebase.storage();
         const adminUID = "4tOeNJRjbxPF9BBoynJNJIBxOqU2";
+        
+        const slideModal = new bootstrap.Modal(document.getElementById('slideModal'));
+        const slideForm = document.getElementById('slide-form');
 
         auth.onAuthStateChanged(user => {
             if (user && user.uid === adminUID) {
@@ -100,12 +111,100 @@
         });
 
         // SLIDER YÖNETİMİ
-        const slideModal = new bootstrap.Modal(document.getElementById('slideModal'));
-        const slideForm = document.getElementById('slide-form');
+        async function loadSlides() {
+            const sliderList = document.getElementById('slider-list');
+            sliderList.innerHTML = '<div class="list-group-item">Yükleniyor...</div>';
+            const snapshot = await db.collection('homepage_slider').orderBy('order').get();
+            sliderList.innerHTML = '';
+            snapshot.forEach(doc => {
+                const slide = doc.data();
+                const item = `
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <img src="${slide.imageUrl}" class="slide-thumbnail me-3 float-start">
+                            <strong>${slide.title_tr}</strong><br>
+                            <small class="text-muted">Sıra: ${slide.order} | Link: ${slide.linkUrl}</small>
+                        </div>
+                        <div>
+                            <button class="btn btn-sm btn-outline-primary me-2" onclick="editSlide('${doc.id}')">Düzenle</button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteSlide('${doc.id}', '${slide.imageUrl}')">Sil</button>
+                        </div>
+                    </div>`;
+                sliderList.innerHTML += item;
+            });
+        }
 
-        async function loadSlides() { /* ... */ }
-        slideForm.addEventListener('submit', async (e) => { /* ... */ });
-        async function deleteSlide(id) { /* ... */ }
+        slideForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const slideId = document.getElementById('slideId').value;
+            const imageFile = document.getElementById('slideImage').files[0];
+            
+            let imageUrl = document.querySelector(`[data-doc-id="${slideId}"]`)?.dataset.imageUrl || null;
+
+            if (imageFile) {
+                const filePath = `slider_images/${Date.now()}_${imageFile.name}`;
+                const fileRef = storage.ref(filePath);
+                await fileRef.put(imageFile);
+                imageUrl = await fileRef.getDownloadURL();
+            }
+
+            if (!imageUrl && !slideId) {
+                alert("Lütfen bir görsel seçin.");
+                return;
+            }
+
+            const slideData = {
+                title_tr: document.getElementById('slideTitle').value,
+                linkUrl: document.getElementById('slideLink').value,
+                order: parseInt(document.getElementById('slideOrder').value),
+                isActive: document.getElementById('slideIsActive').checked,
+                imageUrl: imageUrl
+            };
+
+            try {
+                if (slideId) {
+                    await db.collection('homepage_slider').doc(slideId).update(slideData);
+                } else {
+                    await db.collection('homepage_slider').add(slideData);
+                }
+                slideModal.hide();
+                loadSlides();
+            } catch (error) { console.error("Slide kaydedilirken hata:", error); }
+        });
+
+        function prepareNewSlide() {
+            slideForm.reset();
+            document.getElementById('slideId').value = '';
+            document.getElementById('slideModalLabel').textContent = 'Yeni Slide Ekle';
+        }
+
+        async function editSlide(id) {
+            const doc = await db.collection('homepage_slider').doc(id).get();
+            if(!doc.exists) return;
+            const slide = doc.data();
+
+            document.getElementById('slideId').value = id;
+            document.getElementById('slideTitle').value = slide.title_tr;
+            document.getElementById('slideLink').value = slide.linkUrl;
+            document.getElementById('slideOrder').value = slide.order;
+            document.getElementById('slideIsActive').checked = slide.isActive;
+            document.querySelector('.list-group-item').dataset.docId = id;
+            document.querySelector('.list-group-item').dataset.imageUrl = slide.imageUrl;
+            
+            document.getElementById('slideModalLabel').textContent = 'Slide Düzenle';
+            slideModal.show();
+        }
+
+        async function deleteSlide(id, imageUrl) {
+            if (confirm("Bu slide'ı silmek istediğinizden emin misiniz?")) {
+                await db.collection('homepage_slider').doc(id).delete();
+                if(imageUrl) {
+                    const imageRef = storage.refFromURL(imageUrl);
+                    await imageRef.delete();
+                }
+                loadSlides();
+            }
+        }
 
         // PROMOSYON YAZISI YÖNETİMİ
         const promoForm = document.getElementById('promo-form');
