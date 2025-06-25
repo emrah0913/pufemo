@@ -324,10 +324,12 @@
 
             // Sepet güncellemeleri için event listener'lar
             cartItemsBody.addEventListener('click', handleCartActions);
-            checkoutButton.addEventListener('click', () => {
-                // Ödeme sayfasına yönlendir (henüz yok)
-                window.location.href = 'odeme.html';
-            });
+            if(checkoutButton) { // checkoutButton var mı kontrol et
+                checkoutButton.addEventListener('click', () => {
+                    // Ödeme sayfasına yönlendir (henüz yok)
+                    window.location.href = 'odeme.html';
+                });
+            }
         });
 
         // Ortak verileri yükler ve header seçicilerini doldurur
@@ -362,28 +364,26 @@
             const currentCountryCode = localStorage.getItem(LS_SELECTED_COUNTRY_CODE) || 'TR';
             const texts = appTexts[currentLanguageCode] || appTexts['en'];
 
-            cartPageTitle.textContent = texts.cartPageTitle;
+            if(cartPageTitle) cartPageTitle.textContent = texts.cartPageTitle;
             if(emptyCartPrompt) emptyCartPrompt.textContent = texts.emptyCartMessage;
             if(emptyCartContinueBtn) emptyCartContinueBtn.textContent = texts.emptyCartContinueShopping;
             
-            // continueShoppingMainBtn için kontrol eklendi
             if(continueShoppingMainBtn) {
                 continueShoppingMainBtn.textContent = ` ${texts.continueShopping}`;
                 const existingIcon = continueShoppingMainBtn.querySelector('.bi-arrow-left');
-                if (!existingIcon) { // İkon tekrar tekrar eklenmesin diye kontrol
+                if (!existingIcon) { 
                     const icon = document.createElement('i');
                     icon.classList.add('bi', 'bi-arrow-left');
-                    continueShoppingMainBtn.prepend(icon);
+                    continueShoppingMainBtn.prepend(icon); // Önce ikonu ekle
+                    // ikonun class'larını ekle (eskiden burası hataydı)
                 }
             }
             
-            // Tablo başlıkları için kontrol eklendi
             if(cartThProduct) cartThProduct.textContent = texts.cartTableProduct;
             if(cartThPrice) cartThPrice.textContent = texts.cartTablePrice;
             if(cartThQuantity) cartThQuantity.textContent = texts.cartTableQuantity;
             if(cartThTotal) cartThTotal.textContent = texts.cartTableTotal;
 
-            // Sepet özeti başlıklarını da güncelleyelim
             if(cartSummarySubtotalLabel) cartSummarySubtotalLabel.textContent = texts.cartSummarySubtotal;
             if(cartSummaryShippingLabel) cartSummaryShippingLabel.textContent = texts.cartSummaryShipping;
             if(cartSummaryTotalLabel) cartSummaryTotalLabel.textContent = texts.cartSummaryTotal;
@@ -391,29 +391,27 @@
 
 
             cartItems = JSON.parse(localStorage.getItem(LS_CART_ITEMS) || '[]');
-            cartItemsBody.innerHTML = ''; // Sepet tablosunu temizle
+            cartItemsBody.innerHTML = ''; 
 
             if (cartItems.length === 0) {
-                cartContentDiv.classList.add('d-none'); // Sepet içeriğini gizle
-                emptyCartMessage.classList.remove('d-none'); // Boş sepet mesajını göster
+                if(cartContentDiv) cartContentDiv.classList.add('d-none'); 
+                if(emptyCartMessage) emptyCartMessage.classList.remove('d-none'); 
                 return;
             } else {
-                cartContentDiv.classList.remove('d-none'); // Sepet içeriğini göster
-                emptyCartMessage.classList.add('d-none'); // Boş sepet mesajını gizle
+                if(cartContentDiv) cartContentDiv.classList.remove('d-none'); 
+                if(emptyCartMessage) emptyCartMessage.classList.add('d-none'); 
             }
 
             const productIdsInCart = cartItems.map(item => item.productId);
-            const uniqueProductIds = [...new Set(productIdsInCart)]; // Sadece benzersiz ID'leri al
+            // Sadece geçerli string ID'leri filtrele
+            const validProductIdsInCart = productIdsInCart.filter(id => typeof id === 'string' && id.trim() !== '');
+            const uniqueProductIds = [...new Set(validProductIdsInCart)];
 
             let fetchedProductsMap = new Map();
             if (uniqueProductIds.length > 0) {
                 try {
-                    // Firestore 'in' operatörü 10 ID ile sınırlıdır.
-                    // Daha fazla ürün varsa birden fazla sorgu yapılması gerekir.
-                    // Şimdilik sadece ilk 10 ID için çalışacaktır.
                     if (uniqueProductIds.length > 10) {
-                        console.warn("Sepetinizde 10'dan fazla benzersiz ürün var. Firestore 'in' sorgusu sınırlıdır. Bazı ürünler görüntülenemeyebilir.");
-                        // Burada daha gelişmiş bir sorgulama stratejisi gerekebilir (örn: ID'leri parçalara ayırıp ayrı sorgular yapmak).
+                        console.warn("Sepetinizde 10'dan fazla benzersiz ürün var. Firestore 'in' sorgusu sınırlıdır. İlk 10 ürün getiriliyor.");
                     }
                     const productsSnapshot = await db.collection('products').where(firebase.firestore.FieldPath.documentId(), 'in', uniqueProductIds.slice(0, 10)).get();
                     productsSnapshot.forEach(doc => {
@@ -421,7 +419,11 @@
                     });
                 } catch (error) {
                     console.error("Sepet ürün detayları çekilirken hata:", error);
-                    alert("Sepetinizdeki ürünler yüklenirken bir hata oluştu. Lütfen sayfayı yenileyiniz.");
+                    if (error.code === 'invalid-argument' && error.message.includes('supported for up to 10 comparison values')) {
+                        alert("Sepetinizdeki ürün sayısı fazla olduğundan bazı ürünler gösterilemiyor. En fazla 10 farklı ürün desteklenmektedir.");
+                    } else {
+                        alert("Sepetinizdeki ürünler yüklenirken bir hata oluştu. Lütfen sayfayı yenileyiniz.");
+                    }
                     return;
                 }
             }
@@ -434,13 +436,11 @@
 
             cartItems.forEach((item, index) => {
                 const productData = fetchedProductsMap.get(item.productId);
-                // Eğer ürün bulunamazsa veya aktif değilse (silinmiş/pasifleşmiş olabilir) atla
                 if (!productData || productData.isActive === false) {
                     console.warn(`Sepetinizdeki ürün bulunamadı veya pasif, ID: ${item.productId}. Sepetten kaldırılıyor.`);
-                    // Bu ürünü sepetten otomatik olarak kaldır
                     cartItems.splice(index, 1);
-                    updateLocalStorageCart(); // LocalStorage'ı güncelle
-                    loadCartAndRender(); // Sepeti yeniden render et
+                    updateLocalStorageCart(); 
+                    loadCartAndRender(); 
                     return; 
                 }
 
@@ -449,23 +449,19 @@
                 const itemTotal = (parseFloat(calculatedPrice) * item.quantity).toFixed(2);
                 subtotal += parseFloat(itemTotal);
 
-                // Varyantları göster
                 let variantText = '';
                 if (item.selectedVariants) {
                     for (const key in item.selectedVariants) {
                         if (item.selectedVariants.hasOwnProperty(key)) {
-                            // Varyant isimlerini doğru dilde göstermek için productData'daki varyantları kullanabiliriz
-                            // Ancak sepet öğesinde zaten kaydedildiği varsayımıyla devam ediyorum.
                             variantText += `${key}: ${item.selectedVariants[key]} `;
                         }
                     }
                     if (variantText) variantText = `<br><small class="text-muted">${variantText.trim()}</small>`;
                 }
                 
-                // Ürün görseli için, ürün detayından gelen mediaUrls[0] kullanılıyor
                 const imageUrlToDisplay = (productData.mediaUrls && productData.mediaUrls.length > 0 && productData.mediaUrls[0].match(/\.(jpeg|jpg|gif|png|webp)$/i))
                                           ? productData.mediaUrls[0]
-                                          : (item.imageUrl || 'https://via.placeholder.com/80x80?text=Ürün'); // item.imageUrl yedek olarak
+                                          : (item.imageUrl || 'https://via.placeholder.com/80x80?text=Ürün'); 
 
                 const row = `
                     <tr data-product-index="${index}">
@@ -496,35 +492,34 @@
                 cartItemsBody.innerHTML += row;
             });
 
-            const shippingCost = 0; // Şimdilik sabit, sonra dinamikleşebilir
+            const shippingCost = 0; 
             const totalAmount = subtotal + shippingCost;
 
-            cartSubtotalEl.textContent = `${subtotal.toFixed(2)} ${currencySymbol}`;
-            cartShippingEl.textContent = `${shippingCost.toFixed(2)} ${currencySymbol}`;
-            cartTotalEl.textContent = `${totalAmount.toFixed(2)} ${currencySymbol}`;
+            if(cartSubtotalEl) cartSubtotalEl.textContent = `${subtotal.toFixed(2)} ${currencySymbol}`;
+            if(cartShippingEl) cartShippingEl.textContent = `${shippingCost.toFixed(2)} ${currencySymbol}`;
+            if(cartTotalEl) cartTotalEl.textContent = `${totalAmount.toFixed(2)} ${currencySymbol}`;
         }
 
         function handleCartActions(event) {
             const target = event.target;
-            // Olayı tetikleyen elementten 'data-index'i al
             const indexStr = target.dataset.index || target.closest('[data-index]')?.dataset.index;
             const index = parseInt(indexStr);
 
             if (isNaN(index) || index < 0 || index >= cartItems.length) {
                 console.warn("Geçersiz sepet öğesi indeksi:", indexStr);
-                return; // Geçersiz index
+                return; 
             }
 
             if (target.classList.contains('quantity-decrease')) {
                 if (cartItems[index].quantity > 1) {
                     cartItems[index].quantity--;
                     updateLocalStorageCart();
-                    loadCartAndRender(); // Tüm sepeti yeniden render etmek için
+                    loadCartAndRender(); 
                 }
             } else if (target.classList.contains('quantity-increase')) {
                 cartItems[index].quantity++;
                 updateLocalStorageCart();
-                loadCartAndRender(); // Tüm sepeti yeniden render etmek için
+                loadCartAndRender(); 
             } else if (target.classList.contains('remove-item') || target.closest('.remove-item')) {
                 const currentLanguageCode = localStorage.getItem(LS_SELECTED_LANGUAGE_CODE) || 'tr';
                 const texts = appTexts[currentLanguageCode] || appTexts['en'];
@@ -536,9 +531,6 @@
                 }
             } else if (target.classList.contains('quantity-input')) {
                 // Input değeri değiştiğinde (Enter veya focus dışı)
-                // Bu event listener, click olayının içinde olduğu için dikkatli olmalı.
-                // Genellikle input'un kendisinin 'change' olayı daha uygundur.
-                // Burada direkt update yapalım, çünkü kullanıcı zaten manuel giriş yapmış.
                 let newQuantity = parseInt(target.value);
                 if (isNaN(newQuantity) || newQuantity < 1) {
                     newQuantity = 1; 
