@@ -102,10 +102,10 @@
                                 <table class="table table-hover align-middle">
                                     <thead>
                                         <tr>
-                                            <th>Ürün</th>
-                                            <th>Fiyat</th>
-                                            <th>Adet</th>
-                                            <th>Toplam</th>
+                                            <th id="cart-th-product">Ürün</th>
+                                            <th id="cart-th-price">Fiyat</th>
+                                            <th id="cart-th-quantity">Adet</th>
+                                            <th id="cart-th-total">Toplam</th>
                                             <th></th>
                                         </tr>
                                     </thead>
@@ -115,12 +115,14 @@
                             </div>
                             <div id="empty-cart-message" class="empty-cart-message d-none">
                                 <i class="bi bi-cart-x display-3 mb-3"></i>
-                                <p class="lead">Sepetinizde ürün bulunmamaktadır.</p>
-                                <a href="index.html" class="btn btn-primary">Alışverişe Devam Et</a>
+                                <p class="lead" id="empty-cart-prompt">Sepetinizde ürün bulunmamaktadır.</p>
+                                <a href="index.html" class="btn btn-primary" id="empty-cart-continue-btn">Alışverişe Devam Et</a>
                             </div>
                         </div>
                     </div>
-                    <a href="index.html" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Alışverişe Devam Et</a>
+                    <a href="index.html" class="btn btn-outline-secondary" id="continue-shopping-main-btn">
+                        <i class="bi bi-arrow-left"></i> Alışverişe Devam Et
+                    </a>
                 </div>
                 <div class="col-md-4">
                     <div class="card shadow-sm">
@@ -130,13 +132,13 @@
                         <div class="card-body">
                             <ul class="list-group list-group-flush">
                                 <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    Ara Toplam: <span id="cart-subtotal">0.00 ₺</span>
+                                    <span id="cart-summary-subtotal-label">Ara Toplam:</span> <span id="cart-subtotal">0.00 ₺</span>
                                 </li>
                                 <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    Kargo: <span id="cart-shipping">0.00 ₺</span>
+                                    <span id="cart-summary-shipping-label">Kargo:</span> <span id="cart-shipping">0.00 ₺</span>
                                 </li>
                                 <li class="list-group-item d-flex justify-content-between align-items-center fw-bold">
-                                    Toplam: <span id="cart-total">0.00 ₺</span>
+                                    <span id="cart-summary-total-label">Toplam:</span> <span id="cart-total">0.00 ₺</span>
                                 </li>
                             </ul>
                             <div class="d-grid gap-2 mt-3">
@@ -271,6 +273,19 @@
         const emptyCartMessage = document.getElementById('empty-cart-message');
         const cartContentDiv = document.getElementById('cart-content');
 
+        // Yeni eklenen id'lere sahip DOM elementleri
+        const cartThProduct = document.getElementById('cart-th-product');
+        const cartThPrice = document.getElementById('cart-th-price');
+        const cartThQuantity = document.getElementById('cart-th-quantity');
+        const cartThTotal = document.getElementById('cart-th-total');
+        const emptyCartPrompt = document.getElementById('empty-cart-prompt');
+        const emptyCartContinueBtn = document.getElementById('empty-cart-continue-btn');
+        const continueShoppingMainBtn = document.getElementById('continue-shopping-main-btn');
+        const cartSummarySubtotalLabel = document.getElementById('cart-summary-subtotal-label');
+        const cartSummaryShippingLabel = document.getElementById('cart-summary-shipping-label');
+        const cartSummaryTotalLabel = document.getElementById('cart-summary-total-label');
+
+
         // Header ve Footer Elementleri
         const selectedCountryDisplay = document.getElementById('selected-country-display');
         const selectedLanguageDisplay = document.getElementById('selected-language-display');
@@ -348,21 +363,31 @@
             const texts = appTexts[currentLanguageCode] || appTexts['en'];
 
             cartPageTitle.textContent = texts.cartPageTitle;
-            document.querySelector('#empty-cart-message p').textContent = texts.emptyCartMessage;
-            document.querySelector('#empty-cart-message a').textContent = texts.emptyCartContinueShopping;
-            document.querySelector('.btn-outline-secondary').textContent = ` ${texts.continueShopping}`;
-            document.querySelector('.btn-outline-secondary').prepend(document.createElement('i')).classList.add('bi', 'bi-arrow-left'); // İkonu ekle
-            document.querySelector('.card-header').textContent = texts.cartSummarySubtotal.replace(':', ''); // 'Sepet Özeti'
-            document.querySelector('#checkout-button').textContent = texts.checkoutButton;
-            document.querySelector('th:nth-child(1)').textContent = texts.cartTableProduct;
-            document.querySelector('th:nth-child(2)').textContent = texts.cartTablePrice;
-            document.querySelector('th:nth-child(3)').textContent = texts.cartTableQuantity;
-            document.querySelector('th:nth-child(4)').textContent = texts.cartTableTotal;
+            if(emptyCartPrompt) emptyCartPrompt.textContent = texts.emptyCartMessage;
+            if(emptyCartContinueBtn) emptyCartContinueBtn.textContent = texts.emptyCartContinueShopping;
+            
+            // continueShoppingMainBtn için kontrol eklendi
+            if(continueShoppingMainBtn) {
+                continueShoppingMainBtn.textContent = ` ${texts.continueShopping}`;
+                const existingIcon = continueShoppingMainBtn.querySelector('.bi-arrow-left');
+                if (!existingIcon) { // İkon tekrar tekrar eklenmesin diye kontrol
+                    const icon = document.createElement('i');
+                    icon.classList.add('bi', 'bi-arrow-left');
+                    continueShoppingMainBtn.prepend(icon);
+                }
+            }
+            
+            // Tablo başlıkları için kontrol eklendi
+            if(cartThProduct) cartThProduct.textContent = texts.cartTableProduct;
+            if(cartThPrice) cartThPrice.textContent = texts.cartTablePrice;
+            if(cartThQuantity) cartThQuantity.textContent = texts.cartTableQuantity;
+            if(cartThTotal) cartThTotal.textContent = texts.cartTableTotal;
 
             // Sepet özeti başlıklarını da güncelleyelim
-            document.querySelector('#cart-subtotal').previousSibling.textContent = texts.cartSummarySubtotal;
-            document.querySelector('#cart-shipping').previousSibling.textContent = texts.cartSummaryShipping;
-            document.querySelector('#cart-total').previousSibling.textContent = texts.cartSummaryTotal;
+            if(cartSummarySubtotalLabel) cartSummarySubtotalLabel.textContent = texts.cartSummarySubtotal;
+            if(cartSummaryShippingLabel) cartSummaryShippingLabel.textContent = texts.cartSummaryShipping;
+            if(cartSummaryTotalLabel) cartSummaryTotalLabel.textContent = texts.cartSummaryTotal;
+            if(checkoutButton) checkoutButton.textContent = texts.checkoutButton;
 
 
             cartItems = JSON.parse(localStorage.getItem(LS_CART_ITEMS) || '[]');
@@ -383,20 +408,20 @@
             let fetchedProductsMap = new Map();
             if (uniqueProductIds.length > 0) {
                 try {
-                    // Tüm ürün detaylarını tek bir sorgu ile (in operatörü ile) çekmeye çalış
-                    // Ancak Firestore'da 'in' operatörü 10 ID ile sınırlıdır.
-                    // Daha fazla ürün varsa birden fazla sorgu gerekir. Şimdilik basitleştiriyoruz.
-                    const productsSnapshot = await db.collection('products').where(firebase.firestore.FieldPath.documentId(), 'in', uniqueProductIds).get();
+                    // Firestore 'in' operatörü 10 ID ile sınırlıdır.
+                    // Daha fazla ürün varsa birden fazla sorgu yapılması gerekir.
+                    // Şimdilik sadece ilk 10 ID için çalışacaktır.
+                    if (uniqueProductIds.length > 10) {
+                        console.warn("Sepetinizde 10'dan fazla benzersiz ürün var. Firestore 'in' sorgusu sınırlıdır. Bazı ürünler görüntülenemeyebilir.");
+                        // Burada daha gelişmiş bir sorgulama stratejisi gerekebilir (örn: ID'leri parçalara ayırıp ayrı sorgular yapmak).
+                    }
+                    const productsSnapshot = await db.collection('products').where(firebase.firestore.FieldPath.documentId(), 'in', uniqueProductIds.slice(0, 10)).get();
                     productsSnapshot.forEach(doc => {
                         fetchedProductsMap.set(doc.id, doc.data());
                     });
                 } catch (error) {
-                    console.error("Sepet ürünleri çekilirken hata:", error);
-                    // 'in' sorgusu 10'dan fazla ID için hata verebilir. Her bir ürünü ayrı ayrı çekebiliriz.
-                    // Veya daha gelişmiş bir pagination/batching stratejisi uygulayabiliriz.
-                    // Şimdilik, eğer 'in' sorgusu hata verirse (örneğin limit aşımı), her ürünü tek tek çekmeyi deneyeceğiz.
-                    // Bu senaryoda basitlik adına hata mesajı verip devam ediyoruz.
-                    alert("Sepetinizdeki bazı ürünler yüklenirken hata oluştu. Sayfayı yenileyiniz.");
+                    console.error("Sepet ürün detayları çekilirken hata:", error);
+                    alert("Sepetinizdeki ürünler yüklenirken bir hata oluştu. Lütfen sayfayı yenileyiniz.");
                     return;
                 }
             }
@@ -409,9 +434,13 @@
 
             cartItems.forEach((item, index) => {
                 const productData = fetchedProductsMap.get(item.productId);
-                if (!productData) {
-                    // Ürün bulunamazsa sepetten kaldırılabilir veya hata mesajı verilebilir.
-                    console.warn(`Sepetinizdeki ürün bulunamadı, ID: ${item.productId}`);
+                // Eğer ürün bulunamazsa veya aktif değilse (silinmiş/pasifleşmiş olabilir) atla
+                if (!productData || productData.isActive === false) {
+                    console.warn(`Sepetinizdeki ürün bulunamadı veya pasif, ID: ${item.productId}. Sepetten kaldırılıyor.`);
+                    // Bu ürünü sepetten otomatik olarak kaldır
+                    cartItems.splice(index, 1);
+                    updateLocalStorageCart(); // LocalStorage'ı güncelle
+                    loadCartAndRender(); // Sepeti yeniden render et
                     return; 
                 }
 
@@ -425,17 +454,24 @@
                 if (item.selectedVariants) {
                     for (const key in item.selectedVariants) {
                         if (item.selectedVariants.hasOwnProperty(key)) {
+                            // Varyant isimlerini doğru dilde göstermek için productData'daki varyantları kullanabiliriz
+                            // Ancak sepet öğesinde zaten kaydedildiği varsayımıyla devam ediyorum.
                             variantText += `${key}: ${item.selectedVariants[key]} `;
                         }
                     }
                     if (variantText) variantText = `<br><small class="text-muted">${variantText.trim()}</small>`;
                 }
+                
+                // Ürün görseli için, ürün detayından gelen mediaUrls[0] kullanılıyor
+                const imageUrlToDisplay = (productData.mediaUrls && productData.mediaUrls.length > 0 && productData.mediaUrls[0].match(/\.(jpeg|jpg|gif|png|webp)$/i))
+                                          ? productData.mediaUrls[0]
+                                          : (item.imageUrl || 'https://via.placeholder.com/80x80?text=Ürün'); // item.imageUrl yedek olarak
 
                 const row = `
                     <tr data-product-index="${index}">
                         <td>
                             <div class="d-flex align-items-center">
-                                <img src="${item.imageUrl || 'https://via.placeholder.com/80x80?text=Ürün'}" alt="${item.name}" class="cart-item-image me-3">
+                                <img src="${imageUrlToDisplay}" alt="${item.name}" class="cart-item-image me-3">
                                 <div>
                                     <a href="urun-detay.html?id=${item.productId}" class="text-decoration-none text-dark fw-bold">${item.name}</a>
                                     ${variantText}
@@ -444,9 +480,9 @@
                         <td>${calculatedPrice} ${currencySymbol}</td>
                         <td>
                             <div class="quantity-control">
-                                <button class="btn btn-sm btn-outline-secondary quantity-decrease">-</button>
+                                <button class="btn btn-sm btn-outline-secondary quantity-decrease" data-index="${index}">-</button>
                                 <input type="number" class="form-control form-control-sm quantity-input" value="${item.quantity}" min="1" data-index="${index}">
-                                <button class="btn btn-sm btn-outline-secondary quantity-increase">+</button>
+                                <button class="btn btn-sm btn-outline-secondary quantity-increase" data-index="${index}">+</button>
                             </div>
                         </td>
                         <td>${itemTotal} ${currencySymbol}</td>
@@ -470,39 +506,47 @@
 
         function handleCartActions(event) {
             const target = event.target;
-            const index = parseInt(target.closest('tr')?.dataset.productIndex);
+            // Olayı tetikleyen elementten 'data-index'i al
+            const indexStr = target.dataset.index || target.closest('[data-index]')?.dataset.index;
+            const index = parseInt(indexStr);
 
-            if (isNaN(index) || index < 0 || index >= cartItems.length) return; // Geçersiz index
+            if (isNaN(index) || index < 0 || index >= cartItems.length) {
+                console.warn("Geçersiz sepet öğesi indeksi:", indexStr);
+                return; // Geçersiz index
+            }
 
             if (target.classList.contains('quantity-decrease')) {
                 if (cartItems[index].quantity > 1) {
                     cartItems[index].quantity--;
                     updateLocalStorageCart();
-                    loadCartAndRender();
+                    loadCartAndRender(); // Tüm sepeti yeniden render etmek için
                 }
             } else if (target.classList.contains('quantity-increase')) {
                 cartItems[index].quantity++;
                 updateLocalStorageCart();
-                loadCartAndRender();
+                loadCartAndRender(); // Tüm sepeti yeniden render etmek için
             } else if (target.classList.contains('remove-item') || target.closest('.remove-item')) {
-                if (confirm(appTexts[localStorage.getItem(LS_SELECTED_LANGUAGE_CODE) || 'tr'].itemRemovedFromCart)) {
-                    cartItems.splice(index, 1); // Ürünü diziden kaldır
+                const currentLanguageCode = localStorage.getItem(LS_SELECTED_LANGUAGE_CODE) || 'tr';
+                const texts = appTexts[currentLanguageCode] || appTexts['en'];
+                if (confirm(texts.itemRemovedFromCart)) {
+                    cartItems.splice(index, 1); 
                     updateLocalStorageCart();
-                    loadCartAndRender();
-                    updateCartItemCount(); // Header'daki sepet sayacını da güncelle
+                    loadCartAndRender(); 
+                    updateCartItemCount(); 
                 }
             } else if (target.classList.contains('quantity-input')) {
                 // Input değeri değiştiğinde (Enter veya focus dışı)
-                target.addEventListener('change', (e) => {
-                    let newQuantity = parseInt(e.target.value);
-                    if (isNaN(newQuantity) || newQuantity < 1) {
-                        newQuantity = 1; // Minimum 1 adet
-                        e.target.value = 1;
-                    }
-                    cartItems[index].quantity = newQuantity;
-                    updateLocalStorageCart();
-                    loadCartAndRender();
-                }, { once: true }); // Olay dinleyiciyi sadece bir kez tetikle
+                // Bu event listener, click olayının içinde olduğu için dikkatli olmalı.
+                // Genellikle input'un kendisinin 'change' olayı daha uygundur.
+                // Burada direkt update yapalım, çünkü kullanıcı zaten manuel giriş yapmış.
+                let newQuantity = parseInt(target.value);
+                if (isNaN(newQuantity) || newQuantity < 1) {
+                    newQuantity = 1; 
+                    target.value = 1;
+                }
+                cartItems[index].quantity = newQuantity;
+                updateLocalStorageCart();
+                loadCartAndRender();
             }
         }
 
@@ -576,15 +620,14 @@
         }
 
         // Headerdaki ülke/dil/para birimi değiştiğinde tüm sayfayı güncelleyen event listener
-        saveHeaderSelectionsBtn.addEventListener('click', async () => { // async eklendi
+        saveHeaderSelectionsBtn.addEventListener('click', async () => { 
             localStorage.setItem(LS_SELECTED_COUNTRY_CODE, headerCountrySelect.value);
             localStorage.setItem(LS_SELECTED_LANGUAGE_CODE, headerLanguageSelect.value);
             localStorage.setItem(LS_SELECTED_CURRENCY_CODE, headerCurrencySelect.value);
             updateHeaderDisplays();
             updateStaticContent(); 
             
-            // Sepet içeriğini yeni dile/para birimine göre yeniden yükle
-            await loadCartAndRender(); // Sepeti yeniden render etmek için await kullanıldı
+            await loadCartAndRender(); 
             
             alert(appTexts[localStorage.getItem(LS_SELECTED_LANGUAGE_CODE) || 'tr']?.settingsSaved || appTexts['en'].settingsSaved); 
         });
