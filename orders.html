@@ -27,7 +27,10 @@
             <li class="nav-item"><a class="nav-link" href="product-management.html"><i class="bi bi-tags-fill"></i>Ürün Yönetimi</a></li>
             <li class="nav-item"><a class="nav-link" href="category-management.html"><i class="bi bi-list-ul"></i>Kategori Yönetimi</a></li>
             <li class="nav-item"><a class="nav-link" href="country-pricing-management.html"><i class="bi bi-globe-americas"></i>Uluslararası Ayarlar</a></li>
+            <li class="nav-item"><a class="nav-link" href="languages-and-currencies.html"><i class="bi bi-translate"></i>Diller ve Para Birimleri</a></li>
             <li class="nav-item"><a class="nav-link" href="general-settings.html"><i class="bi bi-gear-fill"></i>Mağaza Ayarları</a></li>
+            <li class="nav-item"><a class="nav-link" href="homepage-settings.html"><i class="bi bi-house-door-fill"></i>Ana Sayfa Ayarları</a></li>
+            <li class="nav-item"><a class="nav-link" href="seo-management.html"><i class="bi bi-search"></i>SEO Yönetimi</a></li>
             <li class="nav-item mt-auto"><a class="nav-link" id="logout-button" href="#"><i class="bi bi-box-arrow-left"></i>Çıkış Yap</a></li>
         </ul>
     </div>
@@ -37,7 +40,16 @@
             <div class="container-fluid"><span class="navbar-brand">Tüm Siparişler</span></div>
         </nav>
         <div class="card">
-            <div class="card-body"><div class="table-responsive"><table class="table table-hover align-middle"><thead><tr><th>Sipariş No</th><th>Müşteri</th><th>Tarih</th><th>Tutar</th><th>Durum</th><th>Aksiyonlar</th></tr></thead><tbody id="orders-table-body"></tbody></table></div></div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead>
+                            <tr><th>Sipariş No</th><th>Müşteri</th><th>Tarih</th><th>Tutar</th><th>Durum</th><th>Aksiyonlar</th></tr>
+                        </thead>
+                        <tbody id="orders-table-body"></tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
     
@@ -64,7 +76,68 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
     <script>
-        // orders.html için gerekli olan tüm JavaScript kodları buraya gelecek (önceki mesajlardan alabilirsiniz)
+        const firebaseConfig = { apiKey: "AIzaSyDYkzZzNXB22U4oEXxOoPh-puwuE8kz0g4", authDomain: "pufemo-com.firebaseapp.com", projectId: "pufemo-com", storageBucket: "pufemo-com.firebasestorage.app", messagingSenderId: "983352837227", appId: "1:983352837227:web:defaa8dae215776e2e1d2e", measurementId: "G-RH8XHC7P91" };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        const adminUID = "4tOeNJRjbxPF9BBoynJNJIBxOqU2";
+        const ordersTableBody = document.getElementById('orders-table-body');
+        const orderDetailsModal = new bootstrap.Modal(document.getElementById('orderDetailsModal'));
+        
+        auth.onAuthStateChanged(user => {
+            if (user && user.uid === adminUID) { loadOrders(); } 
+            else { window.location.href = 'admin-login.html'; }
+        });
+
+        async function loadOrders() {
+            ordersTableBody.innerHTML = '<tr><td colspan="6" class="text-center">Yükleniyor...</td></tr>';
+            const snapshot = await db.collection('orders').orderBy('timestamp', 'desc').get();
+            ordersTableBody.innerHTML = '';
+            if (snapshot.empty) { ordersTableBody.innerHTML = '<tr><td colspan="6" class="text-center">Henüz sipariş bulunmuyor.</td></tr>'; return; }
+            snapshot.forEach(doc => {
+                const order = doc.data();
+                const statusBadges = { 'Yeni': 'bg-primary', 'Hazırlanıyor': 'bg-warning text-dark', 'Kargoda': 'bg-info text-dark', 'Teslim Edildi': 'bg-success', 'İptal Edildi': 'bg-danger' };
+                const statusClass = statusBadges[order.status] || 'bg-secondary';
+                const row = `<tr><td><strong>#${doc.id.substring(0, 8).toUpperCase()}</strong></td><td>${order.customerName}</td><td>${order.timestamp.toDate().toLocaleDateString('tr-TR')}</td><td>${order.totalAmount.toFixed(2)} ${order.currency}</td><td><span class="badge ${statusClass} status-badge">${order.status}</span></td><td><button class="btn btn-sm btn-outline-secondary" onclick="viewOrderDetails('${doc.id}')">Detay Gör</button></td></tr>`;
+                ordersTableBody.innerHTML += row;
+            });
+        }
+
+        async function viewOrderDetails(orderId) {
+            const doc = await db.collection('orders').doc(orderId).get();
+            if (!doc.exists) { return; }
+            const order = doc.data();
+            document.getElementById('orderDetailsModalLabel').textContent = `Sipariş Detayı: #${orderId.substring(0, 8).toUpperCase()}`;
+            document.getElementById('customer-info').innerHTML = `<strong>${order.customerName}</strong> (${order.customerEmail})`;
+            document.getElementById('shipping-address').textContent = order.shippingAddress;
+            document.getElementById('currentOrderId').value = orderId;
+            document.getElementById('orderStatus').value = order.status;
+            document.getElementById('trackingNumber').value = order.trackingNumber || '';
+            const productsTable = document.getElementById('order-products-table');
+            productsTable.innerHTML = '';
+            order.products.forEach(product => {
+                const row = `<tr><td>${product.name}</td><td>${product.quantity}</td><td class="text-end">${product.price.toFixed(2)} ${order.currency}</td></tr>`;
+                productsTable.innerHTML += row;
+            });
+            orderDetailsModal.show();
+        }
+        
+        document.getElementById('updateOrderBtn').addEventListener('click', async () => {
+            const orderId = document.getElementById('currentOrderId').value;
+            const newStatus = document.getElementById('orderStatus').value;
+            const newTrackingNumber = document.getElementById('trackingNumber').value;
+            if (!orderId) return;
+            try {
+                await db.collection('orders').doc(orderId).update({ status: newStatus, trackingNumber: newTrackingNumber });
+                orderDetailsModal.hide();
+                loadOrders();
+            } catch (error) { console.error("Sipariş güncellenirken hata:", error); }
+        });
+
+        document.getElementById('logout-button').addEventListener('click', (e) => {
+            e.preventDefault();
+            auth.signOut().then(() => { window.location.href = 'admin-login.html'; });
+        });
     </script>
 </body>
 </html>
