@@ -12,13 +12,24 @@
         body { display: flex; flex-direction: column; min-height: 100vh; background-color: #f8f9fa; }
         .navbar { background-color: #ffffff; box-shadow: 0 2px 4px rgba(0,0,0,.08); }
         .footer { background-color: #343a40; color: white; padding: 30px 0; margin-top: auto; }
-        .product-image-gallery img {
+        .product-image-gallery {
             width: 100%;
-            max-height: 500px;
-            object-fit: contain; /* Resmi kutuya sığdırırken oranlarını korur */
+            max-height: 500px; /* Sabit yükseklik */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden; /* İçerik taşmasını engelle */
             border: 1px solid #dee2e6;
             border-radius: 5px;
-            cursor: zoom-in;
+            background-color: #fff; /* Arkaplan rengi */
+        }
+        .product-image-gallery img,
+        .product-image-gallery video,
+        .product-image-gallery iframe {
+            width: 100%;
+            height: 100%; /* Kapsayıcıya sığdır */
+            object-fit: contain; /* İçeriği kutuya sığdırırken oranlarını korur */
+            /* cursor: zoom-in; */ /* Video için zoom mantıklı olmayabilir, kaldırıldı */
         }
         .product-thumbnails img, .product-thumbnails video {
             width: 80px;
@@ -126,8 +137,8 @@
         <div id="product-detail-container" class="card shadow-sm p-4">
             <div class="row">
                 <div class="col-md-6">
-                    <div class="product-image-gallery mb-3">
-                        <img src="https://via.placeholder.com/600x400?text=Ürün+Görseli" id="main-product-image" alt="Ana Ürün Görseli">
+                    <div class="product-image-gallery mb-3" id="main-media-display">
+                        <img src="https://via.placeholder.com/600x400?text=Ürün+Görseli" id="initial-placeholder-image" alt="Ana Ürün Görseli">
                     </div>
                     <div class="d-flex flex-wrap gap-2 product-thumbnails" id="product-thumbnails">
                         </div>
@@ -256,7 +267,7 @@
                 </div>
             </div>
             <div class="text-center mt-4 border-top pt-3">
-                <p class="mb-0">&copy; 2025 PUFEMO. Tüm Hakları Saklıdır.</p>
+                <p class="mb-0">© 2025 PUFEMO. Tüm Hakları Saklıdır.</p>
             </div>
         </div>
     </footer>
@@ -351,7 +362,8 @@
         const productNameEl = document.getElementById('product-name');
         const productSkuEl = document.getElementById('product-sku');
         const productPriceEl = document.getElementById('product-price');
-        const mainProductImageEl = document.getElementById('main-product-image');
+        // const mainProductImageEl = document.getElementById('main-product-image'); // Bu artık kullanılmıyor
+        const mainMediaDisplayEl = document.getElementById('main-media-display'); // Yeni ana medya kapsayıcısı
         const productThumbnailsEl = document.getElementById('product-thumbnails');
         const productVariantsEl = document.getElementById('product-variants');
         const quantityInput = document.getElementById('quantity');
@@ -430,6 +442,71 @@
             }
         }
 
+        // Medya gösterimini güncelleyen yardımcı fonksiyon
+        function updateMainMediaDisplay(url) {
+            mainMediaDisplayEl.innerHTML = ''; // Önceki içeriği temizle
+
+            const isImage = url.match(/\.(jpeg|jpg|gif|png|webp)$/i);
+            const isMp4Video = url.match(/\.(mp4|webm|ogg)$/i);
+            const isYouTube = url.includes('youtube.com/watch?v=') || url.includes('youtu.be/');
+            const isVimeo = url.includes('vimeo.com/');
+
+            if (isImage) {
+                const img = document.createElement('img');
+                img.src = url;
+                img.alt = 'Ürün Görseli';
+                mainMediaDisplayEl.appendChild(img);
+            } else if (isMp4Video) {
+                const video = document.createElement('video');
+                video.src = url;
+                video.controls = true; // Ana gösterimde kontrolleri göster
+                video.autoplay = true; // Otomatik oynat
+                video.muted = true; // Başlangıçta sessiz
+                video.loop = true; // Döngüde oynat
+                mainMediaDisplayEl.appendChild(video);
+            } else if (isYouTube) {
+                let videoId = '';
+                const youtubeMatch = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
+                if (youtubeMatch && youtubeMatch[1]) {
+                    videoId = youtubeMatch[1];
+                }
+                
+                if (videoId) {
+                    const iframe = document.createElement('iframe');
+                    iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=1`;
+                    iframe.setAttribute('frameborder', '0');
+                    iframe.setAttribute('allow', 'autoplay; encrypted-media');
+                    iframe.setAttribute('allowfullscreen', '');
+                    mainMediaDisplayEl.appendChild(iframe);
+                } else {
+                    mainMediaDisplayEl.innerHTML = '<p class="text-danger">Geçersiz YouTube URL\'si</p>';
+                }
+            } else if (isVimeo) {
+                let videoId = url.split('vimeo.com/')[1];
+                const vimeoMatch = url.match(/(?:vimeo\.com\/)(\d+)/);
+                if (vimeoMatch && vimeoMatch[1]) {
+                    videoId = vimeoMatch[1];
+                }
+                if (videoId) {
+                    const iframe = document.createElement('iframe');
+                    iframe.src = `https://player.vimeo.com/video/${videoId}?autoplay=1&loop=1&muted=1`;
+                    iframe.setAttribute('frameborder', '0');
+                    iframe.setAttribute('allow', 'autoplay; fullscreen; picture-in-picture');
+                    iframe.setAttribute('allowfullscreen', '');
+                    mainMediaDisplayEl.appendChild(iframe);
+                } else {
+                    mainMediaDisplayEl.innerHTML = '<p class="text-danger">Geçersiz Vimeo URL\'si</p>';
+                }
+            } else {
+                // Bilinmeyen veya geçersiz URL için placeholder
+                const img = document.createElement('img');
+                img.src = 'https://via.placeholder.com/600x400?text=Görsel+Yok';
+                img.alt = 'Görsel Yok';
+                mainMediaDisplayEl.appendChild(img);
+            }
+        }
+
+
         async function loadProductDetails(productId) {
             const currentLanguageCode = localStorage.getItem(LS_SELECTED_LANGUAGE_CODE) || 'tr';
             const currentCurrencyCode = localStorage.getItem(LS_SELECTED_CURRENCY_CODE) || 'TRY';
@@ -459,32 +536,53 @@
                 const currencySymbol = allCurrencies.find(c => c.code === currentCurrencyCode)?.symbol || '₺';
                 productPriceEl.textContent = `${calculatedPrice} ${currencySymbol}`;
 
-                // Görsel Galerisi
+                // Görsel Galerisi ve Thumbnails
                 productThumbnailsEl.innerHTML = '';
                 if (product.mediaUrls && product.mediaUrls.length > 0) {
-                    mainProductImageEl.src = product.mediaUrls[0]; // Ana görseli ayarla
+                    updateMainMediaDisplay(product.mediaUrls[0]); // İlk medyayı ana gösterimde göster
+
                     product.mediaUrls.forEach((url, index) => {
-                        const isVideo = url.match(/\.(mp4|webm|ogg)$/i) || url.includes('youtube.com') || url.includes('vimeo.com');
-                        const thumbEl = document.createElement(isVideo ? 'video' : 'img');
-                        thumbEl.src = url;
+                        const isVideo = url.match(/\.(mp4|webm|ogg)$/i) || url.includes('youtube.com/watch?v=') || url.includes('youtu.be/') || url.includes('vimeo.com/');
+                        
+                        let thumbEl;
                         if (isVideo) {
-                            thumbEl.controls = false; // Thumbnail olarak kullanılacağı için kontrolleri gizle
-                            thumbEl.muted = true; // Otomatik oynatma için sessiz olsun
+                            thumbEl = document.createElement('video'); // Video etiketini kullanıyoruz
+                            thumbEl.controls = false; 
+                            thumbEl.muted = true; 
                             thumbEl.setAttribute('preload', 'metadata');
-                            thumbEl.poster = `https://via.placeholder.com/80x80?text=Video`; // Video thumbnaili için placeholder
+                            // YouTube/Vimeo için thumbnail URL'si çekme denemesi (API olmadan tam garanti vermez)
+                            let videoId = '';
+                            if (url.includes('youtube.com/watch?v=') || url.includes('youtu.be/')) {
+                                const youtubeMatch = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
+                                if (youtubeMatch && youtubeMatch[1]) videoId = youtubeMatch[1];
+                                if (videoId) thumbEl.poster = `https://img.youtube.com/vi/${videoId}/default.jpg`; // YouTube thumbnail
+                            } else if (url.includes('vimeo.com/')) {
+                                const vimeoMatch = url.match(/(?:vimeo\.com\/)(\d+)/);
+                                if (vimeoMatch && vimeoMatch[1]) {
+                                    videoId = vimeoMatch[1];
+                                    // Vimeo API'ye doğrudan HTTP isteği gerekir, şimdilik basit bir placeholder
+                                    thumbEl.poster = `https://via.placeholder.com/80x80?text=Vimeo`;
+                                }
+                            }
+                            if (!thumbEl.poster) thumbEl.poster = `https://via.placeholder.com/80x80?text=Video`; // Genel video thumbnail
+                            thumbEl.src = url; // Video URL'si
+                        } else {
+                            thumbEl = document.createElement('img');
+                            thumbEl.src = url;
                         }
+
                         thumbEl.classList.add('img-fluid');
-                        if (index === 0) thumbEl.classList.add('active'); // İlk thumbnail aktif olsun
+                        if (index === 0) thumbEl.classList.add('active'); 
+                        
                         thumbEl.addEventListener('click', () => {
-                            mainProductImageEl.src = url;
-                            // Aktif sınıfını diğerlerinden kaldırıp tıklanana ekle
-                            productThumbnailsEl.querySelectorAll('.active').forEach(img => img.classList.remove('active'));
+                            updateMainMediaDisplay(url); // Tıklanan thumbnail'ın medyasını ana gösterime yükle
+                            productThumbnailsEl.querySelectorAll('.active').forEach(item => item.classList.remove('active'));
                             thumbEl.classList.add('active');
                         });
                         productThumbnailsEl.appendChild(thumbEl);
                     });
                 } else {
-                    mainProductImageEl.src = 'https://via.placeholder.com/600x400?text=Görsel+Yok';
+                    updateMainMediaDisplay('https://via.placeholder.com/600x400?text=Görsel+Yok');
                 }
 
                 // Varyantlar (basit örnek)
@@ -497,7 +595,7 @@
                         colorDiv.innerHTML = `<label class="form-label">Renk:</label><div class="d-flex flex-wrap gap-2" id="color-options"></div>`;
                         product.variants.colors.forEach(color => {
                             const translatedColorName = color.translations[currentLanguageCode] || color.name;
-                            const inputId = `color-${color.name}`;
+                            const inputId = `color-${color.name.replace(/\s+/g, '-')}`; // ID'lerde boşlukları kaldır
                             colorDiv.querySelector('#color-options').innerHTML += `
                                 <div class="form-check variant-option">
                                     <input type="radio" class="form-check-input" name="color" id="${inputId}" value="${color.name}">
@@ -512,7 +610,7 @@
                         sizeDiv.className = 'mb-3';
                         sizeDiv.innerHTML = `<label class="form-label">Boyut:</label><div class="d-flex flex-wrap gap-2" id="size-options"></div>`;
                         product.variants.sizes.forEach(size => {
-                            const inputId = `size-${size}`;
+                            const inputId = `size-${size.replace(/\s+/g, '-')}`; // ID'lerde boşlukları kaldır
                             sizeDiv.querySelector('#size-options').innerHTML += `
                                 <div class="form-check variant-option">
                                     <input type="radio" class="form-check-input" name="size" id="${inputId}" value="${size}">
@@ -527,7 +625,7 @@
                         fabricDiv.className = 'mb-3';
                         fabricDiv.innerHTML = `<label class="form-label">Kumaş:</label><div class="d-flex flex-wrap gap-2" id="fabric-options"></div>`;
                         product.variants.fabrics.forEach(fabric => {
-                            const inputId = `fabric-${fabric}`;
+                            const inputId = `fabric-${fabric.replace(/\s+/g, '-')}`; // ID'lerde boşlukları kaldır
                             fabricDiv.querySelector('#fabric-options').innerHTML += `
                                 <div class="form-check variant-option">
                                     <input type="radio" class="form-check-input" name="fabric" id="${inputId}" value="${fabric}">
@@ -631,7 +729,7 @@
                     name: productNameEl.textContent, // Sepet görünümünde kolaylık için
                     price: parseFloat(productPriceEl.textContent.replace(/[^\d.]/g, '')), // Sadece sayısal kısım
                     currency: localStorage.getItem(LS_SELECTED_CURRENCY_CODE) || 'TRY',
-                    imageUrl: mainProductImageEl.src, // Sepet görünümünde kolaylık için
+                    imageUrl: mainMediaDisplayEl.querySelector('img, video, iframe')?.src || '', // Sepet görünümünde kolaylık için, ana gösterilen medyanın URL'si
                     quantity: selectedQuantity,
                     selectedVariants: selectedVariants
                 });
@@ -653,7 +751,35 @@
 
         // --- Header ve Footer İçin Ortak Fonksiyonlar (index.html'den kopyalandı) ---
 
-        async function populateHeaderSelectors() {
+        async function loadCommonDataAndPopulateHeader() {
+            try {
+                const [countriesSnapshot, languagesSnapshot, currenciesSnapshot, settingsDoc] = await Promise.all([
+                    db.collection('countries').get(),
+                    db.collection('languages').get(),
+                    db.collection('currencies').get(),
+                    db.collection('settings').doc('siteConfig').get()
+                ]);
+
+                allCountries = countriesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                allLanguages = languagesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                allCurrencies = currenciesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                siteSettings = settingsDoc.exists ? settingsDoc.data() : {};
+
+                // Headerdaki seçicileri doldur
+                populateHeaderSelectors();
+            } catch (error) {
+                console.error("Ortak Firebase verileri yüklenirken hata:", error);
+                alert("Site temel verileri yüklenirken bir sorun oluştu.");
+                allCountries = []; allLanguages = []; allCurrencies = []; siteSettings = {};
+                localStorage.setItem(LS_SELECTED_LANGUAGE_CODE, 'en');
+                localStorage.setItem(LS_SELECTED_CURRENCY_CODE, 'USD');
+                // Hata durumunda bile Header'ı boş veya varsayılan değerlerle doldur
+                populateHeaderSelectors();
+            }
+        }
+
+
+        function populateHeaderSelectors() {
             const currentLangCode = localStorage.getItem(LS_SELECTED_LANGUAGE_CODE) || 'tr';
             headerCountrySelect.innerHTML = '';
             allCountries.forEach(country => {
@@ -705,7 +831,6 @@
             footerCompanyAddress.textContent = siteSettings[`companyAddress_${currentLangCode}`] || texts.footerAddressNotFound;
             footerContactEmail.textContent = siteSettings.contactEmail || 'info@pufemo.com';
             footerWhatsappNumber.textContent = siteSettings.whatsappNumber || '+90 5XX XXX XX XX';
-            // Ana sayfadaki promo banner'ı burada olmadığı için güncellenmiyor
             
             // Menüdeki login/register linklerini güncelle
             if (menuLoginLink) menuLoginLink.textContent = texts.menuLogin;
