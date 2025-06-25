@@ -16,9 +16,6 @@
         .initial-modal.is-visible { display: flex; align-items: center; justify-content: center; }
         .modal-content-custom { background-color: #ffffff; border-radius: 15px; padding: 2rem; max-width: 500px; width: 90%; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
         .country-list { max-height: 300px; overflow-y: auto; }
-        .list-group-item-action:hover { background-color: #f8f9fa; }
-        .product-card { transition: transform .2s, box-shadow .2s; border: none; border-radius: 15px; overflow: hidden; }
-        .product-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
         .product-card img { height: 280px; object-fit: cover; }
         .modal-step { display: none; }
         .main-content { visibility: hidden; opacity: 0; transition: opacity 0.5s ease-in-out; }
@@ -28,7 +25,25 @@
 <body>
 
     <div class="initial-modal" id="initial-modal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-content-custom text-center modal-step" id="step-country">
+                    <h2 class="fw-bold mb-3">Welcome</h2>
+                    <p class="text-muted mb-4">Please select your country to see correct pricing and delivery options.</p>
+                    <div class="list-group country-list" id="country-list"><div class="p-3">Loading countries...</div></div>
+                </div>
+                <div class="modal-content-custom text-center modal-step" id="step-auth-options">
+                     <h2 class="fw-bold mb-3" id="welcome-text">Hoş Geldiniz</h2>
+                     <p class="text-muted mb-4" id="selected-country-info"></p>
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-primary btn-lg" id="guest-btn">Misafir Olarak Devam Et</button>
+                        <button class="btn btn-secondary" id="show-login-btn">Giriş Yap</button>
+                        <button class="btn btn-outline-secondary btn-sm" id="show-register-btn">Kayıt Ol</button>
+                    </div>
+                </div>
+                </div>
         </div>
+    </div>
 
     <div class="main-content" id="main-content-wrapper">
         <header id="page-header" class="sticky-top"></header>
@@ -46,11 +61,57 @@
         const db = firebase.firestore();
         const auth = firebase.auth();
 
+        const translations = { 'tr': { welcome: 'Hoş Geldiniz', info: 'için devam edin.', guest: 'Misafir Olarak Devam Et', login: 'Giriş Yap', register: 'Kayıt Ol' }, 'en': { welcome: 'Welcome', info: 'Continue for', guest: 'Continue as Guest', login: 'Sign In', register: 'Register' }, 'de': { welcome: 'Willkommen', info: 'Weiter für', guest: 'Als Gast fortfahren', login: 'Anmelden', register: 'Registrieren' }};
         const exchangeRates = { "TRY": 1.0, "USD": 33.0, "EUR": 35.0, "GBP": 41.0, "RUB": 0.37 };
         const currencySymbols = { "TRY": "₺", "USD": "$", "EUR": "€", "GBP": "£", "RUB": "₽" };
         let selectedCountry = null;
 
-        // ... (showCountryModal, selectCountry, giriş/kayıt formları ve completeSessionSetup fonksiyonları burada) ...
+        document.addEventListener('DOMContentLoaded', showCountryModal);
+
+        function showStep(stepId) {
+            document.querySelectorAll('.modal-step').forEach(step => step.style.display = 'none');
+            document.getElementById(stepId).style.display = 'block';
+        }
+
+        async function showCountryModal() {
+            const countryList = document.getElementById('country-list');
+            try {
+                const countriesSnapshot = await db.collection('countries').orderBy('name').get();
+                countryList.innerHTML = '';
+                countriesSnapshot.forEach(doc => {
+                    const country = { id: doc.id, ...doc.data() };
+                    let flagUrl = 'https://via.placeholder.com/24x18?text=--';
+                    if (country.code) { flagUrl = `https://flagsapi.com/${country.code.toUpperCase()}/flat/24.png`; }
+                    const countryElement = document.createElement('a');
+                    countryElement.href = '#';
+                    countryElement.className = 'list-group-item list-group-item-action d-flex align-items-center';
+                    countryElement.innerHTML = `<img src="${flagUrl}" class="me-2" style="width:24px; border:1px solid #ddd;"> ${country.name}`;
+                    countryElement.onclick = (e) => { e.preventDefault(); selectCountry(country); };
+                    countryList.appendChild(countryElement);
+                });
+            } catch (error) { console.error("Ülkeler yüklenemedi:", error); countryList.innerHTML = 'Ülkeler yüklenemedi.'; }
+            document.getElementById('initial-modal').classList.add('is-visible');
+            showStep('step-country');
+        }
+
+        function selectCountry(country) {
+            selectedCountry = country;
+            const langCode = (country.language || 'en').toLowerCase();
+            const t = translations[langCode] || translations['en'];
+            document.getElementById('welcome-text').textContent = t.welcome;
+            document.getElementById('selected-country-info').textContent = `${country.name} ${t.info}`;
+            document.getElementById('guest-btn').textContent = t.guest;
+            document.getElementById('show-login-btn').textContent = t.login;
+            document.getElementById('show-register-btn').textContent = t.register;
+            showStep('step-auth-options');
+        }
+        
+        document.getElementById('guest-btn').addEventListener('click', async () => {
+            try {
+                const userCredential = await auth.signInAnonymously();
+                completeSessionSetup(userCredential.user, selectedCountry);
+            } catch (error) { console.error("Anonim giriş hatası:", error); }
+        });
 
         function completeSessionSetup(user, country) {
             localStorage.setItem('pufemo-country', JSON.stringify(country));
@@ -58,8 +119,11 @@
             initializeApp(country);
         }
 
+        // HATA AYIKLAMA MESAJLARI EKLENMİŞ FONKSİYON
         async function initializeApp(countrySettings) {
+            console.log("1. initializeApp fonksiyonu başladı. Ülke: ", countrySettings.name);
             try {
+                console.log("2. try bloğuna girildi. Veri çekme işlemi başlıyor...");
                 const [sliderDocs, categoryDocs, productDocs, settingsDoc, seoDoc] = await Promise.all([
                     db.collection('homepage_slider').where('isActive', '==', true).orderBy('order').get(),
                     db.collection('categories').get(),
@@ -67,97 +131,27 @@
                     db.collection('settings').doc('siteConfig').get(),
                     db.collection('seo_settings').doc('home').get()
                 ]);
-
+                console.log("3. Tüm veriler Firebase'den başarıyla çekildi.");
                 const settings = settingsDoc.exists ? settingsDoc.data() : {};
-                
+                console.log("4. Sayfa içeriği oluşturuluyor (render ediliyor)...");
                 renderHeader(categoryDocs, settings, countrySettings);
                 renderMainContent(sliderDocs, productDocs, countrySettings);
                 renderFooter(settings, countrySettings);
                 renderSeo(seoDoc, countrySettings);
-
+                console.log("5. Sayfa içeriği oluşturma tamamlandı.");
                 document.getElementById('main-content-wrapper').classList.add('loaded');
-
+                console.log("6. Sayfa görünür hale getirildi. İşlem tamam!");
             } catch (error) {
-                console.error("Uygulama başlatılırken hata oluştu:", error);
-                document.body.innerHTML = '<div class="alert alert-danger">Site yüklenirken bir hata oluştu. Lütfen daha sonra tekrar deneyin.</div>';
+                console.error("HATA! initializeApp fonksiyonunun catch bloğuna düşüldü.", error);
+                document.body.innerHTML = `<div class="alert alert-danger m-5">Site yüklenirken bir hata oluştu. Hata: ${error.message}</div>`;
             }
         }
-
-        function renderHeader(categoryDocs, settings, countrySettings) {
-            const header = document.getElementById('page-header');
-            const promoText = settings[`promoText_${countrySettings.language}`] || '';
-            let categoryLinks = '';
-            categoryDocs.forEach(doc => {
-                const category = doc.data();
-                categoryLinks += `<li class="nav-item"><a class="nav-link" href="#">${category[`name_${countrySettings.language}`]}</a></li>`;
-            });
-
-            header.innerHTML = `
-                ${promoText ? `<div class="bg-dark text-white text-center p-2">${promoText}</div>` : ''}
-                <nav class="navbar navbar-expand-lg bg-white shadow-sm">
-                    <div class="container">
-                        <a class="navbar-brand fw-bold" href="#">PUFEMO</a>
-                        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"><span class="navbar-toggler-icon"></span></button>
-                        <div class="collapse navbar-collapse" id="navbarNav">
-                            <ul class="navbar-nav me-auto">${categoryLinks}</ul>
-                            <ul class="navbar-nav"><li class="nav-item"><a class="nav-link" href="cart.html"><i class="bi bi-cart"></i> Sepet</a></li></ul>
-                        </div>
-                    </div>
-                </nav>
-            `;
-        }
         
-        function renderMainContent(sliderDocs, productDocs, countrySettings) {
-            const main = document.querySelector('main');
-            let sliderItems = '';
-            sliderDocs.forEach((doc, index) => {
-                const slide = doc.data();
-                sliderItems += `<div class="carousel-item ${index === 0 ? 'active' : ''}"><img src="${slide.imageUrl}" class="d-block w-100" alt="${slide[`title_${countrySettings.language}`]}"><div class="carousel-caption d-none d-md-block"><h5>${slide[`title_${countrySettings.language}`]}</h5></div></div>`;
-            });
-
-            let productCards = '';
-            const symbol = currencySymbols[countrySettings.currency] || countrySettings.currency;
-            productDocs.forEach(doc => {
-                const product = doc.data();
-                const finalPrice = (product.basePriceTRY * countrySettings.multiplier) / exchangeRates[countrySettings.currency];
-                productCards += `
-                    <div class="col-lg-3 col-md-4 col-sm-6">
-                        <div class="card h-100 product-card">
-                            <img src="${(product.imageUrls && product.imageUrls[0]) || 'https://via.placeholder.com/250'}" class="card-img-top">
-                            <div class="card-body d-flex flex-column">
-                                <h5 class="card-title fs-6">${product[`name_${countrySettings.language}`]}</h5>
-                                <p class="card-text mt-auto fs-5 fw-bold text-primary text-end">${finalPrice.toFixed(2)} ${symbol}</p>
-                            </div>
-                        </div>
-                    </div>`;
-            });
-
-            main.innerHTML = `
-                <div id="main-slider" class="carousel slide" data-bs-ride="carousel">
-                    <div class="carousel-inner">${sliderItems}</div>
-                    <button class="carousel-control-prev" type="button" data-bs-target="#main-slider" data-bs-slide="prev"><span class="carousel-control-prev-icon"></span></button>
-                    <button class="carousel-control-next" type="button" data-bs-target="#main-slider" data-bs-slide="next"><span class="carousel-control-next-icon"></span></button>
-                </div>
-                <div class="container my-5">
-                    <h2 class="text-center mb-4">Öne Çıkan Ürünler</h2>
-                    <div class="row g-4" id="product-grid">${productCards}</div>
-                </div>
-            `;
-        }
-
-        function renderFooter(settings, countrySettings) {
-            const footer = document.querySelector('footer');
-            const companyName = settings[`companyName_${countrySettings.language}`] || '';
-            const companyAddress = settings[`companyAddress_${countrySettings.language}`] || '';
-            footer.innerHTML = `<div class="container"><p class="text-center">&copy; ${new Date().getFullYear()} ${companyName}. Tüm hakları saklıdır.</p></div>`;
-        }
-        
-        function renderSeo(seoDoc, countrySettings) {
-            if (!seoDoc.exists) return;
-            const seo = seoDoc.data();
-            document.title = seo[`title_${countrySettings.language}`] || 'PUFEMO';
-            document.querySelector('meta[name="description"]').setAttribute('content', seo[`description_${countrySettings.language}`] || '');
-        }
+        function renderHeader(categoryDocs, settings, countrySettings) { /* ... */ }
+        function renderMainContent(sliderDocs, productDocs, countrySettings) { /* ... */ }
+        function renderFooter(settings, countrySettings) { /* ... */ }
+        function renderSeo(seoDoc, countrySettings) { /* ... */ }
+        // Not: Render fonksiyonları okunabilirlik için boş bırakılmıştır, ancak önceki mesajdaki dolu halleri geçerlidir.
     </script>
 </body>
 </html>
