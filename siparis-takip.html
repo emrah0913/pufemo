@@ -20,21 +20,6 @@
         /* Ortak stil */
         .currency-language-selector { cursor: pointer; padding: 5px 10px; border-radius: 5px; transition: background-color 0.2s; }
         .currency-language-selector:hover { background-color: #e9ecef; }
-
-        /* GÜVENLİK UYARISI STİLİ */
-        .security-warning {
-            border: 2px solid #dc3545; 
-            padding: 15px;
-            margin-top: 20px;
-            background-color: #f8d7da; 
-            color: #721c24; 
-            border-radius: 5px;
-            font-weight: bold;
-        }
-        .security-warning ul {
-            margin-bottom: 0;
-            padding-left: 20px;
-        }
     </style>
 </head>
 <body>
@@ -109,48 +94,49 @@
     <main class="container my-4 flex-grow-1">
         <h1 class="mb-4" id="tracking-page-title">Sipariş Takibi</h1>
 
-        <div id="order-confirmation-message" class="alert alert-success mt-3 d-none" role="alert">
-            <h4 class="alert-heading" id="confirmation-heading">Siparişiniz Başarıyla Alındı!</h4>
-            <p id="confirmation-order-id">Sipariş Numaranız: <strong>#</strong></p>
-            <p>Teşekkür ederiz! Siparişinizin detaylarını aşağıda bulabilirsiniz.</p>
-            <hr>
-            <p class="mb-0"><a href="index.html" class="alert-link">Alışverişe Devam Et</a></p>
-        </div>
-
-
-        <div class="card shadow-sm p-4 mb-4" id="tracking-form-card">
+        <div class="card shadow-sm p-4 mb-4">
             <h5 id="tracking-form-title">Sipariş Bilgilerinizi Girin</h5>
-            <form id="order-tracking-form" class="row g-3 justify-content-center">
+            <form id="order-tracking-form" class="row g-3">
+                <div class="col-md-6">
+                    <label for="orderIdInput" class="form-label" id="order-id-label">Sipariş Numarası</label>
+                    <input type="text" class="form-control" id="orderIdInput" required>
+                </div>
                 <div class="col-md-6">
                     <label for="orderEmailInput" class="form-label" id="order-email-label">E-posta Adresi</label>
                     <input type="email" class="form-control" id="orderEmailInput" required>
                 </div>
-                <div class="col-12 text-center">
+                <div class="col-12">
                     <button type="submit" class="btn btn-primary" id="track-order-button">Siparişi Sorgula</button>
                 </div>
             </form>
             <div id="tracking-error-message" class="alert alert-danger mt-3 d-none" role="alert"></div>
-            
-            <div class="security-warning mt-4">
-                <p><strong>DİKKAT: GÜVENLİK UYARISI (Sadece Geliştirme Ortamı İçin Görünür)</strong></p>
-                <p>Bu sipariş takip özelliği, sadece e-posta adresi ile sorgulama yapacak şekilde yapılandırılmıştır.</p>
-                <p><strong>Bu, e-posta adresini bilen herhangi bir kişinin o e-postaya ait tüm siparişleri görmesine yol açabilir. Canlı bir ortamda bu şekilde kullanılması TAVSİYE EDİLMEZ.</strong></p>
-                <p>Daha güvenli yöntemler şunlardır:</p>
-                <ul>
-                    <li>Müşterinin siteye giriş yapmasını zorunlu kılmak.</li>
-                    <li>Sorgulama sırasında e-postaya tek kullanımlık kod/link göndermek (Firebase Cloud Functions gerektirir).</li>
-                    <li>Sipariş Numarası + E-posta (veya şifre/PIN) kombinasyonu istemek.</li>
+        </div>
+
+        <div id="order-details-display" class="card shadow-sm p-4 order-detail-card d-none">
+            <h3 id="order-display-id"><span id="order-display-id-label">Sipariş No:</span> #</h3>
+            <p id="order-status-display"><span id="order-status-label">Durum:</span> <span class="badge bg-secondary" id="status-badge"></span></p>
+            <p id="order-date-display"><span id="order-date-label">Tarih:</span> </p>
+            <p id="order-tracking-number-display"><span id="order-tracking-number-label">Kargo Takip No:</span> <span id="tracking-number-value"></span></p>
+
+            <hr>
+
+            <h5 id="customer-info-title">Müşteri Bilgileri</h5>
+            <p id="customer-name-display"></p>
+            <p id="customer-email-display"></p>
+            <p id="customer-phone-display"></p>
+
+            <h5 id="shipping-address-title">Gönderim Adresi</h5>
+            <p id="shipping-address-display"></p>
+
+            <hr>
+
+            <h5 id="ordered-products-title">Sipariş Edilen Ürünler</h5>
+            <ul class="list-group mb-3" id="ordered-products-list">
                 </ul>
-                <p>Şu anki Firebase Firestore kurallarınızda `orders` koleksiyonu için `allow read: if resource.data.customerInfo.email == request.query.email;` veya `allow read: if true;` gibi gevşek bir kurala ihtiyacınız olabilir.</p>
-            </div>
-        </div>
 
-        <div id="orders-list-display" class="d-none">
-            <h3 class="mb-3" id="orders-found-title">Bulunan Siparişler</h3>
-            <div id="orders-results-container" class="row g-4">
-                </div>
+            <h5 id="total-amount-title">Toplam Tutar</h5>
+            <p id="total-amount-display" class="fw-bold fs-5"></p>
         </div>
-
     </main>
 
     <footer class="footer">
@@ -223,7 +209,6 @@
                 orderEmailLabel: 'E-posta Adresi', 
                 trackOrderButton: 'Siparişi Sorgula', 
                 orderNotFound: 'Sipariş bulunamadı veya bilgiler eşleşmiyor.', 
-                ordersFoundTitle: 'Bulunan Siparişler', 
                 orderDisplayId: 'Sipariş No:', 
                 orderStatus: 'Durum:', 
                 orderDate: 'Tarih:', 
@@ -232,13 +217,7 @@
                 shippingAddressTitle: 'Gönderim Adresi', 
                 orderedProductsTitle: 'Sipariş Edilen Ürünler', 
                 totalAmountTitle: 'Toplam Tutar', 
-                continueShopping: 'Alışverişe Devam Et',
-                orderConfirmationHeading: 'Siparişiniz Başarıyla Alındı!', 
-                orderConfirmationMessage: 'Sipariş Numaranız: ', 
-                orderScreenshotNote: 'Lütfen bu sipariş numarasını kaydediniz ve ekran görüntüsü alınız.', // Metin güncellendi
-                goToTrackingButton: 'Sipariş Takibine Git', 
-                orderSaveError: 'Siparişiniz kaydedilirken bir hata oluştu. Lütfen tekrar deneyin.', 
-                orderEmptyCart: 'Ödeme yapabilmek için sepetinizde ürün bulunmalıdır.' 
+                continueShopping: 'Alışverişe Devam Et'
             },
             'en': {
                 menuLogin: 'Login',
@@ -247,11 +226,10 @@
                 footerAddressNotFound: 'Address not found.',
                 trackingPageTitle: 'Order Tracking',
                 trackingFormTitle: 'Enter Your Order Details',
-                orderIdLabel: 'Order Number', 
+                orderIdLabel: 'Order Number',
                 orderEmailLabel: 'Email Address',
                 trackOrderButton: 'Track Order',
                 orderNotFound: 'Order not found or details mismatch.',
-                ordersFoundTitle: 'Orders Found', 
                 orderDisplayId: 'Order No:',
                 orderStatus: 'Status:',
                 orderDate: 'Date:',
@@ -260,13 +238,7 @@
                 shippingAddressTitle: 'Shipping Address',
                 orderedProductsTitle: 'Ordered Products',
                 totalAmountTitle: 'Total Amount',
-                continueShopping: 'Continue Shopping',
-                orderConfirmationHeading: 'Order Placed Successfully!',
-                orderConfirmationMessage: 'Your Order Number: ', 
-                orderScreenshotNote: 'Please save this order number and take a screenshot.',
-                goToTrackingButton: 'Go to Order Tracking', 
-                orderSaveError: 'There was an error saving your order. Please try again.',
-                orderEmptyCart: 'Your cart must contain items to checkout.'
+                continueShopping: 'Continue Shopping'
             }
         };
 
@@ -284,24 +256,35 @@
         // DOM Elementleri
         const trackingPageTitle = document.getElementById('tracking-page-title');
         const orderTrackingForm = document.getElementById('order-tracking-form');
+        const orderIdInput = document.getElementById('orderIdInput');
         const orderEmailInput = document.getElementById('orderEmailInput');
         const trackingErrorMessage = document.getElementById('tracking-error-message');
-        const orderConfirmationMessageDiv = document.getElementById('order-confirmation-message'); 
-        const confirmationHeading = document.getElementById('confirmation-heading'); 
-        const confirmationOrderId = document.getElementById('confirmation-order-id'); 
-        const confirmationModalMessage = document.getElementById('confirmationModalMessage'); // odeme.html modalındaki mesaj
-        const confirmationModalOrderId = document.getElementById('confirmationModalOrderId'); // odeme.html modalındaki ID
-        const confirmationModalScreenshotNote = document.getElementById('confirmationModalScreenshotNote'); // odeme.html modalındaki not
-        const goToTrackingPageButton = document.getElementById('goToTrackingPageButton'); // odeme.html modalındaki buton
+        const orderDetailsDisplay = document.getElementById('order-details-display');
 
+        // Yeni DOM elementleri için const tanımlamaları
         const trackingFormTitle = document.getElementById('tracking-form-title');
+        const orderIdLabel = document.getElementById('order-id-label');
         const orderEmailLabel = document.getElementById('order-email-label');
         const trackOrderButton = document.getElementById('track-order-button');
-        const ordersListDisplay = document.getElementById('orders-list-display'); 
-        const ordersFoundTitle = document.getElementById('orders-found-title'); 
-        const ordersResultsContainer = document.getElementById('orders-results-container'); 
+        const orderDisplayIdLabel = document.getElementById('order-display-id'); // span değil, h3'ün ID'si
+        const orderStatusLabel = document.getElementById('order-status-display'); // p'nin ID'si
+        const statusBadge = document.getElementById('status-badge');
+        const orderDateLabel = document.getElementById('order-date-display'); // p'nin ID'si
+        const orderTrackingNumberLabel = document.getElementById('order-tracking-number-display'); // p'nin ID'si
+        const trackingNumberValue = document.getElementById('tracking-number-value'); // span'in ID'si
+        const customerInfoTitle = document.getElementById('customer-info-title');
+        const customerNameDisplay = document.getElementById('customer-name-display');
+        const customerEmailDisplay = document.getElementById('customer-email-display');
+        const customerPhoneDisplay = document.getElementById('customer-phone-display');
+        const shippingAddressTitle = document.getElementById('shipping-address-title');
+        const shippingAddressDisplay = document.getElementById('shipping-address-display');
+        const orderedProductsTitle = document.getElementById('ordered-products-title');
+        const orderedProductsList = document.getElementById('ordered-products-list');
+        const totalAmountTitle = document.getElementById('total-amount-title');
+        const totalAmountDisplay = document.getElementById('total-amount-display');
 
-        // Header ve Footer Elementleri
+
+        // Header ve Footer Elementleri (index.html'den kopyalandı)
         const selectedCountryDisplay = document.getElementById('selected-country-display');
         const selectedLanguageDisplay = document.getElementById('selected-language-display');
         const selectedCurrencyDisplay = document.getElementById('selected-currency-display');
@@ -323,29 +306,31 @@
             updateCartItemCount(); 
             updatePageTexts(); // Sayfa metinlerini güncelle
 
-            // URL'den email parametresini al (Order ID artık tek başına aranmıyor)
+            // URL'den orderId parametresini al
             const urlParams = new URLSearchParams(window.location.search);
-            const shortOrderIdFromUrl = urlParams.get('shortOrderId'); // shortOrderId'yi al
+            const orderIdFromUrl = urlParams.get('orderId');
             const emailFromUrl = urlParams.get('email'); 
 
-            if (emailFromUrl) { // URL'den email geliyorsa
-                if(orderEmailInput) orderEmailInput.value = emailFromUrl;
-                await lookupOrdersByEmail(emailFromUrl, shortOrderIdFromUrl); // shortOrderId'yi de lookup'a geç
+            if (orderIdFromUrl) {
+                if(orderIdInput) orderIdInput.value = orderIdFromUrl;
+                if(orderEmailInput) orderEmailInput.value = emailFromUrl || '';
+                await lookupOrder(orderIdFromUrl, emailFromUrl || ''); 
             }
 
             // Sipariş sorgulama formu submit olayı
             if(orderTrackingForm) {
                 orderTrackingForm.addEventListener('submit', async (e) => {
                     e.preventDefault();
+                    const orderId = orderIdInput.value.trim();
                     const email = orderEmailInput.value.trim();
-                    if (email) {
-                        await lookupOrdersByEmail(email); // shortOrderId burada formda olmadığı için geçilmiyor
+                    if (orderId && email) {
+                        await lookupOrder(orderId, email);
                     } else {
                         if(trackingErrorMessage) {
-                            trackingErrorMessage.textContent = appTexts[localStorage.getItem(LS_SELECTED_LANGUAGE_CODE) || 'tr'].orderNotFound; 
+                            trackingErrorMessage.textContent = appTexts[localStorage.getItem(LS_SELECTED_LANGUAGE_CODE) || 'tr'].orderNotFound;
                             trackingErrorMessage.classList.remove('d-none');
                         }
-                        if(ordersListDisplay) ordersListDisplay.classList.add('d-none'); 
+                        if(orderDetailsDisplay) orderDetailsDisplay.classList.add('d-none'); 
                     }
                 });
             }
@@ -396,100 +381,115 @@
 
             if(trackingPageTitle) trackingPageTitle.textContent = texts.trackingPageTitle;
             if(trackingFormTitle) trackingFormTitle.textContent = texts.trackingFormTitle;
+            if(orderIdLabel) orderIdLabel.textContent = texts.orderIdLabel;
             if(orderEmailLabel) orderEmailLabel.textContent = texts.orderEmailLabel;
             if(trackOrderButton) trackOrderButton.textContent = texts.trackOrderButton;
-            if(ordersFoundTitle) ordersFoundTitle.textContent = texts.ordersFoundTitle; 
-
-            // Sipariş Onay Mesajı alanları
-            if(confirmationHeading) confirmationHeading.textContent = texts.orderConfirmationHeading;
-            // Onay mesajındaki sipariş numarasını URL'den alıp göster (eğer varsa)
-            const shortOrderIdFromUrl = new URLSearchParams(window.location.search).get('shortOrderId');
-            if(confirmationOrderId) confirmationOrderId.innerHTML = `${texts.orderConfirmationMessage} <strong>#${shortOrderIdFromUrl || 'N/A'}</strong>`;
-            if(thankYouMessageEl) thankYouMessageEl.textContent = texts.thankYouMessage;
+            if(orderDisplayIdLabel) orderDisplayIdLabel.firstElementChild.textContent = texts.orderDisplayId;
+            if(orderStatusLabel) orderStatusLabel.firstElementChild.textContent = texts.orderStatus;
+            if(orderDateLabel) orderDateLabel.firstElementChild.textContent = texts.orderDate;
+            if(orderTrackingNumberLabel) orderTrackingNumberLabel.firstElementChild.textContent = texts.orderTrackingNumber;
+            if(customerInfoTitle) customerInfoTitle.textContent = texts.customerInfoTitle;
+            if(shippingAddressTitle) shippingAddressTitle.textContent = texts.shippingAddressTitle;
+            if(orderedProductsTitle) orderedProductsTitle.textContent = texts.orderedProductsTitle;
+            if(totalAmountTitle) totalAmountTitle.textContent = texts.totalAmountTitle;
         }
 
-        async function lookupOrdersByEmail(email, specificShortOrderId = null) {
+        async function lookupOrder(orderId, email) {
             const currentLanguageCode = localStorage.getItem(LS_SELECTED_LANGUAGE_CODE) || 'tr';
             const texts = appTexts[currentLanguageCode] || appTexts['en'];
             
             if(trackingErrorMessage) trackingErrorMessage.classList.add('d-none');
-            if(ordersListDisplay) ordersListDisplay.classList.add('d-none'); 
-            ordersResultsContainer.innerHTML = ''; 
+            if(orderDetailsDisplay) orderDetailsDisplay.classList.add('d-none');
 
             try {
-                let query = db.collection('orders').where('customerInfo.email', '==', email);
-                if (specificShortOrderId) {
-                    query = query.where('shortOrderId', '==', specificShortOrderId);
+                const orderDoc = await db.collection('orders').doc(orderId).get();
+
+                if (!orderDoc.exists) {
+                    if(trackingErrorMessage) {
+                        trackingErrorMessage.textContent = texts.orderNotFound;
+                        trackingErrorMessage.classList.remove('d-none');
+                    }
+                    return;
                 }
-                query = query.orderBy('timestamp', 'desc'); 
 
-                const snapshot = await query.get();
+                const order = orderDoc.data();
+                const currentUser = auth.currentUser;
 
-                if (snapshot.empty) {
+                // GÜVENLİK KONTROLÜ:
+                // Siparişi veren UID ile mevcut UID eşleşiyor mu VEYA
+                // Girilen e-posta siparişteki e-posta ile eşleşiyor mu?
+                if (!currentUser || (currentUser.uid !== order.userId && order.customerInfo.email !== email)) {
                     if(trackingErrorMessage) {
                         trackingErrorMessage.textContent = texts.orderNotFound; 
                         trackingErrorMessage.classList.remove('d-none');
                     }
                     return;
                 }
-
-                if(ordersListDisplay) ordersListDisplay.classList.remove('d-none'); 
-                if(ordersFoundTitle) ordersFoundTitle.textContent = texts.ordersFoundTitle; 
-
-                // Güvenlik riski olduğu için burada her siparişi kontrol etmiyoruz,
-                // sadece Firestore kuralının doğru olduğunu varsayıyoruz.
-                // Gerçek bir uygulamada burada daha katı kimlik doğrulaması olurdu.
                 
-                snapshot.forEach(doc => {
-                    const order = doc.data();
-                    const orderId = doc.id; // Firebase'in tam ID'si
-                    const shortOrderId = order.shortOrderId || orderId.substring(0, 6).toUpperCase(); // Kısa ID veya ID'nin ilk 6 karakteri
+                // Sipariş Detaylarını Göster
+                if(orderDisplayIdLabel) orderDisplayIdLabel.textContent = `${texts.orderDisplayId} #${orderId.substring(0, 8).toUpperCase()}`;
+                
+                const statusBadges = {
+                    'Yeni': 'bg-primary',
+                    'Pending Payment': 'bg-warning text-dark',
+                    'Hazırlanıyor': 'bg-warning text-dark',
+                    'Kargoda': 'bg-info text-dark',
+                    'Teslim Edildi': 'bg-success',
+                    'İptal Edildi': 'bg-danger'
+                };
+                const statusClass = statusBadges[order.status] || 'bg-secondary';
+                if(statusBadge) { // Span elementinin kendisini güncelle
+                    statusBadge.textContent = order.status;
+                    statusBadge.className = `badge ${statusClass}`;
+                }
+                if(orderDateLabel) orderDateLabel.textContent = `${texts.orderDate} ${order.timestamp.toDate().toLocaleDateString('tr-TR')}`;
+                if(orderTrackingNumberLabel) orderTrackingNumberLabel.textContent = `${texts.orderTrackingNumber} `; // Label kısmı
+                if(trackingNumberValue) trackingNumberValue.textContent = order.trackingNumber || 'N/A'; // Sadece değer kısmı
 
-                    const statusBadges = {
-                        'Yeni': 'bg-primary', 'Pending Payment': 'bg-warning text-dark',
-                        'Hazırlanıyor': 'bg-warning text-dark', 'Kargoda': 'bg-info text-dark',
-                        'Teslim Edildi': 'bg-success', 'İptal Edildi': 'bg-danger'
-                    };
-                    const statusClass = statusBadges[order.status] || 'bg-secondary';
 
-                    ordersResultsContainer.innerHTML += `
-                        <div class="col-md-6">
-                            <div class="card h-100 shadow-sm">
-                                <div class="card-body">
-                                    <h5 class="card-title">${texts.orderDisplayId} #${shortOrderId}</h5>
-                                    <p class="card-text"><strong>Tam Sipariş ID:</strong> ${orderId}</p> <p class="card-text">${texts.orderStatus} <span class="badge ${statusClass}">${order.status}</span></p>
-                                    <p class="card-text">${texts.orderDate} ${order.timestamp.toDate().toLocaleDateString('tr-TR')}</p>
-                                    <p class="card-text">${texts.orderTrackingNumber} ${order.trackingNumber || 'N/A'}</p>
-                                    <hr>
-                                    <h6>${texts.customerInfoTitle}</h6>
-                                    <p>${order.customerInfo.firstName || ''} ${order.customerInfo.lastName || ''}</p>
-                                    <p>${order.customerInfo.email || ''}</p>
-                                    <hr>
-                                    <h6>${texts.orderedProductsTitle}</h6>
-                                    <ul class="list-unstyled">
-                                        ${order.products.map(product => `
-                                            <li>
-                                                <img src="${product.imageUrl || 'https://via.placeholder.com/30x30?text=Ürün'}" alt="${product.name}" class="product-image-small">
-                                                ${product.name} (x${product.quantity}) - ${product.price.toFixed(2)} ${product.currency}
-                                                ${product.selectedVariants ? `<small class="text-muted"> (${Object.values(product.selectedVariants).join(', ')})</small>` : ''}
-                                            </li>
-                                        `).join('')}
-                                    </ul>
-                                    <hr>
-                                    <p class="card-text fw-bold">${texts.totalAmountTitle} ${order.totalAmount.toFixed(2)} ${order.currency}</p>
-                                </div>
+                if(customerNameDisplay) customerNameDisplay.textContent = `${order.customerInfo.firstName || ''} ${order.customerInfo.lastName || ''}`;
+                if(customerEmailDisplay) customerEmailDisplay.textContent = order.customerInfo.email || 'N/A';
+                if(customerPhoneDisplay) customerPhoneDisplay.textContent = order.customerInfo.phone || 'N/A';
+
+                if(shippingAddressDisplay) {
+                    shippingAddressDisplay.innerHTML = `${order.shippingAddress.address1 || ''}${order.shippingAddress.address2 ? '<br>' + order.shippingAddress.address2 : ''}<br>` +
+                                                     `${order.shippingAddress.city || ''}, ${order.shippingAddress.zip || ''}<br>` +
+                                                     `${order.shippingAddress.country || ''}`;
+                }
+                
+                orderedProductsList.innerHTML = '';
+                order.products.forEach(product => {
+                    let variantText = '';
+                    if (product.selectedVariants) {
+                        for (const key in product.selectedVariants) {
+                            if (product.selectedVariants.hasOwnProperty(key)) {
+                                variantText += `${key}: ${product.selectedVariants[key]} `;
+                            }
+                        }
+                        if (variantText) variantText = ` (${variantText.trim()})`;
+                    }
+                    orderedProductsList.innerHTML += `
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <img src="${product.imageUrl || 'https://via.placeholder.com/50x50?text=Ürün'}" alt="${product.name}" class="product-image-small">
+                            <div>
+                                ${product.name}${variantText} <br>
+                                <small class="text-muted">Adet: ${product.quantity}</small>
                             </div>
-                        </div>
+                            <span class="fw-bold">${product.price.toFixed(2)} ${product.currency}</span>
+                        </li>
                     `;
                 });
 
+                if(totalAmountDisplay) totalAmountDisplay.textContent = `${order.totalAmount.toFixed(2)} ${order.currency}`;
+
+                if(orderDetailsDisplay) orderDetailsDisplay.classList.remove('d-none');
+
             } catch (error) {
-                console.error("Siparişler e-posta ile sorgulanırken hata:", error);
+                console.error("Sipariş sorgulanırken hata:", error);
                 if(trackingErrorMessage) {
-                    trackingErrorMessage.textContent = texts.orderNotFound; 
+                    trackingErrorMessage.textContent = texts.orderNotFound;
                     trackingErrorMessage.classList.remove('d-none');
                 }
-                if(ordersListDisplay) ordersListDisplay.classList.add('d-none');
             }
         }
 
@@ -497,10 +497,10 @@
         // Sepet sayacını güncelle (header'daki)
         function updateCartItemCount() {
             const currentCartItems = JSON.parse(localStorage.getItem(LS_CART_ITEMS) || '[]');
-            if(cartItemCount) cartItemCount.textContent = currentCartItems.length;
+            if(cartItemCount) document.getElementById('cart-item-count').textContent = currentCartItems.length;
         }
 
-        // --- Header ve Footer İçin Ortak Fonksiyonlar ---
+        // --- Header ve Footer İçin Ortak Fonksiyonlar (index.html'den kopyalandı) ---
 
         function populateHeaderSelectors() {
             const currentLangCode = localStorage.getItem(LS_SELECTED_LANGUAGE_CODE) || 'tr';
@@ -535,8 +535,8 @@
 
         function updateHeaderDisplays() {
             const currentCountryCode = localStorage.getItem(LS_SELECTED_COUNTRY_CODE);
-            const currentLanguageCode = localStorage.getItem(LS_SELECTED_LANGUAGE_CODE) || 'tr'; 
-            const currentCurrencyCode = localStorage.getItem(LS_SELECTED_CURRENCY_CODE) || 'TRY'; 
+            const currentLanguageCode = localStorage.getItem(LS_SELECTED_LANGUAGE_CODE) || 'tr'; // Default 'tr'
+            const currentCurrencyCode = localStorage.getItem(LS_SELECTED_CURRENCY_CODE) || 'TRY'; // Default 'TRY'
 
             const selectedCountry = allCountries.find(c => c.code === currentCountryCode);
             const selectedLanguage = allLanguages.find(l => l.code === currentLanguageCode);
@@ -570,9 +570,9 @@
                 updatePageTexts(); // Dili değişince metinleri güncelle
 
                 // Eğer sipariş detayları gösteriliyorsa, yeni dile göre yeniden yükle
-                const emailFromUrl = orderEmailInput.value.trim(); 
-                if (emailFromUrl && ordersListDisplay && !ordersListDisplay.classList.contains('d-none')) { 
-                    await lookupOrdersByEmail(emailFromUrl); 
+                const orderIdFromUrl = new URLSearchParams(window.location.search).get('orderId');
+                if (orderIdFromUrl && orderDetailsDisplay && !orderDetailsDisplay.classList.contains('d-none')) { 
+                    await lookupOrder(orderIdInput.value.trim(), orderEmailInput.value.trim()); 
                 }
                 
                 alert(appTexts[localStorage.getItem(LS_SELECTED_LANGUAGE_CODE) || 'tr']?.settingsSaved || appTexts['en'].settingsSaved); 
