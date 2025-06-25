@@ -7,6 +7,7 @@
     
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 
     <style>
         body { display: flex; background-color: #f0f2f5; }
@@ -18,6 +19,75 @@
         .nav-link .bi { margin-right: 10px; }
         .product-image-thumb { width: 60px; height: 60px; object-fit: cover; border-radius: 5px; }
         .loading-spinner { display: none; }
+
+        /* Yeni Eklenen Stiller */
+        .media-url-item, .variant-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            gap: 10px;
+        }
+        .media-url-item input, .variant-item input {
+            flex-grow: 1;
+        }
+        .thumbnail-preview {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+            border: 1px dashed #ccc;
+            padding: 10px;
+            min-height: 80px;
+            align-items: center;
+            justify-content: flex-start;
+            background-color: #fcfcfc;
+            border-radius: 5px;
+        }
+        .thumbnail {
+            width: 70px;
+            height: 70px;
+            overflow: hidden;
+            border: 1px solid #eee;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #f9f9f9;
+            font-size: 12px;
+            color: #666;
+            border-radius: 4px;
+        }
+        .thumbnail img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .thumbnail i { /* Video ikonu için */
+            font-size: 30px;
+            color: #007bff;
+        }
+        .variant-group {
+            border: 1px solid #eee;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        .color-translations {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-top: 5px;
+            flex-grow: 2;
+        }
+        .color-translations input {
+            flex: 1 1 120px;
+        }
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
     </style>
 </head>
 <body>
@@ -71,6 +141,7 @@
                         <input type="hidden" id="productId">
                         <ul class="nav nav-tabs" id="languageTabs" role="tablist"></ul>
                         <div class="tab-content p-3 border border-top-0 mb-3" id="languageTabContent"></div>
+                        
                         <div class="row">
                             <div class="col-md-6 mb-3"><label for="productSKU" class="form-label">Stok Kodu (SKU)</label><input type="text" class="form-control" id="productSKU" required></div>
                             <div class="col-md-6 mb-3"><label for="productStock" class="form-label">Stok Adedi</label><input type="number" class="form-control" id="productStock" required></div>
@@ -79,8 +150,52 @@
                            <div class="col-md-6 mb-3"><label for="productPrice" class="form-label">Taban Fiyat (TRY)</label><div class="input-group"><input type="number" step="0.01" class="form-control" id="productPrice" required><span class="input-group-text">₺</span></div></div>
                            <div class="col-md-6 mb-3"><label for="productCategory" class="form-label">Kategori</label><select class="form-select" id="productCategory" required><option value="">Yükleniyor...</option></select></div>
                         </div>
-                        <div class="mb-3"><label for="productImages" class="form-label">Ürün Görselleri</label><input class="form-control" type="file" id="productImages" multiple></div>
-                    </form>
+
+                        <div class="mb-3">
+                            <label class="form-label">Görsel ve Video URL'leri:</label>
+                            <div id="mediaUrlsContainer">
+                                </div>
+                            <button type="button" id="addMediaUrl" class="btn btn-sm btn-outline-secondary mt-2"><i class="bi bi-plus-circle"></i> Yeni URL Ekle</button>
+                            <div id="thumbnailPreview" class="thumbnail-preview">
+                                </div>
+                        </div>
+                        <hr>
+
+                        <h3>Varyantlar</h3>
+
+                        <div class="variant-group">
+                            <h4>Renk Varyantları:</h4>
+                            <div id="colorVariantsContainer">
+                                </div>
+                            <button type="button" id="addColorVariant" class="btn btn-sm btn-outline-primary mt-2"><i class="bi bi-plus-circle"></i> Renk Varyantı Ekle</button>
+                        </div>
+
+                        <div class="variant-group">
+                            <h4>Boyut Varyantları:</h4>
+                            <div id="sizeVariantsContainer">
+                                </div>
+                            <button type="button" id="addSizeVariant" class="btn btn-sm btn-outline-info mt-2"><i class="bi bi-plus-circle"></i> Boyut Varyantı Ekle</button>
+                        </div>
+
+                        <div class="variant-group">
+                            <h4>Kumaş Varyantları:</h4>
+                            <div id="fabricVariantsContainer">
+                                </div>
+                            <button type="button" id="addFabricVariant" class="btn btn-sm btn-outline-success mt-2"><i class="bi bi-plus-circle"></i> Kumaş Varyantı Ekle</button>
+                        </div>
+                        <hr>
+
+                        <h3>Ek Seçenekler</h3>
+                        <div class="checkbox-group">
+                            <input type="checkbox" class="form-check-input" id="freeShipping" name="freeShipping">
+                            <label class="form-check-label" for="freeShipping">Ücretsiz Kargo</label>
+                        </div>
+
+                        <div class="checkbox-group">
+                            <input type="checkbox" class="form-check-input" id="showOnHomepage" name="showOnHomepage">
+                            <label class="form-check-label" for="showOnHomepage">Vitrinde Göster</label>
+                        </div>
+                        </form>
                 </div>
                 <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button><button type="submit" form="product-form" class="btn btn-primary" id="saveProductBtn"><span class="loading-spinner spinner-border spinner-border-sm"></span> Kaydet</button></div>
             </div>
@@ -104,6 +219,20 @@
         const productModalElement = document.getElementById('productModal');
         const productModal = new bootstrap.Modal(productModalElement);
         const productForm = document.getElementById('product-form');
+
+        // Yeni element referansları
+        const mediaUrlsContainer = document.getElementById('mediaUrlsContainer');
+        const addMediaUrlBtn = document.getElementById('addMediaUrl');
+        const thumbnailPreview = document.getElementById('thumbnailPreview');
+
+        const colorVariantsContainer = document.getElementById('colorVariantsContainer');
+        const addColorVariantBtn = document.getElementById('addColorVariant');
+
+        const sizeVariantsContainer = document.getElementById('sizeVariantsContainer');
+        const addSizeVariantBtn = document.getElementById('addSizeVariant');
+
+        const fabricVariantsContainer = document.getElementById('fabricVariantsContainer');
+        const addFabricVariantBtn = document.getElementById('addFabricVariant');
 
         auth.onAuthStateChanged(user => {
             if (user && user.uid === adminUID) {
@@ -139,14 +268,163 @@
             });
         }
 
+        // --- Yeni Medya URL Ekleme/Kaldırma Fonksiyonları ---
+        function addMediaUrlInput(url = '') {
+            const div = document.createElement('div');
+            div.classList.add('media-url-item');
+            div.innerHTML = `
+                <input type="url" class="form-control media-url-input" placeholder="Resim veya Video URL'si" value="${url}">
+                <button type="button" class="btn btn-danger btn-sm remove-media-url"><i class="bi bi-x-circle"></i> Kaldır</button>
+            `;
+            mediaUrlsContainer.appendChild(div);
+            updateThumbnails();
+        }
+
+        function updateThumbnails() {
+            thumbnailPreview.innerHTML = '';
+            const mediaUrls = document.querySelectorAll('.media-url-input');
+            mediaUrls.forEach(input => {
+                const url = input.value.trim();
+                if (url) {
+                    const thumbnailDiv = document.createElement('div');
+                    thumbnailDiv.classList.add('thumbnail');
+
+                    // Basit URL kontrolü ile resim veya video tespiti
+                    if (url.match(/\.(jpeg|jpg|gif|png|webp)$/i)) { // Resim uzantıları
+                        const img = document.createElement('img');
+                        img.src = url;
+                        thumbnailDiv.appendChild(img);
+                    } else if (url.match(/\.(mp4|webm|ogg)$/i) || url.includes('youtube.com/watch') || url.includes('youtu.be/') || url.includes('vimeo.com')) { // Video uzantıları veya YouTube/Vimeo
+                        const videoIcon = document.createElement('i');
+                        videoIcon.className = 'fas fa-video'; // FontAwesome ikonu
+                        thumbnailDiv.appendChild(videoIcon);
+                        // YouTube için basit bir thumbnail çekme (API olmadan tam garanti vermez)
+                        let videoId = '';
+                        if (url.includes('youtube.com/watch')) {
+                            videoId = new URLSearchParams(new URL(url).search).get('v');
+                        } else if (url.includes('youtu.be/')) {
+                            videoId = url.split('youtu.be/')[1].split('?')[0];
+                        }
+                        if (videoId) {
+                            const youtubeThumb = document.createElement('img');
+                            youtubeThumb.src = `https://img.youtube.com/vi/${videoId}/default.jpg`;
+                            youtubeThumb.alt = 'Video Thumbnail';
+                            thumbnailDiv.appendChild(youtubeThumb);
+                        } else {
+                            thumbnailDiv.textContent = 'Video'; // Alternatif metin
+                        }
+                    } else {
+                        // Bilinmeyen dosya türleri için varsayılan ikon
+                        const genericIcon = document.createElement('i');
+                        genericIcon.className = 'bi bi-file-earmark-fill';
+                        thumbnailDiv.appendChild(genericIcon);
+                    }
+                    thumbnailPreview.appendChild(thumbnailDiv);
+                }
+            });
+        }
+
+        // --- Yeni Varyant Ekleme/Kaldırma Fonksiyonları ---
+        function addColorVariantInput(colorName = '', translations = {}) {
+            const div = document.createElement('div');
+            div.classList.add('variant-item');
+            let translationInputs = '';
+            availableLanguages.forEach(lang => {
+                translationInputs += `<input type="text" class="form-control form-control-sm color-translation" data-lang="${lang.code}" placeholder="${lang.name} (örn: ${lang.code === 'en' ? 'Red' : lang.code === 'de' ? 'Rot' : 'Renk'})" value="${translations[lang.code] || ''}">`;
+            });
+
+            div.innerHTML = `
+                <input type="text" class="form-control color-name-input" placeholder="Renk Adı (örn: Kırmızı)" value="${colorName}" required>
+                <div class="color-translations">
+                    ${translationInputs}
+                </div>
+                <button type="button" class="btn btn-danger btn-sm remove-variant"><i class="bi bi-x-circle"></i> Kaldır</button>
+            `;
+            colorVariantsContainer.appendChild(div);
+        }
+
+        function addSizeVariantInput(sizeName = '') {
+            const div = document.createElement('div');
+            div.classList.add('variant-item');
+            div.innerHTML = `
+                <input type="text" class="form-control size-name-input" placeholder="Boyut (örn: S, M, L, XL)" value="${sizeName}" required>
+                <button type="button" class="btn btn-danger btn-sm remove-variant"><i class="bi bi-x-circle"></i> Kaldır</button>
+            `;
+            sizeVariantsContainer.appendChild(div);
+        }
+
+        function addFabricVariantInput(fabricName = '') {
+            const div = document.createElement('div');
+            div.classList.add('variant-item');
+            div.innerHTML = `
+                <input type="text" class="form-control fabric-name-input" placeholder="Kumaş Türü (örn: Pamuk, İpek)" value="${fabricName}" required>
+                <button type="button" class="btn btn-danger btn-sm remove-variant"><i class="bi bi-x-circle"></i> Kaldır</button>
+            `;
+            fabricVariantsContainer.appendChild(div);
+        }
+
         productModalElement.addEventListener('show.bs.modal', (event) => {
             const button = event.relatedTarget;
             const isEditing = button.hasAttribute('data-bs-id');
+            
+            // Tüm alanları sıfırla
+            productForm.reset();
+            document.getElementById('productId').value = '';
+            mediaUrlsContainer.innerHTML = ''; // Medya URL'lerini temizle
+            thumbnailPreview.innerHTML = '';   // Thumbnail'leri temizle
+            colorVariantsContainer.innerHTML = ''; // Renk varyantlarını temizle
+            sizeVariantsContainer.innerHTML = '';  // Boyut varyantlarını temizle
+            fabricVariantsContainer.innerHTML = '';// Kumaş varyantlarını temizle
+            document.getElementById('freeShipping').checked = false;
+            document.getElementById('showOnHomepage').checked = false;
+
             if (!isEditing) {
                 document.getElementById('productModalLabel').textContent = 'Yeni Ürün Ekle';
-                productForm.reset();
-                document.getElementById('productId').value = '';
                 buildLanguageTabs();
+                // Yeni ürün eklerken en az bir URL ve varyant alanı ekle
+                addMediaUrlInput();
+                addColorVariantInput();
+                addSizeVariantInput();
+                addFabricVariantInput();
+            }
+        });
+
+        // Event Listeners for Media URLs
+        addMediaUrlBtn.addEventListener('click', addMediaUrlInput);
+        mediaUrlsContainer.addEventListener('click', function(e) {
+            if (e.target.classList.contains('remove-media-url') || e.target.closest('.remove-media-url')) {
+                const itemToRemove = e.target.closest('.media-url-item');
+                if (itemToRemove) {
+                    itemToRemove.remove();
+                    updateThumbnails();
+                }
+            }
+        });
+        mediaUrlsContainer.addEventListener('input', function(e) {
+            if (e.target.classList.contains('media-url-input')) {
+                updateThumbnails();
+            }
+        });
+
+        // Event Listeners for Variants
+        addColorVariantBtn.addEventListener('click', addColorVariantInput);
+        colorVariantsContainer.addEventListener('click', function(e) {
+            if (e.target.classList.contains('remove-variant') || e.target.closest('.remove-variant')) {
+                e.target.closest('.variant-item').remove();
+            }
+        });
+
+        addSizeVariantBtn.addEventListener('click', addSizeVariantInput);
+        sizeVariantsContainer.addEventListener('click', function(e) {
+            if (e.target.classList.contains('remove-variant') || e.target.closest('.remove-variant')) {
+                e.target.closest('.variant-item').remove();
+            }
+        });
+
+        addFabricVariantBtn.addEventListener('click', addFabricVariantInput);
+        fabricVariantsContainer.addEventListener('click', function(e) {
+            if (e.target.classList.contains('remove-variant') || e.target.closest('.remove-variant')) {
+                e.target.closest('.variant-item').remove();
             }
         });
         
@@ -157,30 +435,54 @@
             saveBtn.querySelector('.loading-spinner').style.display = 'inline-block';
 
             const productId = document.getElementById('productId').value;
-            const files = document.getElementById('productImages').files;
-            let imageUrls = [];
+            // Eski dosya yükleme kısmını kaldırıyoruz
+            // const files = document.getElementById('productImages').files; 
+            // let imageUrls = [];
 
             try {
-                if (files.length > 0) {
-                    const uploadPromises = Array.from(files).map(file => {
-                        const filePath = `product_images/${Date.now()}_${file.name}`;
-                        return storage.ref(filePath).put(file).then(snapshot => snapshot.ref.getDownloadURL());
+                // URL'lerden alınan görselleri/videoları topla
+                const mediaUrls = Array.from(document.querySelectorAll('.media-url-input'))
+                                       .map(input => input.value.trim())
+                                       .filter(url => url !== '');
+
+                // Varyant verilerini topla
+                const colorVariants = Array.from(document.querySelectorAll('#colorVariantsContainer .variant-item')).map(item => {
+                    const name = item.querySelector('.color-name-input').value.trim();
+                    const translations = {};
+                    item.querySelectorAll('.color-translation').forEach(transInput => {
+                        translations[transInput.dataset.lang] = transInput.value.trim();
                     });
-                    imageUrls = await Promise.all(uploadPromises);
-                }
+                    return { name, translations };
+                }).filter(v => v.name !== ''); // Boş renk varyantlarını filtrele
+
+                const sizeVariants = Array.from(document.querySelectorAll('#sizeVariantsContainer .variant-item'))
+                                       .map(item => item.querySelector('.size-name-input').value.trim())
+                                       .filter(s => s !== ''); // Boş boyut varyantlarını filtrele
+
+                const fabricVariants = Array.from(document.querySelectorAll('#fabricVariantsContainer .variant-item'))
+                                       .map(item => item.querySelector('.fabric-name-input').value.trim())
+                                       .filter(f => f !== ''); // Boş kumaş varyantlarını filtrele
 
                 const productData = {
                     sku: document.getElementById('productSKU').value,
                     stock: parseInt(document.getElementById('productStock').value),
                     basePriceTRY: parseFloat(document.getElementById('productPrice').value),
                     categoryId: document.getElementById('productCategory').value,
+                    mediaUrls: mediaUrls, // Yeni eklenen medya URL'leri
+                    variants: { // Yeni eklenen varyantlar
+                        colors: colorVariants,
+                        sizes: sizeVariants,
+                        fabrics: fabricVariants
+                    },
+                    freeShipping: document.getElementById('freeShipping').checked, // Yeni eklenen ücretsiz kargo
+                    showOnHomepage: document.getElementById('showOnHomepage').checked // Yeni eklenen vitrinde göster
                 };
+
                 availableLanguages.forEach(lang => {
                     productData[`name_${lang.code}`] = document.getElementById(`name_${lang.code}`).value;
                     productData[`description_${lang.code}`] = document.getElementById(`description_${lang.code}`).value;
                 });
-                if (imageUrls.length > 0) productData.imageUrls = imageUrls;
-
+                
                 if (productId) {
                     await db.collection('products').doc(productId).update(productData);
                 } else {
@@ -191,16 +493,122 @@
                 loadProducts();
             } catch (error) {
                 console.error("Ürün kaydedilirken hata:", error);
-                alert("Bir hata oluştu.");
+                alert("Bir hata oluştu: " + error.message); // Hata mesajını daha detaylı göster
             } finally {
                 saveBtn.disabled = false;
                 saveBtn.querySelector('.loading-spinner').style.display = 'none';
             }
         });
         
-        async function loadProducts() { /* ... önceki mesajlardaki gibi ... */ }
-        async function editProduct(id) { /* ... önceki mesajlardaki gibi ... */ }
-        async function deleteProduct(id) { /* ... önceki mesajlardaki gibi ... */ }
+        async function loadProducts() {
+            const productsTableBody = document.getElementById('products-table-body');
+            productsTableBody.innerHTML = '<tr><td colspan="6" class="text-center">Ürünler yükleniyor...</td></tr>';
+            try {
+                const snapshot = await db.collection('products').orderBy('createdAt', 'desc').get();
+                productsTableBody.innerHTML = '';
+                if (snapshot.empty) {
+                    productsTableBody.innerHTML = '<tr><td colspan="6" class="text-center">Henüz ürün bulunmamaktadır.</td></tr>';
+                    return;
+                }
+                snapshot.forEach(doc => {
+                    const product = doc.data();
+                    const imageUrl = product.mediaUrls && product.mediaUrls.length > 0 && product.mediaUrls[0].match(/\.(jpeg|jpg|gif|png|webp)$/i)
+                                     ? product.mediaUrls[0]
+                                     : 'https://via.placeholder.com/60x60?text=No+Image'; // Varsayılan görsel
+                    const row = `
+                        <tr>
+                            <td><img src="${imageUrl}" class="product-image-thumb" alt="Ürün Görseli"></td>
+                            <td>${product.name_tr || 'N/A'}</td>
+                            <td>${product.sku || 'N/A'}</td>
+                            <td>${product.basePriceTRY ? product.basePriceTRY.toFixed(2) + ' ₺' : 'N/A'}</td>
+                            <td>${product.stock || 0}</td>
+                            <td>
+                                <button class="btn btn-sm btn-info me-2" onclick="editProduct('${doc.id}')" data-bs-toggle="modal" data-bs-target="#productModal"><i class="bi bi-pencil-square"></i> Düzenle</button>
+                                <button class="btn btn-sm btn-danger" onclick="deleteProduct('${doc.id}')"><i class="bi bi-trash"></i> Sil</button>
+                            </td>
+                        </tr>
+                    `;
+                    productsTableBody.innerHTML += row;
+                });
+            } catch (error) {
+                console.error("Ürünler yüklenirken hata:", error);
+                productsTableBody.innerHTML = '<tr><td colspan="6" class="text-center text-danger">Ürünler yüklenemedi.</td></tr>';
+            }
+        }
+        
+        async function editProduct(id) {
+            document.getElementById('productModalLabel').textContent = 'Ürün Düzenle';
+            document.getElementById('productId').value = id;
+
+            try {
+                const productDoc = await db.collection('products').doc(id).get();
+                if (productDoc.exists) {
+                    const productData = productDoc.data();
+                    
+                    // Dil tablarını ürün verileriyle doldur
+                    buildLanguageTabs(productData);
+
+                    document.getElementById('productSKU').value = productData.sku || '';
+                    document.getElementById('productStock').value = productData.stock || 0;
+                    document.getElementById('productPrice').value = productData.basePriceTRY || 0;
+                    document.getElementById('productCategory').value = productData.categoryId || '';
+
+                    // Medya URL'lerini yükle
+                    mediaUrlsContainer.innerHTML = '';
+                    if (productData.mediaUrls && productData.mediaUrls.length > 0) {
+                        productData.mediaUrls.forEach(url => addMediaUrlInput(url));
+                    } else {
+                        addMediaUrlInput(); // En az bir boş alan olsun
+                    }
+
+                    // Varyantları yükle
+                    colorVariantsContainer.innerHTML = '';
+                    if (productData.variants && productData.variants.colors && productData.variants.colors.length > 0) {
+                        productData.variants.colors.forEach(color => addColorVariantInput(color.name, color.translations));
+                    } else {
+                        addColorVariantInput();
+                    }
+
+                    sizeVariantsContainer.innerHTML = '';
+                    if (productData.variants && productData.variants.sizes && productData.variants.sizes.length > 0) {
+                        productData.variants.sizes.forEach(size => addSizeVariantInput(size));
+                    } else {
+                        addSizeVariantInput();
+                    }
+
+                    fabricVariantsContainer.innerHTML = '';
+                    if (productData.variants && productData.variants.fabrics && productData.variants.fabrics.length > 0) {
+                        productData.variants.fabrics.forEach(fabric => addFabricVariantInput(fabric));
+                    } else {
+                        addFabricVariantInput();
+                    }
+
+                    // Ek seçenekleri yükle
+                    document.getElementById('freeShipping').checked = productData.freeShipping || false;
+                    document.getElementById('showOnHomepage').checked = productData.showOnHomepage || false;
+
+                    productModal.show();
+                } else {
+                    alert("Ürün bulunamadı!");
+                }
+            } catch (error) {
+                console.error("Ürün düzenlenirken hata:", error);
+                alert("Ürün detayları yüklenirken bir hata oluştu.");
+            }
+        }
+        
+        async function deleteProduct(id) {
+            if (confirm("Bu ürünü silmek istediğinizden emin misiniz?")) {
+                try {
+                    await db.collection('products').doc(id).delete();
+                    alert("Ürün başarıyla silindi.");
+                    loadProducts();
+                } catch (error) {
+                    console.error("Ürün silinirken hata:", error);
+                    alert("Ürün silinirken bir hata oluştu.");
+                }
+            }
+        }
         document.getElementById('logout-button').addEventListener('click', (e) => { e.preventDefault(); auth.signOut().then(() => { window.location.href = 'admin-login.html'; }); });
     </script>
 </body>
