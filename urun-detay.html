@@ -484,7 +484,7 @@
 
             const isImage = url.match(/\.(jpeg|jpg|gif|png|webp)$/i);
             const isDirectVideo = url.match(/\.(mp4|webm|ogg|mov)(\?|$)/i); // Parametreli URL'leri tanımak için düzeltildi
-            const isYouTube = url.includes('youtube.com/watch') || url.includes('youtu.be/'); // Doğru YouTube URL kontrolü
+            const isYouTube = url.includes('youtube.com/watch?v=') || url.includes('youtu.be/'); // Doğru YouTube URL kontrolü
             const isVimeo = url.includes('vimeo.com');
 
             if (isImage) {
@@ -581,7 +581,7 @@
                     product.mediaUrls.forEach((url, index) => {
                         const isImage = url.match(/\.(jpeg|jpg|gif|png|webp)$/i);
                         const isDirectVideo = url.match(/\.(mp4|webm|ogg|mov)(\?|$)/i); 
-                        const isYouTube = url.includes('youtube.com/watch') || url.includes('youtu.be/');
+                        const isYouTube = url.includes('youtube.com/watch?v=') || url.includes('youtu.be/');
                         const isVimeo = url.includes('vimeo.com');
                         
                         // Thumbnail kapsayıcısı
@@ -589,15 +589,19 @@
                         thumbnailItemDiv.classList.add('thumbnail-item');
                         if (index === 0) thumbnailItemDiv.classList.add('active'); 
 
-                        let thumbMediaEl; // Thumbnail'ın içindeki img elemanı
+                        let thumbMediaEl; // Thumbnail'ın içindeki img veya video elemanı
                         let playIcon = null; // Oynatma ikonu
 
                         if (isImage) {
                             thumbMediaEl = document.createElement('img');
                             thumbMediaEl.src = url;
                         } else if (isDirectVideo) {
-                            thumbMediaEl = document.createElement('img');
-                            thumbMediaEl.src = `https://via.placeholder.com/80x80?text=Video`; // Genel MP4 placeholder
+                            thumbMediaEl = document.createElement('video');
+                            thumbMediaEl.src = url;
+                            thumbMediaEl.controls = false; // Küçük resimde kontrol olmasın
+                            thumbMediaEl.muted = true; // Sesi kapalı olsun
+                            thumbMediaEl.setAttribute('preload', 'metadata'); // Sadece meta verilerini yükle
+                            thumbMediaEl.style.objectFit = 'cover'; // Thumbnail alanını doldursun
                             playIcon = document.createElement('i');
                             playIcon.className = 'bi bi-play-circle-fill play-icon';
                         } else if (isYouTube) {
