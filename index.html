@@ -57,13 +57,13 @@
             border-top-right-radius: calc(0.3rem - 1px);
         }
         .main-content { 
-            visibility: hidden; 
+            visibility: hidden; /* Başlangıçta gizli */
             opacity: 0; 
             transition: opacity 0.5s ease-in-out; 
             flex-grow: 1; 
         }
         .main-content.loaded { 
-            visibility: visible; 
+            visibility: visible; /* Yüklendiğinde görünür */
             opacity: 1; 
         }
         #page-header {
@@ -188,12 +188,10 @@
             'de': { welcome: 'Willkommen', info: 'Weiter für', guest: 'Als Gast fortfahren', login: 'Anmelden', register: 'Registrieren', featuredProducts: 'Ausgewählte Produkte', noFeatured: 'Keine Produkte auf der Startseite anzuzeigen.', addToCart: 'In den Warenkorb', contactUs: 'Kontakt', selectCountry: 'Land auswählen', changeCountry: 'Land ändern' }
         };
         
-        // Bu değerler Firebase'deki 'currencies' ve 'languages' koleksiyonlarından gelecek
         let allCountries = [];
         let allCurrencies = [];
         let allLanguages = [];
 
-        // Kullanıcının tercihleri (localStorage'dan veya varsayılan)
         let currentUserSettings = {
             countryId: null,
             countryName: 'Türkiye', 
@@ -205,23 +203,23 @@
         };
 
         const userPreferenceModalElement = document.getElementById('userPreferenceModal');
-        const userPreferenceModal = new bootstrap.Modal(userPreferenceModalElement);
+        const userPreferenceModal = new bootstrap.Modal(userPreferenceModalElement, {
+            backdrop: 'static', // Kullanıcı modalı kapatmadan devam edemez
+            keyboard: false // ESC tuşu ile kapatmayı engelle
+        });
 
         document.addEventListener('DOMContentLoaded', async () => {
-            // İlk olarak tüm temel verileri çekelim
-            await loadGlobalSettings();
+            await loadGlobalSettings(); // Tüm global ayarları yükle
 
-            // localStorage'dan mevcut ayarları yükle
             const storedSettings = localStorage.getItem('pufemo-user-settings');
             if (storedSettings) {
                 currentUserSettings = JSON.parse(storedSettings);
+                // Eğer ayarlar varsa, direkt uygulamayı başlat
+                initializeApp(currentUserSettings);
             } else {
-                // Eğer hiç ayar yoksa, ülkeyi seçtir ve ardından giriş/kayıt seçeneklerini göster
-                showUserPreferenceModal('country');
+                // Eğer ayar yoksa, modalı göster ve kullanıcı ayarlarını belirlemesini bekle
+                showUserPreferenceModal('country'); 
             }
-            
-            // Uygulamayı mevcut ayarlarla başlat (ister stored'dan gelsin, ister yeni seçilsin)
-            initializeApp(currentUserSettings);
         });
 
         // Tüm ülke, dil ve para birimi verilerini Firebase'den çeken fonksiyon
@@ -237,12 +235,12 @@
                 allLanguages = languagesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             } catch (error) {
                 console.error("Genel ayarlar yüklenirken hata:", error);
-                // Kullanıcıya site yüklenemediği bilgisini göster
-                document.body.innerHTML = `<div class="alert alert-danger m-5">Site ayarları yüklenemedi. Lütfen internet bağlantınızı kontrol edin.</div>`;
+                document.body.innerHTML = `<div class="alert alert-danger m-5">Site ayarları yüklenemedi. Lütfen internet bağlantınızı kontrol edin veya yönetim panelinden gerekli ayarları (ülkeler, para birimleri, diller) tanımlayın. Hata: ${error.message}</div>`;
             }
         }
 
-        // Kullanıcı Tercih Modalını Göster (Sadece İlk Giriş veya Login/Register için)
+        // Kullanıcı Tercih Modalını Göster (Sadece İlk Giriş için zorunlu)
+        // `step` parametresi 'country' veya 'auth' olabilir
         function showUserPreferenceModal(step = 'country') {
             const t = translations[currentUserSettings.language] || translations['en'];
             
@@ -271,7 +269,7 @@
             countryListElement.innerHTML = ''; // Temizle
 
             if (allCountries.length === 0) {
-                countryListElement.innerHTML = `<div class="p-3 text-center text-danger">Ülkeler yüklenemedi.</div>`;
+                countryListElement.innerHTML = `<div class="p-3 text-center text-danger">Ülkeler yüklenemedi veya yönetim panelinden hiç ülke eklenmemiş.</div>`;
                 return;
             }
 
@@ -289,12 +287,14 @@
 
         // Modal'dan ülke seçimi ve ilerleme
         async function selectCountryAndProceedFromModal(country) {
-            updateUserSettings(country.id); // Ayarları güncelle
+            // Seçilen ülkeye göre ayarları güncelle, ama henüz uygulamayı başlatma
+            updateUserSettings(country.id, (country.language || 'en').toLowerCase(), country.currencyCode || 'TRY', false); // false = appInitialize'ı burada çağırma
             showUserPreferenceModal('auth'); // Auth seçeneklerine geç
         }
         
         // Ortak kullanıcı ayarlarını güncelleme fonksiyonu
-        function updateUserSettings(selectedCountryId, selectedLanguageCode = currentUserSettings.language, selectedCurrencyCode = currentUserSettings.currencyCode) {
+        // shouldInitializeApp: true ise initializeApp'i çağırır (modal sonrası veya dropdown değişimi), false ise çağırmaz (modal içi adım değişimi)
+        function updateUserSettings(selectedCountryId, selectedLanguageCode = currentUserSettings.language, selectedCurrencyCode = currentUserSettings.currencyCode, shouldInitializeApp = true) {
             const country = allCountries.find(c => c.id === selectedCountryId);
             if (!country) {
                 console.error("Geçersiz ülke ID'si:", selectedCountryId);
@@ -305,28 +305,44 @@
             currentUserSettings.countryName = country.name;
             currentUserSettings.countryCode = country.code;
             
-            // Dil ayarı
             currentUserSettings.language = selectedLanguageCode;
 
-            // Para birimi ayarı
             currentUserSettings.currencyCode = selectedCurrencyCode;
             const selectedCurrency = allCurrencies.find(c => c.code === currentUserSettings.currencyCode);
             currentUserSettings.currencySymbol = selectedCurrency ? selectedCurrency.symbol : '₺';
             currentUserSettings.currencyExchangeRate = selectedCurrency ? selectedCurrency.exchangeRate : 1.0;
 
             localStorage.setItem('pufemo-user-settings', JSON.stringify(currentUserSettings));
-            initializeApp(currentUserSettings); // Uygulamayı yeni ayarlarla yeniden yükle
+            
+            if (shouldInitializeApp) {
+                initializeApp(currentUserSettings); // Uygulamayı yeni ayarlarla yeniden yükle
+            }
         }
 
         document.getElementById('modal-guest-btn').addEventListener('click', async () => {
             try {
-                await auth.signInAnonymously(); // Anonim giriş sadece kimlik doğrulamayı sağlar
+                await auth.signInAnonymously(); 
                 userPreferenceModal.hide(); // Modalı kapat
+                initializeApp(currentUserSettings); // Uygulamayı başlat
             } catch (error) { 
                 console.error("Anonim giriş hatası:", error); 
                 alert("Giriş yapılırken bir hata oluştu: " + error.message);
             }
         });
+
+        // Modal kapatıldığında çalışacak event listener
+        userPreferenceModalElement.addEventListener('hidden.bs.modal', function () {
+            // Eğer modal kapatıldığında hala currentUserSettings.countryId null ise, bu bir sorun demektir.
+            // Bu durumda kullanıcı devam etmeden modalı kapatmış ve siteyi yükleyemiyoruz.
+            if (!currentUserSettings.countryId) {
+                // Burada kullanıcıyı farklı bir sayfaya yönlendirebilir
+                // veya hata mesajı gösterebiliriz.
+                // Şimdilik sadece uyarı verelim:
+                console.warn("Kullanıcı ülke seçmeden modalı kapattı. Site yüklenemiyor.");
+                document.body.innerHTML = `<div class="alert alert-warning m-5">Lütfen devam etmek için ülkenizi seçin.</div>`;
+            }
+        });
+
 
         async function initializeApp(settings) {
             console.log("1. initializeApp fonksiyonu başladı. Mevcut Ayarlar: ", settings);
@@ -354,7 +370,7 @@
                 renderSeo(seoDoc, settings);
                 
                 console.log("5. Sayfa içeriği oluşturma tamamlandı.");
-                document.getElementById('main-content-wrapper').classList.add('loaded');
+                document.getElementById('main-content-wrapper').classList.add('loaded'); // Sayfayı görünür yap
                 console.log("6. Sayfa görünür hale getirildi. İşlem tamam!");
 
             } catch (error) {
@@ -431,7 +447,6 @@
                 if (e.target.tagName === 'A' && e.target.dataset.langCode) {
                     const newLangCode = e.target.dataset.langCode;
                     if (userSettings.language !== newLangCode) {
-                        // Sadece dil kodunu güncelle ve tüm ayarları tekrar update et
                         updateUserSettings(userSettings.countryId, newLangCode, userSettings.currencyCode);
                     }
                 }
@@ -441,7 +456,6 @@
                 if (e.target.tagName === 'A' && e.target.dataset.currencyCode) {
                     const newCurrencyCode = e.target.dataset.currencyCode;
                     if (userSettings.currencyCode !== newCurrencyCode) {
-                        // Sadece para birimi kodunu güncelle ve tüm ayarları tekrar update et
                         updateUserSettings(userSettings.countryId, userSettings.language, newCurrencyCode);
                     }
                 }
@@ -604,8 +618,7 @@
                 if (e.target.tagName === 'A' && e.target.dataset.countryId) {
                     const newCountryId = e.target.dataset.countryId;
                     if (userSettings.countryId !== newCountryId) {
-                        // Sadece ülke ID'sini güncelle ve tüm ayarları tekrar update et
-                        updateUserSettings(newCountryId, userSettings.language, userSettings.currencyCode);
+                        updateUserSettings(newCountryId, userSettings.language, userSettings.currencyCode); // shouldInitializeApp varsayılan true
                     }
                 }
             });
