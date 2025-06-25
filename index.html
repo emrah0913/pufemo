@@ -21,6 +21,7 @@
             display: flex;
             flex-direction: column;
         }
+        /* Initial modal artık başlangıçta görünmeyecek, sadece login/register için kalacak */
         .initial-modal { 
             display: none; 
             position: fixed; 
@@ -45,7 +46,7 @@
             width: 90%; 
             box-shadow: 0 10px 30px rgba(0,0,0,0.1); 
         }
-        .country-list { 
+        .country-list { /* Bu stil sadece ülke değişim modalı için geçerli olacak */
             max-height: 300px; 
             overflow-y: auto; 
         }
@@ -55,20 +56,16 @@
             border-top-left-radius: calc(0.3rem - 1px);
             border-top-right-radius: calc(0.3rem - 1px);
         }
-        .modal-step { 
-            display: none; 
-        }
         .main-content { 
             visibility: hidden; 
             opacity: 0; 
             transition: opacity 0.5s ease-in-out; 
-            flex-grow: 1; /* Ana içeriğin dikeyde esnemesini sağlar */
+            flex-grow: 1; 
         }
         .main-content.loaded { 
             visibility: visible; 
             opacity: 1; 
         }
-        /* Header ve Footer için basic stiller */
         #page-header {
             background-color: #f8f9fa;
             border-bottom: 1px solid #e2e6ea;
@@ -83,35 +80,91 @@
             font-size: 0.9rem;
             color: #6c757d;
         }
+        /* Yeni eklenen dropdownlar için stil */
+        .topbar-info {
+            font-size: 0.85rem;
+            color: #6c757d;
+        }
+        .topbar-info .dropdown-toggle {
+            color: #6c757d;
+            text-decoration: none;
+        }
+        .topbar-info .dropdown-toggle:hover {
+            color: #343a40;
+        }
+        .topbar-info .dropdown-menu {
+            font-size: 0.85rem;
+        }
     </style>
 </head>
 <body>
 
-    <div class="initial-modal" id="initial-modal">
-        <div class="modal-dialog">
+    <div class="modal fade" id="userPreferenceModal" tabindex="-1" aria-labelledby="userPreferenceModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
-                <div class="modal-content-custom text-center modal-step" id="step-country">
-                    <h2 class="fw-bold mb-3">Welcome</h2>
-                    <p class="text-muted mb-4">Please select your country to see correct pricing and delivery options.</p>
-                    <div class="list-group country-list" id="country-list">
-                        <div class="p-3 text-center">Loading countries...</div>
-                    </div>
+                <div class="modal-header">
+                    <h5 class="modal-title" id="userPreferenceModalLabel">Tercihlerinizi Belirleyin</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-content-custom text-center modal-step" id="step-auth-options">
-                    <h2 class="fw-bold mb-3" id="welcome-text">Hoş Geldiniz</h2>
-                    <p class="text-muted mb-4" id="selected-country-info"></p>
-                    <div class="d-grid gap-2">
-                        <button class="btn btn-primary btn-lg" id="guest-btn">Misafir Olarak Devam Et</button>
-                        <button class="btn btn-secondary" id="show-login-btn">Giriş Yap</button>
-                        <button class="btn btn-outline-secondary btn-sm" id="show-register-btn">Kayıt Ol</button>
+                <div class="modal-body">
+                    <div id="step-country-modal">
+                        <h4 class="fw-bold mb-3">Ülke Seçimi</h4>
+                        <p class="text-muted mb-4">Lütfen doğru fiyat ve teslimat seçenekleri için ülkenizi seçin.</p>
+                        <div class="list-group country-list" id="modal-country-list">
+                            <div class="p-3 text-center">Ülkeler yükleniyor...</div>
+                        </div>
+                    </div>
+                    <div id="step-auth-options-modal" style="display:none;">
+                        <h4 class="fw-bold mb-3" id="modal-welcome-text">Hoş Geldiniz</h4>
+                        <p class="text-muted mb-4" id="modal-selected-country-info"></p>
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-primary btn-lg" id="modal-guest-btn">Misafir Olarak Devam Et</button>
+                            <button class="btn btn-secondary" id="modal-show-login-btn">Giriş Yap</button>
+                            <button class="btn btn-outline-secondary btn-sm" id="modal-show-register-btn">Kayıt Ol</button>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
+
     <div class="main-content" id="main-content-wrapper">
-        <header id="page-header" class="sticky-top bg-light shadow-sm"></header>
+        <header id="page-header" class="sticky-top bg-light shadow-sm">
+            <div class="container-fluid bg-light border-bottom py-2 topbar-info">
+                <div class="container d-flex justify-content-end align-items-center">
+                    <div class="dropdown me-3">
+                        <a class="dropdown-toggle" href="#" role="button" id="languageDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-translate me-1"></i> <span id="current-language-name">Türkçe</span>
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="languageDropdown" id="language-options">
+                            </ul>
+                    </div>
+                    <div class="dropdown">
+                        <a class="dropdown-toggle" href="#" role="button" id="currencyDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-cash-stack me-1"></i> <span id="current-currency-symbol">₺</span> (<span id="current-currency-code">TRY</span>)
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="currencyDropdown" id="currency-options">
+                            </ul>
+                    </div>
+                </div>
+            </div>
+            <nav class="navbar navbar-expand-lg navbar-light bg-light container">
+                <a class="navbar-brand fw-bold fs-3" href="#">PUFEMO</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav me-auto mb-2 mb-lg-0" id="category-links">
+                        </ul>
+                    <ul class="navbar-nav">
+                        <li class="nav-item"><a class="nav-link" href="#"><i class="bi bi-person-fill"></i> Hesabım</a></li>
+                        <li class="nav-item"><a class="nav-link" href="#"><i class="bi bi-heart-fill"></i> Favoriler</a></li>
+                        <li class="nav-item"><a class="nav-link" href="#"><i class="bi bi-cart-fill"></i> Sepet</a></li>
+                    </ul>
+                </div>
+            </nav>
+        </header>
         <main class="flex-grow-1"></main>
         <footer class="bg-dark text-white pt-5 pb-4"></footer>
     </div>
@@ -128,116 +181,161 @@
         const db = firebase.firestore();
         const auth = firebase.auth();
 
-        // Çeviriler ve Para Birimi Ayarları (Admin panelindeki 'languages-and-currencies.html'den gelmeli)
+        // Varsayılan çeviriler (eğer Firebase'den gelmezse)
         const translations = { 
-            'tr': { welcome: 'Hoş Geldiniz', info: 'için devam edin.', guest: 'Misafir Olarak Devam Et', login: 'Giriş Yap', register: 'Kayıt Ol', featuredProducts: 'Öne Çıkan Ürünler', noFeatured: 'Vitrinde gösterilecek ürün bulunmamaktadır.', addToCart: 'Sepete Ekle', contactUs: 'Bize Ulaşın' }, 
-            'en': { welcome: 'Welcome', info: 'Continue for', guest: 'Continue as Guest', login: 'Sign In', register: 'Register', featuredProducts: 'Featured Products', noFeatured: 'No products to display on homepage.', addToCart: 'Add to Cart', contactUs: 'Contact Us' }, 
-            'de': { welcome: 'Willkommen', info: 'Weiter für', guest: 'Als Gast fortfahren', login: 'Anmelden', register: 'Registrieren', featuredProducts: 'Ausgewählte Produkte', noFeatured: 'Keine Produkte auf der Startseite anzuzeigen.', addToCart: 'In den Warenkorb', contactUs: 'Kontakt' }
+            'tr': { welcome: 'Hoş Geldiniz', info: 'için devam edin.', guest: 'Misafir Olarak Devam Et', login: 'Giriş Yap', register: 'Kayıt Ol', featuredProducts: 'Öne Çıkan Ürünler', noFeatured: 'Vitrinde gösterilecek ürün bulunmamaktadır.', addToCart: 'Sepete Ekle', contactUs: 'Bize Ulaşın', selectCountry: 'Ülke Seç', changeCountry: 'Ülke Değiştir' }, 
+            'en': { welcome: 'Welcome', info: 'Continue for', guest: 'Continue as Guest', login: 'Sign In', register: 'Register', featuredProducts: 'Featured Products', noFeatured: 'No products to display on homepage.', addToCart: 'Add to Cart', contactUs: 'Contact Us', selectCountry: 'Select Country', changeCountry: 'Change Country' }, 
+            'de': { welcome: 'Willkommen', info: 'Weiter für', guest: 'Als Gast fortfahren', login: 'Anmelden', register: 'Registrieren', featuredProducts: 'Ausgewählte Produkte', noFeatured: 'Keine Produkte auf der Startseite anzuzeigen.', addToCart: 'In den Warenkorb', contactUs: 'Kontakt', selectCountry: 'Land auswählen', changeCountry: 'Land ändern' }
         };
-        // Bu değerler `countries` koleksiyonunuzdan veya bir ayarlar koleksiyonundan gelmeli.
-        // Şimdilik varsayılanlar:
-        const defaultExchangeRates = { "TRY": 1.0, "USD": 33.0, "EUR": 35.0, "GBP": 41.0, "RUB": 0.37 };
-        const currencySymbols = { "TRY": "₺", "USD": "$", "EUR": "€", "GBP": "£", "RUB": "₽" };
         
-        let selectedCountry = null; // Kullanıcının seçtiği ülkeyi tutar
+        // Bu değerler Firebase'deki 'currencies' ve 'languages' koleksiyonlarından gelecek
+        let allCountries = [];
+        let allCurrencies = [];
+        let allLanguages = [];
 
-        document.addEventListener('DOMContentLoaded', () => {
-            const storedCountry = localStorage.getItem('pufemo-country');
-            if (storedCountry) {
-                selectedCountry = JSON.parse(storedCountry);
-                initializeApp(selectedCountry);
-                document.getElementById('initial-modal').classList.remove('is-visible');
+        // Kullanıcının tercihleri (localStorage'dan veya varsayılan)
+        let currentUserSettings = {
+            countryId: null,
+            countryName: 'Türkiye', // Varsayılan ülke
+            countryCode: 'TR',      // Varsayılan ülke kodu
+            language: 'tr',         // Varsayılan dil
+            currencyCode: 'TRY',    // Varsayılan para birimi
+            currencySymbol: '₺',    // Varsayılan para birimi sembolü
+            currencyExchangeRate: 1.0 // Varsayılan kur
+        };
+
+        const userPreferenceModalElement = document.getElementById('userPreferenceModal');
+        const userPreferenceModal = new bootstrap.Modal(userPreferenceModalElement);
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            // İlk olarak tüm temel verileri çekelim
+            await loadGlobalSettings();
+
+            // localStorage'dan mevcut ayarları yükle
+            const storedSettings = localStorage.getItem('pufemo-user-settings');
+            if (storedSettings) {
+                currentUserSettings = JSON.parse(storedSettings);
             } else {
-                showCountryModal();
+                // Eğer hiç ayar yoksa, ülkeyi seçtir
+                showUserPreferenceModal('country');
             }
+            
+            // Uygulamayı mevcut ayarlarla başlat
+            initializeApp(currentUserSettings);
         });
 
-        function showStep(stepId) {
-            document.querySelectorAll('.modal-step').forEach(step => step.style.display = 'none');
-            document.getElementById(stepId).style.display = 'block';
-        }
-
-        async function showCountryModal() {
-            const countryList = document.getElementById('country-list');
+        // Tüm ülke, dil ve para birimi verilerini Firebase'den çeken fonksiyon
+        async function loadGlobalSettings() {
             try {
-                const countriesSnapshot = await db.collection('countries').orderBy('name').get();
-                countryList.innerHTML = '';
-                if (countriesSnapshot.empty) {
-                    countryList.innerHTML = `<div class="p-3 text-center text-danger">Hiç ülke bulunamadı. Lütfen yönetim panelinden ülke ekleyin.</div>`;
-                    return;
-                }
-                countriesSnapshot.forEach(doc => {
-                    const country = { id: doc.id, ...doc.data() };
-                    let flagUrl = 'https://via.placeholder.com/24x18?text=--';
-                    if (country.code) { flagUrl = `https://flagsapi.com/${country.code.toUpperCase()}/flat/24.png`; }
-                    const countryElement = document.createElement('a');
-                    countryElement.href = '#';
-                    countryElement.className = 'list-group-item list-group-item-action d-flex align-items-center';
-                    countryElement.innerHTML = `<img src="${flagUrl}" class="me-2" style="width:24px; border:1px solid #ddd;"> ${country.name}`;
-                    countryElement.onclick = (e) => { e.preventDefault(); selectCountry(country); };
-                    countryList.appendChild(countryElement);
-                });
-            } catch (error) { 
-                console.error("Ülkeler yüklenemedi:", error); 
-                countryList.innerHTML = '<div class="p-3 text-center text-danger">Ülkeler yüklenirken bir hata oluştu.</div>'; 
+                const [countriesSnap, currenciesSnap, languagesSnap] = await Promise.all([
+                    db.collection('countries').orderBy('name').get(),
+                    db.collection('currencies').orderBy('code').get(),
+                    db.collection('languages').orderBy('name').get()
+                ]);
+                allCountries = countriesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                allCurrencies = currenciesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                allLanguages = languagesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            } catch (error) {
+                console.error("Genel ayarlar yüklenirken hata:", error);
+                alert("Site ayarları yüklenemedi. Lütfen internet bağlantınızı kontrol edin.");
             }
-            document.getElementById('initial-modal').classList.add('is-visible');
-            showStep('step-country');
         }
 
-        function selectCountry(country) {
-            // Ülke verilerine döviz kuru ekle (Firebase'den çekilmeyen varsayılanlar)
-            country.currencyExchangeRate = defaultExchangeRates[country.currencyCode] || 1.0;
-            selectedCountry = country;
+        // Kullanıcı Tercih Modalını Göster
+        // `step` parametresi 'country' veya 'auth' olabilir
+        function showUserPreferenceModal(step = 'country') {
+            const t = translations[currentUserSettings.language] || translations['en'];
+            document.getElementById('userPreferenceModalLabel').textContent = t.selectCountry; // Modal başlığı
             
-            const langCode = (country.language || 'en').toLowerCase();
-            const t = translations[langCode] || translations['en'];
-            document.getElementById('welcome-text').textContent = t.welcome;
-            document.getElementById('selected-country-info').textContent = `${country.name} ${t.info}`;
-            document.getElementById('guest-btn').textContent = t.guest;
-            document.getElementById('show-login-btn').textContent = t.login;
-            document.getElementById('show-register-btn').textContent = t.register;
-            showStep('step-auth-options');
+            if (step === 'country') {
+                document.getElementById('step-country-modal').style.display = 'block';
+                document.getElementById('step-auth-options-modal').style.display = 'none';
+                populateCountryList();
+            } else if (step === 'auth') {
+                document.getElementById('step-country-modal').style.display = 'none';
+                document.getElementById('step-auth-options-modal').style.display = 'block';
+                document.getElementById('modal-welcome-text').textContent = t.welcome;
+                document.getElementById('modal-selected-country-info').textContent = `${currentUserSettings.countryName} ${t.info}`;
+                document.getElementById('modal-guest-btn').textContent = t.guest;
+                document.getElementById('modal-show-login-btn').textContent = t.login;
+                document.getElementById('modal-show-register-btn').textContent = t.register;
+            }
+            userPreferenceModal.show();
+        }
+
+        // Modal içindeki ülke listesini doldur
+        function populateCountryList() {
+            const countryListElement = document.getElementById('modal-country-list');
+            countryListElement.innerHTML = ''; // Temizle
+
+            if (allCountries.length === 0) {
+                countryListElement.innerHTML = `<div class="p-3 text-center text-danger">Ülkeler yüklenemedi.</div>`;
+                return;
+            }
+
+            allCountries.forEach(country => {
+                let flagUrl = 'https://via.placeholder.com/24x18?text=--';
+                if (country.code) { flagUrl = `https://flagsapi.com/${country.code.toUpperCase()}/flat/24.png`; }
+                const countryElement = document.createElement('a');
+                countryElement.href = '#';
+                countryElement.className = 'list-group-item list-group-item-action d-flex align-items-center';
+                countryElement.innerHTML = `<img src="${flagUrl}" class="me-2" style="width:24px; border:1px solid #ddd;"> ${country.name}`;
+                countryElement.onclick = (e) => { e.preventDefault(); selectCountryAndProceed(country); };
+                countryListElement.appendChild(countryElement);
+            });
+        }
+
+        async function selectCountryAndProceed(country) {
+            // Seçilen ülkenin ayarlarını currentUserSettings'e kaydet
+            currentUserSettings.countryId = country.id;
+            currentUserSettings.countryName = country.name;
+            currentUserSettings.countryCode = country.code;
+            currentUserSettings.language = (country.language || 'en').toLowerCase();
+            currentUserSettings.currencyCode = country.currencyCode || 'TRY'; // Ülkeden gelen para birimi kodu
+            
+            // Para birimi sembolünü ve kurunu bul
+            const selectedCurrency = allCurrencies.find(c => c.code === currentUserSettings.currencyCode);
+            currentUserSettings.currencySymbol = selectedCurrency ? selectedCurrency.symbol : '₺';
+            currentUserSettings.currencyExchangeRate = selectedCurrency ? selectedCurrency.exchangeRate : 1.0;
+
+            localStorage.setItem('pufemo-user-settings', JSON.stringify(currentUserSettings));
+            initializeApp(currentUserSettings); // Yeni ayarları yükle
+            showUserPreferenceModal('auth'); // Auth seçeneklerine geç
         }
         
-        document.getElementById('guest-btn').addEventListener('click', async () => {
+        document.getElementById('modal-guest-btn').addEventListener('click', async () => {
             try {
                 const userCredential = await auth.signInAnonymously();
-                completeSessionSetup(userCredential.user, selectedCountry);
+                // Anonim giriş başarılı, modalı kapat ve uygulamayı başlat
+                userPreferenceModal.hide();
+                // initializeApp zaten çağrıldı, ekstra bir şeye gerek yok şimdilik.
             } catch (error) { console.error("Anonim giriş hatası:", error); }
         });
 
-        function completeSessionSetup(user, country) {
-            localStorage.setItem('pufemo-country', JSON.stringify(country));
-            document.getElementById('initial-modal').classList.remove('is-visible');
-            initializeApp(country);
-        }
-
-        async function initializeApp(countrySettings) {
-            console.log("1. initializeApp fonksiyonu başladı. Ülke: ", countrySettings.name);
-            const langCode = (countrySettings.language || 'en').toLowerCase();
+        async function initializeApp(settings) {
+            console.log("1. initializeApp fonksiyonu başladı. Mevcut Ayarlar: ", settings);
+            const langCode = settings.language.toLowerCase();
             const t = translations[langCode] || translations['en'];
             document.title = "PUFEMO - " + t.welcome; // Sayfa başlığını güncelle
 
             try {
                 console.log("2. try bloğuna girildi. Veri çekme işlemi başlıyor...");
-                const [sliderDocs, categoryDocs, productDocs, settingsDoc, seoDoc] = await Promise.all([
+                const [sliderDocs, categoryDocs, productDocs, appSettingsDoc, seoDoc] = await Promise.all([
                     db.collection('homepage_slider').where('isActive', '==', true).orderBy('order').get(),
                     db.collection('categories').get(),
-                    // SADECE VİTRİNDE GÖSTERİLECEK ÜRÜNLERİ ÇEKİN
                     db.collection('products').where('showOnHomepage', '==', true).limit(8).get(), 
                     db.collection('settings').doc('siteConfig').get(),
                     db.collection('seo_settings').doc('home').get()
                 ]);
                 console.log("3. Tüm veriler Firebase'den başarıyla çekildi.");
                 
-                const settings = settingsDoc.exists ? settingsDoc.data() : {};
+                const appSettings = appSettingsDoc.exists ? appSettingsDoc.data() : {};
                 
                 console.log("4. Sayfa içeriği oluşturuluyor (render ediliyor)...");
-                renderHeader(categoryDocs, settings, countrySettings, t);
-                renderMainContent(sliderDocs, productDocs, countrySettings, t);
-                renderFooter(settings, countrySettings, t);
-                renderSeo(seoDoc, countrySettings);
+                renderHeader(categoryDocs, appSettings, settings, t);
+                renderMainContent(sliderDocs, productDocs, settings, t);
+                renderFooter(appSettings, settings, t);
+                renderSeo(seoDoc, settings);
                 
                 console.log("5. Sayfa içeriği oluşturma tamamlandı.");
                 document.getElementById('main-content-wrapper').classList.add('loaded');
@@ -249,36 +347,61 @@
             }
         }
         
-        function renderHeader(categoryDocs, settings, countrySettings, t) {
+        function renderHeader(categoryDocs, appSettings, userSettings, t) {
             const headerElement = document.getElementById('page-header');
             const categories = categoryDocs.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            const langCode = (countrySettings.language || 'en').toLowerCase();
+            const langCode = userSettings.language.toLowerCase();
 
+            // Kategori linkleri
             let categoryLinks = '';
             categories.forEach(cat => {
                 const catName = cat[`name_${langCode}`] || cat.name_tr || cat.id;
                 categoryLinks += `<li class="nav-item"><a class="nav-link" href="#">${catName}</a></li>`;
             });
 
+            // Dil seçeneklerini doldur
+            let languageOptions = '';
+            allLanguages.forEach(lang => {
+                languageOptions += `<li><a class="dropdown-item" href="#" data-lang-code="${lang.code}">${lang.name}</a></li>`;
+            });
+
+            // Para birimi seçeneklerini doldur
+            let currencyOptions = '';
+            allCurrencies.forEach(curr => {
+                currencyOptions += `<li><a class="dropdown-item" href="#" data-currency-code="${curr.code}">${curr.symbol} (${curr.code})</a></li>`;
+            });
+
             headerElement.innerHTML = `
+                <div class="container-fluid bg-light border-bottom py-2 topbar-info">
+                    <div class="container d-flex justify-content-end align-items-center">
+                        <div class="dropdown me-3">
+                            <a class="dropdown-toggle" href="#" role="button" id="languageDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-translate me-1"></i> <span id="current-language-name">${allLanguages.find(l => l.code === userSettings.language)?.name || userSettings.language.toUpperCase()}</span>
+                            </a>
+                            <ul class="dropdown-menu" aria-labelledby="languageDropdown" id="language-options">
+                                ${languageOptions}
+                            </ul>
+                        </div>
+                        <div class="dropdown">
+                            <a class="dropdown-toggle" href="#" role="button" id="currencyDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-cash-stack me-1"></i> <span id="current-currency-symbol">${userSettings.currencySymbol}</span> (<span id="current-currency-code">${userSettings.currencyCode}</span>)
+                            </a>
+                            <ul class="dropdown-menu" aria-labelledby="currencyDropdown" id="currency-options">
+                                ${currencyOptions}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
                 <nav class="navbar navbar-expand-lg navbar-light bg-light container">
                     <a class="navbar-brand fw-bold fs-3" href="#">PUFEMO</a>
                     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                         <span class="navbar-toggler-icon"></span>
                     </button>
                     <div class="collapse navbar-collapse" id="navbarNav">
-                        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                        <ul class="navbar-nav me-auto mb-2 mb-lg-0" id="category-links">
                             ${categoryLinks}
                         </ul>
                         <ul class="navbar-nav">
-                            <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle" href="#" id="countryDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <img src="https://flagsapi.com/${countrySettings.code.toUpperCase()}/flat/24.png" class="me-2" style="width:24px; border:1px solid #ddd;"> ${countrySettings.name} (${currencySymbols[countrySettings.currencyCode]})
-                                </a>
-                                <ul class="dropdown-menu" aria-labelledby="countryDropdown">
-                                    <li><a class="dropdown-item" href="#" onclick="showCountryModal(); return false;">Ülke Değiştir</a></li>
-                                </ul>
-                            </li>
                             <li class="nav-item"><a class="nav-link" href="#"><i class="bi bi-person-fill"></i> Hesabım</a></li>
                             <li class="nav-item"><a class="nav-link" href="#"><i class="bi bi-heart-fill"></i> Favoriler</a></li>
                             <li class="nav-item"><a class="nav-link" href="#"><i class="bi bi-cart-fill"></i> Sepet</a></li>
@@ -286,18 +409,47 @@
                     </div>
                 </nav>
             `;
+
+            // Dil ve Para birimi seçimi için Event Listeners ekle
+            document.getElementById('language-options').addEventListener('click', (e) => {
+                if (e.target.tagName === 'A' && e.target.dataset.langCode) {
+                    const newLangCode = e.target.dataset.langCode;
+                    if (currentUserSettings.language !== newLangCode) {
+                        currentUserSettings.language = newLangCode;
+                        localStorage.setItem('pufemo-user-settings', JSON.stringify(currentUserSettings));
+                        initializeApp(currentUserSettings); // Uygulamayı yeni dille yeniden yükle
+                    }
+                }
+            });
+
+            document.getElementById('currency-options').addEventListener('click', (e) => {
+                if (e.target.tagName === 'A' && e.target.dataset.currencyCode) {
+                    const newCurrencyCode = e.target.dataset.currencyCode;
+                    if (currentUserSettings.currencyCode !== newCurrencyCode) {
+                        const selectedCurrency = allCurrencies.find(c => c.code === newCurrencyCode);
+                        if (selectedCurrency) {
+                            currentUserSettings.currencyCode = newCurrencyCode;
+                            currentUserSettings.currencySymbol = selectedCurrency.symbol;
+                            currentUserSettings.currencyExchangeRate = selectedCurrency.exchangeRate;
+                            localStorage.setItem('pufemo-user-settings', JSON.stringify(currentUserSettings));
+                            initializeApp(currentUserSettings); // Uygulamayı yeni para birimiyle yeniden yükle
+                        }
+                    }
+                }
+            });
         }
 
-        function renderMainContent(sliderDocs, productDocs, countrySettings, t) {
+        function renderMainContent(sliderDocs, productDocs, userSettings, t) {
             const mainElement = document.querySelector('main');
             mainElement.innerHTML = ''; // Ana içeriği temizle
             
-            const langCode = (countrySettings.language || 'en').toLowerCase();
+            const langCode = userSettings.language.toLowerCase();
 
             // Slider kısmı (basit bir örnek)
             const sliderData = sliderDocs.docs.map(doc => doc.data());
             if (sliderData.length > 0) {
                 let carouselItems = '';
+                let carouselIndicators = '';
                 sliderData.forEach((slide, index) => {
                     const isActive = index === 0 ? 'active' : '';
                     const imageUrl = slide.imageUrl || 'https://via.placeholder.com/1200x400?text=Slider+Image';
@@ -310,11 +462,17 @@
                             </div>
                         </div>
                     `;
+                    carouselIndicators += `
+                        <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="${index}" class="${isActive}" aria-current="${isActive ? 'true' : 'false'}" aria-label="Slide ${index + 1}"></button>
+                    `;
                 });
 
                 mainElement.innerHTML += `
                     <section class="mb-5">
                         <div id="heroCarousel" class="carousel slide" data-bs-ride="carousel">
+                            <div class="carousel-indicators">
+                                ${carouselIndicators}
+                            </div>
                             <div class="carousel-inner">
                                 ${carouselItems}
                             </div>
@@ -348,11 +506,10 @@
             } else {
                 productDocs.forEach(doc => {
                     const product = doc.data();
-                    // showOnHomepage kontrolü artık Firebase sorgusunda yapıldığı için burada if'e gerek yok
                     console.log("Ana sayfada render edilen ürün:", product.name_tr, "showOnHomepage:", product.showOnHomepage); 
                     
-                    const productPrice = (product.basePriceTRY * (countrySettings.currencyExchangeRate || 1.0)).toFixed(2);
-                    const currencySymbol = currencySymbols[countrySettings.currencyCode] || '₺';
+                    const productPrice = (product.basePriceTRY * (userSettings.currencyExchangeRate || 1.0)).toFixed(2);
+                    const currencySymbol = userSettings.currencySymbol || '₺';
                     
                     // İlk görseli çek veya placeholder göster
                     const imageUrl = product.mediaUrls && product.mediaUrls.length > 0 && product.mediaUrls[0].match(/\.(jpeg|jpg|gif|png|webp)$/i)
@@ -379,17 +536,25 @@
             }
         }
 
-        function renderFooter(settings, countrySettings, t) {
+        function renderFooter(appSettings, userSettings, t) {
             const footerElement = document.querySelector('footer');
-            const langCode = (countrySettings.language || 'en').toLowerCase();
+            const langCode = userSettings.language.toLowerCase();
             
+            // Ülke listesini footer içinde doldur
+            let countryOptions = '';
+            allCountries.forEach(country => {
+                let flagUrl = 'https://via.placeholder.com/24x18?text=--';
+                if (country.code) { flagUrl = `https://flagsapi.com/${country.code.toUpperCase()}/flat/24.png`; }
+                countryOptions += `<li><a class="dropdown-item" href="#" data-country-id="${country.id}">${country.name} <img src="${flagUrl}" class="ms-2" style="width:20px; border:1px solid #ddd;"></a></li>`;
+            });
+
             footerElement.innerHTML = `
                 <div class="container">
                     <div class="row">
                         <div class="col-md-4 mb-4">
                             <h5 class="fw-bold">PUFEMO</h5>
                             <p class="text-muted">
-                                ${settings[`slogan_${langCode}`] || settings.slogan_tr || 'Online alışverişin yeni adresi.'}
+                                ${appSettings[`slogan_${langCode}`] || appSettings.slogan_tr || 'Online alışverişin yeni adresi.'}
                             </p>
                         </div>
                         <div class="col-md-4 mb-4">
@@ -404,10 +569,18 @@
                         <div class="col-md-4 mb-4">
                             <h5 class="fw-bold">${t.contactUs}</h5>
                             <ul class="list-unstyled text-white-50">
-                                <li><i class="bi bi-geo-alt-fill me-2"></i> ${settings.address || 'Adres bilgisi yok'}</li>
-                                <li><i class="bi bi-envelope-fill me-2"></i> ${settings.email || 'bilgi@pufemo.com'}</li>
-                                <li><i class="bi bi-phone-fill me-2"></i> ${settings.phone || '+90 5XX XXX XX XX'}</li>
+                                <li><i class="bi bi-geo-alt-fill me-2"></i> ${appSettings.address || 'Adres bilgisi yok'}</li>
+                                <li><i class="bi bi-envelope-fill me-2"></i> ${appSettings.email || 'bilgi@pufemo.com'}</li>
+                                <li><i class="bi bi-phone-fill me-2"></i> ${appSettings.phone || '+90 5XX XXX XX XX'}</li>
                             </ul>
+                            <div class="dropdown mt-3">
+                                <button class="btn btn-secondary dropdown-toggle" type="button" id="footerCountryDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <img src="https://flagsapi.com/${userSettings.countryCode.toUpperCase()}/flat/24.png" class="me-2" style="width:24px; border:1px solid #ddd;"> ${userSettings.countryName}
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="footerCountryDropdown" id="footer-country-options">
+                                    ${countryOptions}
+                                </ul>
+                            </div>
                         </div>
                     </div>
                     <hr class="text-white-50">
@@ -416,26 +589,39 @@
                     </div>
                 </div>
             `;
+
+            // Footer'daki ülke seçim dropdownu için Event Listener
+            document.getElementById('footer-country-options').addEventListener('click', (e) => {
+                if (e.target.tagName === 'A' && e.target.dataset.countryId) {
+                    const newCountryId = e.target.dataset.countryId;
+                    if (currentUserSettings.countryId !== newCountryId) {
+                        const selectedCountry = allCountries.find(c => c.id === newCountryId);
+                        if (selectedCountry) {
+                            selectCountryAndProceed(selectedCountry); // Yeni ülkeyi seç ve ayarları güncelle
+                        }
+                    }
+                }
+            });
         }
 
-        function renderSeo(seoDoc, countrySettings) {
+        function renderSeo(seoDoc, userSettings) {
             const seoData = seoDoc.exists ? seoDoc.data() : {};
-            const langCode = (countrySettings.language || 'en').toLowerCase();
+            const langCode = userSettings.language.toLowerCase();
             
             document.title = seoData[`title_${langCode}`] || seoData.title_tr || "PUFEMO Online Mağaza";
             document.querySelector('meta[name="description"]').setAttribute('content', seoData[`description_${langCode}`] || seoData.description_tr || "PUFEMO online mağazası. En yeni ürünler ve özel fırsatlar.");
             // Diğer SEO meta etiketlerini de buraya ekleyebilirsiniz (keywords, og:title vb.)
         }
 
-        // Giriş ve Kayıt butonları şimdilik placeholder.
-        document.getElementById('show-login-btn').addEventListener('click', () => {
+        // Giriş ve Kayıt butonları için event listenerlar
+        document.getElementById('modal-show-login-btn').addEventListener('click', () => {
             alert('Giriş sayfası henüz entegre edilmedi.');
-            // window.location.href = 'login.html'; // Gerçek giriş sayfasına yönlendirilebilir
+            // window.location.href = 'login.html'; 
         });
 
-        document.getElementById('show-register-btn').addEventListener('click', () => {
+        document.getElementById('modal-show-register-btn').addEventListener('click', () => {
             alert('Kayıt sayfası henüz entegre edilmedi.');
-            // window.location.href = 'register.html'; // Gerçek kayıt sayfasına yönlendirilebilir
+            // window.location.href = 'register.html'; 
         });
     </script>
 </body>
