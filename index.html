@@ -209,13 +209,24 @@
         });
 
         document.addEventListener('DOMContentLoaded', async () => {
+            // SADECE GELİŞTİRME/TEST İÇİN: Her zaman modalın gelmesi için localStorage'ı temizle
+            localStorage.removeItem('pufemo-user-settings'); // BU SATIRDAKİ DEĞİŞİKLİK
+            // Canlıya alırken bu satırı SİLMEYİ UNUTMAYIN!
+
             await loadGlobalSettings(); // Tüm global ayarları yükle
 
-            const storedSettings = localStorage.getItem('pufemo-user-settings');
+            const storedSettings = localStorage.getItem('pufemo-user-userSettings'); // "userSettings" yazım hatası olasılığına karşı kontrol ettim
             if (storedSettings) {
-                currentUserSettings = JSON.parse(storedSettings);
-                // Eğer ayarlar varsa, direkt uygulamayı başlat
-                initializeApp(currentUserSettings);
+                try {
+                    currentUserSettings = JSON.parse(storedSettings);
+                    // Ayarlar varsa direkt başlat
+                    initializeApp(currentUserSettings);
+                } catch (e) {
+                    console.error("Stored settings parse hatası, varsayılan ayarları kullan:", e);
+                    // Hatalı JSON varsa temizleyip modalı göster
+                    localStorage.removeItem('pufemo-user-settings');
+                    showUserPreferenceModal('country');
+                }
             } else {
                 // Eğer ayar yoksa, modalı göster ve kullanıcı ayarlarını belirlemesini bekle
                 showUserPreferenceModal('country'); 
@@ -287,7 +298,6 @@
 
         // Modal'dan ülke seçimi ve ilerleme
         async function selectCountryAndProceedFromModal(country) {
-            // Seçilen ülkeye göre ayarları güncelle, ama henüz uygulamayı başlatma
             updateUserSettings(country.id, (country.language || 'en').toLowerCase(), country.currencyCode || 'TRY', false); // false = appInitialize'ı burada çağırma
             showUserPreferenceModal('auth'); // Auth seçeneklerine geç
         }
@@ -335,11 +345,8 @@
             // Eğer modal kapatıldığında hala currentUserSettings.countryId null ise, bu bir sorun demektir.
             // Bu durumda kullanıcı devam etmeden modalı kapatmış ve siteyi yükleyemiyoruz.
             if (!currentUserSettings.countryId) {
-                // Burada kullanıcıyı farklı bir sayfaya yönlendirebilir
-                // veya hata mesajı gösterebiliriz.
-                // Şimdilik sadece uyarı verelim:
-                console.warn("Kullanıcı ülke seçmeden modalı kapattı. Site yüklenemiyor.");
-                document.body.innerHTML = `<div class="alert alert-warning m-5">Lütfen devam etmek için ülkenizi seçin.</div>`;
+                console.warn("Kullanıcı ülke seçmeden veya misafir olarak devam etmeden modalı kapattı. Site yüklenemiyor.");
+                document.body.innerHTML = `<div class="alert alert-warning m-5">Lütfen devam etmek için ülkenizi seçin veya misafir olarak devam edin.</div>`;
             }
         });
 
@@ -625,7 +632,7 @@
         }
 
         function renderSeo(seoDoc, userSettings) {
-            const seoData = seoDoc.exists ? seoDoc.data() : {};
+            const seoData = seoDoc.exists ? seoData.data() : {};
             const langCode = userSettings.language.toLowerCase();
             
             document.title = seoData[`title_${langCode}`] || seoData.title_tr || "PUFEMO Online Mağaza";
