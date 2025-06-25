@@ -273,20 +273,18 @@
         };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
+        const auth = firebase.auth(); // Firebase Auth servisini tanımla
 
         // Modallar
         const welcomeCountryModal = new bootstrap.Modal(document.getElementById('welcomeCountryModal'));
-        // authModal kaldırıldı
 
         // Seçim Elementleri
         const countrySelectModal = document.getElementById('country-select-modal');
         const selectCountryBtn = document.getElementById('select-country-btn');
-        // continueAsGuestBtn kaldırıldı
 
         // Welcome Country Modal Metin Elementleri
         const welcomeCountryModalLabel = document.getElementById('welcomeCountryModalLabel');
         const welcomeCountryPrompt = document.getElementById('welcome-country-prompt');
-        // selectCountryBtn zaten tanımlı
 
         const selectedCountryDisplay = document.getElementById('selected-country-display');
         const selectedLanguageDisplay = document.getElementById('selected-language-display');
@@ -299,7 +297,7 @@
 
         const promoBanner = document.getElementById('promo-banner');
 
-        // Auth Modal Butonları ve Başlığı kaldırıldı
+        // Menüdeki Giriş/Kayıt Linkleri
         const menuLoginLink = document.getElementById('menu-login-link');
         const menuRegisterLink = document.getElementById('menu-register-link');
 
@@ -307,7 +305,7 @@
         let allCountries = [];
         let allLanguages = [];
         let allCurrencies = [];
-        let siteSettings = {}; // Genel site ayarları (IBAN, email vb.)
+        let siteSettings = {}; 
 
         // Local Storage Anahtarları
         const LS_SELECTED_COUNTRY_CODE = 'pufemo_selected_country_code';
@@ -321,8 +319,8 @@
                 welcomeModalCountryPrompt: 'Lütfen ülkenizi seçin:',
                 welcomeModalContinueBtn: 'Devam Et',
                 countrySelectPlaceholder: 'Ülke Seçiniz...', 
-                menuLogin: 'Giriş Yap', // Yeni eklendi
-                menuRegister: 'Kayıt Ol', // Yeni eklendi
+                menuLogin: 'Giriş Yap', 
+                menuRegister: 'Kayıt Ol', 
                 settingsSaved: 'Ayarlar güncellendi!', 
                 noSliders: 'Slider Mevcut Değil', 
                 noSlidersMessage: 'Yönetici panelinden slider ekleyebilirsiniz.', 
@@ -340,8 +338,8 @@
                 welcomeModalCountryPrompt: 'Please select your country:',
                 welcomeModalContinueBtn: 'Continue',
                 countrySelectPlaceholder: 'Select your country...', 
-                menuLogin: 'Login', // Yeni eklendi
-                menuRegister: 'Register', // Yeni eklendi
+                menuLogin: 'Login', 
+                menuRegister: 'Register', 
                 settingsSaved: 'Settings updated!',
                 noSliders: 'No Sliders Available',
                 noSlidersMessage: 'You can add sliders from the admin panel.',
@@ -359,8 +357,8 @@
                 welcomeModalCountryPrompt: 'Bitte wählen Sie Ihr Land:',
                 welcomeModalContinueBtn: 'Weiter',
                 countrySelectPlaceholder: 'Land auswählen...', 
-                menuLogin: 'Anmelden', // Yeni eklendi
-                menuRegister: 'Registrieren', // Yeni eklendi
+                menuLogin: 'Anmelden', 
+                menuRegister: 'Registrieren', 
                 settingsSaved: 'Einstellungen aktualisiert!',
                 noSliders: 'Keine Slider verfügbar',
                 noSlidersMessage: 'Sie können Slider über das Admin-Panel hinzufügen.',
@@ -373,13 +371,13 @@
                 footerAddressNotFound: 'Adresse nicht gefunden.',
                 promoDefaultText: 'Folgen Sie uns für tolle Angebote!'
             },
-            'el': { // Yunanca eklendi
+            'el': { 
                 welcomeModalTitle: 'Καλώς ορίσατε!',
                 welcomeModalCountryPrompt: 'Παρακαλώ επιλέξτε τη χώρα σας:',
                 welcomeModalContinueBtn: 'Συνέχεια',
                 countrySelectPlaceholder: 'Επιλέξτε τη χώρα σας...',
-                menuLogin: 'Σύνδεση', // Yeni eklendi
-                menuRegister: 'Εγγραφή', // Yeni eklendi
+                menuLogin: 'Σύνδεση', 
+                menuRegister: 'Εγγραφή', 
                 settingsSaved: 'Οι ρυθμίσεις ενημερώθηκαν!',
                 noSliders: 'Δεν υπάρχουν διαθέσιμα slider',
                 noSlidersMessage: 'Μπορείτε να προσθέσετε slider από τον πίνακα διαχείρισης.',
@@ -392,14 +390,13 @@
                 footerAddressNotFound: 'Διεύθυνση δεν βρέθηκε.',
                 promoDefaultText: 'Ακολουθήστε μας για υπέροχες προσφορές!'
             }
-            // Diğer diller buraya eklenebilir
         };
 
 
         // Sayfa yüklendiğinde çalışacak ana fonksiyon
         document.addEventListener('DOMContentLoaded', async () => {
-            console.log("DOMContentLoaded fired."); // Debug log
-            // Firestore verilerini önce yükle
+            console.log("DOMContentLoaded fired."); 
+            // 1. Firebase verilerini yükle
             try {
                 const [countriesSnapshot, languagesSnapshot, currenciesSnapshot, settingsDoc] = await Promise.all([
                     db.collection('countries').get(),
@@ -413,31 +410,48 @@
                 allCurrencies = currenciesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 siteSettings = settingsDoc.exists ? settingsDoc.data() : {};
                 console.log("Firebase verileri başarıyla yüklendi.");
-                // console.log("allCountries:", allCountries); // Debug için gerekirse açın
-                // console.log("allLanguages:", allLanguages);
-                // console.log("allCurrencies:", allCurrencies);
-                // console.log("siteSettings:", siteSettings);
-
 
             } catch (error) {
                 console.error("Başlangıç Firebase verileri yüklenirken kritik hata:", error);
                 alert("Site verileri yüklenirken bir sorun oluştu. Lütfen Firebase konsolunuzdaki Hataları (Errors) kontrol edin (İzinler/Dizinler).");
-                // Hata durumunda varsayılan olarak İngilizce metinleri gösterelim ve boş dizilerle devam edelim
-                allCountries = []; allLanguages = []; allCurrencies = []; siteSettings = {}; // Hata durumunda boş dizilerle devam et
+                allCountries = []; allLanguages = []; allCurrencies = []; siteSettings = {}; 
                 localStorage.setItem(LS_SELECTED_LANGUAGE_CODE, 'en'); 
                 localStorage.setItem(LS_SELECTED_CURRENCY_CODE, 'USD'); 
-                // Modalları ve diğer elementleri varsayılan İngilizce ile güncelle
-                updateAllModalTexts('en'); // updateAllModalTexts, allCountries'e bağlı olduğu için boş diziyle çalışabilir olmalı
+                updateAllModalTexts('en'); 
                 updateHeaderDisplays(); 
                 updateStaticContent();
             }
 
+            // 2. Kimlik doğrulama durumunu kontrol et ve anonim oturum aç
+            // Firebase Auth hazır olduğunda tetiklenir
+            auth.onAuthStateChanged(async (user) => {
+                if (!user) { // Kullanıcı oturum açmamışsa (daha önce anonim dahil)
+                    try {
+                        const anonymousUserCredential = await auth.signInAnonymously();
+                        console.log("Anonim kullanıcı oturum açtı:", anonymousUserCredential.user.uid);
+                        // Anonim kullanıcı açıldıktan sonra diğer başlangıç işlemlerini yap
+                        await proceedWithSiteInitialization();
+                    } catch (error) {
+                        console.error("Anonim oturum açılırken hata:", error);
+                        alert("Anonim oturum açılırken bir hata oluştu. Lütfen Firebase kimlik doğrulama ayarlarınızı kontrol edin.");
+                        // Anonim oturum açılamasa bile siteyi başlatmaya çalış
+                        await proceedWithSiteInitialization();
+                    }
+                } else { // Zaten bir kullanıcı oturum açmışsa (e-posta veya önceki anonim oturum)
+                    console.log("Mevcut kullanıcı oturumu:", user.uid, user.isAnonymous ? "(Anonim)" : "(Kayıtlı)");
+                    await proceedWithSiteInitialization();
+                }
+            });
+        });
+
+        // Kimlik doğrulama tamamlandıktan sonraki site başlatma işlemleri
+        async function proceedWithSiteInitialization() {
             // Modalları ve seçimleri yönet
             await handleInitialModalsAndSelections();
             
-            // Footer ve header'daki statik alanları güncelle (Firebase verisi başarılı olsa da olmasa da)
-            updateStaticContent(); // Bu tekrar çağrılabilir, çünkü handleInitialModalsAndSelections içinde de çağrılıyor
-
+            // Footer ve header'daki statik alanları güncelle
+            updateStaticContent();
+            
             // Header'daki dil/para birimi/ülke seçicilerini doldur ve mevcut seçimleri göster
             await populateHeaderSelectors();
             updateHeaderDisplays();
@@ -447,55 +461,74 @@
             loadFeaturedCategories();
             loadNewArrivals();
             updateCartItemCount(); // Sepet sayacını güncelle
-        });
+        }
 
         async function handleInitialModalsAndSelections() {
-            console.log("handleInitialModalsAndSelections called."); // Debug log
+            console.log("handleInitialModalsAndSelections called."); 
 
             const storedCountryCode = localStorage.getItem(LS_SELECTED_COUNTRY_CODE);
-            let initialLangCode = 'en'; // Varsayılan başlangıç dili İngilizce
+            let initialLangCodeForModals = 'en'; 
 
             if (storedCountryCode && allCountries.length > 0) { 
                 const selectedCountryData = allCountries.find(c => c.code === storedCountryCode);
                 if (selectedCountryData) {
-                    initialLangCode = selectedCountryData.language || 'tr'; 
+                    initialLangCodeForModals = selectedCountryData.language || 'tr'; 
                     localStorage.setItem(LS_SELECTED_LANGUAGE_CODE, selectedCountryData.language || 'tr');
                     localStorage.setItem(LS_SELECTED_CURRENCY_CODE, selectedCountryData.currency || 'TRY');
                 } else {
-                    // Stored country not found in Firebase (e.g., deleted from admin panel)
                     console.warn("Stored country code not found in Firebase data:", storedCountryCode);
                     localStorage.setItem(LS_SELECTED_LANGUAGE_CODE, 'tr'); 
                     localStorage.setItem(LS_SELECTED_CURRENCY_CODE, 'TRY');
                 }
             } else if (allCountries.length === 0) {
-                // Firebase'den ülke verisi gelmediyse, varsayılan dile göre işlem yap (initialLangCode 'en' kalır)
-                // Bu durumda localStorage'a EN/USD set edelim
                 localStorage.setItem(LS_SELECTED_LANGUAGE_CODE, 'en'); 
                 localStorage.setItem(LS_SELECTED_CURRENCY_CODE, 'USD');
             } else {
-                // Hiç storedCountryCode yoksa ve allCountries doluysa, varsayılanı TR ayarla, ama modal EN başlasın
                 localStorage.setItem(LS_SELECTED_LANGUAGE_CODE, 'tr'); 
                 localStorage.setItem(LS_SELECTED_CURRENCY_CODE, 'TRY');
             }
             
-            // Modalların metinlerini belirlenen başlangıç diline ayarla ve ülke seçeneklerini doldur
-            updateAllModalTexts(initialLangCode); 
-            
-            // Eğer bir önceki seçim varsa, onu varsayılan olarak seçili yap
+            updateAllModalTexts(initialLangCodeForModals); 
+
+            countrySelectModal.innerHTML = ''; 
+            const textsForModalPopulate = appTexts[initialLangCodeForModals] || appTexts['en'];
+
+            const placeholderOption = document.createElement('option');
+            placeholderOption.value = "";
+            placeholderOption.textContent = textsForModalPopulate.countrySelectPlaceholder;
+            countrySelectModal.appendChild(placeholderOption); 
+
+            if (allCountries.length > 0) {
+                allCountries.forEach(country => {
+                    const option = document.createElement('option');
+                    option.value = country.code;
+                    const countryNameDisplay = country[`name_${initialLangCodeForModals}`] || country.name_tr || country.name;
+                    option.textContent = countryNameDisplay; 
+                    countrySelectModal.appendChild(option);
+                });
+            } else {
+                console.warn("allCountries boş, ülke seçenekleri doldurulamadı.");
+                const noOptions = document.createElement('option');
+                noOptions.value = "";
+                noOptions.textContent = textsForModalPopulate.productsLoadingError; // Genel hata metni kullanılabilir
+                noOptions.disabled = true;
+                countrySelectModal.appendChild(noOptions);
+            }
+
             if (storedCountryCode) {
                 countrySelectModal.value = storedCountryCode;
             } else {
-                countrySelectModal.value = ""; // Placeholder'ı seçili yap
+                countrySelectModal.value = ""; 
             }
             
-            console.log("welcomeCountryModal.show() called."); // Debug log
+            console.log("welcomeCountryModal.show() called."); 
             welcomeCountryModal.show();
         }
 
         // TÜM MODAL METİNLERİNİ VE ÜLKE SEÇENEKLERİNİ GÜNCELLEYEN MERKEZİ FONKSİYON
         function updateAllModalTexts(languageCode) {
             const texts = appTexts[languageCode] || appTexts['en']; 
-            console.log("updateAllModalTexts called with language:", languageCode, "Texts:", texts); // Debug log
+            console.log("updateAllModalTexts called with language:", languageCode, "Texts:", texts); 
 
             // Welcome Country Modal Metinlerini Güncelle
             welcomeCountryModalLabel.textContent = texts.welcomeModalTitle;
@@ -503,16 +536,14 @@
             selectCountryBtn.textContent = texts.welcomeModalContinueBtn;
             
             // Ülke seçimi dropdown'daki placeholder'ı ve seçeneklerin dilini de güncelle
-            const currentCountrySelectValue = countrySelectModal.value; // Mevcut seçili değeri koru
-            countrySelectModal.innerHTML = ''; // Tamamen temizle
+            const currentCountrySelectValue = countrySelectModal.value; 
+            countrySelectModal.innerHTML = ''; 
 
-            // Placeholder'ı yeniden ekle ve metnini güncelle
             const placeholderOption = document.createElement('option');
             placeholderOption.value = "";
             placeholderOption.textContent = texts.countrySelectPlaceholder;
             countrySelectModal.appendChild(placeholderOption); 
 
-            // Ülke seçeneklerini doldur (allCountries doluysa)
             if (allCountries.length > 0) {
                 allCountries.forEach(country => {
                     const option = document.createElement('option');
@@ -522,16 +553,13 @@
                     countrySelectModal.appendChild(option);
                 });
             } else {
-                console.warn("allCountries boş, ülke seçenekleri doldurulamadı.");
-                // Firebase hatası durumunda boş bir seçenek gösterilebilir
                 const noOptions = document.createElement('option');
                 noOptions.value = "";
-                noOptions.textContent = "Veri Yüklenemedi"; // Bu metni de appTexts'e ekleyebiliriz
+                noOptions.textContent = texts.productsLoadingError; 
                 noOptions.disabled = true;
                 countrySelectModal.appendChild(noOptions);
             }
-
-            countrySelectModal.value = currentCountrySelectValue; // Seçimi geri yükle (yoksa boş kalır)
+            countrySelectModal.value = currentCountrySelectValue; 
 
 
             // Menüdeki giriş/kayıt linklerini güncelle
@@ -623,14 +651,11 @@
             if (selectedCountryCode) {
                 setSelectedCountry(selectedCountryCode);
                 welcomeCountryModal.hide();
-                // authModal kaldırıldığı için burada başka bir modal açılmayacak
             } else {
                 const currentLang = localStorage.getItem(LS_SELECTED_LANGUAGE_CODE) || 'tr';
                 alert(appTexts[currentLang]?.welcomeModalCountryPrompt || appTexts['en'].welcomeModalCountryPrompt);
             }
         });
-
-        // continueAsGuestBtn ve diğer auth modal ile ilgili event listener'lar kaldırıldı
 
         saveHeaderSelectionsBtn.addEventListener('click', () => {
             localStorage.setItem(LS_SELECTED_COUNTRY_CODE, headerCountrySelect.value);
