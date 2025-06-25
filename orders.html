@@ -63,7 +63,7 @@
                     <h6>Sipariş Durumunu Güncelle</h6><input type="hidden" id="currentOrderId">
                     <div class="row">
                         <div class="col-md-6 mb-3"><label for="orderStatus" class="form-label">Sipariş Durumu</label><select id="orderStatus" class="form-select"><option value="Yeni">Yeni</option><option value="Hazırlanıyor">Hazırlanıyor</option><option value="Kargoda">Kargoda</option><option value="Teslim Edildi">Teslim Edildi</option><option value="İptal Edildi">İptal Edildi</option></select></div>
-                        <div class="col-md-6 mb-3"><label for="trackingNumber" class="form-label">Kargo Takip Numarası</label><input type="text" id="trackingNumber" class="form-control"></div>
+                        <div class="col-md-6 mb-3"><label for="trackingNumber" class="form-label">Kargo Takip Numarası</label><input type="text" class="form-control" id="trackingNumber"></div>
                     </div>
                 </div>
                 <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button><button type="button" class="btn btn-primary" id="updateOrderBtn">Siparişi Güncelle</button></div>
@@ -99,7 +99,7 @@
                 const statusBadges = { 'Yeni': 'bg-primary', 'Pending Payment': 'bg-warning text-dark', 'Hazırlanıyor': 'bg-warning text-dark', 'Kargoda': 'bg-info text-dark', 'Teslim Edildi': 'bg-success', 'İptal Edildi': 'bg-danger' }; // 'Pending Payment' eklendi
                 const statusClass = statusBadges[order.status] || 'bg-secondary';
                 
-                // Müşteri bilgisini customerInfo objesinden al
+                // Müşteri bilgisini customerInfo objesinden al (yapıyı koruyarak)
                 const customerDisplayName = order.customerInfo ? `${order.customerInfo.firstName || ''} ${order.customerInfo.lastName || ''}`.trim() : 'Bilinmiyor';
 
                 const row = `<tr><td><strong>#${doc.id.substring(0, 8).toUpperCase()}</strong></td><td>${customerDisplayName}</td><td>${order.timestamp.toDate().toLocaleDateString('tr-TR')}</td><td>${order.totalAmount.toFixed(2)} ${order.currency}</td><td><span class="badge ${statusClass} status-badge">${order.status}</span></td><td><button class="btn btn-sm btn-outline-secondary" onclick="viewOrderDetails('${doc.id}')">Detay Gör</button></td></tr>`;
@@ -112,30 +112,27 @@
             if (!doc.exists) { return; }
             const order = doc.data();
 
-            // BURADA GÜNCELLEME YAPILDI: Müşteri ve Adres Bilgileri
+            // BURADA GÜNCELLEME YAPILDI: Müşteri ve Adres Bilgileri doğru objelerden alınıyor
             const customerNameDisplay = order.customerInfo ? `${order.customerInfo.firstName || ''} ${order.customerInfo.lastName || ''}`.trim() : 'Bilinmiyor';
             const customerEmailDisplay = order.customerInfo ? (order.customerInfo.email || 'Bilinmiyor') : 'Bilinmiyor';
             const customerPhoneDisplay = order.customerInfo ? (order.customerInfo.phone || 'Bilinmiyor') : 'Bilinmiyor';
 
             const shippingAddressDisplay = order.shippingAddress ? 
-                `${order.shippingAddress.address1 || ''}${order.shippingAddress.address2 ? ', ' + order.shippingAddress.address2 : ''}, ` +
-                `${order.shippingAddress.city || ''}, ${order.shippingAddress.zip || ''}, ${order.shippingAddress.country || ''}`.trim()
+                `${order.shippingAddress.address1 || ''}${order.shippingAddress.address2 ? ', ' + order.shippingAddress.address2 : ''}<br>` + // Adres 2 varsa virgülle ayır, <br> ile alta geç
+                `${order.shippingAddress.city || ''}, ${order.shippingAddress.zip || ''}<br>` + // Şehir, Posta Kodu
+                `${order.shippingAddress.country || ''}`.trim()
                 : 'Adres Bilgisi Yok';
             
-            // Eğer varsa Billing adresi de gösterilebilir (şimdilik sadece shipping adresi)
-            // const billingAddressDisplay = order.billingAddress ? ... : 'Adres Bilgisi Yok';
-
-
             document.getElementById('orderDetailsModalLabel').textContent = `Sipariş Detayı: #${orderId.substring(0, 8).toUpperCase()}`;
             document.getElementById('customer-info').innerHTML = `<strong>${customerNameDisplay}</strong> (${customerEmailDisplay})<br><small>Tel: ${customerPhoneDisplay}</small>`;
-            document.getElementById('shipping-address').textContent = shippingAddressDisplay;
+            document.getElementById('shipping-address').innerHTML = shippingAddressDisplay; // innerHTML kullanıldı çünkü <br> var
             document.getElementById('currentOrderId').value = orderId;
             document.getElementById('orderStatus').value = order.status;
             document.getElementById('trackingNumber').value = order.trackingNumber || '';
             
             const productsTable = document.getElementById('order-products-table');
             productsTable.innerHTML = '';
-            // BURADA GÜNCELLEME YAPILDI: Ürün bilgileri
+            // BURADA GÜNCELLEME YAPILDI: Ürün bilgileri, varyantlar ve doğru para birimi
             order.products.forEach(product => {
                 let variantText = '';
                 if (product.selectedVariants) {
@@ -146,7 +143,7 @@
                     }
                     if (variantText) variantText = `<br><small class="text-muted">Varyantlar: ${variantText.trim()}</small>`;
                 }
-                const row = `<tr><td>${product.name}${variantText}</td><td>${product.quantity}</td><td class="text-end">${product.price.toFixed(2)} ${product.currency}</td></tr>`; // price ve currency doğru objeden alındı
+                const row = `<tr><td>${product.name}${variantText}</td><td>${product.quantity}</td><td class="text-end">${product.price.toFixed(2)} ${product.currency}</td></tr>`; 
                 productsTable.innerHTML += row;
             });
             orderDetailsModal.show();
