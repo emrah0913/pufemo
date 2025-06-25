@@ -337,7 +337,7 @@
             } catch (error) {
                 console.error("Başlangıç Firebase verileri yüklenirken hata:", error);
                 // Kullanıcıya bir hata mesajı gösterilebilir veya varsayılan değerlerle devam edilebilir.
-                alert("Site verileri yüklenirken bir sorun oluştu. Lütfen daha sonra tekrar deneyin.");
+                alert("Site verileri yüklenirken bir sorun oluştu. Lütfen daha sonra tekrar deneyin ve Firebase konsolunuzu kontrol edin.");
             }
 
             // Modalları ve seçimleri yönet
@@ -351,6 +351,7 @@
             updateHeaderDisplays();
 
             // Dinamik ana sayfa içeriğini yükle
+            // Bu fonksiyonların içindeki Firebase erişim hataları (izinler ve dizinler) Firebase konsolunda çözülmelidir.
             loadHeroSlider();
             loadFeaturedCategories();
             loadNewArrivals();
@@ -358,8 +359,6 @@
         });
 
         async function handleInitialModalsAndSelections() {
-            const storedCountryCode = localStorage.getItem(LS_SELECTED_COUNTRY_CODE);
-
             // Modal'daki ülke seçicisini doldur
             countrySelectModal.innerHTML = '<option value="">Ülke Seçiniz...</option>';
             allCountries.forEach(country => {
@@ -369,15 +368,22 @@
                 countrySelectModal.appendChild(option);
             });
 
-            if (!storedCountryCode) {
-                // Hiç seçim yapılmamışsa hoş geldiniz modalını göster
-                welcomeCountryModal.show();
-            } else {
-                // Daha önce seçim yapılmışsa, direkt yetkilendirme modalını göster
-                // Ve seçimleri yükle
-                await setSelectedCountry(storedCountryCode); // Bu fonksiyon localStorage'daki dil/para birimini de ayarlar
-                authModal.show();
+            // Ülke seçimini localStorage'dan al, eğer varsa modalı varsayılan olarak seçili başlat
+            const storedCountryCode = localStorage.getItem(LS_SELECTED_COUNTRY_CODE);
+            if (storedCountryCode) {
+                countrySelectModal.value = storedCountryCode;
+                // Eğer daha önce bir ülke seçilmişse ve her zaman modalı göstermek istiyorsak,
+                // yine de mevcut seçimi yükleyip display'i güncellemeliyiz.
+                await setSelectedCountry(storedCountryCode);
             }
+            
+            // HER ZAMAN HOŞ GELDİNİZ MODALINI GÖSTER
+            welcomeCountryModal.show();
+
+            // Eğer welcomeCountryModal kapatıldığında authModal otomatik olarak açılmıyorsa
+            // (static backdrop olduğu için kapatma düğmesine basılması gerekir)
+            // welcomeCountryModal'ın gizlendiği olayı dinleyebiliriz.
+            // Ancak şu anki mantıkta 'select-country-btn' basıldığında authModal açılıyor, bu daha kontrolü bir yaklaşım.
         }
 
         function updateStaticContent() {
@@ -386,7 +392,8 @@
             document.getElementById('footer-company-address').textContent = siteSettings[`companyAddress_${currentLangCode}`] || 'Adres bilgisi bulunamadı.';
             document.getElementById('footer-contact-email').textContent = siteSettings.contactEmail || 'info@pufemo.com';
             document.getElementById('footer-whatsapp-number').textContent = siteSettings.whatsappNumber || '+90 5XX XXX XX XX';
-            promoBanner.textContent = siteSettings[`promoText_${currentLangCode}`] || 'Harika fırsatlar için bizi takip edin!'; // `promoText_tr` gibi
+            // `promotionText` yerine `promoText` kullandım, admin paneldeki `homepage-settings.html`'deki isimlendirmeye göre
+            promoBanner.textContent = siteSettings[`promoText_${currentLangCode}`] || 'Harika fırsatlar için bizi takip edin!'; 
         }
 
         async function populateHeaderSelectors() {
@@ -443,8 +450,9 @@
             const selectedCountryData = allCountries.find(c => c.code === countryCode);
             if (selectedCountryData) {
                 // Ülkeye atanmış varsayılan dil ve para birimini ayarla
-                localStorage.setItem(LS_SELECTED_LANGUAGE_CODE, selectedCountryData.language || 'tr'); // 'defaultLanguageCode' yerine 'language' kullandım
-                localStorage.setItem(LS_SELECTED_CURRENCY_CODE, selectedCountryData.currency || 'TRY'); // 'defaultCurrencyCode' yerine 'currency' kullandım
+                // `country-pricing-management.html` dosyanızdaki alan adlarına göre 'language' ve 'currency' kullandım
+                localStorage.setItem(LS_SELECTED_LANGUAGE_CODE, selectedCountryData.language || 'tr'); 
+                localStorage.setItem(LS_SELECTED_CURRENCY_CODE, selectedCountryData.currency || 'TRY'); 
             } else {
                 // Ülke bulunamazsa varsayılanları ayarla
                 localStorage.setItem(LS_SELECTED_LANGUAGE_CODE, 'tr');
@@ -452,7 +460,8 @@
             }
             updateHeaderDisplays();
             updateStaticContent(); // Dil değiştiği için footer'ı ve promosyonu güncelle
-            // Burada sayfanın dinamik içeriğini (ürünler, kategoriler vb.) yeniden yükleme fonksiyonları çağrılabilir.
+            
+            // Buradaki çağrılar, dil/para birimi/ülke değiştiğinde içeriğin yeniden yüklenmesini sağlar.
             loadHeroSlider();
             loadFeaturedCategories();
             loadNewArrivals();
@@ -562,6 +571,7 @@
                 // `category-management.html` dosyanızda sadece 'name_tr' vardı. Eğer 'showOnHomepage' gibi bir alan yoksa,
                 // ya tüm kategorileri alıp ilk birkaçını gösteririz, ya da kategori modelinizi güncellersiniz.
                 // Şimdilik, tüm kategorileri alıp ilk 3 tanesini varsayılan olarak göstereceğim.
+                // Eğer `category` koleksiyonunuzda `showOnHomepage` alanı varsa onu filtreleyebilirsiniz.
                 const categoriesSnapshot = await db.collection('categories').get();
                 const categories = categoriesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
