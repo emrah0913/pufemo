@@ -239,8 +239,8 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <iframe id="adminVideoIframePlayer" class="w-100" style="height: 450px;" frameborder="0" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>
-                    <video id="adminVideoPlayer" class="w-100" style="height: 450px; display: none;" controls autoplay loop muted></video>
+                    <iframe id="adminVideoIframePlayer" class="w-100" style="height: 450px; display: none;" frameborder="0" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>
+                    <video id="adminVideoPlayer" class="w-100" style="height: 450px; display: none;" controls autoplay muted></video>
                 </div>
             </div>
         </div>
@@ -320,7 +320,7 @@
             });
         }
 
-        // --- Medya URL Ekleme/Kaldırma ve Thumbnail Oluşturma Fonksiyonları (GÜNCELLENDİ) ---
+        // --- Medya URL Ekleme/Kaldırma ve Thumbnail Oluşturma Fonksiyonları (SON DÜZELTMELER) ---
         function addMediaUrlInput(url = '') {
             const div = document.createElement('div');
             div.classList.add('media-url-item');
@@ -342,28 +342,30 @@
                     thumbnailDiv.classList.add('thumbnail');
 
                     const isImage = url.match(/\.(jpeg|jpg|gif|png|webp)$/i);
-                    const isDirectVideo = url.match(/\.(mp4|webm|ogg|mov)$/i); 
-                    const isYouTube = url.includes('youtube.com/') || url.includes('youtu.be/'); // Daha genel kontrol
-                    const isVimeo = url.includes('vimeo.com/'); // Daha genel kontrol
+                    // Query parametresini de hesaba katacak şekilde düzeltildi (uzantıdan sonra ? gelebilir)
+                    const isDirectVideo = url.match(/\.(mp4|webm|ogg|mov)(\?|$)/i); 
+                    const isYouTube = url.includes('youtube.com/') || url.includes('youtu.be/'); // Daha genel YouTube domain kontrolü
+                    const isVimeo = url.includes('vimeo.com/'); // Daha genel Vimeo domain kontrolü
 
                     if (isImage) {
                         const img = document.createElement('img');
                         img.src = url;
                         thumbnailDiv.appendChild(img);
                     } else if (isDirectVideo) {
+                        // Oynatılabilir bir video önizlemesi için video etiketi
                         const video = document.createElement('video');
                         video.src = url;
-                        video.controls = false; 
-                        video.muted = true;    
-                        video.autoplay = true; 
-                        video.loop = true;     
-                        video.setAttribute('preload', 'metadata');
+                        video.controls = false; // Thumbnail'da kontrol yok
+                        video.muted = true;    // Sessiz başla
+                        video.autoplay = true; // Otomatik oyna (tarayıcı izin verirse)
+                        video.loop = true;     // Döngüde oyna
+                        video.setAttribute('preload', 'metadata'); // Poster/ilk kareyi yükle
                         video.poster = 'https://via.placeholder.com/80x80?text=Video'; // Video için genel poster
                         thumbnailDiv.appendChild(video);
-                        // Oynatma butonu ekle
+                        // Oynatma butonu ekle (videoyu modalda açmak için)
                         const playIcon = document.createElement('i');
                         playIcon.className = 'bi bi-play-circle-fill play-icon';
-                        playIcon.onclick = () => openVideoPreviewModal(url, 'direct');
+                        playIcon.onclick = (e) => { e.stopPropagation(); openVideoPreviewModal(url, 'direct'); }; // Olayı durdur
                         thumbnailDiv.appendChild(playIcon);
                     } else if (isYouTube) {
                         const youtubeMatch = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
@@ -376,7 +378,7 @@
                             // Oynatma butonu ekle
                             const playIcon = document.createElement('i');
                             playIcon.className = 'bi bi-play-circle-fill play-icon';
-                            playIcon.onclick = () => openVideoPreviewModal(`https://www.youtube.com/embed/${videoId}?autoplay=1&mute=0&rel=0`, 'iframe'); // Embed URL'si
+                            playIcon.onclick = (e) => { e.stopPropagation(); openVideoPreviewModal(`https://www.youtube.com/embed/${videoId}?autoplay=1&mute=0&rel=0`, 'iframe'); };
                             thumbnailDiv.appendChild(playIcon);
                         } else {
                             thumbnailDiv.innerHTML = '<i class="fab fa-youtube"></i>'; 
@@ -390,7 +392,7 @@
                             // Oynatma butonu ekle
                             const playIcon = document.createElement('i');
                             playIcon.className = 'bi bi-play-circle-fill play-icon';
-                            playIcon.onclick = () => openVideoPreviewModal(`https://player.vimeo.com/video/${videoId}?autoplay=1&muted=0&loop=0`, 'iframe');
+                            playIcon.onclick = (e) => { e.stopPropagation(); openVideoPreviewModal(`https://player.vimeo.com/video/${videoId}?autoplay=1&muted=0&loop=0`, 'iframe'); };
                             thumbnailDiv.appendChild(playIcon);
                         } else {
                             thumbnailDiv.innerHTML = '<i class="fab fa-vimeo-v"></i>'; 
@@ -420,6 +422,7 @@
                 adminVideoPlayer.src = videoUrl;
                 adminVideoPlayer.style.display = 'block';
                 adminVideoPlayer.muted = false; // Modalda sesli oynat
+                adminVideoPlayer.play(); // Oynatmaya başla
             }
             adminVideoPreviewModal.show();
         }
@@ -500,7 +503,8 @@
         // Event Listeners for Media URLs
         addMediaUrlBtn.addEventListener('click', addMediaUrlInput);
         mediaUrlsContainer.addEventListener('click', function(e) {
-            if (e.target.classList.contains('remove-media-url') || e.target.closest('.remove-media-url')) {
+            // Eğer kaldır butonuna tıklanmadıysa ve bir play ikonuna tıklanmadıysa
+            if ((e.target.classList.contains('remove-media-url') || e.target.closest('.remove-media-url'))) {
                 const itemToRemove = e.target.closest('.media-url-item');
                 if (itemToRemove) {
                     itemToRemove.remove();
@@ -508,7 +512,6 @@
                 }
             }
         });
-        // Input değeri değiştiğinde thumbnail'ı güncelle
         mediaUrlsContainer.addEventListener('input', function(e) { 
             if (e.target.classList.contains('media-url-input')) {
                 updateThumbnails();
