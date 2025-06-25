@@ -4,10 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kategori Yönetimi - PUFEMO Admin</title>
-    
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-
     <style>
         body { display: flex; background-color: #f0f2f5; }
         #sidebar { width: 280px; min-height: 100vh; background-color: #343a40; color: white; position: fixed; left: 0; top: 0; z-index: 100; }
@@ -28,7 +26,7 @@
             <li class="nav-item"><a class="nav-link" href="product-management.html"><i class="bi bi-tags-fill"></i>Ürün Yönetimi</a></li>
             <li class="nav-item"><a class="nav-link active" href="category-management.html"><i class="bi bi-list-ul"></i>Kategori Yönetimi</a></li>
             <li class="nav-item"><a class="nav-link" href="country-pricing-management.html"><i class="bi bi-globe-americas"></i>Uluslararası Ayarlar</a></li>
-            <li class="nav-item"><a class="nav-link" href="#"><i class="bi bi-gear-fill"></i>Mağaza Ayarları</a></li>
+            <li class="nav-item"><a class="nav-link" href="general-settings.html"><i class="bi bi-gear-fill"></i>Mağaza Ayarları</a></li>
             <li class="nav-item mt-auto"><a class="nav-link" id="logout-button" href="#"><i class="bi bi-box-arrow-left"></i>Çıkış Yap</a></li>
         </ul>
     </div>
@@ -39,13 +37,10 @@
                 <span class="navbar-brand">Kategori Yönetimi</span>
             </div>
         </nav>
-
         <div class="row">
             <div class="col-md-5">
                 <div class="card">
-                    <div class="card-header" id="form-card-header">
-                        Yeni Kategori Ekle
-                    </div>
+                    <div class="card-header" id="form-card-header">Yeni Kategori Ekle</div>
                     <div class="card-body">
                         <form id="category-form">
                             <input type="hidden" id="categoryId">
@@ -59,15 +54,11 @@
                     </div>
                 </div>
             </div>
-
             <div class="col-md-7">
                  <div class="card">
-                    <div class="card-header">
-                        Mevcut Kategoriler
-                    </div>
+                    <div class="card-header">Mevcut Kategoriler</div>
                     <div class="card-body">
-                        <ul class="list-group" id="category-list">
-                            </ul>
+                        <ul class="list-group" id="category-list"></ul>
                     </div>
                 </div>
             </div>
@@ -77,128 +68,8 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
-
     <script>
-        // --- FIREBASE YAPILANDIRMASI ---
-        const firebaseConfig = {
-            apiKey: "AIzaSyDYkzZzNXB22U4oEXxOoPh-puwuE8kz0g4",
-            authDomain: "pufemo-com.firebaseapp.com",
-            projectId: "pufemo-com",
-            storageBucket: "pufemo-com.firebasestorage.app",
-            messagingSenderId: "983352837227",
-            appId: "1:983352837227:web:defaa8dae215776e2e1d2e",
-            measurementId: "G-RH8XHC7P91"
-        };
-        firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const db = firebase.firestore();
-        const adminUID = "4tOeNJRjbxPF9BBoynJNJIBxOqU2";
-
-        // --- GÜVENLİK KONTROLÜ VE SAYFA YÜKLEME ---
-        auth.onAuthStateChanged(user => {
-            if (user && user.uid === adminUID) {
-                loadCategories();
-            } else {
-                window.location.href = 'admin-login.html';
-            }
-        });
-
-        const categoryForm = document.getElementById('category-form');
-        const categoryList = document.getElementById('category-list');
-        const categoryIdInput = document.getElementById('categoryId');
-        const categoryNameInput = document.getElementById('categoryName');
-        const formCardHeader = document.getElementById('form-card-header');
-        const cancelEditBtn = document.getElementById('cancel-edit-btn');
-        
-        // Kategorileri yükle ve listele
-        async function loadCategories() {
-            categoryList.innerHTML = '<li class="list-group-item">Yükleniyor...</li>';
-            const snapshot = await db.collection('categories').orderBy('name_tr').get();
-            categoryList.innerHTML = '';
-
-            if(snapshot.empty) {
-                categoryList.innerHTML = '<li class="list-group-item">Henüz kategori eklenmemiş.</li>';
-                return;
-            }
-
-            snapshot.forEach(doc => {
-                const category = doc.data();
-                const li = document.createElement('li');
-                li.className = 'list-group-item d-flex justify-content-between align-items-center';
-                li.textContent = category.name_tr;
-
-                const buttonsDiv = document.createElement('div');
-                buttonsDiv.innerHTML = `
-                    <button class="btn btn-sm btn-outline-primary me-2" onclick="editCategory('${doc.id}', '${category.name_tr}')">Düzenle</button>
-                    <button class="btn btn-sm btn-outline-danger" onclick="deleteCategory('${doc.id}')">Sil</button>
-                `;
-                li.appendChild(buttonsDiv);
-                categoryList.appendChild(li);
-            });
-        }
-        
-        // Form gönderildiğinde (Ekleme veya Güncelleme)
-        categoryForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const categoryName = categoryNameInput.value.trim();
-            const categoryId = categoryIdInput.value;
-
-            if (!categoryName) return;
-
-            try {
-                if (categoryId) { // Güncelleme modu
-                    await db.collection('categories').doc(categoryId).update({ name_tr: categoryName });
-                } else { // Ekleme modu
-                    await db.collection('categories').add({
-                        name_tr: categoryName,
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-                }
-                resetForm();
-                loadCategories();
-            } catch (error) {
-                console.error("Kategori kaydedilirken hata:", error);
-                alert("Bir hata oluştu.");
-            }
-        });
-
-        // Düzenleme fonksiyonu
-        function editCategory(id, name) {
-            categoryIdInput.value = id;
-            categoryNameInput.value = name;
-            formCardHeader.textContent = 'Kategoriyi Düzenle';
-            cancelEditBtn.classList.remove('d-none');
-            categoryNameInput.focus();
-        }
-        
-        // Silme fonksiyonu
-        async function deleteCategory(id) {
-            if (confirm("Bu kategoriyi silmek istediğinizden emin misiniz?")) {
-                try {
-                    await db.collection('categories').doc(id).delete();
-                    loadCategories();
-                } catch(error) {
-                    console.error("Kategori silinirken hata:", error);
-                    alert("Bir hata oluştu.");
-                }
-            }
-        }
-        
-        // Formu temizle ve Ekleme moduna dön
-        function resetForm() {
-            categoryForm.reset();
-            categoryIdInput.value = '';
-            formCardHeader.textContent = 'Yeni Kategori Ekle';
-            cancelEditBtn.classList.add('d-none');
-        }
-
-        cancelEditBtn.addEventListener('click', resetForm);
-        
-        // Çıkış butonu
-        document.getElementById('logout-button').addEventListener('click', (e) => {
-            e.preventDefault();
-            auth.signOut().then(() => { window.location.href = 'admin-login.html'; });
-        });
+        // category-management.html JavaScript'i buraya gelecek
     </script>
 </body>
 </html>
