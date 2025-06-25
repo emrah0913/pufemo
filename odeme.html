@@ -191,7 +191,7 @@
                             <li class="list-group-item d-flex justify-content-between align-items-center order-summary-item">
                                 <span id="summary-shipping-label">Kargo:</span> <span id="summary-shipping">0.00 ₺</span>
                             </li>
-                            <li class="list-group-item d-flex justify-content-between align-items-center order-summary-item">
+                            <li class="list-group-item d-flex justify-content-between align-items-center fw-bold order-summary-item">
                                 <span id="summary-total-label">Toplam:</span> <span id="summary-total">0.00 ₺</span>
                             </li>
                         </ul>
@@ -446,6 +446,10 @@
             bankTransferRadio.addEventListener('change', togglePaymentDetails);
             creditCardRadio.addEventListener('change', togglePaymentDetails);
             checkoutForm.addEventListener('submit', handleCheckoutSubmit);
+
+            // Sayfa yüklendiğinde ödeme detaylarının ve fatura adresinin başlangıç durumunu ayarla
+            togglePaymentDetails(); // EKLENDİ
+            toggleBillingAddressFields(); // EKLENDİ
         });
 
         // Ortak verileri yükler ve header seçicilerini doldurur
@@ -526,6 +530,7 @@
             const currentLanguageCode = localStorage.getItem(LS_SELECTED_LANGUAGE_CODE) || 'tr';
             const currentCurrencyCode = localStorage.getItem(LS_SELECTED_CURRENCY_CODE) || 'TRY';
             // Ödeme sayfasında, kullanıcının seçtiği ülkeyi localStorage'dan alıyoruz
+            // Veya adres formundaki Ülke seçiminden alıyoruz
             const currentCountryCode = countrySelect.value || localStorage.getItem(LS_SELECTED_COUNTRY_CODE) || 'TR'; 
             const texts = appTexts[currentLanguageCode] || appTexts['en'];
 
@@ -680,16 +685,15 @@
             if (sameAddressCheckbox.checked) {
                 billingAddressFields.classList.add('d-none');
                 labelsAndInputs.forEach(el => el.removeAttribute('required'));
-                // Name özelliklerini de kaldır, tarayıcı validasyonunu engellemek için
-                labelsAndInputs.forEach(el => el.removeAttribute('name')); // EKLENDİ
+                // name özelliklerini de kaldır, tarayıcı validasyonunu engellemek için
+                labelsAndInputs.forEach(el => el.removeAttribute('name')); 
             } else {
                 billingAddressFields.classList.remove('d-none');
                 labelsAndInputs.forEach(el => el.setAttribute('required', 'required'));
-                // Name özelliklerini geri ekle
-                labelsAndInputs.forEach(el => { // EKLENDİ
+                // name özelliklerini geri ekle (id'den türetebiliriz veya HTML'de zaten olmalıydı)
+                labelsAndInputs.forEach(el => { 
                     const id = el.id;
-                    // id'den name oluşturma örneği, gerçek uygulamada daha iyi yönetilmeli
-                    if (id) el.setAttribute('name', id);
+                    if (id) el.setAttribute('name', id); // EKLENDİ (id'den name atama)
                 });
             }
         }
@@ -701,10 +705,15 @@
                 bankTransferDetails.classList.remove('d-none');
                 creditCardDetails.classList.add('d-none');
                 ccInputs.forEach(input => input.removeAttribute('required'));
+                ccInputs.forEach(input => input.removeAttribute('name')); // EKLENDİ (name'i kaldır)
             } else if (creditCardRadio.checked) {
                 bankTransferDetails.classList.add('d-none');
                 creditCardDetails.classList.remove('d-none');
                 ccInputs.forEach(input => input.setAttribute('required', 'required'));
+                ccInputs.forEach(input => { // EKLENDİ (name'i geri ekle)
+                    const id = input.id;
+                    if (id) input.setAttribute('name', id);
+                });
             }
         }
 
