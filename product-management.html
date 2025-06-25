@@ -4,10 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ürün Yönetimi - PUFEMO Admin</title>
-    
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-
     <style>
         body { display: flex; background-color: #f0f2f5; }
         #sidebar { width: 280px; min-height: 100vh; background-color: #343a40; color: white; position: fixed; left: 0; top: 0; z-index: 100; }
@@ -16,8 +14,6 @@
         .nav-link { color: #adb5bd; padding: 10px 20px; }
         .nav-link.active, .nav-link:hover { color: #ffffff; background-color: #495057; }
         .nav-link .bi { margin-right: 10px; }
-        .product-image-thumb { width: 60px; height: 60px; object-fit: cover; border-radius: 5px; }
-        .loading-spinner { display: none; }
     </style>
 </head>
 <body>
@@ -30,296 +26,20 @@
             <li class="nav-item"><a class="nav-link active" href="product-management.html"><i class="bi bi-tags-fill"></i>Ürün Yönetimi</a></li>
             <li class="nav-item"><a class="nav-link" href="category-management.html"><i class="bi bi-list-ul"></i>Kategori Yönetimi</a></li>
             <li class="nav-item"><a class="nav-link" href="country-pricing-management.html"><i class="bi bi-globe-americas"></i>Uluslararası Ayarlar</a></li>
-            <li class="nav-item"><a class="nav-link" href="#"><i class="bi bi-gear-fill"></i>Mağaza Ayarları</a></li>
+            <li class="nav-item"><a class="nav-link" href="general-settings.html"><i class="bi bi-gear-fill"></i>Mağaza Ayarları</a></li>
             <li class="nav-item mt-auto"><a class="nav-link" id="logout-button" href="#"><i class="bi bi-box-arrow-left"></i>Çıkış Yap</a></li>
         </ul>
     </div>
 
     <div id="main-content">
-        <nav class="navbar navbar-expand-lg navbar-light bg-light rounded mb-4">
-            <div class="container-fluid">
-                <span class="navbar-brand">Ürün Yönetimi</span>
-                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#productModal" id="addNewProductBtn">
-                    <i class="bi bi-plus-circle"></i> Yeni Ürün Ekle
-                </button>
-            </div>
-        </nav>
-
-        <div class="card">
-            <div class="card-body">
-                <table class="table table-hover">
-                    <thead>
-                        <tr>
-                            <th>Görsel</th>
-                            <th>Ürün Adı (TR)</th>
-                            <th>Stok Kodu</th>
-                            <th>Fiyat (TL)</th>
-                            <th>Stok</th>
-                            <th>Aksiyonlar</th>
-                        </tr>
-                    </thead>
-                    <tbody id="products-table-body">
-                        </tbody>
-                </table>
-            </div>
         </div>
-    </div>
 
-    <div class="modal fade" id="productModal" tabindex="-1" aria-labelledby="productModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="productModalLabel">Yeni Ürün Ekle</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="product-form">
-                        <input type="hidden" id="productId"> <ul class="nav nav-tabs" id="myTab" role="tablist">
-                          <li class="nav-item" role="presentation">
-                            <button class="nav-link active" id="tr-tab" data-bs-toggle="tab" data-bs-target="#tr-tab-pane" type="button">Türkçe</button>
-                          </li>
-                          </ul>
-                        <div class="tab-content p-3 border border-top-0 mb-3">
-                          <div class="tab-pane fade show active" id="tr-tab-pane">
-                              <div class="mb-3">
-                                  <label for="productName_tr" class="form-label">Ürün Adı (TR)</label>
-                                  <input type="text" class="form-control" id="productName_tr" required>
-                              </div>
-                              <div class="mb-3">
-                                  <label for="productDescription_tr" class="form-label">Açıklama (TR)</label>
-                                  <textarea class="form-control" id="productDescription_tr" rows="3"></textarea>
-                              </div>
-                          </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="productSKU" class="form-label">Stok Kodu (SKU)</label>
-                                <input type="text" class="form-control" id="productSKU" required>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="productStock" class="form-label">Stok Adedi</label>
-                                <input type="number" class="form-control" id="productStock" required>
-                            </div>
-                        </div>
-                        <div class="row">
-                           <div class="col-md-6 mb-3">
-                                <label for="productPrice" class="form-label">Taban Fiyat (TRY)</label>
-                                <div class="input-group">
-                                    <input type="number" step="0.01" class="form-control" id="productPrice" required>
-                                    <span class="input-group-text">₺</span>
-                                </div>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="productCategory" class="form-label">Kategori</label>
-                                <select class="form-select" id="productCategory" required>
-                                    <option value="">Kategori Seçin...</option>
-                                    </select>
-                            </div>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="productImages" class="form-label">Ürün Görselleri (Çoklu seçim yapabilirsiniz)</label>
-                            <input class="form-control" type="file" id="productImages" multiple>
-                        </div>
-                        <div id="image-preview" class="d-flex flex-wrap gap-2"></div>
-                        
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
-                    <button type="submit" form="product-form" class="btn btn-primary" id="saveProductBtn">
-                        <span class="loading-spinner spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                        Kaydet
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage-compat.js"></script>
-
     <script>
-        // --- FIREBASE YAPILANDIRMASI ---
-        const firebaseConfig = {
-            apiKey: "AIzaSyDYkzZzNXB22U4oEXxOoPh-puwuE8kz0g4",
-            authDomain: "pufemo-com.firebaseapp.com",
-            projectId: "pufemo-com",
-            storageBucket: "pufemo-com.firebasestorage.app",
-            messagingSenderId: "983352837227",
-            appId: "1:983352837227:web:defaa8dae215776e2e1d2e",
-            measurementId: "G-RH8XHC7P91"
-        };
-        firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const db = firebase.firestore();
-        const storage = firebase.storage();
-        const adminUID = "4tOeNJRjbxPF9BBoynJNJIBxOqU2";
-
-        // --- GÜVENLİK KONTROLÜ VE SAYFA YÜKLEME ---
-        auth.onAuthStateChanged(user => {
-            if (user && user.uid === adminUID) {
-                loadProducts();
-                loadCategories();
-            } else {
-                window.location.href = 'admin-login.html';
-            }
-        });
-        
-        const productsTableBody = document.getElementById('products-table-body');
-        const productForm = document.getElementById('product-form');
-        const productModal = new bootstrap.Modal(document.getElementById('productModal'));
-        const saveProductBtn = document.getElementById('saveProductBtn');
-        const loadingSpinner = saveProductBtn.querySelector('.loading-spinner');
-
-
-        // Tüm ürünleri yükle ve tabloya yazdır
-        async function loadProducts() {
-            productsTableBody.innerHTML = '<tr><td colspan="6" class="text-center">Yükleniyor...</td></tr>';
-            const snapshot = await db.collection('products').orderBy('createdAt', 'desc').get();
-            productsTableBody.innerHTML = '';
-            if (snapshot.empty) {
-                productsTableBody.innerHTML = '<tr><td colspan="6" class="text-center">Henüz ürün eklenmemiş.</td></tr>';
-                return;
-            }
-            snapshot.forEach(doc => {
-                const product = doc.data();
-                const row = `
-                    <tr>
-                        <td><img src="${product.imageUrls && product.imageUrls[0] ? product.imageUrls[0] : 'https://via.placeholder.com/60'}" class="product-image-thumb"></td>
-                        <td>${product.name_tr}</td>
-                        <td>${product.sku}</td>
-                        <td>${product.basePriceTRY.toFixed(2)} ₺</td>
-                        <td>${product.stock}</td>
-                        <td>
-                            <button class="btn btn-sm btn-outline-primary" onclick="editProduct('${doc.id}')">Düzenle</button>
-                            <button class="btn btn-sm btn-outline-danger" onclick="deleteProduct('${doc.id}')">Sil</button>
-                        </td>
-                    </tr>
-                `;
-                productsTableBody.innerHTML += row;
-            });
-        }
-
-        // Kategorileri modal'daki dropdown'a yükle
-        async function loadCategories() {
-            const categorySelect = document.getElementById('productCategory');
-            categorySelect.innerHTML = '<option value="">Kategori Seçin...</option>';
-            const snapshot = await db.collection('categories').get();
-            snapshot.forEach(doc => {
-                const category = doc.data();
-                const option = `<option value="${doc.id}">${category.name_tr}</option>`;
-                categorySelect.innerHTML += option;
-            });
-        }
-        
-        // Form gönderildiğinde
-        productForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            loadingSpinner.style.display = 'inline-block';
-            saveProductBtn.disabled = true;
-
-            const productId = document.getElementById('productId').value;
-            const files = document.getElementById('productImages').files;
-            let imageUrls = [];
-
-            // 1. Görselleri Yükle
-            if (files.length > 0) {
-                const uploadPromises = Array.from(files).map(file => {
-                    const filePath = `product_images/${Date.now()}_${file.name}`;
-                    const fileRef = storage.ref(filePath);
-                    return fileRef.put(file).then(() => fileRef.getDownloadURL());
-                });
-                imageUrls = await Promise.all(uploadPromises);
-            }
-
-            // 2. Ürün objesini oluştur
-            const productData = {
-                name_tr: document.getElementById('productName_tr').value,
-                description_tr: document.getElementById('productDescription_tr').value,
-                sku: document.getElementById('productSKU').value,
-                stock: parseInt(document.getElementById('productStock').value),
-                basePriceTRY: parseFloat(document.getElementById('productPrice').value),
-                categoryId: document.getElementById('productCategory').value,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            };
-
-            if (imageUrls.length > 0) {
-                productData.imageUrls = imageUrls;
-            }
-
-            // 3. Firestore'a Kaydet/Güncelle
-            try {
-                if (productId) { // Düzenleme
-                    // Not: Düzenlemede eski görselleri silmek/korumak için daha gelişmiş mantık gerekebilir.
-                    // Şimdilik sadece yeni eklenenleri ekliyoruz veya var olanları değiştiriyoruz.
-                    await db.collection('products').doc(productId).update(productData);
-                } else { // Yeni Ekleme
-                    await db.collection('products').add(productData);
-                }
-                productModal.hide();
-                loadProducts();
-            } catch (error) {
-                console.error("Ürün kaydedilirken hata:", error);
-                alert("Bir hata oluştu.");
-            } finally {
-                loadingSpinner.style.display = 'none';
-                saveProductBtn.disabled = false;
-            }
-        });
-        
-        // Modal açıldığında formu temizle
-        document.getElementById('productModal').addEventListener('hidden.bs.modal', () => {
-            productForm.reset();
-            document.getElementById('productId').value = '';
-            document.getElementById('image-preview').innerHTML = '';
-            document.getElementById('productModalLabel').textContent = 'Yeni Ürün Ekle';
-        });
-
-        // Düzenleme fonksiyonu
-        async function editProduct(id) {
-            const doc = await db.collection('products').doc(id).get();
-            if (!doc.exists) {
-                console.error("Ürün bulunamadı!");
-                return;
-            }
-            const product = doc.data();
-            
-            document.getElementById('productId').value = id;
-            document.getElementById('productName_tr').value = product.name_tr;
-            document.getElementById('productDescription_tr').value = product.description_tr;
-            document.getElementById('productSKU').value = product.sku;
-            document.getElementById('productStock').value = product.stock;
-            document.getElementById('productPrice').value = product.basePriceTRY;
-            document.getElementById('productCategory').value = product.categoryId;
-
-            document.getElementById('productModalLabel').textContent = 'Ürünü Düzenle';
-            productModal.show();
-        }
-
-        // Silme fonksiyonu
-        async function deleteProduct(id) {
-            if (confirm("Bu ürünü silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.")) {
-                try {
-                    // İdeal olarak burada ürünün görselleri de Storage'dan silinmelidir.
-                    await db.collection('products').doc(id).delete();
-                    loadProducts();
-                } catch (error) {
-                    console.error("Ürün silinirken hata:", error);
-                    alert("Bir hata oluştu.");
-                }
-            }
-        }
-        
-        // Çıkış butonu
-        document.getElementById('logout-button').addEventListener('click', (e) => {
-            e.preventDefault();
-            auth.signOut().then(() => { window.location.href = 'admin-login.html'; });
-        });
+        // product-management.html JavaScript'i buraya gelecek
     </script>
 </body>
 </html>
