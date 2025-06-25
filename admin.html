@@ -20,21 +20,21 @@
 </head>
 <body>
 
-   <div id="sidebar">
-    <div class="sidebar-header">PUFEMO</div>
-    <ul class="nav flex-column">
-        <li class="nav-item"><a class="nav-link" href="admin.html"><i class="bi bi-grid-fill"></i>Ana Panel</a></li>
-        <li class="nav-item"><a class="nav-link" href="orders.html"><i class="bi bi-box-seam-fill"></i>Sipariş Yönetimi</a></li>
-        <li class="nav-item"><a class="nav-link" href="product-management.html"><i class="bi bi-tags-fill"></i>Ürün Yönetimi</a></li>
-        <li class="nav-item"><a class="nav-link" href="category-management.html"><i class="bi bi-list-ul"></i>Kategori Yönetimi</a></li>
-        <li class="nav-item"><a class="nav-link" href="country-pricing-management.html"><i class="bi bi-globe-americas"></i>Uluslararası Ayarlar</a></li>
-        <li class="nav-item"><a class="nav-link" href="languages-and-currencies.html"><i class="bi bi-translate"></i>Diller ve Para Birimleri</a></li>
-        <li class="nav-item"><a class="nav-link" href="general-settings.html"><i class="bi bi-gear-fill"></i>Mağaza Ayarları</a></li>
-        <li class="nav-item"><a class="nav-link" href="homepage-settings.html"><i class="bi bi-house-door-fill"></i>Ana Sayfa Ayarları</a></li>
-        <li class="nav-item"><a class="nav-link" href="seo-management.html"><i class="bi bi-search"></i>SEO Yönetimi</a></li>
-        <li class="nav-item mt-auto"><a class="nav-link" id="logout-button" href="#"><i class="bi bi-box-arrow-left"></i>Çıkış Yap</a></li>
-    </ul>
-</div>
+    <div id="sidebar">
+        <div class="sidebar-header">PUFEMO</div>
+        <ul class="nav flex-column">
+            <li class="nav-item"><a class="nav-link active" href="admin.html"><i class="bi bi-grid-fill"></i>Ana Panel</a></li>
+            <li class="nav-item"><a class="nav-link" href="orders.html"><i class="bi bi-box-seam-fill"></i>Sipariş Yönetimi</a></li>
+            <li class="nav-item"><a class="nav-link" href="product-management.html"><i class="bi bi-tags-fill"></i>Ürün Yönetimi</a></li>
+            <li class="nav-item"><a class="nav-link" href="category-management.html"><i class="bi bi-list-ul"></i>Kategori Yönetimi</a></li>
+            <li class="nav-item"><a class="nav-link" href="country-pricing-management.html"><i class="bi bi-globe-americas"></i>Uluslararası Ayarlar</a></li>
+            <li class="nav-item"><a class="nav-link" href="languages-and-currencies.html"><i class="bi bi-translate"></i>Diller ve Para Birimleri</a></li>
+            <li class="nav-item"><a class="nav-link" href="general-settings.html"><i class="bi bi-gear-fill"></i>Mağaza Ayarları</a></li>
+            <li class="nav-item"><a class="nav-link" href="homepage-settings.html"><i class="bi bi-house-door-fill"></i>Ana Sayfa Ayarları</a></li>
+            <li class="nav-item"><a class="nav-link" href="seo-management.html"><i class="bi bi-search"></i>SEO Yönetimi</a></li>
+            <li class="nav-item mt-auto"><a class="nav-link" id="logout-button" href="#"><i class="bi bi-box-arrow-left"></i>Çıkış Yap</a></li>
+        </ul>
+    </div>
 
     <div id="main-content">
         <nav class="navbar navbar-expand-lg navbar-light bg-light rounded mb-4">
@@ -48,7 +48,7 @@
         </div>
         <div class="card mt-4">
              <div class="card-header">Son Siparişler</div>
-             <div class="card-body"><table class="table table-hover"><thead><tr><th>Sipariş No</th><th>Müşteri</th><th>Tarih</th><th>Tutar</th><th>Durum</th></tr></thead><tbody id="recent-orders-tbody"><tr><td colspan="5" class="text-center"><span class="loader">Yükleniyor...</span></td></tr></tbody></table></div>
+             <div class="card-body"><div class="table-responsive"><table class="table table-hover"><thead><tr><th>Sipariş No</th><th>Müşteri</th><th>Tarih</th><th>Tutar</th><th>Durum</th></tr></thead><tbody id="recent-orders-tbody"><tr><td colspan="5" class="text-center"><span class="loader">Yükleniyor...</span></td></tr></tbody></table></div></div>
         </div>
     </div>
 
@@ -70,7 +70,67 @@
             }
         });
 
-        async function loadDashboardData() { /* Tüm dashboard yükleme fonksiyonları burada */ }
+        // --- DASHBOARD VERİ YÜKLEME FONKSİYONLARI (TAM HALİ) ---
+        async function loadDashboardData() {
+            updateRevenueCard();
+            updatePendingOrdersCard();
+            updateLowStockCard();
+            updateRecentOrdersTable();
+        }
+
+        async function updateRevenueCard() {
+            const startOfToday = new Date();
+            startOfToday.setHours(0, 0, 0, 0);
+            const todayTimestamp = firebase.firestore.Timestamp.fromDate(startOfToday);
+            const revenue = {};
+            let orderCount = 0;
+            try {
+                const snapshot = await db.collection('orders').where('timestamp', '>=', todayTimestamp).get();
+                snapshot.forEach(doc => {
+                    const order = doc.data();
+                    if (revenue[order.currency]) {
+                        revenue[order.currency] += order.totalAmount;
+                    } else {
+                        revenue[order.currency] = order.totalAmount;
+                    }
+                    orderCount++;
+                });
+                let revenueText = Object.entries(revenue).map(([currency, total]) => `${total.toFixed(2)} ${currency}`).join(' / ');
+                document.getElementById('todays-revenue').textContent = revenueText || "0.00";
+                document.getElementById('todays-order-count').textContent = `${orderCount} Sipariş`;
+            } catch (error) { console.error("Ciro çekilirken hata:", error); }
+        }
+
+        async function updatePendingOrdersCard() {
+            try {
+                const snapshot = await db.collection('orders').where('status', 'in', ['Yeni', 'Hazırlanıyor']).get();
+                document.getElementById('pending-orders-count').textContent = snapshot.size;
+            } catch (error) { console.error("Bekleyen siparişler çekilirken hata:", error); }
+        }
+
+        async function updateLowStockCard() {
+             try {
+                const snapshot = await db.collection('products').where('stock', '<=', 10).get();
+                document.getElementById('low-stock-count').textContent = `${snapshot.size} Ürün`;
+            } catch (error) { console.error("Stok çekilirken hata:", error); }
+        }
+
+        async function updateRecentOrdersTable() {
+            const tbody = document.getElementById('recent-orders-tbody');
+            tbody.innerHTML = '';
+            try {
+                const snapshot = await db.collection('orders').orderBy('timestamp', 'desc').limit(5).get();
+                if (snapshot.empty) { tbody.innerHTML = '<tr><td colspan="5" class="text-center">Henüz sipariş bulunmuyor.</td></tr>'; return; }
+                snapshot.forEach(doc => {
+                    const order = doc.data();
+                    const orderDate = order.timestamp.toDate().toLocaleDateString('tr-TR');
+                    const statusBadges = { 'Yeni': 'bg-primary', 'Hazırlanıyor': 'bg-warning text-dark', 'Kargoda': 'bg-info text-dark', 'Teslim Edildi': 'bg-success', 'İptal Edildi': 'bg-danger' };
+                    const statusClass = statusBadges[order.status] || 'bg-secondary';
+                    const row = `<tr><td>#${doc.id.substring(0,6)}</td><td>${order.customerName}</td><td>${orderDate}</td><td>${order.totalAmount.toFixed(2)} ${order.currency}</td><td><span class="badge ${statusClass}">${order.status}</span></td></tr>`;
+                    tbody.innerHTML += row;
+                });
+            } catch(error) { console.error("Son siparişler çekilirken hata:", error); }
+        }
         
         document.getElementById('logout-button').addEventListener('click', (e) => {
             e.preventDefault();
