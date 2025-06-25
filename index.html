@@ -21,11 +21,8 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-step" id="step-country">
-                    <div class="modal-header"><h5 class="modal-title">Lütfen Ülkenizi Seçin</h5></div>
-                    <div class="modal-body">
-                        <p class="text-muted">Fiyat ve teslimat seçeneklerini görebilmek için lütfen ülkenizi seçin.</p>
-                        <div class="list-group country-list" id="country-list"></div>
-                    </div>
+                    <div class="modal-header"><h5 class="modal-title">Lütfen Ülkenizi Seçin / Please Select Your Country</h5></div>
+                    <div class="modal-body"><p class="text-muted">Fiyat ve teslimat seçeneklerini görebilmek için lütfen ülkenizi seçin.</p><div class="list-group country-list" id="country-list"><div class="text-center p-3">Yükleniyor...</div></div></div>
                 </div>
                 <div class="modal-step" id="step-auth-options">
                     <div class="modal-header"><h5 class="modal-title">Hoş Geldiniz</h5></div>
@@ -56,7 +53,7 @@
                         <form id="register-form">
                             <div class="mb-3"><input type="email" class="form-control" id="register-email" placeholder="E-posta" required></div>
                             <div class="mb-3"><input type="password" class="form-control" id="register-password" placeholder="Şifre" required></div>
-                             <div id="register-error" class="alert alert-danger d-none"></div>
+                            <div id="register-error" class="alert alert-danger d-none"></div>
                             <div class="d-grid"><button type="submit" class="btn btn-primary">Kayıt Ol</button></div>
                             <a href="#" class="btn btn-link btn-sm float-end" id="back-to-options-2">Geri</a>
                         </form>
@@ -66,7 +63,7 @@
         </div>
     </div>
 
-    <header id="page-header"></header>
+    <header id="page-header" class="sticky-top"></header>
     <main></main>
     <footer class="bg-dark text-white pt-5 pb-4"></footer>
 
@@ -75,12 +72,12 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
     <script>
-        // ... (Firebase config ve exchangeRates burada) ...
-        const firebaseConfig = { apiKey: "...", authDomain: "...", projectId: "..." };
+        const firebaseConfig = { apiKey: "AIzaSyDYkzZzNXB22U4oEXxOoPh-puwuE8kz0g4", authDomain: "pufemo-com.firebaseapp.com", projectId: "pufemo-com", storageBucket: "pufemo-com.firebasestorage.app", messagingSenderId: "983352837227", appId: "1:983352837227:web:defaa8dae215776e2e1d2e", measurementId: "G-RH8XHC7P91" };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
         const auth = firebase.auth();
 
+        const exchangeRates = { "TRY": 1.0, "USD": 33.0, "EUR": 35.0, "GBP": 41.0, "RUB": 0.37 };
         let selectedCountry = null;
 
         document.addEventListener('DOMContentLoaded', showCountryModal);
@@ -91,7 +88,22 @@
         }
 
         async function showCountryModal() {
-            // ... (önceki mesajdaki gibi ülkeleri yükler) ...
+            const countryList = document.getElementById('country-list');
+            countryList.innerHTML = '<div class="text-center p-3">Yükleniyor...</div>';
+            const countriesSnapshot = await db.collection('countries').get();
+            countryList.innerHTML = '';
+            countriesSnapshot.forEach(doc => {
+                const country = { id: doc.id, ...doc.data() };
+                let flagUrl = 'https://via.placeholder.com/24x18?text=--';
+                if (country.code) { flagUrl = `https://flagsapi.com/${country.code.toUpperCase()}/flat/24.png`; }
+
+                const countryElement = document.createElement('a');
+                countryElement.href = '#';
+                countryElement.className = 'list-group-item list-group-item-action d-flex align-items-center';
+                countryElement.innerHTML = `<img src="${flagUrl}" class="me-2" style="width:24px; border:1px solid #ddd;"> ${country.name}`;
+                countryElement.onclick = (e) => { e.preventDefault(); selectCountry(country); };
+                countryList.appendChild(countryElement);
+            });
             document.getElementById('initial-modal').classList.add('is-visible');
             showStep('step-country');
         }
@@ -111,28 +123,49 @@
 
         document.getElementById('show-login-btn').addEventListener('click', () => showStep('step-login'));
         document.getElementById('show-register-btn').addEventListener('click', () => showStep('step-register'));
-        document.getElementById('back-to-options-1').addEventListener('click', () => showStep('step-auth-options'));
-        document.getElementById('back-to-options-2').addEventListener('click', () => showStep('step-auth-options'));
+        document.getElementById('back-to-options-1').onclick = (e) => { e.preventDefault(); showStep('step-auth-options'); };
+        document.getElementById('back-to-options-2').onclick = (e) => { e.preventDefault(); showStep('step-auth-options'); };
 
         document.getElementById('login-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            // ... (signInWithEmailAndPassword mantığı, başarılı olunca completeSessionSetup çağırır) ...
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            const errorDiv = document.getElementById('login-error');
+            errorDiv.classList.add('d-none');
+            try {
+                const userCredential = await auth.signInWithEmailAndPassword(email, password);
+                completeSessionSetup(userCredential.user, selectedCountry);
+            } catch (error) {
+                errorDiv.textContent = "E-posta veya şifre hatalı.";
+                errorDiv.classList.remove('d-none');
+            }
         });
         
         document.getElementById('register-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            // ... (createUserWithEmailAndPassword mantığı, başarılı olunca completeSessionSetup çağırır) ...
+            const email = document.getElementById('register-email').value;
+            const password = document.getElementById('register-password').value;
+            const errorDiv = document.getElementById('register-error');
+            errorDiv.classList.add('d-none');
+            try {
+                const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                completeSessionSetup(userCredential.user, selectedCountry);
+            } catch (error) {
+                errorDiv.textContent = error.message;
+                errorDiv.classList.remove('d-none');
+            }
         });
 
         function completeSessionSetup(user, country) {
-            console.log("Oturum kuruldu. Kullanıcı:", user.uid, "Ülke:", country.name);
             localStorage.setItem('pufemo-country', JSON.stringify(country));
             document.getElementById('initial-modal').classList.remove('is-visible');
             initializeApp(country);
         }
 
         async function initializeApp(countrySettings) {
-            // ... (Sayfayı render eden tüm fonksiyonlar burada) ...
+            // Sayfanın geri kalanını render eden kodlar buraya gelecek
+            console.log(`Uygulama başlatıldı. Ülke: ${countrySettings.name}, Dil: ${countrySettings.language}`);
+            // Örnek: renderHeader(), renderSlider(), renderProducts() vb. fonksiyonlar burada çağrılır.
         }
     </script>
 </body>
