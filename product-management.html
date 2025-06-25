@@ -283,21 +283,21 @@
                 <button type="button" class="btn btn-danger btn-sm remove-media-url"><i class="bi bi-x-circle"></i> Kaldır</button>
             `;
             mediaUrlsContainer.appendChild(div);
-            updateThumbnails();
+            updateThumbnails(); // Input eklendiğinde thumbnail'ı güncelle
         }
 
         function updateThumbnails() {
             thumbnailPreview.innerHTML = '';
-            const mediaUrls = document.querySelectorAll('.media-url-input');
-            mediaUrls.forEach(input => {
+            const mediaUrlInputs = document.querySelectorAll('.media-url-input'); // Corrected variable name
+            mediaUrlInputs.forEach(input => {
                 const url = input.value.trim();
                 if (url) {
                     const thumbnailDiv = document.createElement('div');
                     thumbnailDiv.classList.add('thumbnail');
 
                     const isImage = url.match(/\.(jpeg|jpg|gif|png|webp)$/i);
-                    const isDirectVideo = url.match(/\.(mp4|webm|ogg|mov)$/i); // .mov uzantısı eklendi
-                    const isYouTube = url.includes('youtube.com') || url.includes('youtu.be'); // YouTube domainlerini kontrol et
+                    const isDirectVideo = url.match(/\.(mp4|webm|ogg|mov)$/i); 
+                    const isYouTube = url.includes('youtube.com') || url.includes('youtu.be'); // Doğru YouTube domain kontrolü
                     const isVimeo = url.includes('vimeo.com');
 
                     if (isImage) {
@@ -312,27 +312,28 @@
                         video.autoplay = true; 
                         video.loop = true;     
                         video.setAttribute('preload', 'metadata');
-                        video.poster = 'https://via.placeholder.com/80x80?text=Video'; // Video için genel poster
+                        video.poster = 'https://via.placeholder.com/80x80?text=Video'; 
                         thumbnailDiv.appendChild(video);
                     } else if (isYouTube) {
                         const youtubeMatch = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
                         let videoId = youtubeMatch && youtubeMatch[1] ? youtubeMatch[1] : null;
                         if (videoId) {
                             const youtubeThumb = document.createElement('img');
-                            youtubeThumb.src = `https://img.youtube.com/vi/${videoId}/default.jpg`; // YouTube thumbnail URL'si düzeltildi
+                            youtubeThumb.src = `https://img.youtube.com/vi/${videoId}/default.jpg`; // Doğru YouTube thumbnail URL'si
                             youtubeThumb.alt = 'YouTube Video Thumbnail';
                             thumbnailDiv.appendChild(youtubeThumb);
                         } else {
-                            thumbnailDiv.innerHTML = '<i class="fab fa-youtube"></i>'; // Geçersiz URL için YouTube iconu
+                            thumbnailDiv.innerHTML = '<i class="fab fa-youtube"></i>'; 
                         }
                     } else if (isVimeo) {
                         const vimeoMatch = url.match(/(?:vimeo\.com\/)(\d+)/);
                         let videoId = vimeoMatch && vimeoMatch[1] ? vimeoMatch[1] : null;
                         if (videoId) {
-                            // Vimeo için thumbnail API çağrısı gereklidir (karmaşık), şimdilik sadece ikon
-                            thumbnailDiv.innerHTML = '<i class="fab fa-vimeo-v"></i>'; // Vimeo iconu
+                            // Vimeo API çağrısı gereklidir, şimdilik sadece ikon göstereceğiz.
+                            // thumbnailDiv.innerHTML = `<img src="https://vumbnail.com/${videoId}.jpg" alt="Vimeo Video Thumbnail">`; // Alternatif ücretsiz Vimeo thumbnail servisi (harici)
+                            thumbnailDiv.innerHTML = '<i class="fab fa-vimeo-v"></i>'; 
                         } else {
-                            thumbnailDiv.innerHTML = '<i class="fab fa-vimeo-v"></i>'; // Geçersiz URL için Vimeo iconu
+                            thumbnailDiv.innerHTML = '<i class="fab fa-vimeo-v"></i>'; 
                         }
                     } else {
                         // Bilinmeyen dosya türleri için varsayılan ikon
@@ -421,7 +422,8 @@
                 }
             }
         });
-        mediaUrlsContainer.addEventListener('input', function(e) {
+        // Input değeri değiştiğinde thumbnail'ı güncelle
+        mediaUrlsContainer.addEventListener('input', function(e) { 
             if (e.target.classList.contains('media-url-input')) {
                 updateThumbnails();
             }
