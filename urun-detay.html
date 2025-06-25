@@ -449,21 +449,21 @@
             mainMediaDisplayEl.innerHTML = ''; // Önceki içeriği temizle
 
             const isImage = url.match(/\.(jpeg|jpg|gif|png|webp)$/i);
-            const isMp4Video = url.match(/\.(mp4|webm|ogg|mov)$/i); // .mov eklendi
-            const isYouTube = url.includes('youtube.com/') || url.includes('youtu.be/');
-            const isVimeo = url.includes('vimeo.com/');
+            const isDirectVideo = url.match(/\.(mp4|webm|ogg|mov)(\?|$)/i); // Parametreli URL'leri tanımak için düzeltildi
+            const isYouTube = url.includes('youtube.com') || url.includes('youtu.be'); // Basit ve doğru YouTube kontrolü
+            const isVimeo = url.includes('vimeo.com');
 
             if (isImage) {
                 const img = document.createElement('img');
                 img.src = url;
                 img.alt = 'Ürün Görseli';
                 mainMediaDisplayEl.appendChild(img);
-            } else if (isMp4Video) {
+            } else if (isDirectVideo) {
                 const video = document.createElement('video');
                 video.src = url;
                 video.controls = true; 
                 video.autoplay = true; 
-                video.muted = true; 
+                video.muted = false; // Ana gösterimde sesli başla
                 video.loop = true; 
                 mainMediaDisplayEl.appendChild(video);
             } else if (isYouTube) {
@@ -475,9 +475,9 @@
                 
                 if (videoId) {
                     const iframe = document.createElement('iframe');
-                    iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=1`; // Doğru YouTube embed URL'si
+                    iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=0&loop=1&playlist=${videoId}&controls=1`;
                     iframe.setAttribute('frameborder', '0');
-                    iframe.setAttribute('allow', 'autoplay; encrypted-media');
+                    iframe.setAttribute('allow', 'autoplay; encrypted-media; fullscreen'); // Fullscreen izni
                     iframe.setAttribute('allowfullscreen', '');
                     mainMediaDisplayEl.appendChild(iframe);
                 } else {
@@ -491,7 +491,7 @@
                 }
                 if (videoId) {
                     const iframe = document.createElement('iframe');
-                    iframe.src = `https://player.vimeo.com/video/${videoId}?autoplay=1&loop=1&muted=1`;
+                    iframe.src = `https://player.vimeo.com/video/${videoId}?autoplay=1&loop=1&muted=0`;
                     iframe.setAttribute('frameborder', '0');
                     iframe.setAttribute('allow', 'autoplay; fullscreen; picture-in-picture');
                     iframe.setAttribute('allowfullscreen', '');
@@ -541,39 +541,51 @@
                 // Görsel Galerisi ve Thumbnails
                 productThumbnailsEl.innerHTML = '';
                 if (product.mediaUrls && product.mediaUrls.length > 0) {
-                    updateMainMediaDisplay(product.mediaUrls[0]); // İlk medyayı ana gösterimde göster
+                    // İlk medyayı ana gösterimde göster (URL'yi doğru tanıyacak şekilde)
+                    updateMainMediaDisplay(product.mediaUrls[0]); 
 
                     product.mediaUrls.forEach((url, index) => {
-                        const isVideo = url.match(/\.(mp4|webm|ogg|mov)$/i) || url.includes('youtube.com/') || url.includes('youtu.be/') || url.includes('vimeo.com/');
+                        const isImage = url.match(/\.(jpeg|jpg|gif|png|webp)$/i);
+                        const isDirectVideo = url.match(/\.(mp4|webm|ogg|mov)(\?|$)/i); // Parametreli URL'leri tanımak için düzeltildi
+                        const isYouTube = url.includes('youtube.com') || url.includes('youtu.be');
+                        const isVimeo = url.includes('vimeo.com');
                         
                         let thumbEl;
-                        if (isVideo) {
-                            thumbEl = document.createElement('video'); // Video etiketini kullanıyoruz
+                        if (isImage) {
+                            thumbEl = document.createElement('img');
+                            thumbEl.src = url;
+                        } else if (isDirectVideo) {
+                            thumbEl = document.createElement('video'); 
+                            thumbEl.src = url;
                             thumbEl.controls = false; 
                             thumbEl.muted = true; 
                             thumbEl.setAttribute('preload', 'metadata');
-                            // YouTube/Vimeo için thumbnail URL'si çekme denemesi (API olmadan tam garanti vermez)
+                            thumbEl.poster = `https://via.placeholder.com/80x80?text=Video`; // Genel video posteri
+                        } else if (isYouTube) {
                             let videoId = '';
-                            if (url.includes('youtube.com/') || url.includes('youtu.be/')) {
-                                const youtubeMatch = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
-                                if (youtubeMatch && youtubeMatch[1]) videoId = youtubeMatch[1];
-                                if (videoId) thumbEl.poster = `https://img.youtube.com/vi/${videoId}/default.jpg`; // YouTube thumbnail
-                            } else if (url.includes('vimeo.com/')) {
-                                // Vimeo thumbnail API çağrısı gerektirir, şimdilik basit placeholder
-                                thumbEl.poster = `https://via.placeholder.com/80x80?text=Vimeo`;
-                            }
-                            if (!thumbEl.poster) thumbEl.poster = `https://via.placeholder.com/80x80?text=Video`; // Genel video thumbnail
-                            thumbEl.src = url; // Video URL'si
+                            const youtubeMatch = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
+                            if (youtubeMatch && youtubeMatch[1]) videoId = youtubeMatch[1];
+                            thumbEl = document.createElement('img'); // YouTube için resim thumbnail
+                            thumbEl.src = videoId ? `https://img.youtube.com/vi/${videoId}/default.jpg` : `https://via.placeholder.com/80x80?text=YouTube`; 
+                        } else if (isVimeo) {
+                            let videoId = '';
+                            const vimeoMatch = url.match(/(?:vimeo\.com\/)(\d+)/);
+                            if (vimeoMatch && vimeoMatch[1]) videoId = vimeoMatch[1];
+                            thumbEl = document.createElement('img'); // Vimeo için resim thumbnail (genel)
+                            thumbEl.src = `https://via.placeholder.com/80x80?text=Vimeo`;
                         } else {
-                            thumbEl = document.createElement('img');
-                            thumbEl.src = url;
+                            thumbEl = document.createElement('img'); // Bilinmeyen tür için
+                            thumbEl.src = `https://via.placeholder.com/80x80?text=Medya`;
                         }
 
                         thumbEl.classList.add('img-fluid');
                         if (index === 0) thumbEl.classList.add('active'); 
                         
+                        // Thumbnail'a tıklama olayı
                         thumbEl.addEventListener('click', () => {
-                            updateMainMediaDisplay(url); // Tıklanan thumbnail'ın medyasını ana gösterime yükle
+                            // Ana medya gösterimini güncelle
+                            updateMainMediaDisplay(url); 
+                            // Aktif sınıfı güncelle
                             productThumbnailsEl.querySelectorAll('.active').forEach(item => item.classList.remove('active'));
                             thumbEl.classList.add('active');
                         });
@@ -593,7 +605,7 @@
                         colorDiv.innerHTML = `<label class="form-label">Renk:</label><div class="d-flex flex-wrap gap-2" id="color-options"></div>`;
                         product.variants.colors.forEach(color => {
                             const translatedColorName = color.translations[currentLanguageCode] || color.name;
-                            const inputId = `color-${color.name.replace(/\s+/g, '-')}`; // ID'lerde boşlukları kaldır
+                            const inputId = `color-${color.name.replace(/\s+/g, '-')}`; 
                             colorDiv.querySelector('#color-options').innerHTML += `
                                 <div class="form-check variant-option">
                                     <input type="radio" class="form-check-input" name="color" id="${inputId}" value="${color.name}">
@@ -608,7 +620,7 @@
                         sizeDiv.className = 'mb-3';
                         sizeDiv.innerHTML = `<label class="form-label">Boyut:</label><div class="d-flex flex-wrap gap-2" id="size-options"></div>`;
                         product.variants.sizes.forEach(size => {
-                            const inputId = `size-${size.replace(/\s+/g, '-')}`; // ID'lerde boşlukları kaldır
+                            const inputId = `size-${size.replace(/\s+/g, '-')}`; 
                             sizeDiv.querySelector('#size-options').innerHTML += `
                                 <div class="form-check variant-option">
                                     <input type="radio" class="form-check-input" name="size" id="${inputId}" value="${size}">
@@ -623,7 +635,7 @@
                         fabricDiv.className = 'mb-3';
                         fabricDiv.innerHTML = `<label class="form-label">Kumaş:</label><div class="d-flex flex-wrap gap-2" id="fabric-options"></div>`;
                         product.variants.fabrics.forEach(fabric => {
-                            const inputId = `fabric-${fabric.replace(/\s+/g, '-')}`; // ID'lerde boşlukları kaldır
+                            const inputId = `fabric-${fabric.replace(/\s+/g, '-')}`; 
                             fabricDiv.querySelector('#fabric-options').innerHTML += `
                                 <div class="form-check variant-option">
                                     <input type="radio" class="form-check-input" name="fabric" id="${inputId}" value="${fabric}">
@@ -749,7 +761,34 @@
 
         // --- Header ve Footer İçin Ortak Fonksiyonlar (index.html'den kopyalandı) ---
 
-        async function populateHeaderSelectors() {
+        async function loadCommonDataAndPopulateHeader() {
+            try {
+                const [countriesSnapshot, languagesSnapshot, currenciesSnapshot, settingsDoc] = await Promise.all([
+                    db.collection('countries').get(),
+                    db.collection('languages').get(),
+                    db.collection('currencies').get(),
+                    db.collection('settings').doc('siteConfig').get()
+                ]);
+
+                allCountries = countriesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                allLanguages = languagesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                allCurrencies = currenciesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                siteSettings = settingsDoc.exists ? settingsDoc.data() : {};
+
+                // Headerdaki seçicileri doldur
+                populateHeaderSelectors();
+            } catch (error) {
+                console.error("Ortak Firebase verileri yüklenirken hata:", error);
+                alert("Site temel verileri yüklenirken bir sorun oluştu.");
+                allCountries = []; allLanguages = []; allCurrencies = []; siteSettings = {};
+                localStorage.setItem(LS_SELECTED_LANGUAGE_CODE, 'en');
+                localStorage.setItem(LS_SELECTED_CURRENCY_CODE, 'USD');
+                populateHeaderSelectors(); // Hata durumunda bile Header'ı boş veya varsayılan değerlerle doldur
+            }
+        }
+
+
+        function populateHeaderSelectors() {
             const currentLangCode = localStorage.getItem(LS_SELECTED_LANGUAGE_CODE) || 'tr';
             headerCountrySelect.innerHTML = '';
             allCountries.forEach(country => {
