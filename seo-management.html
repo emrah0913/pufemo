@@ -26,6 +26,7 @@
             <li class="nav-item"><a class="nav-link" href="product-management.html"><i class="bi bi-tags-fill"></i>Ürün Yönetimi</a></li>
             <li class="nav-item"><a class="nav-link" href="category-management.html"><i class="bi bi-list-ul"></i>Kategori Yönetimi</a></li>
             <li class="nav-item"><a class="nav-link" href="country-pricing-management.html"><i class="bi bi-globe-americas"></i>Uluslararası Ayarlar</a></li>
+            <li class="nav-item"><a class="nav-link" href="languages-and-currencies.html"><i class="bi bi-translate"></i>Diller ve Para Birimleri</a></li>
             <li class="nav-item"><a class="nav-link" href="general-settings.html"><i class="bi bi-gear-fill"></i>Mağaza Ayarları</a></li>
             <li class="nav-item"><a class="nav-link" href="homepage-settings.html"><i class="bi bi-house-door-fill"></i>Ana Sayfa Ayarları</a></li>
             <li class="nav-item"><a class="nav-link active" href="seo-management.html"><i class="bi bi-search"></i>SEO Yönetimi</a></li>
@@ -40,20 +41,14 @@
 
         <div class="accordion" id="seoAccordion">
             <div class="accordion-item">
-                <h2 class="accordion-header" id="headingHome">
-                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseHome">Ana Sayfa</button>
+                <h2 class="accordion-header">
+                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseHome">Ana Sayfa (Homepage)</button>
                 </h2>
                 <div id="collapseHome" class="accordion-collapse collapse show" data-bs-parent="#seoAccordion">
                     <div class="accordion-body">
                         <form class="seo-form" data-page="home">
-                            <div class="mb-3">
-                                <label for="title_tr_home" class="form-label">Meta Başlık (TR)</label>
-                                <input type="text" id="title_tr_home" class="form-control">
-                            </div>
-                            <div class="mb-3">
-                                <label for="description_tr_home" class="form-label">Meta Açıklama (TR)</label>
-                                <textarea id="description_tr_home" class="form-control" rows="3"></textarea>
-                            </div>
+                            <ul class="nav nav-tabs" id="seoTabs_home" role="tablist"></ul>
+                            <div class="tab-content p-3 border border-top-0 mb-3" id="seoTabContent_home"></div>
                             <button type="submit" class="btn btn-primary">Kaydet</button>
                         </form>
                     </div>
@@ -67,17 +62,40 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
     <script>
-        const firebaseConfig = { apiKey: "AIzaSy...", authDomain: "...", projectId: "..." }; // Kendi config'iniz
+        const firebaseConfig = { apiKey: "AIzaSyDYkzZzNXB22U4oEXxOoPh-puwuE8kz0g4", authDomain: "pufemo-com.firebaseapp.com", projectId: "pufemo-com", storageBucket: "pufemo-com.firebasestorage.app", messagingSenderId: "983352837227", appId: "1:983352837227:web:defaa8dae215776e2e1d2e", measurementId: "G-RH8XHC7P91" };
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
         const adminUID = "4tOeNJRjbxPF9BBoynJNJIBxOqU2";
+        
+        let availableLanguages = [];
 
         auth.onAuthStateChanged(user => {
             if (user && user.uid === adminUID) {
-                loadAllSeoSettings();
+                loadInitialData();
             } else { window.location.href = 'admin-login.html'; }
         });
+
+        async function loadInitialData() {
+            try {
+                const langSnapshot = await db.collection('languages').get();
+                availableLanguages = langSnapshot.docs.map(doc => doc.data());
+                loadAllSeoSettings();
+            } catch (error) { console.error("Diller yüklenirken hata:", error); }
+        }
+
+        function buildSeoLanguageTabs(page, seoData = {}) {
+            const tabsContainer = document.getElementById(`seoTabs_${page}`);
+            const contentContainer = document.getElementById(`seoTabContent_${page}`);
+            if (!tabsContainer || !contentContainer) return;
+            tabsContainer.innerHTML = ''; contentContainer.innerHTML = '';
+
+            availableLanguages.forEach((lang, index) => {
+                const isActive = index === 0;
+                tabsContainer.innerHTML += `<li class="nav-item" role="presentation"><button class="nav-link ${isActive ? 'active' : ''}" data-bs-toggle="tab" data-bs-target="#pane-${page}-${lang.code}" type="button">${lang.name}</button></li>`;
+                contentContainer.innerHTML += `<div class="tab-pane fade ${isActive ? 'show active' : ''}" id="pane-${page}-${lang.code}"><div class="mb-3"><label for="title_${lang.code}_${page}" class="form-label">Meta Başlık (${lang.code.toUpperCase()})</label><input type="text" id="title_${lang.code}_${page}" class="form-control" value="${seoData[`title_${lang.code}`] || ''}"></div><div class="mb-3"><label for="description_${lang.code}_${page}" class="form-label">Meta Açıklama (${lang.code.toUpperCase()})</label><textarea id="description_${lang.code}_${page}" class="form-control" rows="3">${seoData[`description_${lang.code}`] || ''}</textarea></div></div>`;
+            });
+        }
 
         async function loadAllSeoSettings() {
             const forms = document.querySelectorAll('.seo-form');
@@ -85,11 +103,8 @@
                 const page = form.dataset.page;
                 const docRef = db.collection('seo_settings').doc(page);
                 const doc = await docRef.get();
-                if (doc.exists) {
-                    const data = doc.data();
-                    form.querySelector(`#title_tr_${page}`).value = data.title_tr || '';
-                    form.querySelector(`#description_tr_${page}`).value = data.description_tr || '';
-                }
+                const data = doc.exists ? doc.data() : {};
+                buildSeoLanguageTabs(page, data);
             });
         }
 
@@ -97,18 +112,16 @@
             form.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const page = form.dataset.page;
-                const seoData = {
-                    title_tr: form.querySelector(`#title_tr_${page}`).value,
-                    description_tr: form.querySelector(`#description_tr_${page}`).value,
-                };
+                const seoData = {};
+                availableLanguages.forEach(lang => {
+                    seoData[`title_${lang.code}`] = document.getElementById(`title_${lang.code}_${page}`).value;
+                    seoData[`description_${lang.code}`] = document.getElementById(`description_${lang.code}_${page}`).value;
+                });
                 
                 try {
                     await db.collection('seo_settings').doc(page).set(seoData, { merge: true });
-                    alert(`${page} sayfası için SEO ayarları kaydedildi!`);
-                } catch (error) {
-                    console.error("SEO ayarları kaydedilirken hata:", error);
-                    alert("Bir hata oluştu.");
-                }
+                    alert(`'${page}' sayfası için SEO ayarları kaydedildi!`);
+                } catch (error) { console.error("SEO ayarları kaydedilirken hata:", error); }
             });
         });
 
