@@ -51,6 +51,8 @@
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarAccountDropdown">
                             <li><a class="dropdown-item" href="admin-login.html" id="menu-login-link">Giriş Yap</a></li>
                             <li><a class="dropdown-item" href="kayit-ol.html" id="menu-register-link">Kayıt Ol</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="siparis-takip.html">Sipariş Takibi</a></li>
                         </ul>
                     </li>
                     <li class="nav-item">
@@ -249,7 +251,7 @@
             projectId: "pufemo-com",
             storageBucket: "pufemo-com.firebasestorage.app",
             messagingSenderId: "983352837227",
-            appId: "1:983352837227:web:defaa8dae215776e2e1d2e",
+            appId: "1:983352837227:web:defaa8dae2157776e2e1d2e",
             measurementId: "G-RH8XHC7P91"
         };
         firebase.initializeApp(firebaseConfig);
@@ -302,7 +304,7 @@
                 emptyCartMessage: 'Sepetinizde ürün bulunmamaktadır.',
                 emptyCartContinueShopping: 'Alışverişe Devam Et',
                 itemRemovedFromCart: 'Ürün sepetten çıkarıldı.', // Used for order summary too if product not found
-                orderSaveSuccess: 'Siparişiniz başarıyla alındı! Teşekkür ederiz.', // Yeni
+                orderSaveSuccess: 'Siparişiniz başarıyla alındı! Sipariş Numaranız: ', // Yeni
                 orderSaveError: 'Siparişiniz kaydedilirken bir hata oluştu. Lütfen tekrar deneyin.', // Yeni
                 orderEmptyCart: 'Ödeme yapabilmek için sepetinizde ürün bulunmalıdır.' // Yeni
             },
@@ -350,7 +352,7 @@
                 emptyCartMessage: 'Your cart is empty.',
                 emptyCartContinueShopping: 'Continue Shopping',
                 itemRemovedFromCart: 'Item removed from cart.',
-                orderSaveSuccess: 'Your order has been placed successfully! Thank you.',
+                orderSaveSuccess: 'Your order has been placed successfully! Order Number: ', 
                 orderSaveError: 'There was an error saving your order. Please try again.',
                 orderEmptyCart: 'Your cart must contain items to checkout.'
             }
@@ -386,7 +388,7 @@
         const city = document.getElementById('city');
         const zip = document.getElementById('zip');
 
-        // Fatura Adresi Alanları
+        // Fatura Adres Alanları
         const sameAddressCheckbox = document.getElementById('same-address');
         const billingAddressFields = document.getElementById('billing-address-fields');
         const billingFirstName = document.getElementById('billingFirstName');
@@ -469,7 +471,7 @@
                 if (siteSettings.iban) {
                     ibanDisplay.textContent = siteSettings.iban;
                 } else {
-                    ibanDisplay.textContent = "IBAN NUMARASI YÜKLENİYOR..."; // Varsayılan metin güncellendi
+                    ibanDisplay.textContent = "IBAN NUMARASI YÜKLENİYOR..."; 
                 }
             } catch (error) {
                 console.error("Ortak Firebase verileri yüklenirken hata:", error);
@@ -485,7 +487,6 @@
         // Adres formundaki ülke seçicilerini doldurur
         function populateCountrySelectors() {
             const currentLanguageCode = localStorage.getItem(LS_SELECTED_LANGUAGE_CODE) || 'tr';
-            // Placeholder metnini appTexts'ten al
             const selectPlaceholderText = appTexts[currentLanguageCode]?.selectCountryPlaceholder || appTexts['en'].selectCountryPlaceholder;
 
             // Gönderim Ülke Seçimi
@@ -515,7 +516,7 @@
 
             // Ülke değiştiğinde özetin yeniden yüklenmesi için event listener
             countrySelect.addEventListener('change', loadCheckoutDataAndRenderSummary);
-            billingCountrySelect.addEventListener('change', loadCheckoutDataAndRenderSummary);
+            billingCountrySelect.addEventListener('change', loadCheckoutDataAndRenderSummary); // Fatura ülkesi değiştiğinde de güncellesin
         }
 
 
@@ -524,6 +525,7 @@
             const currentLanguageCode = localStorage.getItem(LS_SELECTED_LANGUAGE_CODE) || 'tr';
             const currentCurrencyCode = localStorage.getItem(LS_SELECTED_CURRENCY_CODE) || 'TRY';
             // Ödeme sayfasında, kullanıcının seçtiği ülkeyi localStorage'dan alıyoruz
+            // Veya adres formundaki Ülke seçiminden alıyoruz
             const currentCountryCode = countrySelect.value || localStorage.getItem(LS_SELECTED_COUNTRY_CODE) || 'TR'; 
             const texts = appTexts[currentLanguageCode] || appTexts['en'];
 
@@ -542,6 +544,15 @@
             document.getElementById('zipLabel').textContent = texts.zipLabel;
             document.getElementById('billing-address-title').textContent = texts.billingAddressTitle;
             document.getElementById('same-address-label').textContent = texts.sameAddressLabel;
+            document.getElementById('billingFirstNameLabel').textContent = texts.firstNameLabel; // Fatura adres alanı label'ları
+            document.getElementById('billingLastNameLabel').textContent = texts.lastNameLabel;
+            document.getElementById('billingEmailLabel').textContent = texts.emailLabel;
+            document.getElementById('billingPhoneLabel').textContent = texts.phoneLabel;
+            document.getElementById('billingAddress1Label').textContent = texts.address1Label;
+            document.getElementById('billingAddress2Label').textContent = texts.address2Label;
+            document.getElementById('billingCountryLabel').textContent = texts.countryLabel;
+            document.getElementById('billingCityLabel').textContent = texts.cityLabel;
+            document.getElementById('billingZipLabel').textContent = texts.zipLabel;
             document.getElementById('payment-method-title').textContent = texts.paymentMethodTitle;
             document.getElementById('bank-transfer-label').textContent = texts.bankTransferLabel;
             document.getElementById('credit-card-label').textContent = texts.creditCardLabel;
@@ -554,7 +565,6 @@
             document.getElementById('summary-subtotal-label').textContent = texts.summarySubtotal;
             document.getElementById('summary-shipping-label').textContent = texts.summaryShipping;
             document.getElementById('summary-total-label').textContent = texts.summaryTotal;
-            // Kredi Kartı alan etiketleri
             document.getElementById('ccNameLabel').textContent = texts.ccNameLabel;
             document.getElementById('ccNumberLabel').textContent = texts.ccNumberLabel;
             document.getElementById('ccExpirationLabel').textContent = texts.ccExpirationLabel;
@@ -581,7 +591,6 @@
                     if (uniqueProductIds.length > 10) {
                         console.warn("Sepetinizde 10'dan fazla benzersiz ürün var. Firestore 'in' sorgusu sınırlıdır.");
                     }
-                    // Sadece ilk 10 ürünü çek (veya daha gelişmiş batching yap)
                     const productsSnapshot = await db.collection('products').where(firebase.firestore.FieldPath.documentId(), 'in', uniqueProductIds.slice(0, 10)).get();
                     productsSnapshot.forEach(doc => {
                         fetchedProductsMap.set(doc.id, doc.data());
@@ -599,14 +608,13 @@
             const priceMultiplier = selectedCountryData ? (selectedCountryData.multiplier || 1) : 1;
             finalOrderCurrency = allCurrencies.find(c => c.code === currentCurrencyCode)?.symbol || '₺';
 
-            let validCartItemsForOrder = []; // Sadece siparişe dahil edilecek geçerli ürünler
+            let validCartItemsForOrder = []; 
             cartItems.forEach(item => {
                 const productData = fetchedProductsMap.get(item.productId);
 
-                // Ürün bulunamazsa veya pasifse siparişe dahil etme
                 if (!productData || productData.isActive === false) {
                     console.warn(`Siparişteki ürün bulunamadı veya pasif, ID: ${item.productId}. Bu ürün siparişten çıkarıldı.`);
-                    return; // Bu ürünü atla
+                    return; 
                 }
 
                 const basePrice = productData.basePriceTRY || 0;
@@ -634,35 +642,32 @@
                     </li>
                 `;
 
-                // Sipariş belgesine kaydedilecek ürün formatı
                 validCartItemsForOrder.push({
                     productId: item.productId,
                     name: productData[`name_${currentLanguageCode}`] || productData.name_tr || item.name,
                     quantity: item.quantity,
-                    price: parseFloat(calculatedPrice), // Sipariş anındaki birim fiyat
-                    total: parseFloat(itemTotal), // Sipariş anındaki toplam fiyat
-                    currency: finalOrderCurrency, // Sipariş anındaki para birimi
+                    price: parseFloat(calculatedPrice), 
+                    total: parseFloat(itemTotal), 
+                    currency: finalOrderCurrency, 
                     selectedVariants: item.selectedVariants || null,
                     imageUrl: productData.mediaUrls && productData.mediaUrls.length > 0 ? productData.mediaUrls[0] : ''
                 });
             });
 
-            // Eğer sepet boş kaldıysa (tüm ürünler bulunamadı/pasifse)
             if (validCartItemsForOrder.length === 0) {
                 alert(texts.orderEmptyCart);
                 window.location.href = 'sepet.html';
                 return;
             }
 
-            // Sepet LocalStorage'daki cartItems global değişkenini validCartItemsForOrder ile güncelle
             if (validCartItemsForOrder.length !== cartItems.length) {
                 cartItems = validCartItemsForOrder;
                 localStorage.setItem(LS_CART_ITEMS, JSON.stringify(cartItems));
             }
 
 
-            const shippingCost = 0; // Şimdilik sabit
-            finalOrderTotal = currentSubtotal + shippingCost; // Global değişkene ata
+            const shippingCost = 0; 
+            finalOrderTotal = currentSubtotal + shippingCost; 
 
             summarySubtotal.textContent = `${currentSubtotal.toFixed(2)} ${finalOrderCurrency}`;
             summaryShipping.textContent = `${shippingCost.toFixed(2)} ${finalOrderCurrency}`;
@@ -697,7 +702,7 @@
 
         // Ödeme formunu gönder
         async function handleCheckoutSubmit(event) {
-            event.preventDefault(); // Sayfanın yeniden yüklenmesini engelle
+            event.preventDefault(); 
 
             const currentLanguageCode = localStorage.getItem(LS_SELECTED_LANGUAGE_CODE) || 'tr';
             const texts = appTexts[currentLanguageCode] || appTexts['en'];
@@ -709,7 +714,7 @@
             }
 
             if (!agreement1.checked || !agreement2.checked) {
-                alert(texts.agreement1Label.replace('Mesafeli Satış Sözleşmesini okudum ve kabul ediyorum.', 'Lütfen tüm sözleşmeleri onaylayınız.')); // Genel onay uyarısı
+                alert(texts.agreement1Label.replace('Mesafeli Satış Sözleşmesini okudum ve kabul ediyorum.', 'Lütfen tüm sözleşmeleri onaylayınız.')); 
                 return;
             }
 
@@ -733,7 +738,7 @@
             // Fatura adresi
             let billingAddress = {};
             if (sameAddressCheckbox.checked) {
-                billingAddress = { ...shippingAddress }; // Gönderim adresi ile aynı
+                billingAddress = { ...shippingAddress }; 
             } else {
                 billingAddress = {
                     firstName: billingFirstName.value,
@@ -753,17 +758,17 @@
 
             // Siparişi Firebase'e kaydet
             try {
-                const user = auth.currentUser; // Oturum açmış anonim veya kayıtlı kullanıcı
+                const user = auth.currentUser; 
                 const orderData = {
-                    userId: user ? user.uid : 'anonymous', // Anonim kullanıcı ID'si veya kayıtlı ID
+                    userId: user ? user.uid : 'anonymous', 
                     customerInfo: customerInfo,
                     shippingAddress: shippingAddress,
                     billingAddress: billingAddress,
-                    products: cartItems.map(item => ({ // Sepet öğelerini doğrudan kullan
+                    products: cartItems.map(item => ({ 
                         productId: item.productId,
                         name: item.name,
                         quantity: item.quantity,
-                        price: item.price, // Sepete eklenen anki fiyat
+                        price: item.price, 
                         currency: item.currency,
                         selectedVariants: item.selectedVariants || null,
                         imageUrl: item.imageUrl
@@ -771,17 +776,22 @@
                     totalAmount: finalOrderTotal,
                     currency: finalOrderCurrency,
                     paymentMethod: paymentMethod,
-                    status: paymentMethod === 'Bank Transfer / EFT' ? 'Pending Payment' : 'New', // Durum
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp() // Sunucu zaman damgası
+                    status: paymentMethod === 'Bank Transfer / EFT' ? 'Pending Payment' : 'New', 
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp() 
                 };
 
                 const docRef = await db.collection('orders').add(orderData);
                 console.log("Sipariş başarıyla kaydedildi, ID:", docRef.id);
 
-                localStorage.removeItem(LS_CART_ITEMS); // Sepeti temizle
-                updateCartItemCount(); // Header'daki sepet sayacını güncelle
-                alert(texts.orderSaveSuccess);
-                window.location.href = `siparis-takip.html?orderId=${docRef.id}`; // Sipariş takip sayfasına yönlendir (Henüz yok)
+                localStorage.removeItem(LS_CART_ITEMS); 
+                updateCartItemCount(); 
+                
+                // Sipariş numarasını içeren alert
+                const currentLanguageCode = localStorage.getItem(LS_SELECTED_LANGUAGE_CODE) || 'tr';
+                const texts = appTexts[currentLanguageCode] || appTexts['en'];
+                alert(texts.orderSaveSuccess + docRef.id.substring(0, 8).toUpperCase()); // Sipariş ID'sini alert'e ekle
+
+                window.location.href = `siparis-takip.html?orderId=${docRef.id}&email=${customerInfo.email}`; 
 
             } catch (error) {
                 console.error("Sipariş kaydedilirken hata:", error);
@@ -851,7 +861,7 @@
             footerWhatsappNumber.textContent = siteSettings.whatsappNumber || '+90 5XX XXX XX XX';
             
             if (menuLoginLink) menuLoginLink.textContent = texts.menuLogin;
-            if (menuRegisterLink) menuRegisterLink.textContent = texts.menuRegister;
+            if (menuRegisterLink) menuLoginLink.textContent = texts.menuRegister;
         }
 
         // Headerdaki ülke/dil/para birimi değiştiğinde tüm sayfayı güncelleyen event listener
