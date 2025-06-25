@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="tr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,15 +11,237 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
-        body { font-family: 'Montserrat', sans-serif; }
-        .initial-modal { display: none; position: fixed; z-index: 1060; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(5px); }
-        .initial-modal.is-visible { display: flex; align-items: center; justify-content: center; }
-        .modal-content-custom { background-color: #ffffff; border-radius: 15px; padding: 2rem; max-width: 500px; width: 90%; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
-        .country-list { max-height: 300px; overflow-y: auto; }
-        .product-card img { height: 280px; object-fit: cover; }
-        .modal-step { display: none; }
-        .main-content { visibility: hidden; opacity: 0; transition: opacity 0.5s ease-in-out; }
-        .main-content.loaded { visibility: visible; opacity: 1; }
+        :root {
+            --primary-color: #007bff;
+            --secondary-color: #6c757d;
+            --light-bg: #f8f9fa;
+            --dark-bg: #343a40;
+            --text-color: #212529;
+            --light-text-color: #adb5bd;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: var(--light-bg);
+            color: var(--text-color);
+        }
+
+        /* Initial Modal Styles */
+        .initial-modal {
+            display: none;
+            position: fixed;
+            z-index: 1060; /* Bootstrap modal'dan daha yüksek */
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(5px);
+        }
+        .initial-modal.is-visible {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content-custom {
+            background-color: #ffffff;
+            border-radius: 15px;
+            padding: 2rem;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        .country-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .modal-step {
+            display: none;
+        }
+
+        /* Main Content Transition */
+        .main-content {
+            visibility: hidden;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+        }
+        .main-content.loaded {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        /* Navbar Styles */
+        .navbar {
+            background-color: var(--dark-bg) !important;
+            padding: 1rem 0;
+        }
+        .navbar-brand {
+            color: white !important;
+            font-weight: bold;
+            font-size: 1.8rem;
+        }
+        .navbar-nav .nav-link {
+            color: var(--light-text-color) !important;
+            font-weight: 500;
+            margin-right: 15px;
+        }
+        .navbar-nav .nav-link:hover, .navbar-nav .nav-link.active {
+            color: white !important;
+        }
+        .search-bar .form-control {
+            border-radius: 20px;
+            padding-left: 1.5rem;
+            border: 1px solid rgba(255,255,255,0.3);
+            background-color: rgba(255,255,255,0.1);
+            color: white;
+        }
+        .search-bar .form-control::placeholder {
+            color: var(--light-text-color);
+        }
+        .search-bar .btn {
+            border-radius: 20px;
+            margin-left: -40px;
+            z-index: 5;
+            background: none;
+            border: none;
+            color: var(--light-text-color);
+        }
+        .search-bar .btn:hover {
+             color: white;
+        }
+
+        /* Promo Banner Styles */
+        .promo-banner {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 15px 0;
+            text-align: center;
+            font-size: 1.1rem;
+            font-weight: 500;
+        }
+
+        /* Hero Section / Carousel Styles */
+        .carousel-item img {
+            height: 500px; /* Slider yüksekliği */
+            object-fit: cover;
+            filter: brightness(70%); /* Görselleri biraz karart */
+        }
+        .carousel-caption {
+            top: 50%;
+            transform: translateY(-50%);
+            bottom: unset;
+            text-align: left;
+            left: 10%;
+            right: unset;
+            padding-bottom: 0;
+        }
+        .carousel-caption h5 {
+            font-size: 3rem;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        .carousel-caption p {
+            font-size: 1.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            margin-bottom: 25px;
+        }
+        .carousel-caption .btn {
+            font-size: 1.1rem;
+            padding: 10px 25px;
+            border-radius: 30px;
+        }
+        .carousel-indicators [data-bs-target] {
+            background-color: var(--primary-color);
+        }
+        .carousel-control-prev-icon, .carousel-control-next-icon {
+            background-color: rgba(0,0,0,0.5);
+            border-radius: 50%;
+            padding: 20px;
+        }
+
+        /* Section Title Styles */
+        .section-title {
+            text-align: center;
+            margin-bottom: 40px;
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: var(--dark-bg);
+        }
+
+        /* Product Card Styles */
+        .product-card {
+            border: none;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            background-color: white;
+        }
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+        }
+        .product-card img {
+            height: 280px; /* Adjusted height for better visual */
+            object-fit: cover;
+            border-bottom: 1px solid #eee;
+        }
+        .product-card .card-body {
+            padding: 1.5rem;
+        }
+        .product-card .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--primary-color);
+            min-height: 50px; /* Sabit yükseklik */
+        }
+        .product-card .card-text {
+            color: var(--secondary-color);
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
+        .product-card .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+            width: 100%;
+        }
+
+        /* Category Card Styles */
+        .category-card {
+            background-color: var(--primary-color);
+            color: white;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            text-decoration: none;
+            transition: background-color 0.3s ease;
+            display: block; /* Make the whole card clickable */
+        }
+        .category-card:hover {
+            background-color: #0056b3;
+            color: white;
+        }
+
+        /* Footer Styles */
+        footer {
+            background-color: var(--dark-bg);
+            color: var(--light-text-color);
+            padding: 40px 0;
+            margin-top: 50px;
+        }
+        footer a {
+            color: var(--light-text-color);
+            text-decoration: none;
+        }
+        footer a:hover {
+            color: white;
+        }
+        footer .social-icons a {
+            font-size: 1.5rem;
+            margin-right: 15px;
+        }
     </style>
 </head>
 <body>
@@ -30,24 +252,26 @@
                 <div class="modal-content-custom text-center modal-step" id="step-country">
                     <h2 class="fw-bold mb-3">Welcome</h2>
                     <p class="text-muted mb-4">Please select your country to see correct pricing and delivery options.</p>
-                    <div class="list-group country-list" id="country-list"><div class="p-3">Loading countries...</div></div>
+                    <div class="list-group country-list" id="country-list">
+                        <div class="p-3">Loading countries...</div>
+                    </div>
                 </div>
                 <div class="modal-content-custom text-center modal-step" id="step-auth-options">
-                     <h2 class="fw-bold mb-3" id="welcome-text">Hoş Geldiniz</h2>
-                     <p class="text-muted mb-4" id="selected-country-info"></p>
+                    <h2 class="fw-bold mb-3" id="welcome-text">Hoş Geldiniz</h2>
+                    <p class="text-muted mb-4" id="selected-country-info"></p>
                     <div class="d-grid gap-2">
                         <button class="btn btn-primary btn-lg" id="guest-btn">Misafir Olarak Devam Et</button>
                         <button class="btn btn-secondary" id="show-login-btn">Giriş Yap</button>
                         <button class="btn btn-outline-secondary btn-sm" id="show-register-btn">Kayıt Ol</button>
                     </div>
                 </div>
-                </div>
+            </div>
         </div>
     </div>
 
     <div class="main-content" id="main-content-wrapper">
         <header id="page-header" class="sticky-top"></header>
-        <main></main>
+        <main class="container my-5"></main>
         <footer class="bg-dark text-white pt-5 pb-4"></footer>
     </div>
 
@@ -61,6 +285,7 @@
         const db = firebase.firestore();
         const auth = firebase.auth();
 
+        // Translation and Currency Data
         const translations = { 'tr': { welcome: 'Hoş Geldiniz', info: 'için devam edin.', guest: 'Misafir Olarak Devam Et', login: 'Giriş Yap', register: 'Kayıt Ol' }, 'en': { welcome: 'Welcome', info: 'Continue for', guest: 'Continue as Guest', login: 'Sign In', register: 'Register' }, 'de': { welcome: 'Willkommen', info: 'Weiter für', guest: 'Als Gast fortfahren', login: 'Anmelden', register: 'Registrieren' }};
         const exchangeRates = { "TRY": 1.0, "USD": 33.0, "EUR": 35.0, "GBP": 41.0, "RUB": 0.37 };
         const currencySymbols = { "TRY": "₺", "USD": "$", "EUR": "€", "GBP": "£", "RUB": "₽" };
@@ -89,7 +314,10 @@
                     countryElement.onclick = (e) => { e.preventDefault(); selectCountry(country); };
                     countryList.appendChild(countryElement);
                 });
-            } catch (error) { console.error("Ülkeler yüklenemedi:", error); countryList.innerHTML = 'Ülkeler yüklenemedi.'; }
+            } catch (error) {
+                console.error("Ülkeler yüklenemedi:", error);
+                countryList.innerHTML = 'Ülkeler yüklenemedi.';
+            }
             document.getElementById('initial-modal').classList.add('is-visible');
             showStep('step-country');
         }
@@ -110,7 +338,9 @@
             try {
                 const userCredential = await auth.signInAnonymously();
                 completeSessionSetup(userCredential.user, selectedCountry);
-            } catch (error) { console.error("Anonim giriş hatası:", error); }
+            } catch (error) {
+                console.error("Anonim giriş hatası:", error);
+            }
         });
 
         function completeSessionSetup(user, country) {
@@ -119,7 +349,7 @@
             initializeApp(country);
         }
 
-        // HATA AYIKLAMA MESAJLARI EKLENMİŞ FONKSİYON
+        // Initialize App Function with detailed console logs
         async function initializeApp(countrySettings) {
             console.log("1. initializeApp fonksiyonu başladı. Ülke: ", countrySettings.name);
             try {
@@ -132,26 +362,306 @@
                     db.collection('seo_settings').doc('home').get()
                 ]);
                 console.log("3. Tüm veriler Firebase'den başarıyla çekildi.");
+
                 const settings = settingsDoc.exists ? settingsDoc.data() : {};
+                const seoData = seoDoc.exists ? seoDoc.data() : {};
+
                 console.log("4. Sayfa içeriği oluşturuluyor (render ediliyor)...");
                 renderHeader(categoryDocs, settings, countrySettings);
-                renderMainContent(sliderDocs, productDocs, countrySettings);
+                renderMainContent(sliderDocs, productDocs, settings, countrySettings);
                 renderFooter(settings, countrySettings);
-                renderSeo(seoDoc, countrySettings);
+                renderSeo(seoData, countrySettings);
+
                 console.log("5. Sayfa içeriği oluşturma tamamlandı.");
                 document.getElementById('main-content-wrapper').classList.add('loaded');
                 console.log("6. Sayfa görünür hale getirildi. İşlem tamam!");
             } catch (error) {
                 console.error("HATA! initializeApp fonksiyonunun catch bloğuna düşüldü.", error);
-                document.body.innerHTML = `<div class="alert alert-danger m-5">Site yüklenirken bir hata oluştu. Hata: ${error.message}</div>`;
+                document.body.innerHTML = `<div class="alert alert-danger m-5">Site yüklenirken bir hata oluştu. Lütfen konsolu kontrol edin.</div>`;
             }
         }
-        
-        function renderHeader(categoryDocs, settings, countrySettings) { /* ... */ }
-        function renderMainContent(sliderDocs, productDocs, countrySettings) { /* ... */ }
-        function renderFooter(settings, countrySettings) { /* ... */ }
-        function renderSeo(seoDoc, countrySettings) { /* ... */ }
-        // Not: Render fonksiyonları okunabilirlik için boş bırakılmıştır, ancak önceki mesajdaki dolu halleri geçerlidir.
+
+        // Render Header Function
+        function renderHeader(categoryDocs, settings, countrySettings) {
+            const headerElement = document.getElementById('page-header');
+            const langCode = countrySettings.language || 'en';
+            // const currentCurrencySymbol = currencySymbols[countrySettings.currency] || '$'; // Not used directly in header HTML
+
+            let categoryNavItems = '';
+            categoryDocs.forEach(doc => {
+                const category = doc.data();
+                const categoryName = category[`name_${langCode}`] || category.name_tr || 'Kategori Adı Yok';
+                if (categoryName) {
+                    categoryNavItems += `<li class="nav-item"><a class="nav-link" href="#">${categoryName}</a></li>`;
+                }
+            });
+
+            // Promosyon banner içeriği
+            const promoText = settings[`promoText_${langCode}`] || '';
+            const promoBannerHtml = promoText ? `<div class="promo-banner text-white text-center py-2">${promoText}</div>` : '';
+
+            headerElement.innerHTML = `
+                <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+                    <div class="container">
+                        <a class="navbar-brand" href="index.html">PUFEMO</a>
+                        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                            <span class="navbar-toggler-icon"></span>
+                        </button>
+                        <div class="collapse navbar-collapse" id="navbarNav">
+                            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                                ${categoryNavItems}
+                            </ul>
+                            <div class="d-flex search-bar">
+                                <input class="form-control me-2" type="search" placeholder="Search products..." aria-label="Search">
+                                <button class="btn" type="submit"><i class="bi bi-search"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </nav>
+                ${promoBannerHtml}
+            `;
+
+            // Google Analytics entegrasyonu
+            if (settings.googleAnalyticsId) {
+                const script = document.createElement('script');
+                script.async = true;
+                script.src = `https://www.googletagmanager.com/gtag/js?id=${settings.googleAnalyticsId}`;
+                document.head.appendChild(script);
+
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+                gtag('config', settings.googleAnalyticsId);
+            }
+        }
+
+        // Render Main Content Function
+        function renderMainContent(sliderDocs, productDocs, settings, countrySettings) {
+            const mainElement = document.querySelector('main');
+            const langCode = countrySettings.language || 'en';
+            const multiplier = countrySettings.multiplier || 1.0;
+            const currentCurrencySymbol = currencySymbols[countrySettings.currency] || '$';
+            const currencyExchangeRate = exchangeRates[countrySettings.currency] || 1.0;
+
+            let carouselIndicators = '';
+            let carouselInner = '';
+            if (sliderDocs.empty) {
+                carouselInner = `<div class="carousel-item active">
+                    <img src="https://via.placeholder.com/1920x500/333/eee?text=Welcome" class="d-block w-100" alt="Default Slide">
+                    <div class="carousel-caption d-none d-md-block">
+                        <h5>Welcome to PUFEMO</h5>
+                        <p>Discover our amazing products</p>
+                    </div>
+                </div>`;
+            } else {
+                sliderDocs.forEach((doc, index) => {
+                    const slide = doc.data();
+                    const activeClass = index === 0 ? 'active' : '';
+                    carouselIndicators += `<button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="${index}" class="${activeClass}" aria-current="${activeClass ? 'true' : 'false'}" aria-label="Slide ${index + 1}"></button>`;
+                    carouselInner += `
+                        <div class="carousel-item ${activeClass}">
+                            <img src="${slide.imageUrl}" class="d-block w-100" alt="${slide[`title_${langCode}`] || 'Slider Image'}">
+                            <div class="carousel-caption d-none d-md-block">
+                                <h5>${slide[`title_${langCode}`] || ''}</h5>
+                                <p>${slide[`description_${langCode}`] || ''}</p>
+                                ${slide.linkUrl ? `<a href="${slide.linkUrl}" class="btn btn-light">Shop Now</a>` : ''}
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+
+            let featuredProductsHtml = '';
+            if (productDocs.empty) {
+                featuredProductsHtml = '<p class="text-center w-100">No featured products found.</p>';
+            } else {
+                productDocs.forEach(doc => {
+                    const product = doc.data();
+                    const imageUrl = product.imageUrls && product.imageUrls.length > 0 ? product.imageUrls[0] : 'https://via.placeholder.com/400x250/f8f9fa/dee2e6?text=Product+Image';
+                    const productName = product[`name_${langCode}`] || product.name_tr || 'Ürün Adı Yok';
+                    const basePrice = product.basePriceTRY || 0;
+                    const convertedPrice = (basePrice * multiplier / currencyExchangeRate).toFixed(2);
+                    const productPrice = `${convertedPrice} ${currentCurrencySymbol}`;
+
+                    featuredProductsHtml += `
+                        <div class="col">
+                            <div class="card product-card">
+                                <img src="${imageUrl}" class="card-img-top" alt="${productName}">
+                                <div class="card-body">
+                                    <h5 class="card-title">${productName}</h5>
+                                    <p class="card-text">${productPrice}</p>
+                                    <a href="#" class="btn btn-primary">Add to Cart</a>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+
+            // Categories Section HTML, fetched but not directly rendered in current loop for simplicity, can be added.
+            let productCategoriesHtml = '';
+            // Example of how categories could be rendered (similar to loadProductCategoriesSection in previous response)
+            // if (categoryDocs) { // Assuming categoryDocs are also passed here or fetched again
+            //     categoryDocs.forEach(doc => {
+            //         const category = doc.data();
+            //         const categoryName = category[`name_${langCode}`] || category.name_tr || 'Kategori Adı Yok';
+            //         if (categoryName) {
+            //             productCategoriesHtml += `
+            //                 <div class="col">
+            //                     <a href="#" class="card category-card">
+            //                         ${categoryName}
+            //                     </a>
+            //                 </div>
+            //             `;
+            //         }
+            //     });
+            // }
+
+            mainElement.innerHTML = `
+                <div id="heroCarousel" class="carousel slide" data-bs-ride="carousel">
+                    <div class="carousel-indicators">
+                        ${carouselIndicators}
+                    </div>
+                    <div class="carousel-inner">
+                        ${carouselInner}
+                    </div>
+                    <button class="carousel-control-prev" type="button" data-bs-target="#heroCarousel" data-bs-slide="prev">
+                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                        <span class="visually-hidden">Previous</span>
+                    </button>
+                    <button class="carousel-control-next" type="button" data-bs-target="#heroCarousel" data-bs-slide="next">
+                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                        <span class="visually-hidden">Next</span>
+                    </button>
+                </div>
+
+                <section class="container my-5">
+                    <h2 class="section-title text-center mb-4">Öne Çıkan Ürünler</h2>
+                    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4">
+                        ${featuredProductsHtml}
+                    </div>
+                </section>
+
+                <section class="container my-5">
+                    <h2 class="section-title text-center mb-4">Kategoriler</h2>
+                    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4" id="product-categories">
+                         </div>
+                </section>
+            `;
+            // Re-initialize Bootstrap Carousel
+            new bootstrap.Carousel(document.getElementById('heroCarousel'));
+
+            // Render categories section separately as it was in the original plan
+            renderProductCategoriesSection(countrySettings);
+        }
+
+        // Render Footer Function
+        function renderFooter(settings, countrySettings) {
+            const footerElement = document.querySelector('footer');
+            footerElement.innerHTML = `
+                <div class="container">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <h5>PUFEMO</h5>
+                            <p>${settings.companyAddress || 'Adres bilgisi yok.'}</p>
+                            <p><i class="bi bi-envelope me-2"></i> ${settings.contactEmail || 'İletişim e-postası yok.'}</p>
+                            <p><i class="bi bi-whatsapp me-2"></i> ${settings.whatsappNumber || 'WhatsApp numarası yok.'}</p>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <h5>Hızlı Linkler</h5>
+                            <ul class="list-unstyled">
+                                <li><a href="#">Hakkımızda</a></li>
+                                <li><a href="#">İletişim</a></li>
+                                <li><a href="#">Gizlilik Politikası</a></li>
+                                <li><a href="#">Mesafeli Satış Sözleşmesi</a></li>
+                            </ul>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <h5>Bizi Takip Edin</h5>
+                            <div class="social-icons">
+                                <a href="#" class="text-white me-3"><i class="bi bi-facebook"></i></a>
+                                <a href="#" class="text-white me-3"><i class="bi bi-instagram"></i></a>
+                                <a href="#" class="text-white"><i class="bi bi-twitter"></i></a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-center mt-4">
+                        <p>&copy; 2025 PUFEMO. Tüm Hakları Saklıdır.</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Render SEO Function
+        function renderSeo(seoData, countrySettings) {
+            const head = document.head;
+            const langCode = countrySettings.language || 'en';
+
+            // Title güncelleme
+            document.title = seoData[`title_${langCode}`] || seoData.title_tr || "PUFEMO";
+
+            // Description meta etiketi güncelleme
+            let descriptionMeta = document.querySelector('meta[name="description"]');
+            if (!descriptionMeta) {
+                descriptionMeta = document.createElement('meta');
+                descriptionMeta.name = 'description';
+                head.appendChild(descriptionMeta);
+            }
+            descriptionMeta.content = seoData[`description_${langCode}`] || seoData.description_tr || "";
+
+            // Keywords meta etiketi güncelleme (isteğe bağlı)
+            let keywordsMeta = document.querySelector('meta[name="keywords"]');
+            if (!keywordsMeta) {
+                keywordsMeta = document.createElement('meta');
+                keywordsMeta.name = 'keywords';
+                head.appendChild(keywordsMeta);
+            }
+            keywordsMeta.content = seoData[`keywords_${langCode}`] || seoData.keywords_tr || "";
+
+            // Canonical link güncelleme (isteğe bağlı, sayfa dinamik olduğu için dikkatli kullanılmalı)
+            let canonicalLink = document.querySelector('link[rel="canonical"]');
+            if (!canonicalLink) {
+                canonicalLink = document.createElement('link');
+                canonicalLink.rel = 'canonical';
+                head.appendChild(canonicalLink);
+            }
+            canonicalLink.href = seoData.canonicalUrl || window.location.href; // Varsayılan olarak mevcut URL
+        }
+
+        // Function to load product categories for the main content section
+        async function renderProductCategoriesSection(countrySettings) {
+            const productCategoriesContainer = document.getElementById('product-categories');
+            if (!productCategoriesContainer) return; // Ensure element exists
+
+            productCategoriesContainer.innerHTML = 'Yükleniyor...';
+            const langCode = countrySettings.language || 'en';
+
+            try {
+                const snapshot = await db.collection('categories').limit(6).get(); // Limit to 6 categories for display
+                productCategoriesContainer.innerHTML = '';
+                if (snapshot.empty) {
+                    productCategoriesContainer.innerHTML = '<p class="text-center w-100">Henüz kategori bulunmamaktadır.</p>';
+                    return;
+                }
+
+                snapshot.forEach(doc => {
+                    const category = doc.data();
+                    const categoryName = category[`name_${langCode}`] || category.name_tr || 'Kategori Adı Yok';
+                    if (categoryName) {
+                        productCategoriesContainer.innerHTML += `
+                            <div class="col">
+                                <a href="#" class="card category-card">
+                                    ${categoryName}
+                                </a>
+                            </div>
+                        `;
+                    }
+                });
+            } catch (error) {
+                console.error("Kategoriler yüklenirken hata:", error);
+                productCategoriesContainer.innerHTML = '<p class="text-center w-100 text-danger">Kategoriler yüklenirken bir hata oluştu.</p>';
+            }
+        }
     </script>
 </body>
 </html>
