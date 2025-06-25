@@ -31,21 +31,55 @@
             object-fit: contain; /* İçeriği kutuya sığdırırken oranlarını korur */
             /* cursor: zoom-in; */ /* Video için zoom mantıklı olmayabilir, kaldırıldı */
         }
-        .product-thumbnails img, .product-thumbnails video {
+        .product-thumbnails {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        /* Thumbnail kapsayıcıları için stil */
+        .product-thumbnails .thumbnail-item { /* Yeni sınıf */
             width: 80px;
             height: 80px;
-            object-fit: cover;
             border: 1px solid #dee2e6;
             border-radius: 5px;
             cursor: pointer;
             opacity: 0.7;
             transition: opacity 0.2s;
+            position: relative; /* Play butonu için */
+            overflow: hidden; /* İçerik taşmasını engelle */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #f9f9f9;
         }
-        .product-thumbnails img:hover, .product-thumbnails video:hover,
-        .product-thumbnails img.active, .product-thumbnails video.active {
+        .product-thumbnails .thumbnail-item:hover,
+        .product-thumbnails .thumbnail-item.active {
             opacity: 1;
             border-color: #007bff;
         }
+        /* Thumbnail içindeki medya elemanları */
+        .product-thumbnails .thumbnail-item img,
+        .product-thumbnails .thumbnail-item video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block; /* Resmin altında boşluk bırakmaz */
+        }
+        /* Thumbnail içindeki play butonu */
+        .product-thumbnails .thumbnail-item .play-icon {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1.8em; /* Boyut ayarı */
+            color: rgba(255, 255, 255, 0.8);
+            background-color: rgba(0, 0, 0, 0.5);
+            border-radius: 50%;
+            padding: 2px 5px; /* Küçük buton için padding */
+            pointer-events: all; /* Tıklanabilir olmasını sağlar */
+            z-index: 2; /* Resmin/videonun üzerinde olması için */
+        }
+
         .product-info h1 { font-size: 2.5rem; margin-bottom: 1rem; }
         .product-price { font-size: 2rem; font-weight: bold; color: #007bff; margin-bottom: 1.5rem; }
         .product-description p { line-height: 1.8; color: #555; }
@@ -336,7 +370,7 @@
                 productDetailRelatedProducts: 'Related Products',
                 productDetailExplore: 'Explore',
                 productDetailShippingInfo: 'Shipping Information',
-                productDetailReturnAndExchange: 'Return and Exchange', // Fixed typo here
+                productDetailReturnAndExchange: 'Return and Exchange', 
                 productDetailAdditionalInfo: 'Additional Information',
                 productDetailNoVariants: 'No variant options.',
                 productNotFound: 'Product not found!',
@@ -387,7 +421,7 @@
         const menuRegisterLink = document.getElementById('menu-register-link');
 
         document.addEventListener('DOMContentLoaded', async () => {
-            await loadCommonDataAndPopulateHeader(); // loadCommonData ve populateHeaderSelectors birleştirildi
+            await loadCommonDataAndPopulateHeader(); 
             updateHeaderDisplays();
             updateStaticContent(); 
             updateCartItemCount();
@@ -439,14 +473,14 @@
                 allCountries = []; allLanguages = []; allCurrencies = []; siteSettings = {};
                 localStorage.setItem(LS_SELECTED_LANGUAGE_CODE, 'en');
                 localStorage.setItem(LS_SELECTED_CURRENCY_CODE, 'USD');
-                populateHeaderSelectors(); // Hata durumunda bile Header'ı boş veya varsayılan değerlerle doldur
+                populateHeaderSelectors(); 
             }
         }
 
 
         // Medya gösterimini güncelleyen yardımcı fonksiyon
         function updateMainMediaDisplay(url) {
-            mainMediaDisplayEl.innerHTML = ''; // Önceki içeriği temizle
+            mainMediaDisplayEl.innerHTML = ''; 
 
             const isImage = url.match(/\.(jpeg|jpg|gif|png|webp)$/i);
             const isDirectVideo = url.match(/\.(mp4|webm|ogg|mov)(\?|$)/i); // Parametreli URL'leri tanımak için düzeltildi
@@ -475,9 +509,9 @@
                 
                 if (videoId) {
                     const iframe = document.createElement('iframe');
-                    iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=0&loop=1&playlist=${videoId}&controls=1`;
+                    iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=0&loop=1&playlist=${videoId}&controls=1`; // Doğru YouTube embed URL'si
                     iframe.setAttribute('frameborder', '0');
-                    iframe.setAttribute('allow', 'autoplay; encrypted-media; fullscreen'); // Fullscreen izni
+                    iframe.setAttribute('allow', 'autoplay; encrypted-media; fullscreen'); 
                     iframe.setAttribute('allowfullscreen', '');
                     mainMediaDisplayEl.appendChild(iframe);
                 } else {
@@ -538,10 +572,10 @@
                 const currencySymbol = allCurrencies.find(c => c.code === currentCurrencyCode)?.symbol || '₺';
                 productPriceEl.textContent = `${calculatedPrice} ${currencySymbol}`;
 
-                // Görsel Galerisi ve Thumbnails
+                // Görsel Galerisi ve Thumbnails (GÜNCELLENDİ)
                 productThumbnailsEl.innerHTML = '';
                 if (product.mediaUrls && product.mediaUrls.length > 0) {
-                    // İlk medyayı ana gösterimde göster (URL'yi doğru tanıyacak şekilde)
+                    // İlk medyayı ana gösterimde göster
                     updateMainMediaDisplay(product.mediaUrls[0]); 
 
                     product.mediaUrls.forEach((url, index) => {
@@ -550,46 +584,72 @@
                         const isYouTube = url.includes('youtube.com') || url.includes('youtu.be');
                         const isVimeo = url.includes('vimeo.com');
                         
-                        let thumbEl;
+                        // Thumbnail kapsayıcısı
+                        const thumbnailItemDiv = document.createElement('div');
+                        thumbnailItemDiv.classList.add('thumbnail-item');
+                        if (index === 0) thumbnailItemDiv.classList.add('active'); // İlk thumbnail aktif olsun
+
+                        let thumbMediaEl; // Thumbnail'ın içindeki img veya video elemanı
+                        let playIcon = null; // Oynatma ikonu
+
                         if (isImage) {
-                            thumbEl = document.createElement('img');
-                            thumbEl.src = url;
+                            thumbMediaEl = document.createElement('img');
+                            thumbMediaEl.src = url;
                         } else if (isDirectVideo) {
-                            thumbEl = document.createElement('video'); 
-                            thumbEl.src = url;
-                            thumbEl.controls = false; 
-                            thumbEl.muted = true; 
-                            thumbEl.setAttribute('preload', 'metadata');
-                            thumbEl.poster = `https://via.placeholder.com/80x80?text=Video`; // Genel video posteri
+                            thumbMediaEl = document.createElement('video');
+                            thumbMediaEl.src = url;
+                            thumbMediaEl.controls = false;
+                            thumbMediaEl.muted = true;
+                            thumbMediaEl.setAttribute('preload', 'metadata');
+                            thumbMediaEl.poster = `https://via.placeholder.com/80x80?text=MP4`; // Genel MP4 placeholder
+                            playIcon = document.createElement('i');
+                            playIcon.className = 'bi bi-play-circle-fill play-icon';
                         } else if (isYouTube) {
                             let videoId = '';
                             const youtubeMatch = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
                             if (youtubeMatch && youtubeMatch[1]) videoId = youtubeMatch[1];
-                            thumbEl = document.createElement('img'); // YouTube için resim thumbnail
-                            thumbEl.src = videoId ? `https://img.youtube.com/vi/${videoId}/default.jpg` : `https://via.placeholder.com/80x80?text=YouTube`; 
+                            
+                            thumbMediaEl = document.createElement('img');
+                            // YouTube için doğru thumbnail URL'si
+                            thumbMediaEl.src = videoId ? `https://img.youtube.com/vi/${videoId}/default.jpg` : `https://via.placeholder.com/80x80?text=YouTube`;
+                            playIcon = document.createElement('i');
+                            playIcon.className = 'bi bi-play-circle-fill play-icon';
                         } else if (isVimeo) {
                             let videoId = '';
                             const vimeoMatch = url.match(/(?:vimeo\.com\/)(\d+)/);
                             if (vimeoMatch && vimeoMatch[1]) videoId = vimeoMatch[1];
-                            thumbEl = document.createElement('img'); // Vimeo için resim thumbnail (genel)
-                            thumbEl.src = `https://via.placeholder.com/80x80?text=Vimeo`;
+                            
+                            thumbMediaEl = document.createElement('img');
+                            thumbMediaEl.src = `https://via.placeholder.com/80x80?text=Vimeo`; // Genel Vimeo placeholder
+                            playIcon = document.createElement('i');
+                            playIcon.className = 'bi bi-play-circle-fill play-icon';
                         } else {
-                            thumbEl = document.createElement('img'); // Bilinmeyen tür için
-                            thumbEl.src = `https://via.placeholder.com/80x80?text=Medya`;
+                            thumbMediaEl = document.createElement('img');
+                            thumbMediaEl.src = `https://via.placeholder.com/80x80?text=Medya`;
                         }
 
-                        thumbEl.classList.add('img-fluid');
-                        if (index === 0) thumbEl.classList.add('active'); 
+                        // Thumbnail içine medya elementini ekle
+                        thumbnailItemDiv.appendChild(thumbMediaEl);
+
+                        // Eğer video ise oynatma ikonunu ve tıklama olayını ekle
+                        if (playIcon) {
+                            thumbnailItemDiv.appendChild(playIcon);
+                            playIcon.addEventListener('click', (e) => {
+                                e.stopPropagation(); // Kapsayıcının tıklama olayını engelle
+                                updateMainMediaDisplay(url); // Videoyu ana oynatıcıya yükle
+                                productThumbnailsEl.querySelectorAll('.active').forEach(item => item.classList.remove('active'));
+                                thumbnailItemDiv.classList.add('active');
+                            });
+                        } else {
+                            // Resim ise doğrudan thumbnailDiv'e tıklama olayını ekle
+                            thumbnailItemDiv.addEventListener('click', () => {
+                                updateMainMediaDisplay(url);
+                                productThumbnailsEl.querySelectorAll('.active').forEach(item => item.classList.remove('active'));
+                                thumbnailItemDiv.classList.add('active');
+                            });
+                        }
                         
-                        // Thumbnail'a tıklama olayı
-                        thumbEl.addEventListener('click', () => {
-                            // Ana medya gösterimini güncelle
-                            updateMainMediaDisplay(url); 
-                            // Aktif sınıfı güncelle
-                            productThumbnailsEl.querySelectorAll('.active').forEach(item => item.classList.remove('active'));
-                            thumbEl.classList.add('active');
-                        });
-                        productThumbnailsEl.appendChild(thumbEl);
+                        productThumbnailsEl.appendChild(thumbnailItemDiv); // Kapsayıcıyı ekle
                     });
                 } else {
                     updateMainMediaDisplay('https://via.placeholder.com/600x400?text=Görsel+Yok');
@@ -783,7 +843,7 @@
                 allCountries = []; allLanguages = []; allCurrencies = []; siteSettings = {};
                 localStorage.setItem(LS_SELECTED_LANGUAGE_CODE, 'en');
                 localStorage.setItem(LS_SELECTED_CURRENCY_CODE, 'USD');
-                populateHeaderSelectors(); // Hata durumunda bile Header'ı boş veya varsayılan değerlerle doldur
+                populateHeaderSelectors(); 
             }
         }
 
