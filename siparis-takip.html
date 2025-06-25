@@ -53,6 +53,8 @@
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarAccountDropdown">
                             <li><a class="dropdown-item" href="admin-login.html" id="menu-login-link">Giriş Yap</a></li>
                             <li><a class="dropdown-item" href="kayit-ol.html" id="menu-register-link">Kayıt Ol</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="siparis-takip.html">Sipariş Takibi</a></li>
                         </ul>
                     </li>
                     <li class="nav-item">
@@ -111,10 +113,10 @@
         </div>
 
         <div id="order-details-display" class="card shadow-sm p-4 order-detail-card d-none">
-            <h3 id="order-display-id">Sipariş No: #</h3>
-            <p id="order-status-display">Durum: <span class="badge bg-secondary" id="status-badge"></span></p>
-            <p id="order-date-display">Tarih: </p>
-            <p id="order-tracking-number-display">Kargo Takip No: <span id="tracking-number-value"></span></p>
+            <h3 id="order-display-id"><span id="order-display-id-label">Sipariş No:</span> #</h3>
+            <p id="order-status-display"><span id="order-status-label">Durum:</span> <span class="badge bg-secondary" id="status-badge"></span></p>
+            <p id="order-date-display"><span id="order-date-label">Tarih:</span> </p>
+            <p id="order-tracking-number-display"><span id="order-tracking-number-label">Kargo Takip No:</span> <span id="tracking-number-value"></span></p>
 
             <hr>
 
@@ -201,20 +203,20 @@
                 menuRegister: 'Kayıt Ol',
                 settingsSaved: 'Ayarlar güncellendi!',
                 footerAddressNotFound: 'Adres bilgisi bulunamadı.',
-                trackingPageTitle: 'Sipariş Takibi', // Yeni
-                trackingFormTitle: 'Sipariş Bilgilerinizi Girin', // Yeni
-                orderIdLabel: 'Sipariş Numarası', // Yeni
-                orderEmailLabel: 'E-posta Adresi', // Yeni
-                trackOrderButton: 'Siparişi Sorgula', // Yeni
-                orderNotFound: 'Sipariş bulunamadı veya bilgiler eşleşmiyor.', // Yeni
-                orderDisplayId: 'Sipariş No:', // Yeni
-                orderStatus: 'Durum:', // Yeni
-                orderDate: 'Tarih:', // Yeni
-                orderTrackingNumber: 'Kargo Takip No:', // Yeni
-                customerInfoTitle: 'Müşteri Bilgileri', // Yeni
-                shippingAddressTitle: 'Gönderim Adresi', // Yeni
-                orderedProductsTitle: 'Sipariş Edilen Ürünler', // Yeni
-                totalAmountTitle: 'Toplam Tutar', // Yeni
+                trackingPageTitle: 'Sipariş Takibi', 
+                trackingFormTitle: 'Sipariş Bilgilerinizi Girin', 
+                orderIdLabel: 'Sipariş Numarası', 
+                orderEmailLabel: 'E-posta Adresi', 
+                trackOrderButton: 'Siparişi Sorgula', 
+                orderNotFound: 'Sipariş bulunamadı veya bilgiler eşleşmiyor.', 
+                orderDisplayId: 'Sipariş No:', 
+                orderStatus: 'Durum:', 
+                orderDate: 'Tarih:', 
+                orderTrackingNumber: 'Kargo Takip No:', 
+                customerInfoTitle: 'Müşteri Bilgileri', 
+                shippingAddressTitle: 'Gönderim Adresi', 
+                orderedProductsTitle: 'Sipariş Edilen Ürünler', 
+                totalAmountTitle: 'Toplam Tutar', 
                 continueShopping: 'Alışverişe Devam Et'
             },
             'en': {
@@ -259,18 +261,28 @@
         const trackingErrorMessage = document.getElementById('tracking-error-message');
         const orderDetailsDisplay = document.getElementById('order-details-display');
 
-        const orderDisplayId = document.getElementById('order-display-id');
-        const orderStatusDisplay = document.getElementById('order-status-display');
+        // Yeni DOM elementleri için const tanımlamaları
+        const trackingFormTitle = document.getElementById('tracking-form-title');
+        const orderIdLabel = document.getElementById('order-id-label');
+        const orderEmailLabel = document.getElementById('order-email-label');
+        const trackOrderButton = document.getElementById('track-order-button');
+        const orderDisplayIdLabel = document.getElementById('order-display-id'); // span değil, h3'ün ID'si
+        const orderStatusLabel = document.getElementById('order-status-display'); // p'nin ID'si
         const statusBadge = document.getElementById('status-badge');
-        const orderDateDisplay = document.getElementById('order-date-display');
-        const orderTrackingNumberDisplay = document.getElementById('order-tracking-number-display');
-        const trackingNumberValue = document.getElementById('tracking-number-value');
+        const orderDateLabel = document.getElementById('order-date-display'); // p'nin ID'si
+        const orderTrackingNumberLabel = document.getElementById('order-tracking-number-display'); // p'nin ID'si
+        const trackingNumberValue = document.getElementById('tracking-number-value'); // span'in ID'si
+        const customerInfoTitle = document.getElementById('customer-info-title');
         const customerNameDisplay = document.getElementById('customer-name-display');
         const customerEmailDisplay = document.getElementById('customer-email-display');
         const customerPhoneDisplay = document.getElementById('customer-phone-display');
+        const shippingAddressTitle = document.getElementById('shipping-address-title');
         const shippingAddressDisplay = document.getElementById('shipping-address-display');
+        const orderedProductsTitle = document.getElementById('ordered-products-title');
         const orderedProductsList = document.getElementById('ordered-products-list');
+        const totalAmountTitle = document.getElementById('total-amount-title');
         const totalAmountDisplay = document.getElementById('total-amount-display');
+
 
         // Header ve Footer Elementleri (index.html'den kopyalandı)
         const selectedCountryDisplay = document.getElementById('selected-country-display');
@@ -285,7 +297,7 @@
         const footerWhatsappNumber = document.getElementById('footer-whatsapp-number');
         const menuLoginLink = document.getElementById('menu-login-link');
         const menuRegisterLink = document.getElementById('menu-register-link');
-        const cartItemCount = document.getElementById('cart-item-count'); // Sepet sayacı
+        const cartItemCount = document.getElementById('cart-item-count'); 
 
         document.addEventListener('DOMContentLoaded', async () => {
             await loadCommonDataAndPopulateHeader();
@@ -297,27 +309,31 @@
             // URL'den orderId parametresini al
             const urlParams = new URLSearchParams(window.location.search);
             const orderIdFromUrl = urlParams.get('orderId');
-            const emailFromUrl = urlParams.get('email'); // Eğer e-posta da URL'den geliyorsa
+            const emailFromUrl = urlParams.get('email'); 
 
             if (orderIdFromUrl) {
-                orderIdInput.value = orderIdFromUrl;
-                if (emailFromUrl) orderEmailInput.value = emailFromUrl;
-                await lookupOrder(orderIdFromUrl, emailFromUrl || ''); // Otomatik sorgula
+                if(orderIdInput) orderIdInput.value = orderIdFromUrl;
+                if(orderEmailInput) orderEmailInput.value = emailFromUrl || '';
+                await lookupOrder(orderIdFromUrl, emailFromUrl || ''); 
             }
 
             // Sipariş sorgulama formu submit olayı
-            orderTrackingForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const orderId = orderIdInput.value.trim();
-                const email = orderEmailInput.value.trim();
-                if (orderId && email) {
-                    await lookupOrder(orderId, email);
-                } else {
-                    trackingErrorMessage.textContent = appTexts[localStorage.getItem(LS_SELECTED_LANGUAGE_CODE) || 'tr'].orderNotFound;
-                    trackingErrorMessage.classList.remove('d-none');
-                    orderDetailsDisplay.classList.add('d-none'); // Detayları gizle
-                }
-            });
+            if(orderTrackingForm) {
+                orderTrackingForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const orderId = orderIdInput.value.trim();
+                    const email = orderEmailInput.value.trim();
+                    if (orderId && email) {
+                        await lookupOrder(orderId, email);
+                    } else {
+                        if(trackingErrorMessage) {
+                            trackingErrorMessage.textContent = appTexts[localStorage.getItem(LS_SELECTED_LANGUAGE_CODE) || 'tr'].orderNotFound;
+                            trackingErrorMessage.classList.remove('d-none');
+                        }
+                        if(orderDetailsDisplay) orderDetailsDisplay.classList.add('d-none'); 
+                    }
+                });
+            }
 
             // Anonim kullanıcı oturumu aç (Diğer sayfalarla tutarlılık için)
             auth.onAuthStateChanged(async (user) => {
@@ -363,34 +379,36 @@
             const currentLanguageCode = localStorage.getItem(LS_SELECTED_LANGUAGE_CODE) || 'tr';
             const texts = appTexts[currentLanguageCode] || appTexts['en'];
 
-            trackingPageTitle.textContent = texts.trackingPageTitle;
-            document.getElementById('tracking-form-title').textContent = texts.trackingFormTitle;
-            document.getElementById('order-id-label').textContent = texts.orderIdLabel;
-            document.getElementById('order-email-label').textContent = texts.orderEmailLabel;
-            document.getElementById('track-order-button').textContent = texts.trackOrderButton;
-            document.getElementById('order-display-id').firstElementChild.textContent = texts.orderDisplayId;
-            document.getElementById('order-status-display').firstElementChild.textContent = texts.orderStatus;
-            document.getElementById('order-date-display').firstElementChild.textContent = texts.orderDate;
-            document.getElementById('order-tracking-number-display').firstElementChild.textContent = texts.orderTrackingNumber;
-            document.getElementById('customer-info-title').textContent = texts.customerInfoTitle;
-            document.getElementById('shipping-address-title').textContent = texts.shippingAddressTitle;
-            document.getElementById('ordered-products-title').textContent = texts.orderedProductsTitle;
-            document.getElementById('total-amount-title').textContent = texts.totalAmountTitle;
+            if(trackingPageTitle) trackingPageTitle.textContent = texts.trackingPageTitle;
+            if(trackingFormTitle) trackingFormTitle.textContent = texts.trackingFormTitle;
+            if(orderIdLabel) orderIdLabel.textContent = texts.orderIdLabel;
+            if(orderEmailLabel) orderEmailLabel.textContent = texts.orderEmailLabel;
+            if(trackOrderButton) trackOrderButton.textContent = texts.trackOrderButton;
+            if(orderDisplayIdLabel) orderDisplayIdLabel.firstElementChild.textContent = texts.orderDisplayId;
+            if(orderStatusLabel) orderStatusLabel.firstElementChild.textContent = texts.orderStatus;
+            if(orderDateLabel) orderDateLabel.firstElementChild.textContent = texts.orderDate;
+            if(orderTrackingNumberLabel) orderTrackingNumberLabel.firstElementChild.textContent = texts.orderTrackingNumber;
+            if(customerInfoTitle) customerInfoTitle.textContent = texts.customerInfoTitle;
+            if(shippingAddressTitle) shippingAddressTitle.textContent = texts.shippingAddressTitle;
+            if(orderedProductsTitle) orderedProductsTitle.textContent = texts.orderedProductsTitle;
+            if(totalAmountTitle) totalAmountTitle.textContent = texts.totalAmountTitle;
         }
 
         async function lookupOrder(orderId, email) {
             const currentLanguageCode = localStorage.getItem(LS_SELECTED_LANGUAGE_CODE) || 'tr';
             const texts = appTexts[currentLanguageCode] || appTexts['en'];
             
-            trackingErrorMessage.classList.add('d-none'); // Önceki hataları gizle
-            orderDetailsDisplay.classList.add('d-none'); // Önceki detayları gizle
+            if(trackingErrorMessage) trackingErrorMessage.classList.add('d-none');
+            if(orderDetailsDisplay) orderDetailsDisplay.classList.add('d-none');
 
             try {
                 const orderDoc = await db.collection('orders').doc(orderId).get();
 
                 if (!orderDoc.exists) {
-                    trackingErrorMessage.textContent = texts.orderNotFound;
-                    trackingErrorMessage.classList.remove('d-none');
+                    if(trackingErrorMessage) {
+                        trackingErrorMessage.textContent = texts.orderNotFound;
+                        trackingErrorMessage.classList.remove('d-none');
+                    }
                     return;
                 }
 
@@ -398,22 +416,19 @@
                 const currentUser = auth.currentUser;
 
                 // GÜVENLİK KONTROLÜ:
-                // 1. Kullanıcı oturum açmış mı?
-                // 2. Siparişin userId'si oturum açmış kullanıcının UID'siyle eşleşiyor mu?
-                // 3. VEYA, girilen e-posta siparişin e-postasıyla eşleşiyor mu?
+                // Siparişi veren UID ile mevcut UID eşleşiyor mu VEYA
+                // Girilen e-posta siparişteki e-posta ile eşleşiyor mu?
                 if (!currentUser || (currentUser.uid !== order.userId && order.customerInfo.email !== email)) {
-                    trackingErrorMessage.textContent = texts.orderNotFound; // Güvenlik için genel mesaj
-                    trackingErrorMessage.classList.remove('d-none');
+                    if(trackingErrorMessage) {
+                        trackingErrorMessage.textContent = texts.orderNotFound; 
+                        trackingErrorMessage.classList.remove('d-none');
+                    }
                     return;
                 }
                 
-                // Eğer kullanıcı anonim olarak sipariş verdiyse ve farklı bir oturumda ise,
-                // ve e-posta da eşleşmiyorsa bu siparişi göstermeyebiliriz.
-                // Eğer e-posta eşleşiyorsa gösterebiliriz.
-                // Firebase kuralınızın bu tür public okumalara izin verdiğinden emin olun:
-                // `match /orders/{orderId} { allow read: if request.auth != null && (request.auth.uid == resource.data.userId || resource.data.customerInfo.email == <gelen_email>); }`
-
-                // Durum rozetleri için
+                // Sipariş Detaylarını Göster
+                if(orderDisplayIdLabel) orderDisplayIdLabel.textContent = `${texts.orderDisplayId} #${orderId.substring(0, 8).toUpperCase()}`;
+                
                 const statusBadges = {
                     'Yeni': 'bg-primary',
                     'Pending Payment': 'bg-warning text-dark',
@@ -423,22 +438,24 @@
                     'İptal Edildi': 'bg-danger'
                 };
                 const statusClass = statusBadges[order.status] || 'bg-secondary';
+                if(statusBadge) { // Span elementinin kendisini güncelle
+                    statusBadge.textContent = order.status;
+                    statusBadge.className = `badge ${statusClass}`;
+                }
+                if(orderDateLabel) orderDateLabel.textContent = `${texts.orderDate} ${order.timestamp.toDate().toLocaleDateString('tr-TR')}`;
+                if(orderTrackingNumberLabel) orderTrackingNumberLabel.textContent = `${texts.orderTrackingNumber} `; // Label kısmı
+                if(trackingNumberValue) trackingNumberValue.textContent = order.trackingNumber || 'N/A'; // Sadece değer kısmı
 
-                // Sipariş Detaylarını Göster
-                orderDisplayId.textContent = `${texts.orderDisplayId} #${orderId.substring(0, 8).toUpperCase()}`;
-                statusBadge.textContent = order.status;
-                statusBadge.className = `badge ${statusClass}`; // Class'ları güncelle
-                orderDateDisplay.textContent = `${texts.orderDate} ${order.timestamp.toDate().toLocaleDateString('tr-TR')}`;
-                orderTrackingNumberDisplay.textContent = `${texts.orderTrackingNumber} ${order.trackingNumber || 'N/A'}`;
-                trackingNumberValue.textContent = order.trackingNumber || 'N/A'; // Value kısmını ayrı güncelle
-                
-                customerNameDisplay.textContent = `${order.customerInfo.firstName || ''} ${order.customerInfo.lastName || ''}`;
-                customerEmailDisplay.textContent = order.customerInfo.email || 'N/A';
-                customerPhoneDisplay.textContent = order.customerInfo.phone || 'N/A';
 
-                shippingAddressDisplay.innerHTML = `${order.shippingAddress.address1 || ''}${order.shippingAddress.address2 ? '<br>' + order.shippingAddress.address2 : ''}<br>` +
-                                                 `${order.shippingAddress.city || ''}, ${order.shippingAddress.zip || ''}<br>` +
-                                                 `${order.shippingAddress.country || ''}`;
+                if(customerNameDisplay) customerNameDisplay.textContent = `${order.customerInfo.firstName || ''} ${order.customerInfo.lastName || ''}`;
+                if(customerEmailDisplay) customerEmailDisplay.textContent = order.customerInfo.email || 'N/A';
+                if(customerPhoneDisplay) customerPhoneDisplay.textContent = order.customerInfo.phone || 'N/A';
+
+                if(shippingAddressDisplay) {
+                    shippingAddressDisplay.innerHTML = `${order.shippingAddress.address1 || ''}${order.shippingAddress.address2 ? '<br>' + order.shippingAddress.address2 : ''}<br>` +
+                                                     `${order.shippingAddress.city || ''}, ${order.shippingAddress.zip || ''}<br>` +
+                                                     `${order.shippingAddress.country || ''}`;
+                }
                 
                 orderedProductsList.innerHTML = '';
                 order.products.forEach(product => {
@@ -463,14 +480,16 @@
                     `;
                 });
 
-                totalAmountDisplay.textContent = `${order.totalAmount.toFixed(2)} ${order.currency}`;
+                if(totalAmountDisplay) totalAmountDisplay.textContent = `${order.totalAmount.toFixed(2)} ${order.currency}`;
 
-                orderDetailsDisplay.classList.remove('d-none'); // Detayları göster
+                if(orderDetailsDisplay) orderDetailsDisplay.classList.remove('d-none');
 
             } catch (error) {
                 console.error("Sipariş sorgulanırken hata:", error);
-                trackingErrorMessage.textContent = texts.orderNotFound;
-                trackingErrorMessage.classList.remove('d-none');
+                if(trackingErrorMessage) {
+                    trackingErrorMessage.textContent = texts.orderNotFound;
+                    trackingErrorMessage.classList.remove('d-none');
+                }
             }
         }
 
@@ -478,85 +497,87 @@
         // Sepet sayacını güncelle (header'daki)
         function updateCartItemCount() {
             const currentCartItems = JSON.parse(localStorage.getItem(LS_CART_ITEMS) || '[]');
-            document.getElementById('cart-item-count').textContent = currentCartItems.length;
+            if(cartItemCount) document.getElementById('cart-item-count').textContent = currentCartItems.length;
         }
 
         // --- Header ve Footer İçin Ortak Fonksiyonlar (index.html'den kopyalandı) ---
 
         function populateHeaderSelectors() {
             const currentLangCode = localStorage.getItem(LS_SELECTED_LANGUAGE_CODE) || 'tr';
-            headerCountrySelect.innerHTML = '';
+            if(headerCountrySelect) headerCountrySelect.innerHTML = '';
             allCountries.forEach(country => {
                 const option = document.createElement('option');
                 option.value = country.code;
                 option.textContent = country[`name_${currentLangCode}`] || country.name_tr || country.name;
-                headerCountrySelect.appendChild(option);
+                if(headerCountrySelect) headerCountrySelect.appendChild(option);
             });
 
-            headerLanguageSelect.innerHTML = '';
+            if(headerLanguageSelect) headerLanguageSelect.innerHTML = '';
             allLanguages.forEach(lang => {
                     const option = document.createElement('option');
                     option.value = lang.code;
                     option.textContent = lang.name;
-                    headerLanguageSelect.appendChild(option);
+                    if(headerLanguageSelect) headerLanguageSelect.appendChild(option);
             });
 
-            headerCurrencySelect.innerHTML = '';
+            if(headerCurrencySelect) headerCurrencySelect.innerHTML = '';
             allCurrencies.forEach(currency => {
                 const option = document.createElement('option');
                 option.value = currency.code;
                 option.textContent = `${currency.symbol} (${currency.code})`;
-                headerCurrencySelect.appendChild(option);
+                if(headerCurrencySelect) headerCurrencySelect.appendChild(option);
             });
 
-            headerCountrySelect.value = localStorage.getItem(LS_SELECTED_COUNTRY_CODE) || '';
-            headerLanguageSelect.value = localStorage.getItem(LS_SELECTED_LANGUAGE_CODE) || '';
-            headerCurrencySelect.value = localStorage.getItem(LS_SELECTED_CURRENCY_CODE) || '';
+            if(headerCountrySelect) headerCountrySelect.value = localStorage.getItem(LS_SELECTED_COUNTRY_CODE) || '';
+            if(headerLanguageSelect) headerLanguageSelect.value = localStorage.getItem(LS_SELECTED_LANGUAGE_CODE) || '';
+            if(headerCurrencySelect) headerCurrencySelect.value = localStorage.getItem(LS_SELECTED_CURRENCY_CODE) || '';
         }
 
         function updateHeaderDisplays() {
             const currentCountryCode = localStorage.getItem(LS_SELECTED_COUNTRY_CODE);
-            const currentLanguageCode = localStorage.getItem(LS_SELECTED_LANGUAGE_CODE);
-            const currentCurrencyCode = localStorage.getItem(LS_SELECTED_CURRENCY_CODE);
+            const currentLanguageCode = localStorage.getItem(LS_SELECTED_LANGUAGE_CODE) || 'tr'; // Default 'tr'
+            const currentCurrencyCode = localStorage.getItem(LS_SELECTED_CURRENCY_CODE) || 'TRY'; // Default 'TRY'
 
             const selectedCountry = allCountries.find(c => c.code === currentCountryCode);
             const selectedLanguage = allLanguages.find(l => l.code === currentLanguageCode);
             const selectedCurrency = allCurrencies.find(c => c.code === currentCurrencyCode);
 
-            selectedCountryDisplay.textContent = selectedCountry ? selectedCountry.code.toUpperCase() : 'TR';
-            selectedLanguageDisplay.textContent = selectedLanguage ? selectedLanguage.code.toUpperCase() : 'TR';
-            selectedCurrencyDisplay.textContent = selectedCurrency ? selectedCurrency.symbol : '₺';
+            if(selectedCountryDisplay) selectedCountryDisplay.textContent = selectedCountry ? selectedCountry.code.toUpperCase() : 'TR';
+            if(selectedLanguageDisplay) selectedLanguageDisplay.textContent = selectedLanguage ? selectedLanguage.code.toUpperCase() : 'TR';
+            if(selectedCurrencyDisplay) selectedCurrencyDisplay.textContent = selectedCurrency ? selectedCurrency.symbol : '₺';
         }
 
         function updateStaticContent() {
             const currentLangCode = localStorage.getItem(LS_SELECTED_LANGUAGE_CODE) || 'tr'; 
             const texts = appTexts[currentLangCode] || appTexts['en']; 
 
-            footerCompanyAddress.textContent = siteSettings[`companyAddress_${currentLangCode}`] || texts.footerAddressNotFound;
-            footerContactEmail.textContent = siteSettings.contactEmail || 'info@pufemo.com';
-            footerWhatsappNumber.textContent = siteSettings.whatsappNumber || '+90 5XX XXX XX XX';
+            if(footerCompanyAddress) footerCompanyAddress.textContent = siteSettings[`companyAddress_${currentLangCode}`] || texts.footerAddressNotFound;
+            if(footerContactEmail) footerContactEmail.textContent = siteSettings.contactEmail || 'info@pufemo.com';
+            if(footerWhatsappNumber) footerWhatsappNumber.textContent = siteSettings.whatsappNumber || '+90 5XX XXX XX XX';
             
             if (menuLoginLink) menuLoginLink.textContent = texts.menuLogin;
             if (menuRegisterLink) menuRegisterLink.textContent = texts.menuRegister;
         }
 
         // Headerdaki ülke/dil/para birimi değiştiğinde tüm sayfayı güncelleyen event listener
-        saveHeaderSelectionsBtn.addEventListener('click', async () => { 
-            localStorage.setItem(LS_SELECTED_COUNTRY_CODE, headerCountrySelect.value);
-            localStorage.setItem(LS_SELECTED_LANGUAGE_CODE, headerLanguageSelect.value);
-            localStorage.setItem(LS_SELECTED_CURRENCY_CODE, headerCurrencySelect.value);
-            updateHeaderDisplays();
-            updateStaticContent(); 
-            updatePageTexts(); // Dili değişince metinleri güncelle
+        if(saveHeaderSelectionsBtn) {
+            saveHeaderSelectionsBtn.addEventListener('click', async () => { 
+                localStorage.setItem(LS_SELECTED_COUNTRY_CODE, headerCountrySelect.value);
+                localStorage.setItem(LS_SELECTED_LANGUAGE_CODE, headerLanguageSelect.value);
+                localStorage.setItem(LS_SELECTED_CURRENCY_CODE, headerCurrencySelect.value);
+                updateHeaderDisplays();
+                updateStaticContent(); 
+                updatePageTexts(); // Dili değişince metinleri güncelle
 
-            // Eğer sipariş detayları gösteriliyorsa, yeni dile göre yeniden yükle
-            const orderIdFromUrl = new URLSearchParams(window.location.search).get('orderId');
-            if (orderIdFromUrl && orderDetailsDisplay.classList.contains('d-none') === false) { // Sadece zaten gösteriliyorsa
-                await lookupOrder(orderIdInput.value.trim(), orderEmailInput.value.trim()); // Yeniden sorgula
-            }
-            
-            alert(appTexts[localStorage.getItem(LS_SELECTED_LANGUAGE_CODE) || 'tr']?.settingsSaved || appTexts['en'].settingsSaved); 
-        });
+                // Eğer sipariş detayları gösteriliyorsa, yeni dile göre yeniden yükle
+                const orderIdFromUrl = new URLSearchParams(window.location.search).get('orderId');
+                if (orderIdFromUrl && orderDetailsDisplay && !orderDetailsDisplay.classList.contains('d-none')) { 
+                    await lookupOrder(orderIdInput.value.trim(), orderEmailInput.value.trim()); 
+                }
+                
+                alert(appTexts[localStorage.getItem(LS_SELECTED_LANGUAGE_CODE) || 'tr']?.settingsSaved || appTexts['en'].settingsSaved); 
+            });
+        }
 
     </script>
 </body>
