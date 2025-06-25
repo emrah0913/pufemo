@@ -373,9 +373,8 @@
                 const existingIcon = continueShoppingMainBtn.querySelector('.bi-arrow-left');
                 if (!existingIcon) { 
                     const icon = document.createElement('i');
-                    icon.classList.add('bi', 'bi-arrow-left');
-                    continueShoppingMainBtn.prepend(icon); // Önce ikonu ekle
-                    // ikonun class'larını ekle (eskiden burası hataydı)
+                    icon.classList.add('bi', 'bi-arrow-left'); // İkonun class'larını burada ekle
+                    continueShoppingMainBtn.prepend(icon); // Sonra ikonu ekle
                 }
             }
             
@@ -390,7 +389,17 @@
             if(checkoutButton) checkoutButton.textContent = texts.checkoutButton;
 
 
-            cartItems = JSON.parse(localStorage.getItem(LS_CART_ITEMS) || '[]');
+            let rawCartItems = JSON.parse(localStorage.getItem(LS_CART_ITEMS) || '[]');
+            // Hatalı veya tanımsız productId'ye sahip öğeleri baştan filtrele
+            cartItems = rawCartItems.filter(item => item && typeof item.productId === 'string' && item.productId.trim() !== '');
+
+            // Eğer filtreleme sonucunda sepet değiştiyse, localStorage'ı güncelle ve sayfayı baştan render et
+            if (cartItems.length !== rawCartItems.length) {
+                updateLocalStorageCart();
+                return loadCartAndRender(); // Temizlenmiş sepetle baştan render et
+            }
+
+
             cartItemsBody.innerHTML = ''; 
 
             if (cartItems.length === 0) {
@@ -402,10 +411,7 @@
                 if(emptyCartMessage) emptyCartMessage.classList.add('d-none'); 
             }
 
-            const productIdsInCart = cartItems.map(item => item.productId);
-            // Sadece geçerli string ID'leri filtrele
-            const validProductIdsInCart = productIdsInCart.filter(id => typeof id === 'string' && id.trim() !== '');
-            const uniqueProductIds = [...new Set(validProductIdsInCart)];
+            const uniqueProductIds = [...new Set(cartItems.map(item => item.productId))]; 
 
             let fetchedProductsMap = new Map();
             if (uniqueProductIds.length > 0) {
@@ -428,22 +434,31 @@
                 }
             }
             
+            // Sepeti render etmeden önce, aktif olmayan veya bulunamayan ürünleri bir daha kontrol et ve temizle
+            let finalCartItemsToRender = [];
+            for (const item of cartItems) {
+                const productData = fetchedProductsMap.get(item.productId);
+                if (productData && productData.isActive !== false) {
+                    finalCartItemsToRender.push(item);
+                } else {
+                    console.warn(`Sepetinizdeki ürün bulunamadı veya pasif, ID: ${item.productId}. Sepetten kaldırılıyor.`);
+                }
+            }
+
+            // Eğer ürünler temizlendiyse, sepeti güncelle ve yeniden render et
+            if (finalCartItemsToRender.length !== cartItems.length) {
+                cartItems = finalCartItemsToRender;
+                updateLocalStorageCart();
+                return loadCartAndRender(); // Temizlenmiş sepetle baştan render et
+            }
 
             let subtotal = 0;
             const selectedCountryData = allCountries.find(c => c.code === currentCountryCode);
             const priceMultiplier = selectedCountryData ? (selectedCountryData.multiplier || 1) : 1;
             const currencySymbol = allCurrencies.find(c => c.code === currentCurrencyCode)?.symbol || '₺';
 
-            cartItems.forEach((item, index) => {
-                const productData = fetchedProductsMap.get(item.productId);
-                if (!productData || productData.isActive === false) {
-                    console.warn(`Sepetinizdeki ürün bulunamadı veya pasif, ID: ${item.productId}. Sepetten kaldırılıyor.`);
-                    cartItems.splice(index, 1);
-                    updateLocalStorageCart(); 
-                    loadCartAndRender(); 
-                    return; 
-                }
-
+            finalCartItemsToRender.forEach((item, index) => { // Temizlenmiş listeyi kullan
+                const productData = fetchedProductsMap.get(item.productId); // Bu noktada productData'nın var olduğu garanti
                 const basePrice = productData.basePriceTRY || 0;
                 const calculatedPrice = (basePrice * priceMultiplier).toFixed(2);
                 const itemTotal = (parseFloat(calculatedPrice) * item.quantity).toFixed(2);
@@ -530,7 +545,6 @@
                     updateCartItemCount(); 
                 }
             } else if (target.classList.contains('quantity-input')) {
-                // Input değeri değiştiğinde (Enter veya focus dışı)
                 let newQuantity = parseInt(target.value);
                 if (isNaN(newQuantity) || newQuantity < 1) {
                     newQuantity = 1; 
@@ -608,7 +622,7 @@
             footerWhatsappNumber.textContent = siteSettings.whatsappNumber || '+90 5XX XXX XX XX';
             
             if (menuLoginLink) menuLoginLink.textContent = texts.menuLogin;
-            if (menuRegisterLink) menuRegisterLink.textContent = texts.menuRegister;
+            if (menuRegisterLink) menuLoginLink.textContent = texts.menuRegister;
         }
 
         // Headerdaki ülke/dil/para birimi değiştiğinde tüm sayfayı güncelleyen event listener
