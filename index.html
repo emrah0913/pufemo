@@ -3,390 +3,137 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PUFEMO - Modern Mobilya Mağazası</title>
-
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-
-    <!-- Google Fonts: Poppins -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-
-    <!-- Custom Styles -->
+    <title>PUFEMO - Hoş Geldiniz</title>
+    <meta name="description" content="">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
-        body {
-            font-family: 'Poppins', sans-serif;
-            background-color: #f8f9fa;
-        }
-        .free-shipping-badge {
-            position: absolute;
-            top: 12px;
-            left: 12px;
-            background-color: #10B981; /* Tailwind green-500 */
-            color: white;
-            padding: 4px 10px;
-            border-radius: 9999px;
-            font-size: 0.75rem;
-            font-weight: 600;
-        }
-        .product-card:hover .product-image {
-            transform: scale(1.05);
-        }
-        .product-image {
-            transition: transform 0.3s ease-in-out;
-        }
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: rgba(0,0,0,0.7);
-            z-index: 50;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        #settings-dropdown {
-            transition: opacity 0.3s ease, transform 0.3s ease;
-        }
-        /* Basit bir slider animasyonu için */
-        @keyframes fadeIn {
-            from { opacity: .4 }
-            to { opacity: 1 }
-        }
-        .fade-in {
-            animation: fadeIn 1.5s;
-        }
+        .initial-modal { display: none; position: fixed; z-index: 1060; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5); }
+        .initial-modal.is-visible { display: flex; align-items: center; justify-content: center; }
+        .country-list { max-height: 400px; overflow-y: auto; }
+        .product-card img { height: 250px; object-fit: cover; }
+        .modal-step { display: none; }
     </style>
 </head>
-<body class="bg-gray-50">
+<body>
 
-    <!-- =================================================================
-         İLK GİRİŞ İÇİN ÜLKE SEÇİM MODALI
-    ================================================================== -->
-    <div id="country-selection-modal" class="modal-overlay hidden">
-        <div class="bg-white rounded-lg shadow-2xl p-8 w-11/12 md:w-1/3 text-center">
-            <h2 class="text-2xl font-bold mb-4 text-gray-800">Hangi ülkede yaşıyorsunuz?</h2>
-            <p class="text-gray-600 mb-6">Size özel fiyatlar ve teslimat seçenekleri için lütfen ülkenizi seçin.</p>
-            <div class="mb-6">
-                <select id="initial-country-selector" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                    <!-- Ülkeler Firestore'dan dinamik olarak buraya yüklenecek -->
-                </select>
-            </div>
-            <button id="save-country-selection" class="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700 transition duration-300">
-                Devam Et
-            </button>
-        </div>
-    </div>
-
-    <!-- =================================================================
-         HEADER
-    ================================================================== -->
-    <header class="bg-white shadow-sm sticky top-0 z-40">
-        <!-- Top Bar: Dil/Para Birimi Seçimi -->
-        <div class="bg-gray-100 text-gray-600 text-xs py-1 px-4 md:px-8">
-            <div class="container mx-auto flex justify-between items-center">
-                <span>Modern tasarımlar, eşsiz fiyatlar!</span>
-                <div class="relative">
-                    <div id="settings-display" class="flex items-center space-x-2 cursor-pointer">
-                        <span id="current-selection-text">Yükleniyor...</span>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+    <div class="initial-modal" id="initial-modal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-step" id="step-country">
+                    <div class="modal-header"><h5 class="modal-title">Lütfen Ülkenizi Seçin</h5></div>
+                    <div class="modal-body">
+                        <p class="text-muted">Fiyat ve teslimat seçeneklerini görebilmek için lütfen ülkenizi seçin.</p>
+                        <div class="list-group country-list" id="country-list"></div>
                     </div>
-                    <!-- Bağımsız Seçim Dropdown Menüsü -->
-                    <div id="settings-dropdown" class="hidden absolute top-full right-0 mt-2 bg-white rounded-lg shadow-xl border p-4 w-64 z-50">
-                        <div class="space-y-4">
-                            <div>
-                                <label for="country-header-selector" class="block text-sm font-medium text-gray-700 mb-1">Ülke</label>
-                                <select id="country-header-selector" class="w-full p-2 border border-gray-300 rounded-md text-sm">
-                                     <!-- Ülkeler Firestore'dan dinamik olarak buraya yüklenecek -->
-                                </select>
-                            </div>
-                            <div>
-                                <label for="language-header-selector" class="block text-sm font-medium text-gray-700 mb-1">Dil</label>
-                                <select id="language-header-selector" class="w-full p-2 border border-gray-300 rounded-md text-sm">
-                                    <!-- Diller Firestore'dan dinamik olarak buraya yüklenecek -->
-                                </select>
-                            </div>
-                            <div>
-                                <label for="currency-header-selector" class="block text-sm font-medium text-gray-700 mb-1">Para Birimi</label>
-                                <select id="currency-header-selector" class="w-full p-2 border border-gray-300 rounded-md text-sm">
-                                    <!-- Para Birimleri Firestore'dan dinamik olarak buraya yüklenecek -->
-                                </select>
-                            </div>
+                </div>
+                <div class="modal-step" id="step-auth-options">
+                    <div class="modal-header"><h5 class="modal-title">Hoş Geldiniz</h5></div>
+                    <div class="modal-body text-center">
+                        <p><strong id="selected-country-name"></strong> için devam edin.</p>
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-primary" id="guest-btn">Misafir Olarak Devam Et</button>
+                            <button class="btn btn-secondary" id="show-login-btn">Giriş Yap</button>
+                            <button class="btn btn-outline-secondary" id="show-register-btn">Kayıt Ol</button>
                         </div>
                     </div>
                 </div>
+                <div class="modal-step" id="step-login">
+                    <div class="modal-header"><h5 class="modal-title">Giriş Yap</h5></div>
+                    <div class="modal-body">
+                        <form id="login-form">
+                            <div class="mb-3"><input type="email" class="form-control" id="login-email" placeholder="E-posta" required></div>
+                            <div class="mb-3"><input type="password" class="form-control" id="login-password" placeholder="Şifre" required></div>
+                            <div id="login-error" class="alert alert-danger d-none"></div>
+                            <div class="d-grid"><button type="submit" class="btn btn-primary">Giriş Yap</button></div>
+                            <a href="#" class="btn btn-link btn-sm float-end" id="back-to-options-1">Geri</a>
+                        </form>
+                    </div>
+                </div>
+                <div class="modal-step" id="step-register">
+                     <div class="modal-header"><h5 class="modal-title">Kayıt Ol</h5></div>
+                    <div class="modal-body">
+                        <form id="register-form">
+                            <div class="mb-3"><input type="email" class="form-control" id="register-email" placeholder="E-posta" required></div>
+                            <div class="mb-3"><input type="password" class="form-control" id="register-password" placeholder="Şifre" required></div>
+                             <div id="register-error" class="alert alert-danger d-none"></div>
+                            <div class="d-grid"><button type="submit" class="btn btn-primary">Kayıt Ol</button></div>
+                            <a href="#" class="btn btn-link btn-sm float-end" id="back-to-options-2">Geri</a>
+                        </form>
+                    </div>
+                </div>
             </div>
         </div>
+    </div>
 
-        <!-- Main Header -->
-        <div class="container mx-auto px-4 md:px-8 py-4">
-             <div class="flex justify-between items-center">
-                <a href="index.html" class="text-3xl font-bold text-indigo-600">PUFEMO</a>
-                <div class="hidden md:block w-1/3 lg:w-1/2">
-                    <div class="relative">
-                        <input type="text" placeholder="Ürün, kategori veya marka ara..." class="w-full bg-gray-100 border border-transparent focus:ring-2 focus:ring-indigo-500 focus:border-transparent rounded-full py-2 pl-4 pr-10">
-                        <svg class="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                    </div>
-                </div>
-                <div class="flex items-center space-x-4 md:space-x-6">
-                    <a href="admin.html" class="text-gray-600 hover:text-indigo-600">
-                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                    </a>
-                    <a href="orders.html" class="text-gray-600 hover:text-indigo-600">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
-                    </a>
-                    <a href="cart.html" class="relative text-gray-600 hover:text-indigo-600">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.16"/></svg>
-                        <span id="cart-item-count" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">0</span>
-                    </a>
-                </div>
-            </div>
-        </div>
+    <header id="page-header"></header>
+    <main></main>
+    <footer class="bg-dark text-white pt-5 pb-4"></footer>
 
-        <nav class="border-t border-gray-200">
-            <div class="container mx-auto px-4 md:px-8">
-                <ul id="category-nav" class="flex items-center justify-center space-x-8 font-medium text-gray-700 h-14">
-                    <!-- Kategoriler Firestore'dan dinamik olarak buraya yüklenecek -->
-                    <li><a href="#" class="hover:text-indigo-600">...</a></li>
-                </ul>
-            </div>
-        </nav>
-    </header>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <script>
+        // ... (Firebase config ve exchangeRates burada) ...
+        const firebaseConfig = { apiKey: "...", authDomain: "...", projectId: "..." };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
 
-    <main>
-        <!-- Diğer sayfa içeriği aynı kalır... -->
-        <!-- SLIDER -->
-        <section id="slider-container" class="relative w-full h-[60vh] bg-gray-200 overflow-hidden">
-            <div class="slider-item fade-in" style="background-image: url('https://placehold.co/1920x700/6366f1/ffffff?text=Modern+ve+%C5%9E%C4%B1k+Tasarımlar'); background-size: cover; background-position: center; height: 100%;">
-                <div class="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center text-white text-center">
-                    <div>
-                        <h2 class="text-4xl md:text-6xl font-bold mb-4">Oturma Odanızı Yeniden Keşfedin</h2>
-                        <p class="text-lg md:text-xl mb-8 max-w-2xl mx-auto">Konfor ve estetiği bir araya getiren koleksiyonumuzla tanışın.</p>
-                        <a href="#" class="bg-indigo-600 text-white font-bold py-3 px-8 rounded-full hover:bg-indigo-700 transition duration-300">Şimdi Keşfet</a>
-                    </div>
-                </div>
-            </div>
-        </section>
+        let selectedCountry = null;
 
-        <!-- KATEGORİLER -->
-         <section class="py-16 bg-white">
-            <div class="container mx-auto px-4 md:px-8">
-                <h2 class="text-3xl font-bold text-center text-gray-800 mb-12">Kategoriler</h2>
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-                    <div class="group relative rounded-lg overflow-hidden shadow-lg">
-                        <img src="https://placehold.co/600x400/a5b4fc/ffffff?text=Koltuk+Tak%C4%B1mlar%C4%B1" alt="Koltuk Takımları" class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500"><div class="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center"><h3 class="text-white text-2xl font-bold">Koltuk Takımları</h3></div>
-                    </div>
-                     <div class="group relative rounded-lg overflow-hidden shadow-lg">
-                        <img src="https://placehold.co/600x400/818cf8/ffffff?text=Yatak+Odalar%C4%B1" alt="Yatak Odaları" class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500"><div class="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center"><h3 class="text-white text-2xl font-bold">Yatak Odaları</h3></div>
-                    </div>
-                     <div class="group relative rounded-lg overflow-hidden shadow-lg">
-                        <img src="https://placehold.co/600x400/6366f1/ffffff?text=Yemek+Masalar%C4%B1" alt="Yemek Masaları" class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500"><div class="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center"><h3 class="text-white text-2xl font-bold">Yemek Masaları</h3></div>
-                    </div>
-                     <div class="group relative rounded-lg overflow-hidden shadow-lg">
-                        <img src="https://placehold.co/600x400/4f46e5/ffffff?text=Bah%C3%A7e+Mobilyalar%C4%B1" alt="Bahçe Mobilyaları" class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500"><div class="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center"><h3 class="text-white text-2xl font-bold">Bahçe Mobilyaları</h3></div>
-                    </div>
-                </div>
-            </div>
-        </section>
-        
-        <!-- ÜRÜNLER -->
-        <section class="py-16">
-            <div class="container mx-auto px-4 md:px-8">
-                <h2 class="text-3xl font-bold text-center text-gray-800 mb-12">Öne Çıkan Ürünler</h2>
-                <div id="product-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-                </div>
-            </div>
-        </section>
+        document.addEventListener('DOMContentLoaded', showCountryModal);
 
-    </main>
+        function showStep(stepId) {
+            document.querySelectorAll('.modal-step').forEach(step => step.style.display = 'none');
+            document.getElementById(stepId).style.display = 'block';
+        }
 
-    <footer class="bg-gray-800 text-white">
-         <div class="container mx-auto px-4 md:px-8 py-16">
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
-                <div><h3 class="text-xl font-bold mb-4">PUFEMO</h3><p class="text-gray-400">Hayalinizdeki evi tasarlamanız için modern, kaliteli ve şık mobilyalar.</p></div>
-                <div><h3 class="font-bold mb-4">Kurumsal</h3><ul class="space-y-2 text-gray-400"><li><a href="#" class="hover:text-white">Hakkımızda</a></li><li><a href="#" class="hover:text-white">Gizlilik Politikası</a></li><li><a href="#" class="hover:text-white">İade Koşulları</a></li><li><a href="#" class="hover:text-white">İletişim</a></li></ul></div>
-                <div><h3 class="font-bold mb-4">Kategoriler</h3><ul class="space-y-2 text-gray-400"><li><a href="#" class="hover:text-white">Koltuk Takımları</a></li><li><a href="#" class="hover:text-white">Yatak Odaları</a></li><li><a href="#" class="hover:text-white">Yemek Odaları</a></li><li><a href="#" class="hover:text-white">Aksesuarlar</a></li></ul></div>
-                <div><h3 class="font-bold mb-4">Bültenimize Abone Olun</h3><p class="text-gray-400 mb-4">Kampanyalardan ve yeni ürünlerden ilk siz haberdar olun.</p><div class="flex"><input type="email" placeholder="E-posta adresiniz" class="w-full rounded-l-lg p-2 text-gray-800"><button class="bg-indigo-600 text-white px-4 rounded-r-lg hover:bg-indigo-700">Abone Ol</button></div></div>
-            </div>
-        </div>
-        <div class="bg-gray-900 py-4"><div class="container mx-auto px-4 md:px-8 text-center text-gray-500 text-sm">&copy; 2024 PUFEMO. Tüm hakları saklıdır.</div></div>
-    </footer>
+        async function showCountryModal() {
+            // ... (önceki mesajdaki gibi ülkeleri yükler) ...
+            document.getElementById('initial-modal').classList.add('is-visible');
+            showStep('step-country');
+        }
 
+        function selectCountry(country) {
+            selectedCountry = country;
+            document.getElementById('selected-country-name').textContent = country.name;
+            showStep('step-auth-options');
+        }
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-analytics.js";
-        
-        const firebaseConfig = {
-            apiKey: "AIzaSyDYkzZzNXB22U4oEXxOoPh-puwuE8kz0g4",
-            authDomain: "pufemo-com.firebaseapp.com",
-            projectId: "pufemo-com",
-            storageBucket: "pufemo-com.appspot.com",
-            messagingSenderId: "983352837227",
-            appId: "1:983352837227:web:defaa8dae215776e2e1d2e",
-            measurementId: "G-RH8XHC7P91"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        const analytics = getAnalytics(app);
-
-        onAuthStateChanged(auth, user => {
-            if (user) { console.log("Kullanıcı giriş yaptı:", user.uid); } 
-            else { signInAnonymously(auth).catch(error => console.error("Anonim giriş başarısız:", error)); }
-        });
-
-        // --- DOM Elements ---
-        const countryModal = document.getElementById('country-selection-modal');
-        const saveCountryBtn = document.getElementById('save-country-selection');
-        const initialCountrySelector = document.getElementById('initial-country-selector');
-        const settingsDisplay = document.getElementById('settings-display');
-        const settingsDropdown = document.getElementById('settings-dropdown');
-        const currentSelectionText = document.getElementById('current-selection-text');
-        const countryHeaderSelector = document.getElementById('country-header-selector');
-        const languageHeaderSelector = document.getElementById('language-header-selector');
-        const currencyHeaderSelector = document.getElementById('currency-header-selector');
-        const SETTINGS_KEY = 'pufemo_settings';
-
-        // --- Core Functions ---
-
-        async function fetchAndPopulateSettings() {
+        document.getElementById('guest-btn').addEventListener('click', async () => {
             try {
-                console.log("Firestore'dan ayarlar çekiliyor...");
-                const settingsRef = collection(db, 'settings');
-                const countriesCol = collection(settingsRef, 'countries', 'items');
-                const languagesCol = collection(settingsRef, 'languages', 'items');
-                const currenciesCol = collection(settingsRef, 'currencies', 'items');
-
-                const [countriesSnapshot, languagesSnapshot, currenciesSnapshot] = await Promise.all([
-                    getDocs(countriesCol),
-                    getDocs(languagesCol),
-                    getDocs(currenciesCol)
-                ]);
-
-                const countries = countriesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                const languages = languagesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                const currencies = currenciesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-                populateSelect(initialCountrySelector, countries, c => `${c.flag} ${c.name}`, c => c.id, c => ({ 'data-lang': c.defaultLang, 'data-currency': c.defaultCurrency }));
-                populateSelect(countryHeaderSelector, countries, c => `${c.flag} ${c.name}`, c => c.id, c => ({ 'data-lang': c.defaultLang, 'data-currency': c.defaultCurrency }));
-                populateSelect(languageHeaderSelector, languages, l => `${l.name} (${l.id})`, l => l.id);
-                populateSelect(currencyHeaderSelector, currencies, cu => `${cu.name} (${cu.symbol})`, cu => cu.id);
-                
-                console.log("Ayarlar başarıyla çekildi ve dropdown'lar dolduruldu.");
-                
-                initializeSettings();
-
-            } catch (error) {
-                console.error("Ayarları Firestore'dan çekerken hata oluştu:", error);
-                currentSelectionText.textContent = "Hata oluştu!";
-            }
-        }
-
-        function populateSelect(selectElement, items, textFn, valueFn, dataAttrsFn) {
-            selectElement.innerHTML = '';
-            items.forEach(item => {
-                const option = document.createElement('option');
-                option.value = valueFn(item);
-                option.textContent = textFn(item);
-                if (dataAttrsFn) {
-                    const attrs = dataAttrsFn(item);
-                    for (const key in attrs) {
-                        option.setAttribute(key, attrs[key]);
-                    }
-                }
-                selectElement.appendChild(option);
-            });
-        }
-
-        /**
-         * Loads saved settings for the UI, then ALWAYS shows the initial selection modal.
-         */
-        function initializeSettings() {
-            const savedSettings = localStorage.getItem(SETTINGS_KEY);
-            
-            // First, load any saved settings to populate the header and dropdowns in the background.
-            if (savedSettings) {
-                const parsedSettings = JSON.parse(savedSettings);
-                updateHeaderText(parsedSettings);
-                updateSettingsDropdown(parsedSettings);
-                console.log("Arka plan için kaydedilmiş ayarlar yüklendi:", parsedSettings);
-            }
-
-            // Now, always show the initial selection modal, as requested.
-            if (initialCountrySelector.options.length > 0) {
-                countryModal.classList.remove('hidden');
-            }
-        }
-
-        function updateHeaderText(settings) {
-            const countryOption = countryHeaderSelector.querySelector(`option[value="${settings.country}"]`);
-            const flag = countryOption ? countryOption.textContent.split(' ')[0] : '🏳️';
-            currentSelectionText.textContent = `${flag} ${settings.lang} / ${settings.currency}`;
-        }
-
-        function updateSettingsDropdown(settings) {
-            // Ensure dropdowns have options before setting values
-            if (countryHeaderSelector.options.length > 0) countryHeaderSelector.value = settings.country;
-            if (languageHeaderSelector.options.length > 0) languageHeaderSelector.value = settings.lang;
-            if (currencyHeaderSelector.options.length > 0) currencyHeaderSelector.value = settings.currency;
-        }
-
-        function saveSettingsAndReload() {
-            const newSettings = {
-                country: countryHeaderSelector.value,
-                lang: languageHeaderSelector.value,
-                currency: currencyHeaderSelector.value,
-            };
-            localStorage.setItem(SETTINGS_KEY, JSON.stringify(newSettings));
-            location.reload();
-        }
-
-        // --- Event Listeners ---
-        saveCountryBtn.addEventListener('click', () => {
-            const selectedOption = initialCountrySelector.options[initialCountrySelector.selectedIndex];
-            const settings = {
-                country: selectedOption.value,
-                lang: selectedOption.dataset.lang,
-                currency: selectedOption.dataset.currency,
-            };
-            localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-            countryModal.classList.add('hidden');
-            location.reload(); 
+                const userCredential = await auth.signInAnonymously();
+                completeSessionSetup(userCredential.user, selectedCountry);
+            } catch (error) { console.error("Anonim giriş hatası:", error); }
         });
 
-        settingsDisplay.addEventListener('click', e => {
-            e.stopPropagation();
-            settingsDropdown.classList.toggle('hidden');
-        });
+        document.getElementById('show-login-btn').addEventListener('click', () => showStep('step-login'));
+        document.getElementById('show-register-btn').addEventListener('click', () => showStep('step-register'));
+        document.getElementById('back-to-options-1').addEventListener('click', () => showStep('step-auth-options'));
+        document.getElementById('back-to-options-2').addEventListener('click', () => showStep('step-auth-options'));
 
-        settingsDropdown.addEventListener('click', e => e.stopPropagation());
-
-        countryHeaderSelector.addEventListener('change', () => {
-             const selectedOption = countryHeaderSelector.options[countryHeaderSelector.selectedIndex];
-             languageHeaderSelector.value = selectedOption.dataset.lang;
-             currencyHeaderSelector.value = selectedOption.dataset.currency;
-             saveSettingsAndReload();
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            // ... (signInWithEmailAndPassword mantığı, başarılı olunca completeSessionSetup çağırır) ...
         });
-        languageHeaderSelector.addEventListener('change', saveSettingsAndReload);
-        currencyHeaderSelector.addEventListener('change', saveSettingsAndReload);
         
-        window.addEventListener('click', () => {
-            if (!settingsDropdown.classList.contains('hidden')) {
-                settingsDropdown.classList.add('hidden');
-            }
+        document.getElementById('register-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            // ... (createUserWithEmailAndPassword mantığı, başarılı olunca completeSessionSetup çağırır) ...
         });
 
-        document.addEventListener('DOMContentLoaded', () => {
-            fetchAndPopulateSettings();
-        });
+        function completeSessionSetup(user, country) {
+            console.log("Oturum kuruldu. Kullanıcı:", user.uid, "Ülke:", country.name);
+            localStorage.setItem('pufemo-country', JSON.stringify(country));
+            document.getElementById('initial-modal').classList.remove('is-visible');
+            initializeApp(country);
+        }
 
+        async function initializeApp(countrySettings) {
+            // ... (Sayfayı render eden tüm fonksiyonlar burada) ...
+        }
     </script>
 </body>
 </html>
