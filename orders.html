@@ -11,7 +11,14 @@
         #sidebar { width: 280px; min-height: 100vh; background-color: #343a40; color: white; position: fixed; left: 0; top: 0; z-index: 100; }
         #main-content { margin-left: 280px; width: calc(100% - 280px); padding: 20px; }
         .sidebar-header { padding: 20px; text-align: center; font-size: 1.5rem; font-weight: bold; border-bottom: 1px solid #495057; }
-        .nav-link { color: #adb5bd; padding: 10px 20px; }
+        /* BURADA DÜZELTME YAPILDI: İkon ve metin hizalaması */
+        .nav-link { 
+            color: #adb5bd; 
+            padding: 10px 20px; 
+            display: flex; /* İkon ve metni yan yana hizalamak için */
+            align-items: center; /* Dikeyde ortalamak için */
+            text-decoration: none; /* Alt çizgiyi kaldırmak için */
+        }
         .nav-link.active, .nav-link:hover { color: #ffffff; background-color: #495057; }
         .nav-link .bi { margin-right: 10px; }
         .status-badge { font-size: 0.9em; }
@@ -99,7 +106,7 @@
                 const statusBadges = { 'Yeni': 'bg-primary', 'Pending Payment': 'bg-warning text-dark', 'Hazırlanıyor': 'bg-warning text-dark', 'Kargoda': 'bg-info text-dark', 'Teslim Edildi': 'bg-success', 'İptal Edildi': 'bg-danger' }; // 'Pending Payment' eklendi
                 const statusClass = statusBadges[order.status] || 'bg-secondary';
                 
-                // Müşteri bilgisini customerInfo objesinden al (yapıyı koruyarak)
+                // Müşteri bilgisini customerInfo objesinden al
                 const customerDisplayName = order.customerInfo ? `${order.customerInfo.firstName || ''} ${order.customerInfo.lastName || ''}`.trim() : 'Bilinmiyor';
 
                 const row = `<tr><td><strong>#${doc.id.substring(0, 8).toUpperCase()}</strong></td><td>${customerDisplayName}</td><td>${order.timestamp.toDate().toLocaleDateString('tr-TR')}</td><td>${order.totalAmount.toFixed(2)} ${order.currency}</td><td><span class="badge ${statusClass} status-badge">${order.status}</span></td><td><button class="btn btn-sm btn-outline-secondary" onclick="viewOrderDetails('${doc.id}')">Detay Gör</button></td></tr>`;
@@ -124,8 +131,9 @@
                 : 'Adres Bilgisi Yok';
             
             document.getElementById('orderDetailsModalLabel').textContent = `Sipariş Detayı: #${orderId.substring(0, 8).toUpperCase()}`;
+            // HTML'deki <p> etiketlerinin yapısı bozulmadan içeriği güncellendi
             document.getElementById('customer-info').innerHTML = `<strong>${customerNameDisplay}</strong> (${customerEmailDisplay})<br><small>Tel: ${customerPhoneDisplay}</small>`;
-            document.getElementById('shipping-address').innerHTML = shippingAddressDisplay; // innerHTML kullanıldı çünkü <br> var
+            document.getElementById('shipping-address').innerHTML = shippingAddressDisplay; 
             document.getElementById('currentOrderId').value = orderId;
             document.getElementById('orderStatus').value = order.status;
             document.getElementById('trackingNumber').value = order.trackingNumber || '';
@@ -143,6 +151,7 @@
                     }
                     if (variantText) variantText = `<br><small class="text-muted">Varyantlar: ${variantText.trim()}</small>`;
                 }
+                // product.price ve product.currency doğru objedeki alanlardan alınıyor
                 const row = `<tr><td>${product.name}${variantText}</td><td>${product.quantity}</td><td class="text-end">${product.price.toFixed(2)} ${product.currency}</td></tr>`; 
                 productsTable.innerHTML += row;
             });
