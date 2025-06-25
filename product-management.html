@@ -4,204 +4,197 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ürün Yönetimi - PUFEMO Admin</title>
-    
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-
     <style>
-        body { display: flex; background-color: #f0f2f5; }
-        #sidebar { width: 280px; min-height: 100vh; background-color: #343a40; color: white; position: fixed; left: 0; top: 0; z-index: 100; }
-        #main-content { margin-left: 280px; width: calc(100% - 280px); padding: 20px; }
-        .sidebar-header { padding: 20px; text-align: center; font-size: 1.5rem; font-weight: bold; border-bottom: 1px solid #495057; }
-        .nav-link { color: #adb5bd; padding: 10px 20px; }
-        .nav-link.active, .nav-link:hover { color: #ffffff; background-color: #495057; }
-        .nav-link .bi { margin-right: 10px; }
-        .product-image-thumb { width: 60px; height: 60px; object-fit: cover; border-radius: 5px; }
-        .loading-spinner { display: none; }
+        /* ... Önceki CSS kodları ... */
+        .variant-option-row { border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 10px; }
     </style>
 </head>
 <body>
-
-    <div id="sidebar">
-        <div class="sidebar-header">PUFEMO</div>
-        <ul class="nav flex-column">
-            <li class="nav-item"><a class="nav-link" href="admin.html"><i class="bi bi-grid-fill"></i>Ana Panel</a></li>
-            <li class="nav-item"><a class="nav-link" href="orders.html"><i class="bi bi-box-seam-fill"></i>Sipariş Yönetimi</a></li>
-            <li class="nav-item"><a class="nav-link active" href="product-management.html"><i class="bi bi-tags-fill"></i>Ürün Yönetimi</a></li>
-            <li class="nav-item"><a class="nav-link" href="category-management.html"><i class="bi bi-list-ul"></i>Kategori Yönetimi</a></li>
-            <li class="nav-item"><a class="nav-link" href="country-pricing-management.html"><i class="bi bi-globe-americas"></i>Uluslararası Ayarlar</a></li>
-            <li class="nav-item"><a class="nav-link" href="languages-and-currencies.html"><i class="bi bi-translate"></i>Diller ve Para Birimleri</a></li>
-            <li class="nav-item"><a class="nav-link" href="general-settings.html"><i class="bi bi-gear-fill"></i>Mağaza Ayarları</a></li>
-            <li class="nav-item"><a class="nav-link" href="homepage-settings.html"><i class="bi bi-house-door-fill"></i>Ana Sayfa Ayarları</a></li>
-            <li class="nav-item"><a class="nav-link" href="seo-management.html"><i class="bi bi-search"></i>SEO Yönetimi</a></li>
-            <li class="nav-item mt-auto"><a class="nav-link" id="logout-button" href="#"><i class="bi bi-box-arrow-left"></i>Çıkış Yap</a></li>
-        </ul>
-    </div>
+    <div id="sidebar"> </div>
 
     <div id="main-content">
-        <nav class="navbar navbar-expand-lg navbar-light bg-light rounded mb-4">
-            <div class="container-fluid">
-                <span class="navbar-brand">Ürün Yönetimi</span>
-                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#productModal">
-                    <i class="bi bi-plus-circle"></i> Yeni Ürün Ekle
-                </button>
-            </div>
-        </nav>
+        <div class="modal fade" id="productModal" tabindex="-1">
+            <div class="modal-dialog modal-xl"> <div class="modal-content">
+                    <div class="modal-header"><h5 class="modal-title" id="productModalLabel">Yeni Ürün Ekle</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                    <div class="modal-body">
+                        <form id="product-form">
+                            <input type="hidden" id="productId">
+                            <ul class="nav nav-tabs" id="languageTabs"></ul>
+                            <div class="tab-content p-3 border border-top-0 mb-3" id="languageTabContent"></div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3"><label for="productCategory" class="form-label">Kategori</label><select class="form-select" id="productCategory" required></select></div>
+                            </div>
+                            <div id="media-url-section"> </div>
 
-        <div class="card">
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr><th>Görsel</th><th>Ürün Adı (TR)</th><th>Stok Kodu</th><th>Fiyat (TL)</th><th>Stok</th><th>Aksiyonlar</th></tr>
-                        </thead>
-                        <tbody id="products-table-body"></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
+                            <fieldset class="mt-4 p-3 border rounded">
+                                <legend class="h6">Varyant Yönetimi</legend>
+                                <div class="input-group mb-3">
+                                    <input type="text" id="new-option-name" class="form-control" placeholder="Yeni Varyant Tipi (örn: Renk, Beden)">
+                                    <button class="btn btn-outline-success" type="button" id="add-option-btn">Varyant Tipi Ekle</button>
+                                </div>
+                                <div id="variant-options-container"></div>
+                                <button class="btn btn-info mt-2 w-100" type="button" id="generate-variants-btn">Varyasyonları Oluştur</button>
+                            </fieldset>
 
-    <div class="modal fade" id="productModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header"><h5 class="modal-title" id="productModalLabel">Yeni Ürün Ekle</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-                <div class="modal-body">
-                    <form id="product-form">
-                        <input type="hidden" id="productId">
-                        <ul class="nav nav-tabs" id="languageTabs" role="tablist"></ul>
-                        <div class="tab-content p-3 border border-top-0 mb-3" id="languageTabContent"></div>
-                        <div class="row">
-                            <div class="col-md-6 mb-3"><label for="productSKU" class="form-label">Stok Kodu (SKU)</label><input type="text" class="form-control" id="productSKU" required></div>
-                            <div class="col-md-6 mb-3"><label for="productStock" class="form-label">Stok Adedi</label><input type="number" class="form-control" id="productStock" required></div>
-                        </div>
-                        <div class="row">
-                           <div class="col-md-6 mb-3"><label for="productPrice" class="form-label">Taban Fiyat (TRY)</label><div class="input-group"><input type="number" step="0.01" class="form-control" id="productPrice" required><span class="input-group-text">₺</span></div></div>
-                           <div class="col-md-6 mb-3"><label for="productCategory" class="form-label">Kategori</label><select class="form-select" id="productCategory" required><option value="">Yükleniyor...</option></select></div>
-                        </div>
-                        <div class="mb-3"><label for="productImages" class="form-label">Ürün Görselleri</label><input class="form-control" type="file" id="productImages" multiple></div>
-                    </form>
+                            <div id="variant-table-container" class="mt-4"></div>
+                            
+                            </form>
+                    </div>
+                    <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button><button type="submit" form="product-form" class="btn btn-primary">Ürünü Kaydet</button></div>
                 </div>
-                <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button><button type="submit" form="product-form" class="btn btn-primary" id="saveProductBtn"><span class="loading-spinner spinner-border spinner-border-sm"></span> Kaydet</button></div>
             </div>
         </div>
     </div>
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage-compat.js"></script>
     <script>
-        const firebaseConfig = { apiKey: "AIzaSyDYkzZzNXB22U4oEXxOoPh-puwuE8kz0g4", authDomain: "pufemo-com.firebaseapp.com", projectId: "pufemo-com", storageBucket: "pufemo-com.firebasestorage.app", messagingSenderId: "983352837227", appId: "1:983352837227:web:defaa8dae215776e2e1d2e", measurementId: "G-RH8XHC7P91" };
-        firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const db = firebase.firestore();
-        const storage = firebase.storage();
-        const adminUID = "4tOeNJRjbxPF9BBoynJNJIBxOqU2";
-        
-        let availableLanguages = [];
-        const productModalElement = document.getElementById('productModal');
-        const productModal = new bootstrap.Modal(productModalElement);
-        const productForm = document.getElementById('product-form');
+        // ... (Firebase config ve diğer başlangıç kodları) ...
+        let variantOptions = []; // { name: "Renk", values: ["Mavi", "Kırmızı"] }
 
-        auth.onAuthStateChanged(user => {
-            if (user && user.uid === adminUID) {
-                loadProducts();
-                loadInitialData();
-            } else { window.location.href = 'admin-login.html'; }
+        // VARYANT TİPİ EKLEME
+        document.getElementById('add-option-btn').addEventListener('click', () => {
+            const optionNameInput = document.getElementById('new-option-name');
+            const optionName = optionNameInput.value.trim();
+            if (optionName && !variantOptions.some(opt => opt.name === optionName)) {
+                variantOptions.push({ name: optionName, values: [] });
+                renderVariantOptions();
+                optionNameInput.value = '';
+            }
         });
         
-        async function loadInitialData() {
-            try {
-                const langSnapshot = await db.collection('languages').get();
-                availableLanguages = langSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-                const catSnapshot = await db.collection('categories').get();
-                const categorySelect = document.getElementById('productCategory');
-                categorySelect.innerHTML = '<option value="">Kategori Seçin...</option>';
-                catSnapshot.forEach(doc => {
-                    const category = doc.data();
-                    categorySelect.innerHTML += `<option value="${doc.id}">${category.name_tr}</option>`;
-                });
-            } catch (error) { console.error("Diller ve kategoriler yüklenirken hata:", error); }
-        }
-        
-        function buildLanguageTabs(productData = {}) {
-            const tabsContainer = document.getElementById('languageTabs');
-            const contentContainer = document.getElementById('languageTabContent');
-            tabsContainer.innerHTML = ''; contentContainer.innerHTML = '';
-
-            availableLanguages.forEach((lang, index) => {
-                const isActive = index === 0;
-                tabsContainer.innerHTML += `<li class="nav-item" role="presentation"><button class="nav-link ${isActive ? 'active' : ''}" data-bs-toggle="tab" data-bs-target="#pane-${lang.code}" type="button">${lang.name}</button></li>`;
-                contentContainer.innerHTML += `<div class="tab-pane fade ${isActive ? 'show active' : ''}" id="pane-${lang.code}"><div class="mb-3"><label for="name_${lang.code}" class="form-label">Ürün Adı (${lang.code.toUpperCase()})</label><input type="text" id="name_${lang.code}" class="form-control" value="${productData[`name_${lang.code}`] || ''}"></div><div class="mb-3"><label for="description_${lang.code}" class="form-label">Açıklama (${lang.code.toUpperCase()})</label><textarea id="description_${lang.code}" class="form-control" rows="3">${productData[`description_${lang.code}`] || ''}</textarea></div></div>`;
+        // VARYANT TİPİ ARAYÜZÜNÜ OLUŞTURMA
+        function renderVariantOptions() {
+            const container = document.getElementById('variant-options-container');
+            container.innerHTML = '';
+            variantOptions.forEach((option, index) => {
+                container.innerHTML += `
+                    <div class="input-group mb-2 variant-option-row">
+                        <span class="input-group-text">${option.name}</span>
+                        <input type="text" class="form-control option-values-input" placeholder="Değerleri virgülle ayırın (örn: S,M,L)" value="${option.values.join(',')}">
+                        <button class="btn btn-outline-danger" type="button" onclick="removeOption(${index})">&times;</button>
+                    </div>`;
             });
         }
+        
+        function removeOption(index) {
+            variantOptions.splice(index, 1);
+            renderVariantOptions();
+        }
 
-        productModalElement.addEventListener('show.bs.modal', (event) => {
-            const button = event.relatedTarget;
-            const isEditing = button.hasAttribute('data-bs-id');
-            if (!isEditing) {
-                document.getElementById('productModalLabel').textContent = 'Yeni Ürün Ekle';
-                productForm.reset();
-                document.getElementById('productId').value = '';
-                buildLanguageTabs();
-            }
+        // VARYASYONLARI OLUŞTURMA BUTONU
+        document.getElementById('generate-variants-btn').addEventListener('click', () => {
+            // Önce değerleri input'lardan alıp güncelle
+            document.querySelectorAll('.variant-option-row').forEach((row, index) => {
+                const values = row.querySelector('.option-values-input').value.split(',').map(v => v.trim()).filter(Boolean);
+                variantOptions[index].values = values;
+            });
+
+            const allCombinations = getCombinations(variantOptions.map(opt => opt.values));
+            renderVariantTable(allCombinations);
         });
         
+        function getCombinations(arrays) {
+            if (!arrays || arrays.length === 0) return [];
+            let result = arrays[0].map(item => [item]);
+            for (let i = 1; i < arrays.length; i++) {
+                const nextResult = [];
+                for (const res of result) {
+                    for (const item of arrays[i]) {
+                        nextResult.push([...res, item]);
+                    }
+                }
+                result = nextResult;
+            }
+            return result;
+        }
+
+        function renderVariantTable(combinations) {
+            const container = document.getElementById('variant-table-container');
+            if (combinations.length === 0) { container.innerHTML = ''; return; }
+            let tableHTML = `<table class="table table-bordered mt-3"><thead><tr>`;
+            variantOptions.forEach(opt => { tableHTML += `<th>${opt.name}</th>`; });
+            tableHTML += `<th>Fiyat (TRY)</th><th>Stok</th><th>SKU</th></tr></thead><tbody>`;
+
+            combinations.forEach((combo, index) => {
+                tableHTML += `<tr>`;
+                combo.forEach(value => { tableHTML += `<td>${value}</td>`; });
+                tableHTML += `
+                    <td><input type="number" class="form-control variant-price" value="0.00"></td>
+                    <td><input type="number" class="form-control variant-stock" value="0"></td>
+                    <td><input type="text" class="form-control variant-sku"></td>
+                </tr>`;
+            });
+            tableHTML += `</tbody></table>`;
+            container.innerHTML = tableHTML;
+        }
+        
+        // FORMU KAYDETME (TAMAMEN YENİLENDİ)
         productForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const saveBtn = document.getElementById('saveProductBtn');
-            saveBtn.disabled = true;
-            saveBtn.querySelector('.loading-spinner').style.display = 'inline-block';
-
             const productId = document.getElementById('productId').value;
-            const files = document.getElementById('productImages').files;
-            let imageUrls = [];
+            const productData = {
+                // ... dil ve kategori gibi diğer veriler...
+                variants: [] // Varyantları buraya ekleyeceğiz
+            };
+            
+            // Tablodaki her bir satırdan varyant verisini topla
+            const variantRows = document.querySelectorAll('#variant-table-container tbody tr');
+            variantRows.forEach(row => {
+                const attributes = {};
+                const attributeNames = variantOptions.map(opt => opt.name);
+                const attributeValues = Array.from(row.children).slice(0, attributeNames.length).map(td => td.textContent);
+                
+                attributeNames.forEach((name, i) => { attributes[name] = attributeValues[i]; });
 
-            try {
-                if (files.length > 0) {
-                    const uploadPromises = Array.from(files).map(file => {
-                        const filePath = `product_images/${Date.now()}_${file.name}`;
-                        return storage.ref(filePath).put(file).then(snapshot => snapshot.ref.getDownloadURL());
-                    });
-                    imageUrls = await Promise.all(uploadPromises);
-                }
-
-                const productData = {
-                    sku: document.getElementById('productSKU').value,
-                    stock: parseInt(document.getElementById('productStock').value),
-                    basePriceTRY: parseFloat(document.getElementById('productPrice').value),
-                    categoryId: document.getElementById('productCategory').value,
-                };
-                availableLanguages.forEach(lang => {
-                    productData[`name_${lang.code}`] = document.getElementById(`name_${lang.code}`).value;
-                    productData[`description_${lang.code}`] = document.getElementById(`description_${lang.code}`).value;
+                productData.variants.push({
+                    attributes: attributes,
+                    price: parseFloat(row.querySelector('.variant-price').value),
+                    stock: parseInt(row.querySelector('.variant-stock').value),
+                    sku: row.querySelector('.variant-sku').value
                 });
-                if (imageUrls.length > 0) productData.imageUrls = imageUrls;
+            });
 
-                if (productId) {
-                    await db.collection('products').doc(productId).update(productData);
-                } else {
-                    productData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
-                    await db.collection('products').add(productData);
-                }
-                productModal.hide();
-                loadProducts();
-            } catch (error) {
-                console.error("Ürün kaydedilirken hata:", error);
-                alert("Bir hata oluştu.");
-            } finally {
-                saveBtn.disabled = false;
-                saveBtn.querySelector('.loading-spinner').style.display = 'none';
-            }
+            // ... Firestore'a kaydetme/güncelleme mantığı...
         });
-        
-        async function loadProducts() { /* ... önceki mesajlardaki gibi ... */ }
-        async function editProduct(id) { /* ... önceki mesajlardaki gibi ... */ }
-        async function deleteProduct(id) { /* ... önceki mesajlardaki gibi ... */ }
-        document.getElementById('logout-button').addEventListener('click', (e) => { e.preventDefault(); auth.signOut().then(() => { window.location.href = 'admin-login.html'; }); });
+
+        // Ürünü düzenlerken formu doldurma (yenilendi)
+        async function editProduct(id) {
+            // ... ürün verisini çek ...
+            const product = doc.data();
+
+            // ... dil, kategori, medya url gibi alanları doldur ...
+
+            // Varyantları işle
+            if (product.variants && product.variants.length > 0) {
+                // Kayıtlı varyantlardan seçenekleri ve değerleri yeniden oluştur
+                const options = {};
+                product.variants.forEach(variant => {
+                    for (const [key, value] of Object.entries(variant.attributes)) {
+                        if (!options[key]) options[key] = new Set();
+                        options[key].add(value);
+                    }
+                });
+                variantOptions = Object.keys(options).map(key => ({ name: key, values: Array.from(options[key]) }));
+                renderVariantOptions();
+
+                // Varyasyon tablosunu oluştur ve verileri doldur
+                const combinations = product.variants.map(v => Object.values(v.attributes));
+                renderVariantTable(combinations);
+                
+                // Kayıtlı verileri tabloya yazdır
+                const variantRows = document.querySelectorAll('#variant-table-container tbody tr');
+                variantRows.forEach((row, index) => {
+                    row.querySelector('.variant-price').value = product.variants[index].price;
+                    row.querySelector('.variant-stock').value = product.variants[index].stock;
+                    row.querySelector('.variant-sku').value = product.variants[index].sku;
+                });
+            }
+            productModal.show();
+        }
     </script>
 </body>
 </html>
