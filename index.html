@@ -259,8 +259,8 @@
                 </div>
                 <div class="modal-body text-center">
                     <div class="d-grid gap-2">
-                        <a href="admin-login.html" class="btn btn-success btn-lg">Giriş Yap</a>
-                        <a href="kayit-ol.html" class="btn btn-outline-primary btn-lg">Kayıt Ol</a>
+                        <a href="admin-login.html" class="btn btn-success btn-lg" id="auth-login-btn">Giriş Yap</a>
+                        <a href="kayit-ol.html" class="btn btn-outline-primary btn-lg" id="auth-register-btn">Kayıt Ol</a>
                         <button type="button" class="btn btn-secondary btn-lg" id="continue-as-guest-btn">Misafir Olarak Devam Et</button>
                     </div>
                 </div>
@@ -308,6 +308,12 @@
 
         const promoBanner = document.getElementById('promo-banner');
 
+        // Auth Modal Butonları ve Başlığı
+        const authModalLabel = document.getElementById('authModalLabel');
+        const authLoginBtn = document.getElementById('auth-login-btn');
+        const authRegisterBtn = document.getElementById('auth-register-btn');
+        // continueAsGuestBtn zaten tanımlı
+
         let allCountries = [];
         let allLanguages = [];
         let allCurrencies = [];
@@ -317,6 +323,30 @@
         const LS_SELECTED_COUNTRY_CODE = 'pufemo_selected_country_code';
         const LS_SELECTED_LANGUAGE_CODE = 'pufemo_selected_language_code';
         const LS_SELECTED_CURRENCY_CODE = 'pufemo_selected_currency_code';
+
+        // Auth Modal Metinleri (Çok Dilli)
+        const authModalTexts = {
+            'tr': {
+                title: 'Nasıl Devam Etmek İstersiniz?',
+                login: 'Giriş Yap',
+                register: 'Kayıt Ol',
+                guest: 'Misafir Olarak Devam Et'
+            },
+            'en': {
+                title: 'How would you like to proceed?',
+                login: 'Login',
+                register: 'Register',
+                guest: 'Continue as Guest'
+            },
+            'de': { // Örnek olarak Almanca da ekleyelim
+                title: 'Wie möchten Sie fortfahren?',
+                login: 'Anmelden',
+                register: 'Registrieren',
+                guest: 'Als Gast fortfahren'
+            }
+            // Diğer diller buraya eklenebilir
+        };
+
 
         // Sayfa yüklendiğinde çalışacak ana fonksiyon
         document.addEventListener('DOMContentLoaded', async () => {
@@ -372,19 +402,25 @@
             const storedCountryCode = localStorage.getItem(LS_SELECTED_COUNTRY_CODE);
             if (storedCountryCode) {
                 countrySelectModal.value = storedCountryCode;
-                // Eğer daha önce bir ülke seçilmişse ve her zaman modalı göstermek istiyorsak,
-                // yine de mevcut seçimi yükleyip display'i güncellemeliyiz.
-                await setSelectedCountry(storedCountryCode);
+                // Eğer daha önce bir ülke seçilmişse, mevcut seçimi yükleyip display'i güncellemeliyiz.
+                // Bu, hoş geldiniz modalı her zaman gelse bile, varsayılan seçimin gelmesini sağlar.
+                await setSelectedCountry(storedCountryCode); // Bu fonksiyon aynı zamanda dili ve para birimini ayarlar
             }
             
             // HER ZAMAN HOŞ GELDİNİZ MODALINI GÖSTER
             welcomeCountryModal.show();
-
-            // Eğer welcomeCountryModal kapatıldığında authModal otomatik olarak açılmıyorsa
-            // (static backdrop olduğu için kapatma düğmesine basılması gerekir)
-            // welcomeCountryModal'ın gizlendiği olayı dinleyebiliriz.
-            // Ancak şu anki mantıkta 'select-country-btn' basıldığında authModal açılıyor, bu daha kontrolü bir yaklaşım.
         }
+
+        // Auth modalının metinlerini güncelleyen fonksiyon
+        function updateAuthModalLanguage(languageCode) {
+            const texts = authModalTexts[languageCode] || authModalTexts['tr']; // Varsayılan Türkçe
+
+            authModalLabel.textContent = texts.title;
+            authLoginBtn.textContent = texts.login;
+            authRegisterBtn.textContent = texts.register;
+            continueAsGuestBtn.textContent = texts.guest;
+        }
+
 
         function updateStaticContent() {
             const currentLangCode = localStorage.getItem(LS_SELECTED_LANGUAGE_CODE) || 'tr'; // Varsayılan dil
@@ -461,6 +497,10 @@
             updateHeaderDisplays();
             updateStaticContent(); // Dil değiştiği için footer'ı ve promosyonu güncelle
             
+            // Auth modal dilini güncelle
+            const newLangCode = localStorage.getItem(LS_SELECTED_LANGUAGE_CODE) || 'tr';
+            updateAuthModalLanguage(newLangCode);
+
             // Buradaki çağrılar, dil/para birimi/ülke değiştiğinde içeriğin yeniden yüklenmesini sağlar.
             loadHeroSlider();
             loadFeaturedCategories();
@@ -491,6 +531,11 @@
             localStorage.setItem(LS_SELECTED_CURRENCY_CODE, headerCurrencySelect.value);
             updateHeaderDisplays();
             updateStaticContent(); // Dil değiştiği için footer'ı ve promosyonu güncelle
+            
+            // Auth modal dilini güncelle (header'dan değişiklik yapıldığında)
+            const newLangCode = localStorage.getItem(LS_SELECTED_LANGUAGE_CODE) || 'tr';
+            updateAuthModalLanguage(newLangCode);
+
             // Sayfanın dinamik içeriğini yeniden yükle
             loadHeroSlider();
             loadFeaturedCategories();
