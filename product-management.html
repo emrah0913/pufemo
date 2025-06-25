@@ -187,6 +187,10 @@
 
                         <h3>Ek Seçenekler</h3>
                         <div class="checkbox-group">
+                            <input type="checkbox" class="form-check-input" id="productIsActive" name="productIsActive" checked>
+                            <label class="form-check-label" for="productIsActive">Ürün Aktif Mi?</label>
+                        </div>
+                        <div class="checkbox-group">
                             <input type="checkbox" class="form-check-input" id="freeShipping" name="freeShipping">
                             <label class="form-check-label" for="freeShipping">Ücretsiz Kargo</label>
                         </div>
@@ -195,7 +199,7 @@
                             <input type="checkbox" class="form-check-input" id="showOnHomepage" name="showOnHomepage">
                             <label class="form-check-label" for="showOnHomepage">Vitrinde Göster</label>
                         </div>
-                        </form>
+                    </form>
                 </div>
                 <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button><button type="submit" form="product-form" class="btn btn-primary" id="saveProductBtn"><span class="loading-spinner spinner-border spinner-border-sm"></span> Kaydet</button></div>
             </div>
@@ -220,7 +224,6 @@
         const productModal = new bootstrap.Modal(productModalElement);
         const productForm = document.getElementById('product-form');
 
-        // Yeni element referansları
         const mediaUrlsContainer = document.getElementById('mediaUrlsContainer');
         const addMediaUrlBtn = document.getElementById('addMediaUrl');
         const thumbnailPreview = document.getElementById('thumbnailPreview');
@@ -233,6 +236,9 @@
 
         const fabricVariantsContainer = document.getElementById('fabricVariantsContainer');
         const addFabricVariantBtn = document.getElementById('addFabricVariant');
+
+        // Yeni eklenen productIsActive checkbox
+        const productIsActiveCheckbox = document.getElementById('productIsActive');
 
         auth.onAuthStateChanged(user => {
             if (user && user.uid === adminUID) {
@@ -289,18 +295,17 @@
                     const thumbnailDiv = document.createElement('div');
                     thumbnailDiv.classList.add('thumbnail');
 
-                    // Basit URL kontrolü ile resim veya video tespiti
                     if (url.match(/\.(jpeg|jpg|gif|png|webp)$/i)) { // Resim uzantıları
                         const img = document.createElement('img');
                         img.src = url;
                         thumbnailDiv.appendChild(img);
-                    } else if (url.match(/\.(mp4|webm|ogg)$/i) || url.includes('youtube.com/watch') || url.includes('youtu.be/') || url.includes('vimeo.com')) { // Video uzantıları veya YouTube/Vimeo
+                    } else if (url.includes('youtube.com/watch?v=') || url.includes('youtu.be/') || url.includes('vimeo.com')) { // Video uzantıları veya YouTube/Vimeo
                         const videoIcon = document.createElement('i');
-                        videoIcon.className = 'fas fa-video'; // FontAwesome ikonu
+                        videoIcon.className = 'fas fa-video'; 
                         thumbnailDiv.appendChild(videoIcon);
-                        // YouTube için basit bir thumbnail çekme (API olmadan tam garanti vermez)
+                        
                         let videoId = '';
-                        if (url.includes('youtube.com/watch')) {
+                        if (url.includes('youtube.com/watch?v=')) {
                             videoId = new URLSearchParams(new URL(url).search).get('v');
                         } else if (url.includes('youtu.be/')) {
                             videoId = url.split('youtu.be/')[1].split('?')[0];
@@ -311,10 +316,9 @@
                             youtubeThumb.alt = 'Video Thumbnail';
                             thumbnailDiv.appendChild(youtubeThumb);
                         } else {
-                            thumbnailDiv.textContent = 'Video'; // Alternatif metin
+                            thumbnailDiv.textContent = 'Video'; 
                         }
                     } else {
-                        // Bilinmeyen dosya türleri için varsayılan ikon
                         const genericIcon = document.createElement('i');
                         genericIcon.className = 'bi bi-file-earmark-fill';
                         thumbnailDiv.appendChild(genericIcon);
@@ -370,22 +374,22 @@
             // Tüm alanları sıfırla
             productForm.reset();
             document.getElementById('productId').value = '';
-            mediaUrlsContainer.innerHTML = ''; // Medya URL'lerini temizle
-            thumbnailPreview.innerHTML = '';   // Thumbnail'leri temizle
-            colorVariantsContainer.innerHTML = ''; // Renk varyantlarını temizle
-            sizeVariantsContainer.innerHTML = '';  // Boyut varyantlarını temizle
-            fabricVariantsContainer.innerHTML = '';// Kumaş varyantlarını temizle
+            mediaUrlsContainer.innerHTML = ''; 
+            thumbnailPreview.innerHTML = '';    
+            colorVariantsContainer.innerHTML = ''; 
+            sizeVariantsContainer.innerHTML = '';    
+            fabricVariantsContainer.innerHTML = '';
             document.getElementById('freeShipping').checked = false;
             document.getElementById('showOnHomepage').checked = false;
+            productIsActiveCheckbox.checked = true; // Yeni ürün eklerken varsayılan aktif olsun
 
             if (!isEditing) {
                 document.getElementById('productModalLabel').textContent = 'Yeni Ürün Ekle';
                 buildLanguageTabs();
-                // Yeni ürün eklerken en az bir URL ve varyant alanı ekle
-                addMediaUrlInput();
-                addColorVariantInput();
-                addSizeVariantInput();
-                addFabricVariantInput();
+                addMediaUrlInput(); // En az bir URL alanı ekle
+                addColorVariantInput(); // En az bir renk varyant alanı ekle
+                addSizeVariantInput();  // En az bir boyut varyant alanı ekle
+                addFabricVariantInput(); // En az bir kumaş varyant alanı ekle
             }
         });
 
@@ -435,17 +439,12 @@
             saveBtn.querySelector('.loading-spinner').style.display = 'inline-block';
 
             const productId = document.getElementById('productId').value;
-            // Eski dosya yükleme kısmını kaldırıyoruz
-            // const files = document.getElementById('productImages').files; 
-            // let imageUrls = [];
-
+            
             try {
-                // URL'lerden alınan görselleri/videoları topla
                 const mediaUrls = Array.from(document.querySelectorAll('.media-url-input'))
-                                       .map(input => input.value.trim())
-                                       .filter(url => url !== '');
+                                             .map(input => input.value.trim())
+                                             .filter(url => url !== '');
 
-                // Varyant verilerini topla
                 const colorVariants = Array.from(document.querySelectorAll('#colorVariantsContainer .variant-item')).map(item => {
                     const name = item.querySelector('.color-name-input').value.trim();
                     const translations = {};
@@ -453,29 +452,30 @@
                         translations[transInput.dataset.lang] = transInput.value.trim();
                     });
                     return { name, translations };
-                }).filter(v => v.name !== ''); // Boş renk varyantlarını filtrele
+                }).filter(v => v.name !== ''); 
 
                 const sizeVariants = Array.from(document.querySelectorAll('#sizeVariantsContainer .variant-item'))
-                                       .map(item => item.querySelector('.size-name-input').value.trim())
-                                       .filter(s => s !== ''); // Boş boyut varyantlarını filtrele
+                                             .map(item => item.querySelector('.size-name-input').value.trim())
+                                             .filter(s => s !== ''); 
 
                 const fabricVariants = Array.from(document.querySelectorAll('#fabricVariantsContainer .variant-item'))
-                                       .map(item => item.querySelector('.fabric-name-input').value.trim())
-                                       .filter(f => f !== ''); // Boş kumaş varyantlarını filtrele
+                                             .map(item => item.querySelector('.fabric-name-input').value.trim())
+                                             .filter(f => f !== ''); 
 
                 const productData = {
                     sku: document.getElementById('productSKU').value,
                     stock: parseInt(document.getElementById('productStock').value),
                     basePriceTRY: parseFloat(document.getElementById('productPrice').value),
                     categoryId: document.getElementById('productCategory').value,
-                    mediaUrls: mediaUrls, // Yeni eklenen medya URL'leri
-                    variants: { // Yeni eklenen varyantlar
+                    mediaUrls: mediaUrls, 
+                    variants: { 
                         colors: colorVariants,
                         sizes: sizeVariants,
                         fabrics: fabricVariants
                     },
-                    freeShipping: document.getElementById('freeShipping').checked, // Yeni eklenen ücretsiz kargo
-                    showOnHomepage: document.getElementById('showOnHomepage').checked // Yeni eklenen vitrinde göster
+                    freeShipping: document.getElementById('freeShipping').checked, 
+                    showOnHomepage: document.getElementById('showOnHomepage').checked,
+                    isActive: productIsActiveCheckbox.checked // Yeni eklenen isActive durumu
                 };
 
                 availableLanguages.forEach(lang => {
@@ -493,7 +493,7 @@
                 loadProducts();
             } catch (error) {
                 console.error("Ürün kaydedilirken hata:", error);
-                alert("Bir hata oluştu: " + error.message); // Hata mesajını daha detaylı göster
+                alert("Bir hata oluştu: " + error.message); 
             } finally {
                 saveBtn.disabled = false;
                 saveBtn.querySelector('.loading-spinner').style.display = 'none';
@@ -512,13 +512,18 @@
                 }
                 snapshot.forEach(doc => {
                     const product = doc.data();
-                    const imageUrl = product.mediaUrls && product.mediaUrls.length > 0 && product.mediaUrls[0].match(/\.(jpeg|jpg|gif|png|webp)$/i)
-                                     ? product.mediaUrls[0]
-                                     : 'https://via.placeholder.com/60x60?text=No+Image'; // Varsayılan görsel
+                    // İlk görseli veya placeholder'ı al
+                    const imageUrl = (product.mediaUrls && product.mediaUrls.length > 0 && product.mediaUrls[0].match(/\.(jpeg|jpg|gif|png|webp|webp)$/i))
+                                        ? product.mediaUrls[0]
+                                        : 'https://via.placeholder.com/60x60?text=No+Image'; 
+                    
+                    // isActive durumuna göre etiket ekle
+                    const statusBadge = product.isActive === false ? '<span class="badge bg-danger ms-2">Pasif</span>' : '';
+
                     const row = `
                         <tr>
                             <td><img src="${imageUrl}" class="product-image-thumb" alt="Ürün Görseli"></td>
-                            <td>${product.name_tr || 'N/A'}</td>
+                            <td>${product.name_tr || 'N/A'} ${statusBadge}</td>
                             <td>${product.sku || 'N/A'}</td>
                             <td>${product.basePriceTRY ? product.basePriceTRY.toFixed(2) + ' ₺' : 'N/A'}</td>
                             <td>${product.stock || 0}</td>
@@ -545,7 +550,6 @@
                 if (productDoc.exists) {
                     const productData = productDoc.data();
                     
-                    // Dil tablarını ürün verileriyle doldur
                     buildLanguageTabs(productData);
 
                     document.getElementById('productSKU').value = productData.sku || '';
@@ -558,7 +562,7 @@
                     if (productData.mediaUrls && productData.mediaUrls.length > 0) {
                         productData.mediaUrls.forEach(url => addMediaUrlInput(url));
                     } else {
-                        addMediaUrlInput(); // En az bir boş alan olsun
+                        addMediaUrlInput(); 
                     }
 
                     // Varyantları yükle
@@ -586,6 +590,7 @@
                     // Ek seçenekleri yükle
                     document.getElementById('freeShipping').checked = productData.freeShipping || false;
                     document.getElementById('showOnHomepage').checked = productData.showOnHomepage || false;
+                    productIsActiveCheckbox.checked = productData.isActive !== undefined ? productData.isActive : true; // isActive'ı yükle, undefined ise varsayılan true
 
                     productModal.show();
                 } else {
