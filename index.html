@@ -327,54 +327,67 @@
             window.location.reload();
         });
 
-        // ===== DÜZELTİLMİŞ FONKSİYON =====
+        // ===== TEŞHİS KODU İÇEREN FONKSİYON =====
         async function loadHeroSlider() {
+            console.log("--- TEŞHİS BAŞLADI ---");
+            console.log("1. loadHeroSlider fonksiyonu çalışmaya başladı.");
+
             const carouselInner = document.getElementById('carousel-inner');
             const carouselIndicators = document.querySelector('.carousel-indicators');
-            carouselInner.innerHTML = ''; 
+            carouselInner.innerHTML = '';
             carouselIndicators.innerHTML = '';
+            
             const currentLanguageCode = localStorage.getItem(LS_SELECTED_LANGUAGE_CODE) || 'tr';
+            console.log("2. Tespit edilen dil kodu: '" + currentLanguageCode + "'");
+
             const texts = appTexts[currentLanguageCode] || appTexts['en'];
             try {
                 const sliderSnapshot = await db.collection('homepage_slider').where('isActive', '==', true).orderBy('order').get();
+                console.log("3. Firestore'dan", sliderSnapshot.docs.length, "adet aktif slider dokümanı bulundu.");
+
                 if (sliderSnapshot.empty) {
+                    console.log("Slider bulunamadı, varsayılan mesaj gösteriliyor.");
                     carouselInner.innerHTML = `<div class="carousel-item active"><img src="https://via.placeholder.com/1500x500/cccccc/ffffff?text=${encodeURIComponent(texts.noSliders)}" class="d-block w-100"><div class="carousel-caption caption-position-center-center"><h5>${texts.noSliders}</h5><p>${texts.noSlidersMessage}</p></div></div>`;
                     return;
                 }
+
                 sliderSnapshot.docs.forEach((doc, index) => {
+                    console.log("--- Slider Döngüsü Adım:", index, "---");
                     const slide = doc.data();
-                    const isActive = index === 0 ? 'active' : '';
+                    console.log("4. Dokümandan okunan ham slider verisi:", slide);
+
                     const title = slide[`title_${currentLanguageCode}`] || '';
                     const description = slide[`description_${currentLanguageCode}`] || '';
                     const buttonText = slide[`buttonText_${currentLanguageCode}`] || '';
-                    const imageUrl = slide.imageUrl || `https://via.placeholder.com/1500x500/cccccc/ffffff?text=Görsel+Yok`;
-                    const link = slide.linkUrl || '#';
-                    const positionClass = `caption-position-${slide.position || 'center-center'}`;
-                    const captionStyles = `color: ${slide.textColor || '#FFFFFF'};`;
-                    const titleStyles = slide.titleFontSize ? `font-size: ${slide.titleFontSize}px;` : '';
-                    const descriptionStyles = slide.descriptionFontSize ? `font-size: ${slide.descriptionFontSize}px;` : '';
-                    const buttonStyles = `background-color: ${slide.buttonColor || '#FFFFFF'}; color: ${slide.buttonTextColor || '#000000'}; border-color: ${slide.buttonColor || '#FFFFFF'};`;
                     
-                    carouselIndicators.innerHTML += `<button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="${index}" class="${isActive}" aria-current="${isActive ? 'true' : 'false'}" aria-label="Slide ${index + 1}"></button>`;
-                    carouselInner.innerHTML += `
-                        <div class="carousel-item ${isActive}">
-                            <img src="${imageUrl}" class="d-block w-100" alt="${title}">
-                            <div class="carousel-caption ${positionClass}" style="${captionStyles}">
-                                <h5 style="${titleStyles}">${title}</h5>
-                                <p style="${descriptionStyles}">${description}</p>
-                                ${buttonText ? `<a href="${link}" class="btn btn-lg mt-3" style="${buttonStyles}">${buttonText}</a>` : ''}
+                    console.log("5. İşlenen metinler -> Başlık:", "'" + title + "'", "Açıklama:", "'" + description + "'");
+                    
+                    const finalHTML = `
+                        <div class="carousel-item ${index === 0 ? 'active' : ''}">
+                            <img src="${slide.imageUrl}" class="d-block w-100" alt="${title}">
+                            <div class="carousel-caption caption-position-${slide.position || 'center-center'}" style="color: ${slide.textColor || '#FFFFFF'};">
+                                <h5 style="font-size: ${slide.titleFontSize}px;">${title}</h5>
+                                <p style="font-size: ${slide.descriptionFontSize}px;">${description}</p>
+                                ${buttonText ? `<a href="${slide.linkUrl || '#'}" class="btn btn-lg mt-3" style="background-color: ${slide.buttonColor}; color: ${slide.buttonTextColor}; border-color: ${slide.buttonColor};">${buttonText}</a>` : ''}
                             </div>
                         </div>`;
+                    
+                    console.log("6. Oluşturulan HTML parçası:", finalHTML);
+                    carouselInner.innerHTML += finalHTML;
                 });
-                if(sliderSnapshot.docs.length > 0) {
+
+                // Bootstrap Carousel'i yeniden başlat (eğer varsa)
+                if (sliderSnapshot.docs.length > 0) {
                     new bootstrap.Carousel(document.getElementById('heroCarousel'));
                 }
+                
+                console.log("--- TEŞHİS BİTTİ ---");
+
             } catch (error) {
-                console.error("Slider yüklenirken hata:", error);
-                carouselInner.innerHTML = `<div class="carousel-item active"><img src="https://via.placeholder.com/1500x500/cccccc/ffffff?text=${encodeURIComponent(texts.sliderLoadingError)}"><div class="carousel-caption"><h5>${texts.sliderLoadingError}</h5></div></div>`;
+                console.error("HATA! Slider yüklenirken bir sorun oluştu:", error);
             }
         }
-        // ===== DÜZELTME SONU =====
+        // ===== TEŞHİS KODU SONU =====
 
         async function loadFeaturedCategories() {
             const featuredCategoriesContainer = document.getElementById('featured-categories');
