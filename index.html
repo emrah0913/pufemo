@@ -26,14 +26,8 @@
             margin-top: auto;
         }
         .hero-slider {
-            height: 500px; /* Adjust as needed */
+            height: 500px;
             background-color: #e9ecef;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #495057;
-            font-size: 2rem;
-            text-align: center;
             position: relative;
             overflow: hidden;
         }
@@ -41,16 +35,27 @@
             width: 100%;
             height: 500px;
             object-fit: cover;
-            filter: brightness(70%); /* Darken image for text readability */
+            filter: brightness(70%);
         }
         .hero-slider .carousel-caption {
             position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            color: white;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            padding: 20px;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.4);
+            top: auto;
+            left: auto;
+            transform: none;
         }
+        /* YENİ EKLENEN POZİSYON SINIFLARI */
+        .caption-position-center-center { top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; }
+        .caption-position-center-left { top: 50%; left: 10%; transform: translateY(-50%); text-align: left; }
+        .caption-position-center-right { top: 50%; right: 10%; transform: translateY(-50%); text-align: right; }
+        .caption-position-top-left { top: 10%; left: 10%; transform: none; text-align: left; }
+        .caption-position-top-center { top: 10%; left: 50%; transform: translateX(-50%); text-align: center; }
+        .caption-position-top-right { top: 10%; right: 10%; transform: none; text-align: right; }
+        .caption-position-bottom-left { bottom: 10%; top: auto; left: 10%; transform: none; text-align: left; }
+        .caption-position-bottom-center { bottom: 10%; top: auto; left: 50%; transform: translateX(-50%); text-align: center; }
+        .caption-position-bottom-right { bottom: 10%; top: auto; right: 10%; transform: none; text-align: right; }
+
         .product-card {
             border: none;
             box-shadow: 0 4px 8px rgba(0,0,0,.05);
@@ -165,12 +170,7 @@
                     </div>
                 <div class="carousel-inner" id="carousel-inner">
                     <div class="carousel-item active">
-                        <img src="https://via.placeholder.com/1500x500/cccccc/ffffff?text=Slider+Görseli+1" class="d-block w-100" alt="Slider 1">
-                        <div class="carousel-caption">
-                            <h5>Yeni Sezon Ürünleri Keşfedin</h5>
-                            <p>En güncel koleksiyonlarımızla tarzınızı yenileyin.</p>
-                            <a href="#" class="btn btn-light btn-lg mt-3">Şimdi Keşfet</a>
-                        </div>
+                        <img src="https://via.placeholder.com/1500x500/cccccc/ffffff?text=Slider+Yükleniyor..." class="d-block w-100" alt="Slider Yükleniyor...">
                     </div>
                 </div>
                 <button class="carousel-control-prev" type="button" data-bs-target="#heroCarousel" data-bs-slide="prev">
@@ -383,7 +383,7 @@
                 noSlidersMessage: 'Μπορείτε να προσθέσετε slider από τον πίνακα διαχείρισης.',
                 sliderLoadingError: 'Σφάλμα φόρτωσης slider',
                 noCategories: 'Δεν βρέθηκαν επιλεγμένες κατηγορίες.',
-                categoriesLoadingError: 'Φόρτωση κατηγοριών...',
+                categoriesLoadingError: 'Φόρτωση κατηγοриών...',
                 productsLoading: 'Φόρτωση προϊόντων...',
                 noProducts: 'Δεν βρέθηκαν νέα προϊόντα.',
                 productsLoadingError: 'Αδυναμία φόρτωσης προϊόντων. Ελέγξτε τους κανόνες και τους δείκτες του Firebase.',
@@ -393,10 +393,7 @@
         };
 
 
-        // Sayfa yüklendiğinde çalışacak ana fonksiyon
         document.addEventListener('DOMContentLoaded', async () => {
-            console.log("DOMContentLoaded fired."); 
-            // 1. Firebase verilerini yükle
             try {
                 const [countriesSnapshot, languagesSnapshot, currenciesSnapshot, settingsDoc] = await Promise.all([
                     db.collection('countries').get(),
@@ -409,169 +406,78 @@
                 allLanguages = languagesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 allCurrencies = currenciesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 siteSettings = settingsDoc.exists ? settingsDoc.data() : {};
-                console.log("Firebase verileri başarıyla yüklendi.");
 
             } catch (error) {
                 console.error("Başlangıç Firebase verileri yüklenirken kritik hata:", error);
-                alert("Site verileri yüklenirken bir sorun oluştu. Lütfen Firebase konsolunuzdaki Hataları (Errors) kontrol edin (İzinler/Dizinler).");
-                allCountries = []; allLanguages = []; allCurrencies = []; siteSettings = {}; 
-                localStorage.setItem(LS_SELECTED_LANGUAGE_CODE, 'en'); 
-                localStorage.setItem(LS_SELECTED_CURRENCY_CODE, 'USD'); 
-                updateAllModalTexts('en'); 
-                updateHeaderDisplays(); 
-                updateStaticContent();
+                alert("Site verileri yüklenirken bir sorun oluştu. Lütfen Firebase konsolunuzu kontrol edin.");
             }
 
-            // 2. Kimlik doğrulama durumunu kontrol et ve anonim oturum aç
-            // Firebase Auth hazır olduğunda tetiklenir
             auth.onAuthStateChanged(async (user) => {
-                if (!user) { // Kullanıcı oturum açmamışsa (daha önce anonim dahil)
+                if (!user) {
                     try {
-                        const anonymousUserCredential = await auth.signInAnonymously();
-                        console.log("Anonim kullanıcı oturum açtı:", anonymousUserCredential.user.uid);
-                        // Anonim kullanıcı açıldıktan sonra diğer başlangıç işlemlerini yap
-                        await proceedWithSiteInitialization();
+                        await auth.signInAnonymously();
                     } catch (error) {
                         console.error("Anonim oturum açılırken hata:", error);
-                        alert("Anonim oturum açılırken bir hata oluştu. Lütfen Firebase kimlik doğrulama ayarlarınızı kontrol edin.");
-                        // Anonim oturum açılamasa bile siteyi başlatmaya çalış
-                        await proceedWithSiteInitialization();
                     }
-                } else { // Zaten bir kullanıcı oturum açmışsa (e-posta veya önceki anonim oturum)
-                    console.log("Mevcut kullanıcı oturumu:", user.uid, user.isAnonymous ? "(Anonim)" : "(Kayıtlı)");
-                    await proceedWithSiteInitialization();
                 }
+                await proceedWithSiteInitialization();
             });
         });
 
-        // Kimlik doğrulama tamamlandıktan sonraki site başlatma işlemleri
         async function proceedWithSiteInitialization() {
-            // Modalları ve seçimleri yönet
-            await handleInitialModalsAndSelections();
-            
-            // Footer ve header'daki statik alanları güncelle
-            updateStaticContent();
-            
-            // Header'daki dil/para birimi/ülke seçicilerini doldur ve mevcut seçimleri göster
-            await populateHeaderSelectors();
-            updateHeaderDisplays();
-
-            // Dinamik ana sayfa içeriğini yükle
-            loadHeroSlider();
-            loadFeaturedCategories();
-            loadNewArrivals();
-            updateCartItemCount(); // Sepet sayacını güncelle
+            const storedCountryCode = localStorage.getItem(LS_SELECTED_COUNTRY_CODE);
+            if (!storedCountryCode) {
+                await handleInitialModalsAndSelections();
+            } else {
+                updateStaticContent();
+                await populateHeaderSelectors();
+                updateHeaderDisplays();
+                loadHeroSlider();
+                loadFeaturedCategories();
+                loadNewArrivals();
+                updateCartItemCount();
+            }
         }
 
         async function handleInitialModalsAndSelections() {
-            console.log("handleInitialModalsAndSelections called."); 
-
-            const storedCountryCode = localStorage.getItem(LS_SELECTED_COUNTRY_CODE);
             let initialLangCodeForModals = 'en'; 
-
-            if (storedCountryCode && allCountries.length > 0) { 
-                const selectedCountryData = allCountries.find(c => c.code === storedCountryCode);
-                if (selectedCountryData) {
-                    initialLangCodeForModals = selectedCountryData.language || 'tr'; 
-                    localStorage.setItem(LS_SELECTED_LANGUAGE_CODE, selectedCountryData.language || 'tr');
-                    localStorage.setItem(LS_SELECTED_CURRENCY_CODE, selectedCountryData.currency || 'TRY');
-                } else {
-                    console.warn("Stored country code not found in Firebase data:", storedCountryCode);
-                    localStorage.setItem(LS_SELECTED_LANGUAGE_CODE, 'tr'); 
-                    localStorage.setItem(LS_SELECTED_CURRENCY_CODE, 'TRY');
-                }
-            } else if (allCountries.length === 0) {
-                localStorage.setItem(LS_SELECTED_LANGUAGE_CODE, 'en'); 
-                localStorage.setItem(LS_SELECTED_CURRENCY_CODE, 'USD');
-            } else {
-                localStorage.setItem(LS_SELECTED_LANGUAGE_CODE, 'tr'); 
-                localStorage.setItem(LS_SELECTED_CURRENCY_CODE, 'TRY');
-            }
-            
             updateAllModalTexts(initialLangCodeForModals); 
 
-            countrySelectModal.innerHTML = ''; 
             const textsForModalPopulate = appTexts[initialLangCodeForModals] || appTexts['en'];
-
-            const placeholderOption = document.createElement('option');
-            placeholderOption.value = "";
-            placeholderOption.textContent = textsForModalPopulate.countrySelectPlaceholder;
-            countrySelectModal.appendChild(placeholderOption); 
+            countrySelectModal.innerHTML = `<option value="">${textsForModalPopulate.countrySelectPlaceholder}</option>`; 
 
             if (allCountries.length > 0) {
                 allCountries.forEach(country => {
-                    const option = document.createElement('option');
-                    option.value = country.code;
                     const countryNameDisplay = country[`name_${initialLangCodeForModals}`] || country.name_tr || country.name;
-                    option.textContent = countryNameDisplay; 
-                    countrySelectModal.appendChild(option);
+                    countrySelectModal.innerHTML += `<option value="${country.code}">${countryNameDisplay}</option>`;
                 });
-            } else {
-                console.warn("allCountries boş, ülke seçenekleri doldurulamadı.");
-                const noOptions = document.createElement('option');
-                noOptions.value = "";
-                noOptions.textContent = textsForModalPopulate.productsLoadingError; // Genel hata metni kullanılabilir
-                noOptions.disabled = true;
-                countrySelectModal.appendChild(noOptions);
             }
-
-            if (storedCountryCode) {
-                countrySelectModal.value = storedCountryCode;
-            } else {
-                countrySelectModal.value = ""; 
-            }
-            
-            console.log("welcomeCountryModal.show() called."); 
             welcomeCountryModal.show();
         }
 
-        // TÜM MODAL METİNLERİNİ VE ÜLKE SEÇENEKLERİNİ GÜNCELLEYEN MERKEZİ FONKSİYON
         function updateAllModalTexts(languageCode) {
             const texts = appTexts[languageCode] || appTexts['en']; 
-            console.log("updateAllModalTexts called with language:", languageCode, "Texts:", texts); 
-
-            // Welcome Country Modal Metinlerini Güncelle
             welcomeCountryModalLabel.textContent = texts.welcomeModalTitle;
             welcomeCountryPrompt.textContent = texts.welcomeModalCountryPrompt;
             selectCountryBtn.textContent = texts.welcomeModalContinueBtn;
             
-            // Ülke seçimi dropdown'daki placeholder'ı ve seçeneklerin dilini de güncelle
             const currentCountrySelectValue = countrySelectModal.value; 
-            countrySelectModal.innerHTML = ''; 
-
-            const placeholderOption = document.createElement('option');
-            placeholderOption.value = "";
-            placeholderOption.textContent = texts.countrySelectPlaceholder;
-            countrySelectModal.appendChild(placeholderOption); 
+            countrySelectModal.innerHTML = `<option value="">${texts.countrySelectPlaceholder}</option>`; 
 
             if (allCountries.length > 0) {
                 allCountries.forEach(country => {
-                    const option = document.createElement('option');
-                    option.value = country.code;
                     const countryNameDisplay = country[`name_${languageCode}`] || country.name_tr || country.name;
-                    option.textContent = countryNameDisplay; 
-                    countrySelectModal.appendChild(option);
+                    countrySelectModal.innerHTML += `<option value="${country.code}">${countryNameDisplay}</option>`;
                 });
-            } else {
-                const noOptions = document.createElement('option');
-                noOptions.value = "";
-                noOptions.textContent = texts.productsLoadingError; 
-                noOptions.disabled = true;
-                countrySelectModal.appendChild(noOptions);
             }
             countrySelectModal.value = currentCountrySelectValue; 
-
-
-            // Menüdeki giriş/kayıt linklerini güncelle
             if (menuLoginLink) menuLoginLink.textContent = texts.menuLogin;
             if (menuRegisterLink) menuRegisterLink.textContent = texts.menuRegister;
         }
 
-
         function updateStaticContent() {
             const currentLangCode = localStorage.getItem(LS_SELECTED_LANGUAGE_CODE) || 'tr'; 
             const texts = appTexts[currentLangCode] || appTexts['en']; 
-
             document.getElementById('footer-company-address').textContent = siteSettings[`companyAddress_${currentLangCode}`] || texts.footerAddressNotFound;
             document.getElementById('footer-contact-email').textContent = siteSettings.contactEmail || 'info@pufemo.com';
             document.getElementById('footer-whatsapp-number').textContent = siteSettings.whatsappNumber || '+90 5XX XXX XX XX';
@@ -587,7 +493,6 @@
                 option.textContent = country[`name_${currentLangCode}`] || country.name_tr || country.name;
                 headerCountrySelect.appendChild(option);
             });
-
             headerLanguageSelect.innerHTML = '';
             allLanguages.forEach(lang => {
                 const option = document.createElement('option');
@@ -595,7 +500,6 @@
                 option.textContent = lang.name; 
                 headerLanguageSelect.appendChild(option);
             });
-
             headerCurrencySelect.innerHTML = '';
             allCurrencies.forEach(currency => {
                 const option = document.createElement('option');
@@ -603,7 +507,6 @@
                 option.textContent = `${currency.symbol} (${currency.code})`;
                 headerCurrencySelect.appendChild(option);
             });
-
             headerCountrySelect.value = localStorage.getItem(LS_SELECTED_COUNTRY_CODE) || '';
             headerLanguageSelect.value = localStorage.getItem(LS_SELECTED_LANGUAGE_CODE) || '';
             headerCurrencySelect.value = localStorage.getItem(LS_SELECTED_CURRENCY_CODE) || '';
@@ -613,47 +516,24 @@
             const currentCountryCode = localStorage.getItem(LS_SELECTED_COUNTRY_CODE);
             const currentLanguageCode = localStorage.getItem(LS_SELECTED_LANGUAGE_CODE);
             const currentCurrencyCode = localStorage.getItem(LS_SELECTED_CURRENCY_CODE);
-
             const selectedCountry = allCountries.find(c => c.code === currentCountryCode);
             const selectedLanguage = allLanguages.find(l => l.code === currentLanguageCode);
             const selectedCurrency = allCurrencies.find(c => c.code === currentCurrencyCode);
-
             selectedCountryDisplay.textContent = selectedCountry ? selectedCountry.code.toUpperCase() : 'TR';
             selectedLanguageDisplay.textContent = selectedLanguage ? selectedLanguage.code.toUpperCase() : 'TR';
             selectedCurrencyDisplay.textContent = selectedCurrency ? selectedCurrency.symbol : '₺';
         }
 
-        async function setSelectedCountry(countryCode) {
-            localStorage.setItem(LS_SELECTED_COUNTRY_CODE, countryCode);
-
-            const selectedCountryData = allCountries.find(c => c.code === countryCode);
-            if (selectedCountryData) {
-                localStorage.setItem(LS_SELECTED_LANGUAGE_CODE, selectedCountryData.language || 'tr'); 
-                localStorage.setItem(LS_SELECTED_CURRENCY_CODE, selectedCountryData.currency || 'TRY'); 
-            } else {
-                localStorage.setItem(LS_SELECTED_LANGUAGE_CODE, 'tr');
-                localStorage.setItem(LS_SELECTED_CURRENCY_CODE, 'TRY');
-            }
-            updateHeaderDisplays();
-            updateStaticContent(); 
-            
-            const newLangCode = localStorage.getItem(LS_SELECTED_LANGUAGE_CODE) || 'tr';
-            updateAllModalTexts(newLangCode); 
-
-            loadHeroSlider();
-            loadFeaturedCategories();
-            loadNewArrivals();
-        }
-
-        // Event Listeners
         selectCountryBtn.addEventListener('click', () => {
             const selectedCountryCode = countrySelectModal.value;
             if (selectedCountryCode) {
-                setSelectedCountry(selectedCountryCode);
-                welcomeCountryModal.hide();
-            } else {
-                const currentLang = localStorage.getItem(LS_SELECTED_LANGUAGE_CODE) || 'tr';
-                alert(appTexts[currentLang]?.welcomeModalCountryPrompt || appTexts['en'].welcomeModalCountryPrompt);
+                const selectedCountryData = allCountries.find(c => c.code === selectedCountryCode);
+                if (selectedCountryData) {
+                    localStorage.setItem(LS_SELECTED_COUNTRY_CODE, selectedCountryCode);
+                    localStorage.setItem(LS_SELECTED_LANGUAGE_CODE, selectedCountryData.language || 'tr'); 
+                    localStorage.setItem(LS_SELECTED_CURRENCY_CODE, selectedCountryData.currency || 'TRY'); 
+                }
+                window.location.reload();
             }
         });
 
@@ -661,76 +541,52 @@
             localStorage.setItem(LS_SELECTED_COUNTRY_CODE, headerCountrySelect.value);
             localStorage.setItem(LS_SELECTED_LANGUAGE_CODE, headerLanguageSelect.value);
             localStorage.setItem(LS_SELECTED_CURRENCY_CODE, headerCurrencySelect.value);
-            updateHeaderDisplays();
-            updateStaticContent(); 
-            
-            const newLangCode = localStorage.getItem(LS_SELECTED_LANGUAGE_CODE) || 'tr';
-            updateAllModalTexts(newLangCode); 
-
-            loadHeroSlider();
-            loadFeaturedCategories();
-            loadNewArrivals();
-            alert(appTexts[newLangCode]?.settingsSaved || appTexts['en'].settingsSaved); 
+            window.location.reload();
         });
-
-        // --- Dinamik İçerik Yükleme Fonksiyonları (Firebase'den veri çekecek) ---
 
         async function loadHeroSlider() {
             const carouselInner = document.getElementById('carousel-inner');
             const carouselIndicators = document.querySelector('.carousel-indicators');
-            carouselInner.innerHTML = '';
-            carouselIndicators.innerHTML = '';
-
+            carouselInner.innerHTML = ''; carouselIndicators.innerHTML = '';
             const currentLanguageCode = localStorage.getItem(LS_SELECTED_LANGUAGE_CODE) || 'tr';
             const texts = appTexts[currentLanguageCode] || appTexts['en'];
-
             try {
                 const sliderSnapshot = await db.collection('homepage_slider').where('isActive', '==', true).orderBy('order').get();
-                
                 if (sliderSnapshot.empty) {
-                    carouselInner.innerHTML = `<div class="carousel-item active">
-                        <img src="https://via.placeholder.com/1500x500/cccccc/ffffff?text=${encodeURIComponent(texts.noSliders)}" class="d-block w-100" alt="${texts.noSliders}">
-                        <div class="carousel-caption">
-                            <h5>${texts.noSliders}</h5>
-                            <p>${texts.noSlidersMessage}</p>
-                        </div>
-                    </div>`;
+                    carouselInner.innerHTML = `<div class="carousel-item active"><img src="https://via.placeholder.com/1500x500/cccccc/ffffff?text=${encodeURIComponent(texts.noSliders)}" class="d-block w-100"><div class="carousel-caption caption-position-center-center"><h5>${texts.noSliders}</h5><p>${texts.noSlidersMessage}</p></div></div>`;
                     return;
                 }
-
                 sliderSnapshot.docs.forEach((doc, index) => {
-                    const slider = doc.data();
+                    const slide = doc.data();
                     const isActive = index === 0 ? 'active' : '';
-                    const title = slider[`title_${currentLanguageCode}`] || slider.title_tr || texts.noSliders;
-                    const description = slider[`description_${currentLanguageCode}`] || slider.description_tr || '';
-                    const imageUrl = slider.imageUrl || `https://via.placeholder.com/1500x500/cccccc/ffffff?text=${encodeURIComponent(texts.noSliders)}`;
-                    const link = slider.linkUrl || '#'; 
-
+                    const title = slide[`title_${currentLanguageCode}`] || '';
+                    const description = slide[`description_${currentLanguageCode}`] || '';
+                    const buttonText = slide[`buttonText_${currentLanguageCode}`] || 'Keşfet';
+                    const imageUrl = slide.imageUrl || `https://via.placeholder.com/1500x500/cccccc/ffffff?text=Görsel+Yok`;
+                    const link = slide.linkUrl || '#';
+                    const positionClass = `caption-position-${slide.position || 'center-center'}`;
+                    const captionStyles = `color: ${slide.textColor || '#FFFFFF'};`;
+                    const titleStyles = slide.titleFontSize ? `font-size: ${slide.titleFontSize}px;` : '';
+                    const descriptionStyles = slide.descriptionFontSize ? `font-size: ${slide.descriptionFontSize}px;` : '';
+                    const buttonStyles = `background-color: ${slide.buttonColor || '#FFFFFF'}; color: ${slide.buttonTextColor || '#000000'}; border-color: ${slide.buttonColor || '#FFFFFF'};`;
+                    
                     carouselIndicators.innerHTML += `<button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="${index}" class="${isActive}" aria-current="${isActive ? 'true' : 'false'}" aria-label="Slide ${index + 1}"></button>`;
-
-                    // DÜZELTME 2: d-none ve d-md-block sınıfları buradan kaldırıldı.
                     carouselInner.innerHTML += `
                         <div class="carousel-item ${isActive}">
                             <img src="${imageUrl}" class="d-block w-100" alt="${title}">
-                            <div class="carousel-caption">
-                                <h5>${title}</h5>
-                                <p>${description}</p>
-                                <a href="${link}" class="btn btn-light btn-lg mt-3">Şimdi Keşfet</a>
+                            <div class="carousel-caption ${positionClass}" style="${captionStyles}">
+                                <h5 style="${titleStyles}">${title}</h5>
+                                <p style="${descriptionStyles}">${description}</p>
+                                <a href="${link}" class="btn btn-lg mt-3" style="${buttonStyles}">${buttonText}</a>
                             </div>
                         </div>`;
                 });
-
-                const carousel = new bootstrap.Carousel(document.getElementById('heroCarousel'));
-
+                if(sliderSnapshot.docs.length > 0) {
+                    new bootstrap.Carousel(document.getElementById('heroCarousel'));
+                }
             } catch (error) {
                 console.error("Slider yüklenirken hata:", error);
-                 carouselInner.innerHTML = `<div class="carousel-item active">
-                        <img src="https://via.placeholder.com/1500x500/cccccc/ffffff?text=${encodeURIComponent(texts.sliderLoadingError)}" class="d-block w-100" alt="${texts.sliderLoadingError}">
-                        <div class="carousel-caption">
-                            <h5>${texts.sliderLoadingError}</h5>
-                            <p>${texts.productsLoadingError}</p>
-                        </div>
-                    </div>`;
+                carouselInner.innerHTML = `<div class="carousel-item active"><img src="https://via.placeholder.com/1500x500/cccccc/ffffff?text=${encodeURIComponent(texts.sliderLoadingError)}"><div class="carousel-caption"><h5>${texts.sliderLoadingError}</h5></div></div>`;
             }
         }
 
@@ -739,36 +595,19 @@
             const currentLanguageCode = localStorage.getItem(LS_SELECTED_LANGUAGE_CODE) || 'tr';
             const texts = appTexts[currentLanguageCode] || appTexts['en'];
             featuredCategoriesContainer.innerHTML = `<p class="text-center col-12">${texts.categoriesLoadingError}</p>`;
-
-
             try {
-                const categoriesSnapshot = await db.collection('categories').get();
-                const categories = categoriesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-                const categoriesToShow = categories.filter(cat => cat.showOnHomepage).slice(0, 3); 
-                
-                if (categoriesToShow.length === 0) {
+                const categoriesSnapshot = await db.collection('categories').where('showOnHomepage', '==', true).get();
+                if (categoriesSnapshot.empty) {
                     featuredCategoriesContainer.innerHTML = `<p class="text-center col-12">${texts.noCategories}</p>`;
                     return;
                 }
-                
                 featuredCategoriesContainer.innerHTML = ''; 
-
-                categoriesToShow.forEach(category => {
+                categoriesSnapshot.docs.slice(0, 3).forEach(doc => {
+                    const category = { id: doc.id, ...doc.data() };
                     const categoryName = category[`name_${currentLanguageCode}`] || category.name_tr || 'Kategori Adı Yok';
                     const imageUrl = category.imageUrl || `https://via.placeholder.com/400x250/f0f0f0/333333?text=${encodeURIComponent(categoryName)}`; 
                     const link = `category.html?id=${category.id}`; 
-
-                    featuredCategoriesContainer.innerHTML += `
-                        <div class="col">
-                            <div class="card h-100 text-center product-card">
-                                <img src="${imageUrl}" class="card-img-top" alt="${categoryName}">
-                                <div class="card-body">
-                                    <h5 class="card-title">${categoryName}</h5>
-                                    <a href="${link}" class="btn btn-outline-primary btn-sm">Keşfet</a>
-                                </div>
-                            </div>
-                        </div>`;
+                    featuredCategoriesContainer.innerHTML += `<div class="col"><div class="card h-100 text-center product-card"><img src="${imageUrl}" class="card-img-top" alt="${categoryName}"><div class="card-body"><h5 class="card-title">${categoryName}</h5><a href="${link}" class="btn btn-outline-primary btn-sm">Keşfet</a></div></div></div>`;
                 });
             } catch (error) {
                 console.error("Öne çıkan kategoriler yüklenirken hata:", error);
@@ -781,56 +620,25 @@
             const currentLanguageCode = localStorage.getItem(LS_SELECTED_LANGUAGE_CODE) || 'tr';
             const texts = appTexts[currentLanguageCode] || appTexts['en'];
             newArrivalsContainer.innerHTML = `<p class="text-center col-12">${texts.productsLoading}</p>`;
-
-
             const currentCurrencyCode = localStorage.getItem(LS_SELECTED_CURRENCY_CODE) || 'TRY';
             const currentCountryCode = localStorage.getItem(LS_SELECTED_COUNTRY_CODE) || 'TR';
-
             try {
-                const productsSnapshot = await db.collection('products')
-                                                .where('isActive', '==', true) 
-                                                .orderBy('createdAt', 'desc') 
-                                                .limit(8) 
-                                                .get();
-
+                const productsSnapshot = await db.collection('products').where('isActive', '==', true).orderBy('createdAt', 'desc').limit(8).get();
                 if (productsSnapshot.empty) {
                     newArrivalsContainer.innerHTML = `<p class="text-center col-12">${texts.noProducts}</p>`;
                     return;
                 }
-                
                 newArrivalsContainer.innerHTML = ''; 
-
                 const products = productsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
                 const selectedCountryData = allCountries.find(c => c.code === currentCountryCode);
                 const priceMultiplier = selectedCountryData ? (selectedCountryData.multiplier || 1) : 1; 
-
                 products.forEach(product => {
                     const productName = product[`name_${currentLanguageCode}`] || product.name_tr || 'Ürün Adı Yok';
-                    
-                    const imageUrl = (product.mediaUrls && product.mediaUrls.length > 0) 
-                                     ? product.mediaUrls[0] 
-                                     : `https://via.placeholder.com/300x200/f5f5f5/333333?text=${encodeURIComponent(productName)}`; 
-                    
-                    let price = product.basePriceTRY || 0; 
-
-                    price = (price * priceMultiplier).toFixed(2); 
-
+                    const imageUrl = (product.mediaUrls && product.mediaUrls.length > 0) ? product.mediaUrls[0] : `https://via.placeholder.com/300x200/f5f5f5/333333?text=${encodeURIComponent(productName)}`; 
+                    let price = ( (product.basePriceTRY || 0) * priceMultiplier).toFixed(2); 
                     const selectedCurrencySymbol = allCurrencies.find(c => c.code === currentCurrencyCode)?.symbol || '₺'; 
-
                     const link = `urun-detay.html?id=${product.id}`; 
-
-                    newArrivalsContainer.innerHTML += `
-                        <div class="col">
-                            <div class="card product-card">
-                                <a href="${link}"><img src="${imageUrl}" class="card-img-top" alt="${productName}"></a>
-                                <div class="card-body text-center">
-                                    <h5 class="card-title">${productName}</h5>
-                                    <p class="card-text fw-bold">${price} ${selectedCurrencySymbol}</p>
-                                    <button class="btn btn-primary btn-sm add-to-cart-btn" data-product-id="${product.id}">Sepete Ekle</button>
-                                </div>
-                            </div>
-                        </div>`;
+                    newArrivalsContainer.innerHTML += `<div class="col"><div class="card product-card"><a href="${link}"><img src="${imageUrl}" class="card-img-top" alt="${productName}"></a><div class="card-body text-center"><h5 class="card-title">${productName}</h5><p class="card-text fw-bold">${price} ${selectedCurrencySymbol}</p><button class="btn btn-primary btn-sm add-to-cart-btn" data-product-id="${product.id}">Sepete Ekle</button></div></div></div>`;
                 });
             } catch (error) {
                 console.error("Yeni ürünler yüklenirken hata:", error);
@@ -838,24 +646,26 @@
             }
         }
 
-        // Sepet sayacı için basit bir placeholder (gerçek sepet mantığı daha sonra eklenecek)
         function updateCartItemCount() {
             const cartItems = JSON.parse(localStorage.getItem('pufemo_cart_items') || '[]');
             document.getElementById('cart-item-count').textContent = cartItems.length;
         }
-        // Sepete Ekle butonu için geçici bir event listener (gerçek sepet mantığı "sepet.html"de detaylandırılacak)
+
         document.addEventListener('click', (e) => {
             if (e.target.classList.contains('add-to-cart-btn')) {
                 const productId = e.target.dataset.productId;
                 alert(`Ürün ID: ${productId} sepete eklendi (geçici).`);
-                // Gerçek sepete ekleme mantığı burada
-                // Örn: let cart = JSON.parse(localStorage.getItem('pufemo_cart_items') || '[]');
-                // cart.push({ productId: productId, quantity: 1 });
-                // localStorage.setItem('pufemo_cart_items', JSON.stringify(cart));
+                let cart = JSON.parse(localStorage.getItem('pufemo_cart_items') || '[]');
+                const existingItem = cart.find(item => item.productId === productId);
+                if (existingItem) {
+                    existingItem.quantity += 1;
+                } else {
+                    cart.push({ productId: productId, quantity: 1 });
+                }
+                localStorage.setItem('pufemo_cart_items', JSON.stringify(cart));
                 updateCartItemCount();
             }
         });
-
     </script>
 </body>
 </html>
