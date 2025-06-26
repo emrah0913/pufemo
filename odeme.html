@@ -11,23 +11,72 @@
         body { display: flex; flex-direction: column; min-height: 100vh; background-color: #f8f9fa; }
         .navbar { background-color: #ffffff; box-shadow: 0 2px 4px rgba(0,0,0,.08); }
         .footer { background-color: #343a40; color: white; padding: 30px 0; margin-top: auto; }
-        /* Diğer stiller aynı... */
+        .cart-item-image { width: 60px; height: 60px; object-fit: cover; border-radius: 5px; }
+        .order-summary-item { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+        .currency-language-selector { cursor: pointer; padding: 5px 10px; border-radius: 5px; transition: background-color 0.2s; }
+        .currency-language-selector:hover { background-color: #e9ecef; }
     </style>
 </head>
 <body>
 
     <nav class="navbar navbar-expand-lg navbar-light">
-        </nav>
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="index.html">PUFEMO</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item"><a class="nav-link" href="index.html">Ana Sayfa</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#">Ürünler</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#">Kategoriler</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#">İletişim</a></li>
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navbarAccountDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-person-circle"></i> Hesabım
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarAccountDropdown">
+                            <li><a class="dropdown-item" href="admin-login.html" id="menu-login-link">Giriş Yap</a></li>
+                            <li><a class="dropdown-item" href="kayit-ol.html" id="menu-register-link">Kayıt Ol</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="siparis-takip.html">Sipariş Takibi</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="sepet.html"><i class="bi bi-cart-fill"></i> Sepet <span class="badge bg-primary rounded-pill" id="cart-item-count">0</span></a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle currency-language-selector" href="#" id="currencyLanguageDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <span id="selected-country-display"></span> / <span id="selected-language-display"></span> / <span id="selected-currency-display"></span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="currencyLanguageDropdown">
+                            <li><h6 class="dropdown-header">Ülke Seçimi</h6></li>
+                            <li><select class="form-select form-select-sm mx-3 mb-2" id="header-country-select"></select></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><h6 class="dropdown-header">Dil Seçimi</h6></li>
+                            <li><select class="form-select form-select-sm mx-3 mb-2" id="header-language-select"></select></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><h6 class="dropdown-header">Para Birimi Seçimi</h6></li>
+                            <li><select class="form-select form-select-sm mx-3 mb-2" id="header-currency-select"></select></li>
+                            <li><button class="btn btn-primary btn-sm w-75 mx-auto d-block mt-2" id="save-header-selections">Uygula</button></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
 
     <main class="container my-4 flex-grow-1">
-        <h1 class="mb-4">Ödeme</h1>
+        <h1 class="mb-4" id="checkout-page-title">Ödeme</h1>
         <div class="row">
             <div class="col-md-8">
                 <div class="card shadow-sm mb-4">
-                    <div class="card-header">Adres Bilgileri</div>
+                    <div class="card-header" id="address-section-header">Adres Bilgileri</div>
                     <div class="card-body">
-                        <form id="checkout-form">
-                            <h4 class="mb-3">Gönderim Adresi</h4>
+                        <form id="checkout-form" novalidate>
+                            <h4 class="mb-3" id="shipping-address-title">Gönderim Adresi</h4>
                             <div class="row g-3">
                                 <div class="col-sm-6"><label for="firstName" class="form-label">Ad</label><input type="text" class="form-control" id="firstName" name="firstName" required></div>
                                 <div class="col-sm-6"><label for="lastName" class="form-label">Soyad</label><input type="text" class="form-control" id="lastName" name="lastName" required></div>
@@ -36,7 +85,7 @@
                                 <div class="col-12">
                                     <label for="phone-number" class="form-label">Telefon</label>
                                     <div class="input-group">
-                                        <select class="form-select" id="phone-country-code" name="phoneCountryCode" style="max-width: 120px;"></select>
+                                        <select class="form-select" id="phone-country-code" name="phoneCountryCode" style="max-width: 120px;" required></select>
                                         <input type="tel" class="form-control" id="phone-number" name="phoneNumber" placeholder="5XX XXX XX XX" required>
                                     </div>
                                 </div>
@@ -49,7 +98,7 @@
 
                             <hr class="my-4">
 
-                            <h4 class="mb-3">Fatura Adresi</h4>
+                            <h4 class="mb-3" id="billing-address-title">Fatura Adresi</h4>
                             <div class="form-check mb-3">
                                 <input type="checkbox" class="form-check-input" id="same-address" name="sameAddress" checked>
                                 <label class="form-check-label" for="same-address">Gönderim adresi ile aynı</label>
@@ -68,19 +117,51 @@
                                 </div>
 
                             <hr class="my-4">
+                            <h4 class="mb-3">Ödeme Yöntemi</h4>
+                            <div class="my-3">
+                                <div class="form-check"><input id="bankTransfer" name="paymentMethod" type="radio" class="form-check-input" value="Bank Transfer / EFT" checked required><label class="form-check-label" for="bankTransfer">Havale/EFT</label></div>
+                                <div class="form-check"><input id="creditCard" name="paymentMethod" type="radio" class="form-check-input" value="Credit Card" required><label class="form-check-label" for="creditCard">Kredi Kartı</label></div>
+                            </div>
+                            <hr class="my-4">
                             <button class="w-100 btn btn-primary btn-lg" type="submit" id="complete-order-button">Siparişi Tamamla</button>
                         </form>
                     </div>
                 </div>
             </div>
             <div class="col-md-4">
+                <div class="card shadow-sm">
+                    <div class="card-header">Sipariş Özeti</div>
+                    <div class="card-body" id="order-summary-body">
+                         </div>
                 </div>
+            </div>
         </div>
     </main>
 
-    <div class="modal fade" id="orderSuccessModal" ... >
+    <div class="modal fade" id="orderSuccessModal" tabindex="-1" aria-labelledby="orderSuccessModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="orderSuccessModalLabel">
+                <i class="bi bi-check-circle-fill text-success me-2"></i>Siparişiniz Başarıyla Alındı!
+            </h5>
+          </div>
+          <div class="modal-body text-center">
+            <p>Siparişinizi takip etmek için lütfen aşağıdaki numarayı kaydedin.</p>
+            <div class="bg-light p-3 my-3 rounded border">
+                <p class="mb-1 text-muted">Sipariş Takip Numaranız:</p>
+                <h3 class="fw-bold" id="modal-order-number" style="letter-spacing: 2px;"></h3>
+            </div>
+            <button class="btn btn-outline-primary" id="copy-order-number-btn">
+                <i class="bi bi-clipboard me-2"></i>Numarayı Kopyala
+            </button>
+          </div>
+          <div class="modal-footer justify-content-center">
+            <a href="siparis-takip.html" id="go-to-tracking-btn" class="btn btn-primary">Sipariş Detaylarını Gör</a>
+          </div>
         </div>
-    
+      </div>
+    </div>
     <footer class="footer">
         </footer>
 
@@ -90,36 +171,49 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        // Firebase Yapılandırması ve Global Değişkenler
-        const firebaseConfig = { /* ... */ };
+        const firebaseConfig = {
+            apiKey: "AIzaSyDYkzZzNXB22U4oEXxOoPh-puwuE8kz0g4", // Lütfen kendi Firebase config bilgilerinizle değiştirin
+            authDomain: "pufemo-com.firebaseapp.com",
+            projectId: "pufemo-com",
+            storageBucket: "pufemo-com.appspot.com",
+            messagingSenderId: "983352837227",
+            appId: "1:983352837227:web:defaa8dae2157776e2e1d2",
+            measurementId: "G-RH8XHC7P91"
+        };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
         const auth = firebase.auth();
+        
         let allCountries = [];
-        // ... diğer değişkenler
+        let allLanguages = [];
+        let allCurrencies = [];
+        let cartItems = [];
+        let finalOrderTotal = 0;
+        let finalOrderCurrency = '';
 
         document.addEventListener('DOMContentLoaded', async () => {
-            await loadCommonDataAndPopulateHeader();
-            // ... diğer başlangıç fonksiyonları
+            await loadCommonData();
+            await loadCheckoutDataAndRenderSummary();
             
-            // Ülke seçimi değiştiğinde telefon kodunu da güncelle
-            document.getElementById('country').addEventListener('change', (e) => {
-                const selectedCountry = allCountries.find(c => c.code === e.target.value);
-                if (selectedCountry && selectedCountry.dial_code) {
-                    document.getElementById('phone-country-code').value = selectedCountry.dial_code;
-                }
-            });
+            document.getElementById('checkout-form').addEventListener('submit', handleCheckoutSubmit);
+            document.getElementById('country').addEventListener('change', handleCountryChange);
+            document.getElementById('same-address').addEventListener('change', toggleBillingAddressFields);
+            toggleBillingAddressFields();
         });
 
-        async function loadCommonDataAndPopulateHeader() {
+        async function loadCommonData() {
             try {
-                const countriesSnapshot = await db.collection('countries').get();
+                const [countriesSnapshot, languagesSnapshot, currenciesSnapshot] = await Promise.all([
+                    db.collection('countries').get(),
+                    db.collection('languages').get(),
+                    db.collection('currencies').get(),
+                ]);
                 allCountries = countriesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
+                allLanguages = languagesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                allCurrencies = currenciesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                
                 populateCountrySelectors();
-                populatePhoneCodeSelectors(); // YENİ FONKSİYONU ÇAĞIR
-
-                // ...diğer işlemler...
+                populatePhoneCodeSelectors();
             } catch (error) {
                 console.error("Ortak veriler yüklenirken hata:", error);
             }
@@ -127,69 +221,130 @@
 
         function populateCountrySelectors() {
             const countrySelect = document.getElementById('country');
-            // ... (bu fonksiyon aynı kalabilir) ...
-        }
+            const billingCountrySelect = document.getElementById('billingCountry');
+            countrySelect.innerHTML = '<option value="">Seçiniz...</option>';
+            billingCountrySelect.innerHTML = '<option value="">Seçiniz...</option>';
 
-        // ==================================================
-        // YENİ FONKSİYON: Telefon Kodu Seçicisini Doldurur
-        // ==================================================
+            allCountries.sort((a,b) => (a.name_tr || a.name).localeCompare(b.name_tr || b.name)).forEach(country => {
+                const optionHTML = `<option value="${country.code}">${country.name_tr || country.name}</option>`;
+                countrySelect.innerHTML += optionHTML;
+                billingCountrySelect.innerHTML += optionHTML;
+            });
+            countrySelect.value = 'TR'; // Default TR
+        }
+        
         function populatePhoneCodeSelectors() {
             const phoneSelect = document.getElementById('phone-country-code');
             const billingPhoneSelect = document.getElementById('billing-phone-country-code');
             phoneSelect.innerHTML = '';
             billingPhoneSelect.innerHTML = '';
 
-            allCountries.sort((a, b) => a.name_tr.localeCompare(b.name_tr)).forEach(country => {
-                // NOT: Firestore'daki 'countries' koleksiyonunuzda telefon kodunu tutan alanın adının 'dial_code' olduğunu varsayıyorum.
-                // Eğer farklı bir isimde (örn: 'phoneCode') tutuyorsanız, lütfen aşağıdaki 'country.dial_code' kısmını güncelleyin.
-                const dialCode = country.dial_code; 
-                
+            allCountries.sort((a,b) => (a.name_tr || a.name).localeCompare(b.name_tr || b.name)).forEach(country => {
+                // NOT: Firestore'da alan kodunun 'dial_code' olarak saklandığını varsayıyoruz.
+                const dialCode = country.dial_code;
                 if (dialCode) {
                     const optionHTML = `<option value="${dialCode}">${country.code.toUpperCase()} (${dialCode})</option>`;
                     phoneSelect.innerHTML += optionHTML;
                     billingPhoneSelect.innerHTML += optionHTML;
                 }
             });
+            handleCountryChange(); // Set initial value
+        }
 
-            // Varsayılan olarak ana ülke seçimine göre ayarla
-            const defaultCountryCode = document.getElementById('country').value || 'TR';
-            const defaultCountry = allCountries.find(c => c.code === defaultCountryCode);
-            if (defaultCountry && defaultCountry.dial_code) {
-                phoneSelect.value = defaultCountry.dial_code;
-                billingPhoneSelect.value = defaultCountry.dial_code;
+        function handleCountryChange() {
+            const selectedCountryCode = document.getElementById('country').value;
+            const selectedCountry = allCountries.find(c => c.code === selectedCountryCode);
+            if (selectedCountry && selectedCountry.dial_code) {
+                document.getElementById('phone-country-code').value = selectedCountry.dial_code;
             }
         }
 
-        // ==================================================
-        // GÜNCELLENMİŞ FONKSİYON: Siparişi Kaydeder
-        // ==================================================
+        async function loadCheckoutDataAndRenderSummary() {
+            // Sepet ve özet bilgilerini yükleyen kod...
+        }
+
+        function toggleBillingAddressFields() {
+            const billingFields = document.getElementById('billing-address-fields');
+            const inputs = billingFields.querySelectorAll('input, select');
+            const isSame = document.getElementById('same-address').checked;
+            
+            billingFields.classList.toggle('d-none', isSame);
+            inputs.forEach(input => input.required = !isSame);
+        }
+
         async function handleCheckoutSubmit(event) {
             event.preventDefault();
-            // ... (fonksiyonun başı aynı) ...
+            const form = event.target;
+            if (!form.checkValidity()) {
+                event.stopPropagation();
+                form.classList.add('was-validated');
+                return;
+            }
 
-            const formData = new FormData(event.target);
+            document.getElementById('complete-order-button').disabled = true;
+            const formData = new FormData(form);
             
-            // Telefon numarasını birleştir
             const fullPhoneNumber = formData.get('phoneCountryCode') + formData.get('phoneNumber');
+            const billingFullPhoneNumber = document.getElementById('same-address').checked 
+                ? fullPhoneNumber 
+                : formData.get('billingPhoneCountryCode') + formData.get('billingPhoneNumber');
 
             const customerInfo = {
                 firstName: formData.get('firstName'),
                 lastName: formData.get('lastName'),
                 email: formData.get('email'),
-                phone: fullPhoneNumber // BİRLEŞTİRİLMİŞ TELEFON NO
+                phone: fullPhoneNumber
             };
-            
-            // ... (siparişin geri kalanı aynı) ...
 
-            // veritabanına kaydetme kısmı...
+            const shippingAddress = { /* ... */ };
+            const billingAddress = { /* ... */ };
+            if(!document.getElementById('same-address').checked) {
+                billingAddress.phone = billingFullPhoneNumber;
+            }
+            
+            const user = auth.currentUser;
+            const newOrderRef = db.collection('orders').doc();
+            const fullOrderId = newOrderRef.id;
+            const shortOrderId = fullOrderId.substring(0, 8).toUpperCase();
+
+            const orderData = {
+                userId: user ? user.uid : 'anonymous',
+                shortOrderId,
+                customerInfo,
+                shippingAddress,
+                billingAddress,
+                // ... diğer sipariş verileri ...
+            };
+
             try {
-                // ... (await newOrderRef.set(orderData)) ...
+                await newOrderRef.set(orderData);
+                localStorage.removeItem('pufemo_cart_items');
+
+                document.getElementById('modal-order-number').textContent = shortOrderId;
+                const trackingUrl = `siparis-takip.html?orderId=${fullOrderId}&email=${customerInfo.email}`;
+                document.getElementById('go-to-tracking-btn').href = trackingUrl;
+
+                const copyBtn = document.getElementById('copy-order-number-btn');
+                copyBtn.onclick = () => {
+                    navigator.clipboard.writeText(shortOrderId).then(() => {
+                        copyBtn.innerHTML = '<i class="bi bi-check-lg me-2"></i>Kopyalandı!';
+                        setTimeout(() => { copyBtn.innerHTML = '<i class="bi bi-clipboard me-2"></i>Numarayı Kopyala'; }, 2000);
+                    });
+                };
+
+                const successModal = new bootstrap.Modal(document.getElementById('orderSuccessModal'));
+                successModal.show();
+
+                document.getElementById('orderSuccessModal').addEventListener('hidden.bs.modal', () => {
+                    window.location.href = trackingUrl;
+                });
+
             } catch (error) {
-                // ...
+                console.error("Sipariş kaydedilirken hata:", error);
+                alert('Siparişiniz kaydedilirken bir hata oluştu.');
+                document.getElementById('complete-order-button').disabled = false;
             }
         }
-
-        // Diğer tüm fonksiyonlar (toggleBillingAddressFields, modal gösterme vb.) aynı kalabilir.
     </script>
 </body>
 </html>
