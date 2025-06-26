@@ -158,8 +158,8 @@
                 const langSnapshot = await db.collection('languages').get();
                 availableLanguages = langSnapshot.docs.map(doc => doc.data());
                 
-                loadPromoBanner();
-                loadSlides();
+                await loadPromoBanner();
+                await loadSlides();
                 
                 document.getElementById('addNewSlideBtn').addEventListener('click', handleNewSlideClick);
                 document.getElementById('slide-form').addEventListener('submit', handleSaveSlide);
@@ -167,6 +167,7 @@
 
             } catch (error) {
                 console.error("Veriler yüklenirken hata:", error);
+                alert("Başlangıç verileri yüklenirken bir hata oluştu. Lütfen konsolu kontrol edin.");
             }
         }
 
@@ -177,10 +178,11 @@
             const container = document.getElementById('promo-banner-inputs');
             container.innerHTML = '';
             availableLanguages.forEach(lang => {
+                const value = settings['promoText_' + lang.code] || '';
                 container.innerHTML += `
                     <div class="mb-2">
                         <label for="promoText_${lang.code}" class="form-label">Tanıtım Metni (${lang.name})</label>
-                        <input type="text" id="promoText_${lang.code}" class="form-control" value="${settings[`promoText_${lang.code}`] || ''}">
+                        <input type="text" id="promoText_${lang.code}" class="form-control" value="${value}">
                     </div>
                 `;
             });
@@ -190,7 +192,7 @@
             e.preventDefault();
             const promoData = {};
             availableLanguages.forEach(lang => {
-                promoData[`promoText_${lang.code}`] = document.getElementById(`promoText_${lang.code}`).value;
+                promoData['promoText_' + lang.code] = document.getElementById(`promoText_${lang.code}`).value;
             });
 
             try {
@@ -237,27 +239,31 @@
                 });
             } catch (error) {
                 console.error("Slider'lar yüklenirken hata:", error);
-                tableBody.innerHTML = '<tr><td colspan="5" class="text-center text-danger">Slider'lar yüklenemedi.</td></tr>';
+                tableBody.innerHTML = '<tr><td colspan="5" class="text-center text-danger">Sliderlar yüklenemedi.</td></tr>';
             }
         }
         
         function buildSlideLanguageTabs(slideData = {}) {
             const tabsContainer = document.getElementById('slideLanguageTabs');
             const contentContainer = document.getElementById('slideLanguageTabContent');
-            tabsContainer.innerHTML = ''; contentContainer.innerHTML = '';
+            tabsContainer.innerHTML = ''; 
+            contentContainer.innerHTML = '';
 
             availableLanguages.forEach((lang, index) => {
                 const isActive = index === 0;
+                const titleValue = slideData['title_' + lang.code] || '';
+                const descValue = slideData['description_' + lang.code] || '';
+
                 tabsContainer.innerHTML += `<li class="nav-item" role="presentation"><button class="nav-link ${isActive ? 'active' : ''}" data-bs-toggle="tab" data-bs-target="#slide-pane-${lang.code}" type="button">${lang.name}</button></li>`;
                 contentContainer.innerHTML += `
                     <div class="tab-pane fade ${isActive ? 'show active' : ''}" id="slide-pane-${lang.code}">
                         <div class="mb-3">
                             <label for="title_${lang.code}" class="form-label">Başlık (${lang.code.toUpperCase()})</label>
-                            <input type="text" id="title_${lang.code}" class="form-control" value="${slideData[`title_${lang.code}`] || ''}">
+                            <input type="text" id="title_${lang.code}" class="form-control" value="${titleValue}">
                         </div>
                         <div class="mb-3">
                             <label for="description_${lang.code}" class="form-label">Açıklama (${lang.code.toUpperCase()})</label>
-                            <textarea id="description_${lang.code}" class="form-control" rows="2">${slideData[`description_${lang.code}`] || ''}</textarea>
+                            <textarea id="description_${lang.code}" class="form-control" rows="2">${descValue}</textarea>
                         </div>
                     </div>`;
             });
@@ -269,6 +275,7 @@
             document.getElementById('slideId').value = '';
             document.getElementById('slideIsActive').checked = true;
             buildSlideLanguageTabs();
+            slideModal.show();
         }
 
         async function handleEditSlide(id) {
@@ -280,8 +287,8 @@
                 document.getElementById('slideId').value = id;
                 document.getElementById('slideImageUrl').value = slideData.imageUrl || '';
                 document.getElementById('slideLinkUrl').value = slideData.linkUrl || '';
-                document.getElementById('slideOrder').value = slideData.order || 0;
-                document.getElementById('slideIsActive').checked = slideData.isActive;
+                document.getElementById('slideOrder').value = slideData.order === undefined ? 0 : slideData.order;
+                document.getElementById('slideIsActive').checked = slideData.isActive === undefined ? true : slideData.isActive;
                 buildSlideLanguageTabs(slideData);
                 slideModal.show();
             } else {
@@ -299,13 +306,13 @@
             const slideData = {
                 imageUrl: document.getElementById('slideImageUrl').value,
                 linkUrl: document.getElementById('slideLinkUrl').value,
-                order: parseInt(document.getElementById('slideOrder').value),
+                order: parseInt(document.getElementById('slideOrder').value) || 0,
                 isActive: document.getElementById('slideIsActive').checked
             };
             
             availableLanguages.forEach(lang => {
-                slideData[`title_${lang.code}`] = document.getElementById(`title_${lang.code}`).value;
-                slideData[`description_${lang.code}`] = document.getElementById(`description_${lang.code}`).value;
+                slideData['title_' + lang.code] = document.getElementById(`title_${lang.code}`).value;
+                slideData['description_' + lang.code] = document.getElementById(`description_${lang.code}`).value;
             });
 
             try {
