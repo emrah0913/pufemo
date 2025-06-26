@@ -42,18 +42,20 @@
             text-shadow: 1px 1px 3px rgba(0,0,0,0.4);
             top: auto;
             left: auto;
+            right: auto;
+            bottom: auto;
             transform: none;
+            max-width: 90%;
         }
-        /* DİNAMİK POZİSYONLAMA İÇİN GEREKLİ CSS SINIFLARI */
         .caption-position-center-center { top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; }
-        .caption-position-center-left { top: 50%; left: 10%; transform: translateY(-50%); text-align: left; }
-        .caption-position-center-right { top: 50%; right: 10%; transform: translateY(-50%); text-align: right; }
-        .caption-position-top-left { top: 10%; left: 10%; transform: none; text-align: left; }
-        .caption-position-top-center { top: 10%; left: 50%; transform: translateX(-50%); text-align: center; }
-        .caption-position-top-right { top: 10%; right: 10%; transform: none; text-align: right; }
-        .caption-position-bottom-left { bottom: 10%; top: auto; left: 10%; transform: none; text-align: left; }
-        .caption-position-bottom-center { bottom: 10%; top: auto; left: 50%; transform: translateX(-50%); text-align: center; }
-        .caption-position-bottom-right { bottom: 10%; top: auto; right: 10%; transform: none; text-align: right; }
+        .caption-position-center-left { top: 50%; left: 5%; transform: translateY(-50%); text-align: left; }
+        .caption-position-center-right { top: 50%; right: 5%; transform: translateY(-50%); text-align: right; }
+        .caption-position-top-left { top: 5%; left: 5%; text-align: left; }
+        .caption-position-top-center { top: 5%; left: 50%; transform: translateX(-50%); text-align: center; }
+        .caption-position-top-right { top: 5%; right: 5%; text-align: right; }
+        .caption-position-bottom-left { bottom: 5%; left: 5%; text-align: left; }
+        .caption-position-bottom-center { bottom: 5%; left: 50%; transform: translateX(-50%); text-align: center; }
+        .caption-position-bottom-right { bottom: 5%; right: 5%; text-align: right; }
 
         .product-card {
             border: none;
@@ -185,11 +187,7 @@
 
     <div class="modal fade" id="welcomeCountryModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="welcomeCountryModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-sm modal-country-selection">
-            <div class="modal-content">
-                <div class="modal-header"><h5 class="modal-title w-100 text-center" id="welcomeCountryModalLabel">Hoş Geldiniz!</h5></div>
-                <div class="modal-body text-center"><p id="welcome-country-prompt">Lütfen ülkenizi seçin:</p><select class="form-select mb-3" id="country-select-modal"></select></div>
-                <div class="modal-footer justify-content-center"><button type="button" class="btn btn-primary" id="select-country-btn">Devam Et</button></div>
-            </div>
+            <div class="modal-content"><div class="modal-header"><h5 class="modal-title w-100 text-center" id="welcomeCountryModalLabel">Hoş Geldiniz!</h5></div><div class="modal-body text-center"><p id="welcome-country-prompt">Lütfen ülkenizi seçin:</p><select class="form-select mb-3" id="country-select-modal"></select></div><div class="modal-footer justify-content-center"><button type="button" class="btn btn-primary" id="select-country-btn">Devam Et</button></div></div>
         </div>
     </div>
     
@@ -257,27 +255,54 @@
             });
         });
 
+        // DÜZELTİLMİŞ SAYFA YÜKLEME MANTIĞI
         async function proceedWithSiteInitialization() {
             const storedCountryCode = localStorage.getItem(LS_SELECTED_COUNTRY_CODE);
+            
+            // Eğer daha önce bir ülke seçilmemişse, modalı göster ve bekle
             if (!storedCountryCode && allCountries.length > 0) {
-                handleInitialModalsAndSelections();
-            } else {
-                updateStaticContent();
-                await populateHeaderSelectors();
-                updateHeaderDisplays();
-                loadHeroSlider();
-                loadFeaturedCategories();
-                loadNewArrivals();
-                updateCartItemCount();
+                await showCountrySelectionModal();
             }
-        }
-
-        function handleInitialModalsAndSelections() {
-            let initialLangCodeForModals = 'en';
-            updateAllModalTexts(initialLangCodeForModals);
-            welcomeCountryModal.show();
+            
+            // Ülke seçimi yapıldıktan sonra veya zaten seçilmişse, sayfanın geri kalanını yükle
+            initializePageContent();
         }
         
+        // Ülke seçim modalını gösteren ve seçim yapıldığında çözülen bir Promise döndüren fonksiyon
+        function showCountrySelectionModal() {
+            return new Promise((resolve) => {
+                let initialLangCodeForModals = 'en';
+                updateAllModalTexts(initialLangCodeForModals);
+                
+                selectCountryBtn.onclick = () => {
+                    const selectedCountryCode = countrySelectModal.value;
+                    if (selectedCountryCode) {
+                        const selectedCountryData = allCountries.find(c => c.code === selectedCountryCode);
+                        if (selectedCountryData) {
+                            localStorage.setItem(LS_SELECTED_COUNTRY_CODE, selectedCountryCode);
+                            localStorage.setItem(LS_SELECTED_LANGUAGE_CODE, selectedCountryData.language || 'tr'); 
+                            localStorage.setItem(LS_SELECTED_CURRENCY_CODE, selectedCountryData.currency || 'TRY'); 
+                        }
+                        welcomeCountryModal.hide();
+                        resolve(); // Seçim yapıldı, Promise'ı çöz
+                    }
+                };
+                
+                welcomeCountryModal.show();
+            });
+        }
+        
+        // Sayfanın tüm dinamik içeriğini başlatan fonksiyon
+        async function initializePageContent() {
+            updateStaticContent();
+            await populateHeaderSelectors();
+            updateHeaderDisplays();
+            loadHeroSlider();
+            loadFeaturedCategories();
+            loadNewArrivals();
+            updateCartItemCount();
+        }
+
         function updateAllModalTexts(languageCode) {
             const texts = appTexts[languageCode] || appTexts['en']; 
             welcomeCountryModalLabel.textContent = texts.welcomeModalTitle;
@@ -344,20 +369,7 @@
             selectedLanguageDisplay.textContent = selectedLanguage ? selectedLanguage.code.toUpperCase() : 'TR';
             selectedCurrencyDisplay.textContent = selectedCurrency ? selectedCurrency.symbol : '₺';
         }
-
-        selectCountryBtn.addEventListener('click', () => {
-            const selectedCountryCode = countrySelectModal.value;
-            if (selectedCountryCode) {
-                const selectedCountryData = allCountries.find(c => c.code === selectedCountryCode);
-                if (selectedCountryData) {
-                    localStorage.setItem(LS_SELECTED_COUNTRY_CODE, selectedCountryCode);
-                    localStorage.setItem(LS_SELECTED_LANGUAGE_CODE, selectedCountryData.language || 'tr'); 
-                    localStorage.setItem(LS_SELECTED_CURRENCY_CODE, selectedCountryData.currency || 'TRY'); 
-                }
-                window.location.reload();
-            }
-        });
-
+        
         saveHeaderSelectionsBtn.addEventListener('click', () => {
             localStorage.setItem(LS_SELECTED_COUNTRY_CODE, headerCountrySelect.value);
             localStorage.setItem(LS_SELECTED_LANGUAGE_CODE, headerLanguageSelect.value);
