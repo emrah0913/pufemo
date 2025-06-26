@@ -15,8 +15,6 @@
         .product-card:hover { transform: translateY(-5px); box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         .hero-slider .carousel-item img { height: 550px; object-fit: cover; }
         .category-card img { width: 100px; height: 100px; object-fit: cover; }
-
-        /* Ülke Seçim Modalı ve Header için Stiller */
         .modal-country-selection .modal-content { border-radius: 15px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
         .modal-country-selection .modal-header, .modal-country-selection .modal-footer { border: none; padding-top: 0; padding-bottom: 0; }
         .currency-language-selector { cursor: pointer; padding: 5px 10px; border-radius: 5px; transition: background-color 0.2s; }
@@ -27,7 +25,7 @@
 
     <header class="py-3 mb-4 border-bottom bg-white shadow-sm">
         <div class="container d-flex flex-wrap justify-content-center">
-            <a href="/" class="d-flex align-items-center mb-3 mb-lg-0 me-lg-auto text-dark text-decoration-none">
+            <a href="/" id="header-logo-link" class="d-flex align-items-center mb-3 mb-lg-0 me-lg-auto text-dark text-decoration-none">
                 <span class="fs-4 fw-bold">PUFEMO</span>
             </a>
             <form class="col-12 col-lg-auto mb-3 mb-lg-0" role="search">
@@ -52,8 +50,8 @@
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="navbarAccountDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi bi-person"></i> Hesabım</a>
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarAccountDropdown">
-                            <li><a class="dropdown-item" href="admin-login.html">Giriş Yap</a></li>
-                            <li><a class="dropdown-item" href="kayit-ol.html">Kayıt Ol</a></li>
+                            <li><a class="dropdown-item" href="admin-login.html" id="menu-login-link">Giriş Yap</a></li>
+                            <li><a class="dropdown-item" href="kayit-ol.html" id="menu-register-link">Kayıt Ol</a></li>
                         </ul>
                     </li>
                     <li class="nav-item"><a class="nav-link" href="sepet.html"><i class="bi bi-cart"></i> Sepet <span class="badge bg-dark rounded-pill" id="cart-item-count">0</span></a></li>
@@ -91,14 +89,12 @@
 
     <div class="container my-5">
         <h2 class="text-center mb-4">Kategoriler</h2>
-        <div class="row g-4 justify-content-center" id="featured-categories-row">
-            </div>
+        <div class="row g-4 justify-content-center" id="featured-categories-row"></div>
     </div>
 
     <div class="container my-5">
         <h2 class="text-center mb-4">Öne Çıkan Ürünler</h2>
-        <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4" id="featured-products-row">
-            </div>
+        <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4" id="featured-products-row"></div>
     </div>
 
     <div class="container my-5">
@@ -124,14 +120,7 @@
 
     <div class="modal fade" id="welcomeCountryModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered modal-sm modal-country-selection">
-            <div class="modal-content">
-                <div class="modal-header"><h5 class="modal-title w-100 text-center" id="welcomeCountryModalLabel">Hoş Geldiniz!</h5></div>
-                <div class="modal-body text-center">
-                    <p id="welcome-country-prompt">Lütfen ülkenizi seçin:</p>
-                    <select class="form-select mb-3" id="country-select-modal"></select>
-                </div>
-                <div class="modal-footer justify-content-center"><button type="button" class="btn btn-primary" id="select-country-btn">Devam Et</button></div>
-            </div>
+            <div class="modal-content"><div class="modal-header"><h5 class="modal-title w-100 text-center" id="welcomeCountryModalLabel">Hoş Geldiniz!</h5></div><div class="modal-body text-center"><p id="welcome-country-prompt">Lütfen ülkenizi seçin:</p><select class="form-select mb-3" id="country-select-modal"></select></div><div class="modal-footer justify-content-center"><button type="button" class="btn btn-primary" id="select-country-btn">Devam Et</button></div></div>
         </div>
     </div>
 
@@ -141,29 +130,28 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        // FİREBASE YAPILANDIRMASI
         const firebaseConfig = { apiKey: "AIzaSyDYkzZzNXB22U4oEXxOoPh-puwuE8kz0g4", authDomain: "pufemo-com.firebaseapp.com", projectId: "pufemo-com", storageBucket: "pufemo-com.appspot.com", messagingSenderId: "983352837227", appId: "1:983352837227:web:defaa8dae215776e2e1d2" };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
         const auth = firebase.auth();
 
-        // GLOBAL DEĞİŞKENLER VE DOM ELEMENTLERİ
+        // DOM ELEMENTLERİ
         const welcomeCountryModal = new bootstrap.Modal(document.getElementById('welcomeCountryModal'));
         const countrySelectModal = document.getElementById('country-select-modal');
         const selectCountryBtn = document.getElementById('select-country-btn');
-        // ... (diğer dom elementleri)
+        // DÜZELTME: Eksik değişken tanımı eklendi
+        const saveHeaderSelectionsBtn = document.getElementById('save-header-selections');
+        
         let allCountries = [], allLanguages = [], allCurrencies = [], siteSettings = {};
         const LS_SELECTED_COUNTRY_CODE = 'pufemo_selected_country_code';
         const LS_SELECTED_LANGUAGE_CODE = 'pufemo_selected_language_code';
         const LS_SELECTED_CURRENCY_CODE = 'pufemo_selected_currency_code';
         
-        // ÇOK DİLLİ METİNLER
         const appTexts = {
-            'tr': { welcomeModalTitle: 'Hoş Geldiniz!', welcomeModalCountryPrompt: 'Lütfen ülkenizi seçin:', welcomeModalContinueBtn: 'Devam Et', countrySelectPlaceholder: 'Ülke Seçiniz...', noSliders: 'Slider Mevcut Değil', noCategories: 'Kategori Bulunamadı', productsLoading: 'Ürünler Yükleniyor...', noProducts: 'Ürün Bulunamadı' },
-            'en': { welcomeModalTitle: 'Welcome!', welcomeModalCountryPrompt: 'Please select your country:', welcomeModalContinueBtn: 'Continue', countrySelectPlaceholder: 'Select Country...', noSliders: 'No Sliders Available', noCategories: 'No Categories Found', productsLoading: 'Loading Products...', noProducts: 'No Products Found' }
+            'tr': { welcomeModalTitle: 'Hoş Geldiniz!', welcomeModalCountryPrompt: 'Lütfen ülkenizi seçin:', welcomeModalContinueBtn: 'Devam Et', countrySelectPlaceholder: 'Ülke Seçiniz...', menuLogin: 'Giriş Yap', menuRegister: 'Kayıt Ol', noSliders: 'Slider Mevcut Değil', noCategories: 'Kategori Bulunamadı', productsLoading: 'Ürünler Yükleniyor...', noProducts: 'Ürün Bulunamadı' },
+            'en': { welcomeModalTitle: 'Welcome!', welcomeModalCountryPrompt: 'Please select your country:', welcomeModalContinueBtn: 'Continue', countrySelectPlaceholder: 'Select Country...', menuLogin: 'Login', menuRegister: 'Register', noSliders: 'No Sliders Available', noCategories: 'No Categories Found', productsLoading: 'Loading Products...', noProducts: 'No Products Found' }
         };
 
-        // SAYFA YÜKLEME AKIŞI
         document.addEventListener('DOMContentLoaded', async () => {
             try {
                 const [countriesSnapshot, languagesSnapshot, currenciesSnapshot, settingsDoc] = await Promise.all([
@@ -181,10 +169,7 @@
                 const storedCountryCode = localStorage.getItem(LS_SELECTED_COUNTRY_CODE);
                 if (!storedCountryCode && allCountries.length > 0) {
                     showCountrySelectionModal();
-                } else if (storedCountryCode) {
-                    initializePageContent();
                 } else {
-                    // Hiç ülke tanımlı değilse varsayılan olarak devam et
                     initializePageContent();
                 }
             });
@@ -216,6 +201,13 @@
                 initializePageContent();
             }
         });
+        
+        saveHeaderSelectionsBtn.addEventListener('click', () => {
+            localStorage.setItem(LS_SELECTED_COUNTRY_CODE, document.getElementById('header-country-select').value);
+            localStorage.setItem(LS_SELECTED_LANGUAGE_CODE, document.getElementById('header-language-select').value);
+            localStorage.setItem(LS_SELECTED_CURRENCY_CODE, document.getElementById('header-currency-select').value);
+            window.location.reload();
+        });
 
         function initializePageContent() {
             updateHeaderAndFooter();
@@ -227,13 +219,22 @@
 
         function updateHeaderAndFooter() {
             const lang = localStorage.getItem(LS_SELECTED_LANGUAGE_CODE) || 'tr';
-            // Header metinleri
-            document.getElementById('menu-login-link').textContent = appTexts[lang]?.menuLogin || 'Login';
-            document.getElementById('menu-register-link').textContent = appTexts[lang]?.menuRegister || 'Register';
-            // Footer metinleri
+            const texts = appTexts[lang] || appTexts['tr'];
+
+            const logoUrl = siteSettings.logoUrl;
+            const logoLink = document.getElementById('header-logo-link');
+            if (logoLink) {
+                if (logoUrl) {
+                    logoLink.innerHTML = `<img src="${logoUrl}" alt="Pufemo Logo" style="max-height: 40px; width: auto;">`;
+                } else {
+                    logoLink.innerHTML = `<span class="fs-4 fw-bold">PUFEMO</span>`;
+                }
+            }
+
+            document.getElementById('menu-login-link').textContent = texts.menuLogin;
+            document.getElementById('menu-register-link').textContent = texts.menuRegister;
             document.querySelector('#footer-contact-email').textContent = siteSettings.contactEmail || 'info@pufemo.com';
             document.querySelector('#footer-whatsapp-number').textContent = siteSettings.whatsappNumber || '+90 5XX XXX XX XX';
-            // Cart
             const cartItems = JSON.parse(localStorage.getItem('pufemo_cart_items') || '[]');
             document.getElementById('cart-item-count').textContent = cartItems.length;
         }
@@ -242,41 +243,46 @@
             const lang = localStorage.getItem(LS_SELECTED_LANGUAGE_CODE) || 'tr';
             const country = localStorage.getItem(LS_SELECTED_COUNTRY_CODE) || 'TR';
             const currency = localStorage.getItem(LS_SELECTED_CURRENCY_CODE) || 'TRY';
-            // ... (populate select options) ...
+
+            const countrySelect = document.getElementById('header-country-select');
+            allCountries.forEach(c => { countrySelect.innerHTML += `<option value="${c.code}">${c['name_'+lang] || c.name_tr}</option>`; });
+            countrySelect.value = country;
+            
+            const langSelect = document.getElementById('header-language-select');
+            allLanguages.forEach(l => { langSelect.innerHTML += `<option value="${l.code}">${l.name}</option>`; });
+            langSelect.value = lang;
+
+            const currencySelect = document.getElementById('header-currency-select');
+            allCurrencies.forEach(c => { currencySelect.innerHTML += `<option value="${c.code}">${c.symbol} (${c.code})</option>`; });
+            currencySelect.value = currency;
+            
             document.getElementById('selected-country-display').textContent = country;
             document.getElementById('selected-language-display').textContent = lang.toUpperCase();
             document.getElementById('selected-currency-display').textContent = allCurrencies.find(c => c.code === currency)?.symbol || '₺';
         }
 
-        saveHeaderSelectionsBtn.addEventListener('click', () => {
-            localStorage.setItem(LS_SELECTED_COUNTRY_CODE, document.getElementById('header-country-select').value);
-            localStorage.setItem(LS_SELECTED_LANGUAGE_CODE, document.getElementById('header-language-select').value);
-            localStorage.setItem(LS_SELECTED_CURRENCY_CODE, document.getElementById('header-currency-select').value);
-            window.location.reload();
-        });
-
-        // VERİ ÇEKME FONKSİYONLARI
         async function loadHeroSlider() {
             const carouselInner = document.getElementById('carousel-inner');
             const carouselIndicators = document.getElementById('carousel-indicators');
             carouselInner.innerHTML = ''; carouselIndicators.innerHTML = '';
             const lang = localStorage.getItem(LS_SELECTED_LANGUAGE_CODE) || 'tr';
+            const texts = appTexts[lang] || appTexts['tr'];
             try {
                 const snapshot = await db.collection('homepage_slider').where('isActive', '==', true).orderBy('order').get();
                 if(snapshot.empty){
-                    carouselInner.innerHTML = `<div class="carousel-item active"><div class="d-flex justify-content-center align-items-center h-100"><p>${appTexts[lang].noSliders}</p></div></div>`;
+                    carouselInner.innerHTML = `<div class="carousel-item active"><div class="d-flex justify-content-center align-items-center h-100"><p>${texts.noSliders}</p></div></div>`;
                     return;
                 }
                 snapshot.forEach((doc, index) => {
                     const slide = doc.data();
                     const title = slide['title_' + lang] || '';
                     const description = slide['description_' + lang] || '';
-                    const buttonText = slide['buttonText_' + lang] || 'Shop Now';
+                    const buttonText = slide['buttonText_' + lang] || 'Daha Fazla';
                     
                     const indicator = `<button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="${index}" class="${index === 0 ? 'active' : ''}"></button>`;
                     const item = `<div class="carousel-item ${index === 0 ? 'active' : ''}">
-                                    <img src="${slide.imageUrl}" class="d-block w-100" alt="...">
-                                    <div class="carousel-caption d-none d-md-block">
+                                    <img src="${slide.imageUrl}" class="d-block w-100" alt="${title}">
+                                    <div class="carousel-caption d-block">
                                         <h1>${title}</h1>
                                         <p>${description}</p>
                                         <p><a class="btn btn-lg btn-primary" href="${slide.linkUrl || '#'}">${buttonText}</a></p>
@@ -290,7 +296,7 @@
 
         async function loadFeaturedCategories() {
             const container = document.getElementById('featured-categories-row');
-            container.innerHTML = `<div class="col text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>`;
+            container.innerHTML = `<div class="col text-center"><div class="spinner-border" role="status"></div></div>`;
             const lang = localStorage.getItem(LS_SELECTED_LANGUAGE_CODE) || 'tr';
             try {
                 const snapshot = await db.collection('categories').where('showOnHomepage', '==', true).limit(4).get();
@@ -302,15 +308,7 @@
                 snapshot.forEach(doc => {
                     const category = doc.data();
                     const name = category['name_' + lang] || category.name_tr;
-                    const item = `<div class="col-6 col-md-3">
-                                    <div class="card category-card text-center border-0">
-                                        <img src="${category.imageUrl}" class="rounded-circle mx-auto" alt="${name}">
-                                        <div class="card-body">
-                                            <h5 class="card-title">${name}</h5>
-                                        </div>
-                                    </div>
-                                  </div>`;
-                    container.innerHTML += item;
+                    container.innerHTML += `<div class="col-6 col-md-3"><div class="card category-card text-center border-0"><img src="${category.imageUrl}" class="rounded-circle mx-auto" alt="${name}"><div class="card-body"><h5 class="card-title">${name}</h5></div></div></div>`;
                 });
             } catch (e) { console.error("Kategoriler yüklenirken hata:", e); }
         }
@@ -323,7 +321,6 @@
             const currencyCode = localStorage.getItem(LS_SELECTED_CURRENCY_CODE) || 'TRY';
             const currencySymbol = allCurrencies.find(c => c.code === currencyCode)?.symbol || '₺';
             const countryMultiplier = allCountries.find(c => c.code === countryCode)?.multiplier || 1;
-
             try {
                 const snapshot = await db.collection('products').where('isActive', '==', true).limit(8).get();
                  if(snapshot.empty){
@@ -335,19 +332,7 @@
                     const product = doc.data();
                     const name = product['name_' + lang] || product.name_tr;
                     const price = (product.basePriceTRY * countryMultiplier).toFixed(2);
-                    const item = `<div class="col">
-                                    <div class="card product-card h-100">
-                                        <img src="${product.mediaUrls && product.mediaUrls.length > 0 ? product.mediaUrls[0] : 'https://via.placeholder.com/300'}" class="card-img-top" alt="${name}">
-                                        <div class="card-body text-center">
-                                            <h5 class="card-title">${name}</h5>
-                                            <p class="card-text fw-bold">${price} ${currencySymbol}</p>
-                                            <div class="d-flex justify-content-center">
-                                                 <button class="btn btn-sm btn-outline-dark">Sepete Ekle</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                  </div>`;
-                    container.innerHTML += item;
+                    container.innerHTML += `<div class="col"><div class="card product-card h-100"><img src="${product.mediaUrls && product.mediaUrls.length > 0 ? product.mediaUrls[0] : 'https://via.placeholder.com/300'}" class="card-img-top" alt="${name}"><div class="card-body text-center"><h5 class="card-title">${name}</h5><p class="card-text fw-bold">${price} ${currencySymbol}</p><div class="d-flex justify-content-center"><button class="btn btn-sm btn-outline-dark">Sepete Ekle</button></div></div></div></div>`;
                 });
             } catch (e) { console.error("Ürünler yüklenirken hata:", e); }
         }
