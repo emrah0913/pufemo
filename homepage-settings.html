@@ -4,8 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ana Sayfa Ayarları - PUFEMO Admin</title>
+    
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
     <style>
         body { display: flex; background-color: #f0f2f5; }
         #sidebar { width: 280px; min-height: 100vh; background-color: #343a40; color: white; position: fixed; left: 0; top: 0; z-index: 100; }
@@ -14,7 +16,8 @@
         .nav-link { color: #adb5bd; padding: 10px 20px; }
         .nav-link.active, .nav-link:hover { color: #ffffff; background-color: #495057; }
         .nav-link .bi { margin-right: 10px; }
-        .slide-thumbnail { width: 150px; height: auto; border-radius: 5px; }
+        .slide-thumbnail { width: 120px; height: 60px; object-fit: cover; border-radius: 5px; }
+        .loading-spinner { display: none; }
     </style>
 </head>
 <body>
@@ -37,174 +40,302 @@
 
     <div id="main-content">
         <nav class="navbar navbar-expand-lg navbar-light bg-light rounded mb-4">
-            <div class="container-fluid"><span class="navbar-brand">Ana Sayfa Ayarları</span></div>
+            <div class="container-fluid"><span class="navbar-brand">Ana Sayfa Yönetimi</span></div>
         </nav>
+
         <div class="card mb-4">
-            <div class="card-header d-flex justify-content-between align-items-center">Slider Yönetimi<button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#slideModal" onclick="prepareNewSlide()"><i class="bi bi-plus-circle"></i> Yeni Slide Ekle</button></div>
-            <div class="card-body"><div id="slider-list" class="list-group"></div></div>
-        </div>
-        <div class="card">
-            <div class="card-header">Promosyon Yazısı (Çok Dilli)</div>
+            <div class="card-header">
+                Üst Tanıtım Banner'ı Metni
+            </div>
             <div class="card-body">
-                <form id="promo-form">
-                    <div id="promoLanguageFieldsContainer"></div>
-                    <button type="submit" class="btn btn-primary mt-3">Yazıları Kaydet</button>
+                <form id="promo-banner-form">
+                    <div id="promo-banner-inputs">
+                        </div>
+                    <button type="submit" class="btn btn-primary mt-2">Tanıtım Metnini Kaydet</button>
+                    <span id="promo-save-success" class="text-success ms-3 d-none">Kaydedildi!</span>
                 </form>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                Slider Yönetimi
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#slideModal" id="addNewSlideBtn">
+                    <i class="bi bi-plus-circle"></i> Yeni Slide Ekle
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead>
+                            <tr>
+                                <th>Görsel</th>
+                                <th>Başlık (TR)</th>
+                                <th>Sıra</th>
+                                <th>Durum</th>
+                                <th>Aksiyonlar</th>
+                            </tr>
+                        </thead>
+                        <tbody id="slides-table-body">
+                            </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
 
     <div class="modal fade" id="slideModal" tabindex="-1">
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-lg">
             <div class="modal-content">
-                <div class="modal-header"><h5 class="modal-title" id="slideModalLabel">Yeni Slide Ekle</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-header">
+                    <h5 class="modal-title" id="slideModalLabel">Yeni Slide Ekle</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
                 <div class="modal-body">
                     <form id="slide-form">
                         <input type="hidden" id="slideId">
-                        <div id="slideLanguageFieldsContainer"></div>
-                        <div class="mb-3"><label for="slideImage" class="form-label">Görsel</label><input type="file" class="form-control" id="slideImage"></div>
-                        <div class="mb-3"><label for="slideLink" class="form-label">Link URL</label><input type="text" class="form-control" id="slideLink" placeholder="https://..."></div>
-                        <div class="mb-3"><label for="slideOrder" class="form-label">Sıra</label><input type="number" class="form-control" id="slideOrder" value="0"></div>
-                        <div class="form-check"><input type="checkbox" class="form-check-input" id="slideIsActive" checked><label class="form-check-label" for="slideIsActive">Aktif</label></div>
+                        
+                        <ul class="nav nav-tabs" id="slideLanguageTabs" role="tablist"></ul>
+                        <div class="tab-content p-3 border border-top-0 mb-3" id="slideLanguageTabContent"></div>
+                        
+                        <div class="mb-3">
+                            <label for="slideImageUrl" class="form-label">Görsel URL</label>
+                            <input type="url" class="form-control" id="slideImageUrl" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="slideLinkUrl" class="form-label">Link URL (Tıklanınca gidilecek sayfa)</label>
+                            <input type="url" class="form-control" id="slideLinkUrl">
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="slideOrder" class="form-label">Sıralama</label>
+                                <input type="number" class="form-control" id="slideOrder" value="0" required>
+                            </div>
+                            <div class="col-md-6 mb-3 d-flex align-items-center pt-3">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="slideIsActive" checked>
+                                    <label class="form-check-label" for="slideIsActive">Aktif Mi?</label>
+                                </div>
+                            </div>
+                        </div>
                     </form>
                 </div>
-                <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button><button type="submit" form="slide-form" class="btn btn-primary">Kaydet</button></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+                    <button type="submit" form="slide-form" class="btn btn-primary" id="saveSlideBtn">
+                        <span class="loading-spinner spinner-border spinner-border-sm"></span> Kaydet
+                    </button>
+                </div>
             </div>
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    
     <script>
         const firebaseConfig = { apiKey: "AIzaSyDYkzZzNXB22U4oEXxOoPh-puwuE8kz0g4", authDomain: "pufemo-com.firebaseapp.com", projectId: "pufemo-com", storageBucket: "pufemo-com.firebasestorage.app", messagingSenderId: "983352837227", appId: "1:983352837227:web:defaa8dae215776e2e1d2e", measurementId: "G-RH8XHC7P91" };
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
-        const storage = firebase.storage();
         const adminUID = "4tOeNJRjbxPF9BBoynJNJIBxOqU2";
         
         let availableLanguages = [];
         const slideModal = new bootstrap.Modal(document.getElementById('slideModal'));
-        const slideForm = document.getElementById('slide-form');
-        const promoForm = document.getElementById('promo-form');
-        const settingsDocRef = db.collection('settings').doc('siteConfig');
 
         auth.onAuthStateChanged(user => {
             if (user && user.uid === adminUID) {
                 loadInitialData();
-            } else { window.location.href = 'admin-login.html'; }
+            } else {
+                window.location.href = 'admin-login.html';
+            }
         });
-
+        
         async function loadInitialData() {
-            const langSnapshot = await db.collection('languages').get();
-            availableLanguages = langSnapshot.docs.map(doc => doc.data());
-            loadSlides();
-            loadPromoTexts();
+            try {
+                const langSnapshot = await db.collection('languages').get();
+                availableLanguages = langSnapshot.docs.map(doc => doc.data());
+                
+                loadPromoBanner();
+                loadSlides();
+                
+                document.getElementById('addNewSlideBtn').addEventListener('click', handleNewSlideClick);
+                document.getElementById('slide-form').addEventListener('submit', handleSaveSlide);
+                document.getElementById('promo-banner-form').addEventListener('submit', handleSavePromoBanner);
+
+            } catch (error) {
+                console.error("Veriler yüklenirken hata:", error);
+            }
         }
 
-        function buildLanguageInputs(containerId, fieldName, data = {}) {
-            const container = document.getElementById(containerId);
+        // --- Tanıtım Banner'ı Fonksiyonları ---
+        async function loadPromoBanner() {
+            const settingsDoc = await db.collection('settings').doc('siteConfig').get();
+            const settings = settingsDoc.exists ? settingsDoc.data() : {};
+            const container = document.getElementById('promo-banner-inputs');
             container.innerHTML = '';
             availableLanguages.forEach(lang => {
-                const value = data[`${fieldName}_${lang.code}`] || '';
-                container.innerHTML += `<div class="mb-3"><label for="${fieldName}_${lang.code}" class="form-label">${fieldName === 'title' ? 'Başlık' : 'Promosyon Yazısı'} (${lang.code.toUpperCase()})</label><input type="text" id="${fieldName}_${lang.code}" class="form-control" value="${value}"></div>`;
-            });
-        }
-        
-        async function loadSlides() {
-            const sliderList = document.getElementById('slider-list');
-            sliderList.innerHTML = '<div class="list-group-item">Yükleniyor...</div>';
-            const snapshot = await db.collection('homepage_slider').orderBy('order').get();
-            sliderList.innerHTML = '';
-            snapshot.forEach(doc => {
-                const slide = doc.data();
-                const item = `<div class="list-group-item d-flex justify-content-between align-items-center"><div><img src="${slide.imageUrl}" class="slide-thumbnail me-3 float-start"><strong>${slide.title_tr || 'Başlıksız'}</strong><br><small class="text-muted">Sıra: ${slide.order}</small></div><div><button class="btn btn-sm btn-outline-primary me-2" onclick="editSlide('${doc.id}')">Düzenle</button><button class="btn btn-sm btn-outline-danger" onclick="deleteSlide('${doc.id}', '${slide.imageUrl}')">Sil</button></div></div>`;
-                sliderList.innerHTML += item;
+                container.innerHTML += `
+                    <div class="mb-2">
+                        <label for="promoText_${lang.code}" class="form-label">Tanıtım Metni (${lang.name})</label>
+                        <input type="text" id="promoText_${lang.code}" class="form-control" value="${settings[`promoText_${lang.code}`] || ''}">
+                    </div>
+                `;
             });
         }
 
-        slideForm.addEventListener('submit', async (e) => {
+        async function handleSavePromoBanner(e) {
             e.preventDefault();
-            const slideId = document.getElementById('slideId').value;
-            const imageFile = document.getElementById('slideImage').files[0];
-            let imageUrl = document.getElementById('slideId').dataset.imageUrl || null;
-
-            if (imageFile) {
-                const filePath = `slider_images/${Date.now()}_${imageFile.name}`;
-                const fileRef = storage.ref(filePath);
-                await fileRef.put(imageFile);
-                imageUrl = await fileRef.getDownloadURL();
-            }
-            if (!imageUrl && !slideId) { alert("Lütfen bir görsel seçin."); return; }
-
-            const slideData = {
-                linkUrl: document.getElementById('slideLink').value,
-                order: parseInt(document.getElementById('slideOrder').value),
-                isActive: document.getElementById('slideIsActive').checked,
-                imageUrl: imageUrl
-            };
+            const promoData = {};
             availableLanguages.forEach(lang => {
-                slideData[`title_${lang.code}`] = document.getElementById(`title_${lang.code}`).value;
+                promoData[`promoText_${lang.code}`] = document.getElementById(`promoText_${lang.code}`).value;
             });
 
             try {
-                if (slideId) { await db.collection('homepage_slider').doc(slideId).update(slideData); } 
-                else { await db.collection('homepage_slider').add(slideData); }
-                slideModal.hide();
-                loadSlides();
-            } catch (error) { console.error("Slide kaydedilirken hata:", error); }
-        });
-        
-        function prepareNewSlide() {
-            slideForm.reset();
-            document.getElementById('slideId').value = '';
-            document.getElementById('slideModalLabel').textContent = 'Yeni Slide Ekle';
-            buildLanguageInputs('slideLanguageFieldsContainer', 'title');
-        }
-
-        async function editSlide(id) {
-            const doc = await db.collection('homepage_slider').doc(id).get();
-            if(!doc.exists) return;
-            const slide = doc.data();
-            
-            buildLanguageInputs('slideLanguageFieldsContainer', 'title', slide);
-            
-            const slideIdInput = document.getElementById('slideId');
-            slideIdInput.value = id;
-            slideIdInput.dataset.imageUrl = slide.imageUrl;
-            document.getElementById('slideLink').value = slide.linkUrl;
-            document.getElementById('slideOrder').value = slide.order;
-            document.getElementById('slideIsActive').checked = slide.isActive;
-            document.getElementById('slideModalLabel').textContent = 'Slide Düzenle';
-            slideModal.show();
-        }
-
-        async function deleteSlide(id, imageUrl) {
-            if (confirm("Bu slide'ı silmek istediğinizden emin misiniz?")) {
-                await db.collection('homepage_slider').doc(id).delete();
-                if (imageUrl.includes('firebasestorage')) { await storage.refFromURL(imageUrl).delete(); }
-                loadSlides();
+                await db.collection('settings').doc('siteConfig').set(promoData, { merge: true });
+                const successMsg = document.getElementById('promo-save-success');
+                successMsg.classList.remove('d-none');
+                setTimeout(() => successMsg.classList.add('d-none'), 3000);
+            } catch (error) {
+                console.error("Tanıtım banner'ı kaydedilirken hata:", error);
+                alert("Hata: " + error.message);
             }
         }
 
-        async function loadPromoTexts() {
-            const doc = await settingsDocRef.get();
-            const settings = doc.exists ? doc.data() : {};
-            buildLanguageInputs('promoLanguageFieldsContainer', 'promoText', settings);
+        // --- Slider Fonksiyonları ---
+        async function loadSlides() {
+            const tableBody = document.getElementById('slides-table-body');
+            tableBody.innerHTML = '<tr><td colspan="5" class="text-center">Yükleniyor...</td></tr>';
+            try {
+                const snapshot = await db.collection('homepage_slider').orderBy('order').get();
+                tableBody.innerHTML = '';
+                if (snapshot.empty) {
+                    tableBody.innerHTML = '<tr><td colspan="5" class="text-center">Henüz slide eklenmemiş.</td></tr>';
+                    return;
+                }
+                snapshot.forEach(doc => {
+                    const slide = doc.data();
+                    const statusBadge = slide.isActive 
+                        ? '<span class="badge bg-success">Aktif</span>' 
+                        : '<span class="badge bg-secondary">Pasif</span>';
+                    
+                    const row = `
+                        <tr>
+                            <td><img src="${slide.imageUrl}" alt="slide" class="slide-thumbnail"></td>
+                            <td>${slide.title_tr || '(Başlık Yok)'}</td>
+                            <td>${slide.order}</td>
+                            <td>${statusBadge}</td>
+                            <td>
+                                <button class="btn btn-sm btn-info" onclick="handleEditSlide('${doc.id}')"><i class="bi bi-pencil-square"></i></button>
+                                <button class="btn btn-sm btn-danger" onclick="deleteSlide('${doc.id}')"><i class="bi bi-trash"></i></button>
+                            </td>
+                        </tr>
+                    `;
+                    tableBody.innerHTML += row;
+                });
+            } catch (error) {
+                console.error("Slider'lar yüklenirken hata:", error);
+                tableBody.innerHTML = '<tr><td colspan="5" class="text-center text-danger">Slider'lar yüklenemedi.</td></tr>';
+            }
+        }
+        
+        function buildSlideLanguageTabs(slideData = {}) {
+            const tabsContainer = document.getElementById('slideLanguageTabs');
+            const contentContainer = document.getElementById('slideLanguageTabContent');
+            tabsContainer.innerHTML = ''; contentContainer.innerHTML = '';
+
+            availableLanguages.forEach((lang, index) => {
+                const isActive = index === 0;
+                tabsContainer.innerHTML += `<li class="nav-item" role="presentation"><button class="nav-link ${isActive ? 'active' : ''}" data-bs-toggle="tab" data-bs-target="#slide-pane-${lang.code}" type="button">${lang.name}</button></li>`;
+                contentContainer.innerHTML += `
+                    <div class="tab-pane fade ${isActive ? 'show active' : ''}" id="slide-pane-${lang.code}">
+                        <div class="mb-3">
+                            <label for="title_${lang.code}" class="form-label">Başlık (${lang.code.toUpperCase()})</label>
+                            <input type="text" id="title_${lang.code}" class="form-control" value="${slideData[`title_${lang.code}`] || ''}">
+                        </div>
+                        <div class="mb-3">
+                            <label for="description_${lang.code}" class="form-label">Açıklama (${lang.code.toUpperCase()})</label>
+                            <textarea id="description_${lang.code}" class="form-control" rows="2">${slideData[`description_${lang.code}`] || ''}</textarea>
+                        </div>
+                    </div>`;
+            });
         }
 
-        promoForm.addEventListener('submit', async (e) => {
+        function handleNewSlideClick() {
+            document.getElementById('slideModalLabel').textContent = 'Yeni Slide Ekle';
+            document.getElementById('slide-form').reset();
+            document.getElementById('slideId').value = '';
+            document.getElementById('slideIsActive').checked = true;
+            buildSlideLanguageTabs();
+        }
+
+        async function handleEditSlide(id) {
+            document.getElementById('slideModalLabel').textContent = 'Slide Düzenle';
+            const docRef = db.collection('homepage_slider').doc(id);
+            const docSnap = await docRef.get();
+            if (docSnap.exists) {
+                const slideData = docSnap.data();
+                document.getElementById('slideId').value = id;
+                document.getElementById('slideImageUrl').value = slideData.imageUrl || '';
+                document.getElementById('slideLinkUrl').value = slideData.linkUrl || '';
+                document.getElementById('slideOrder').value = slideData.order || 0;
+                document.getElementById('slideIsActive').checked = slideData.isActive;
+                buildSlideLanguageTabs(slideData);
+                slideModal.show();
+            } else {
+                alert("Slide bulunamadı!");
+            }
+        }
+
+        async function handleSaveSlide(e) {
             e.preventDefault();
-            const settingsData = {};
+            const saveBtn = document.getElementById('saveSlideBtn');
+            saveBtn.disabled = true;
+            saveBtn.querySelector('.loading-spinner').style.display = 'inline-block';
+
+            const slideId = document.getElementById('slideId').value;
+            const slideData = {
+                imageUrl: document.getElementById('slideImageUrl').value,
+                linkUrl: document.getElementById('slideLinkUrl').value,
+                order: parseInt(document.getElementById('slideOrder').value),
+                isActive: document.getElementById('slideIsActive').checked
+            };
+            
             availableLanguages.forEach(lang => {
-                settingsData[`promoText_${lang.code}`] = document.getElementById(`promoText_${lang.code}`).value;
+                slideData[`title_${lang.code}`] = document.getElementById(`title_${lang.code}`).value;
+                slideData[`description_${lang.code}`] = document.getElementById(`description_${lang.code}`).value;
             });
-            await settingsDocRef.set(settingsData, { merge: true });
-            alert('Kaydedildi!');
-        });
+
+            try {
+                if (slideId) {
+                    await db.collection('homepage_slider').doc(slideId).update(slideData);
+                } else {
+                    await db.collection('homepage_slider').add(slideData);
+                }
+                slideModal.hide();
+                loadSlides();
+            } catch (error) {
+                console.error("Slide kaydedilirken hata:", error);
+                alert("Hata: " + error.message);
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.querySelector('.loading-spinner').style.display = 'none';
+            }
+        }
+
+        async function deleteSlide(id) {
+            if (confirm("Bu slide'ı silmek istediğinizden emin misiniz?")) {
+                try {
+                    await db.collection('homepage_slider').doc(id).delete();
+                    loadSlides();
+                } catch (error) {
+                    console.error("Slide silinirken hata:", error);
+                    alert("Hata: " + error.message);
+                }
+            }
+        }
 
         document.getElementById('logout-button').addEventListener('click', (e) => {
             e.preventDefault();
