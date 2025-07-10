@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kesim Planı</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .plaka { position: relative; background: #f9fafb; border: 2px solid #ccc; }
+    .parca { position: absolute; background: #60a5fa; border: 1px solid #1e3a8a; box-sizing: border-box; color: white; font-size: 12px; display: flex; align-items: center; justify-content: center; }
+  </style>
+</head>
+<body class="bg-gray-100 p-6">
+  <div class="max-w-5xl mx-auto">
+    <h1 class="text-2xl font-bold mb-6">Kesim Planı Oluştur</h1>
+    <div class="grid grid-cols-2 gap-6 mb-6">
+      <div>
+        <label class="block font-semibold mb-1">Plaka Genişliği (mm)</label>
+        <input type="number" id="plakaWidth" class="w-full p-2 border rounded" value="2100">
+      </div>
+      <div>
+        <label class="block font-semibold mb-1">Plaka Yüksekliği (mm)</label>
+        <input type="number" id="plakaHeight" class="w-full p-2 border rounded" value="2800">
+      </div>
+    </div>
+
+    <div id="parcaListesi" class="mb-6">
+      <h2 class="text-lg font-semibold mb-2">Kesilecek Parçalar</h2>
+      <div class="grid grid-cols-3 gap-4 mb-2">
+        <input type="number" placeholder="Genişlik (mm)" id="w" class="p-2 border rounded">
+        <input type="number" placeholder="Yükseklik (mm)" id="h" class="p-2 border rounded">
+        <input type="number" placeholder="Adet" id="adet" class="p-2 border rounded">
+      </div>
+      <button onclick="ekleParca()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Parça Ekle</button>
+      <ul id="parcaList" class="mt-4 list-disc list-inside text-sm"></ul>
+    </div>
+
+    <button onclick="olusturPlan()" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 mb-6">Kesim Planı Oluştur</button>
+
+    <div id="planAlani" class="p-4 bg-white rounded shadow">
+      <h2 class="text-lg font-bold mb-4">Yerleşim Şeması</h2>
+      <div id="plaka" class="plaka w-full h-[700px] relative"></div>
+    </div>
+  </div>
+
+  <script>
+    const parcalar = [];
+
+    function ekleParca() {
+      const w = parseInt(document.getElementById("w").value);
+      const h = parseInt(document.getElementById("h").value);
+      const adet = parseInt(document.getElementById("adet").value);
+      if (w > 0 && h > 0 && adet > 0) {
+        parcalar.push({ w, h, adet });
+        const li = document.createElement("li");
+        li.textContent = `${adet} adet ${w}mm × ${h}mm`;
+        document.getElementById("parcaList").appendChild(li);
+      }
+    }
+
+    function olusturPlan() {
+      const plakaW = parseInt(document.getElementById("plakaWidth").value);
+      const plakaH = parseInt(document.getElementById("plakaHeight").value);
+      const plakaDiv = document.getElementById("plaka");
+      plakaDiv.innerHTML = "";
+      const scale = Math.min(plakaDiv.clientWidth / plakaW, plakaDiv.clientHeight / plakaH);
+
+      let offsetX = 0, offsetY = 0, maxYinRow = 0;
+
+      parcalar.forEach(({ w, h, adet }) => {
+        for (let i = 0; i < adet; i++) {
+          if (offsetX + w > plakaW) {
+            offsetX = 0;
+            offsetY += maxYinRow;
+            maxYinRow = 0;
+          }
+          if (offsetY + h > plakaH) {
+            alert("Plakaya sığmayan parça var!");
+            return;
+          }
+          const div = document.createElement("div");
+          div.className = "parca";
+          div.style.width = w * scale + "px";
+          div.style.height = h * scale + "px";
+          div.style.left = offsetX * scale + "px";
+          div.style.top = offsetY * scale + "px";
+          div.textContent = `${w}×${h}`;
+          plakaDiv.appendChild(div);
+          offsetX += w;
+          if (h > maxYinRow) maxYinRow = h;
+        }
+      });
+    }
+  </script>
+</body>
+</html>
