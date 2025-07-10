@@ -2,13 +2,13 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Malzeme Yönetimi - PUFEMO</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Malzeme Yönetimi</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js";
-    import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
+    import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
     import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-storage.js";
 
     const firebaseConfig = {
@@ -25,131 +25,128 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
     const storage = getStorage(app);
+
     const tableBody = document.getElementById("materialList");
+    const fieldContainer = document.getElementById("dynamicFields");
+    const templateSelect = document.getElementById("templateSelect");
 
     onAuthStateChanged(auth, (user) => {
       if (!user) {
         alert("Giriş yapılmamış.");
         window.location.href = "index.html";
       } else {
+        loadTemplates();
         loadMaterials();
       }
     });
 
-    document.getElementById("addPropertyBtn").addEventListener("click", () => {
-      const container = document.getElementById("properties");
-      const div = document.createElement("div");
-      div.className = "flex gap-2 mb-2";
-      div.innerHTML = `
-        <input type="text" placeholder="Özellik Adı" class="border p-1 rounded name w-1/2" />
-        <input type="text" placeholder="Değer" class="border p-1 rounded value w-1/2" />
-        <button type="button" class="text-red-500" onclick="this.parentElement.remove()">🗑️</button>
-      `;
-      container.appendChild(div);
+    async function loadTemplates() {
+      const snapshot = await getDocs(collection(db, "templates"));
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        const option = document.createElement("option");
+        option.value = docSnap.id;
+        option.textContent = data.type;
+        templateSelect.appendChild(option);
+      });
+    }
+
+    templateSelect.addEventListener("change", async () => {
+      fieldContainer.innerHTML = "";
+      if (!templateSelect.value) return;
+      const refDoc = doc(db, "templates", templateSelect.value);
+      const snap = await getDoc(refDoc);
+      if (!snap.exists()) return;
+      const template = snap.data();
+
+      template.fields.forEach(field => {
+        const div = document.createElement("div");
+        div.className = "mb-2";
+        div.innerHTML = `
+          <label class="block text-sm font-medium">${field.name} ${field.unit ? `(${field.unit})` : ""}</label>
+          <input type="${field.type}" name="${field.name}" class="border p-2 rounded w-full" />
+        `;
+        fieldContainer.appendChild(div);
+      });
     });
 
     document.getElementById("materialForm").addEventListener("submit", async (e) => {
       e.preventDefault();
-      const name = document.getElementById("name").value.trim();
-      const type = document.getElementById("type").value.trim();
-      const stock = parseInt(document.getElementById("stock").value);
-      const price = parseFloat(document.getElementById("price").value);
-      const imageUrlInput = document.getElementById("imageUrl").value.trim();
-      const fileInput = document.getElementById("imageFile").files[0];
 
-      const attributes = {};
-      document.querySelectorAll("#properties > div").forEach((div) => {
-        const key = div.querySelector(".name").value.trim();
-        const val = div.querySelector(".value").value.trim();
-        if (key && val) {
-          attributes[key] = val;
-        }
+      const type = templateSelect.options[templateSelect.selectedIndex].text;
+      const fields = fieldContainer.querySelectorAll("input");
+      const fieldValues = {};
+
+      fields.forEach(input => {
+        fieldValues[input.name] = input.value;
       });
 
       let imageUrl = "";
+      const imageFile = document.getElementById("imageFile").files[0];
+      const imageUrlInput = document.getElementById("imageUrl").value.trim();
 
-      if (fileInput) {
-        const ext = fileInput.name.split('.').pop().toLowerCase();
+      if (imageFile) {
+        const ext = imageFile.name.split('.').pop().toLowerCase();
         if (!['jpg', 'jpeg', 'png'].includes(ext)) {
           alert("Yalnızca .jpg, .jpeg, .png dosyaları kabul edilir.");
           return;
         }
-        const storageRef = ref(storage, `material-images/${Date.now()}_${fileInput.name}`);
-        await uploadBytes(storageRef, fileInput);
+        const storageRef = ref(storage, `material-images/${Date.now()}_${imageFile.name}`);
+        await uploadBytes(storageRef, imageFile);
         imageUrl = await getDownloadURL(storageRef);
       } else if (imageUrlInput) {
         imageUrl = imageUrlInput;
       }
 
       await addDoc(collection(db, "materials"), {
-        name,
         type,
-        stock,
-        price,
-        attributes,
+        fieldValues,
         imageUrl
       });
 
       e.target.reset();
-      document.getElementById("properties").innerHTML = "";
+      fieldContainer.innerHTML = "";
       loadMaterials();
     });
 
     async function loadMaterials() {
       tableBody.innerHTML = "";
-      const querySnapshot = await getDocs(collection(db, "materials"));
-      querySnapshot.forEach((docSnap) => {
+      const snapshot = await getDocs(collection(db, "materials"));
+      snapshot.forEach((docSnap) => {
         const data = docSnap.data();
-        const props = Object.entries(data.attributes || {})
-          .map(([key, value]) => `<div><strong>${key}</strong>: ${value}</div>`)
-          .join("");
+        const props = Object.entries(data.fieldValues || {})
+          .map(([k, v]) => `<div><strong>${k}:</strong> ${v}</div>`).join("");
         const image = data.imageUrl
           ? `<img src="${data.imageUrl}" class="w-16 h-16 object-cover rounded" />`
           : "-";
         const row = `
           <tr class="border-b">
-            <td class="p-2">${data.name}</td>
             <td class="p-2">${data.type}</td>
-            <td class="p-2">${data.stock}</td>
-            <td class="p-2">${data.price} ₺</td>
             <td class="p-2 text-sm">${props}</td>
             <td class="p-2">${image}</td>
-            <td class="p-2">
-              <button onclick="deleteMaterial('${docSnap.id}')" class="text-red-600 hover:underline">Sil</button>
-            </td>
-          </tr>
-        `;
+            <td class="p-2"><button onclick="deleteMaterial('${docSnap.id}')" class="text-red-600 hover:underline">Sil</button></td>
+          </tr>`;
         tableBody.innerHTML += row;
       });
     }
 
     window.deleteMaterial = async (id) => {
-      if (confirm("Bu malzemeyi silmek istiyor musunuz?")) {
-        await deleteDoc(doc(db, "materials", id));
-        loadMaterials();
-      }
+      await deleteDoc(doc(db, "materials", id));
+      loadMaterials();
     };
   </script>
 </head>
 <body class="bg-gray-100 text-gray-800">
-  <header class="bg-white shadow p-6 flex justify-between items-center">
-    <h1 class="text-xl font-bold">Malzeme Yönetimi</h1>
-    <a href="index.html" class="text-blue-600 hover:underline">Ana Sayfa</a>
-  </header>
-
-  <main class="max-w-6xl mx-auto p-6">
-    <form id="materialForm" class="bg-white p-6 rounded shadow mb-10 space-y-4">
-      <div class="grid md:grid-cols-2 gap-4">
-        <input id="name" type="text" placeholder="Malzeme Adı" class="border p-2 rounded" required />
-        <input id="type" type="text" placeholder="Malzeme Türü" class="border p-2 rounded" required />
-        <input id="stock" type="number" placeholder="Stok" class="border p-2 rounded" required />
-        <input id="price" type="number" placeholder="Fiyat (₺)" step="0.01" class="border p-2 rounded" required />
-      </div>
+  <main class="max-w-5xl mx-auto p-6">
+    <h1 class="text-2xl font-bold mb-4">Malzeme Yönetimi</h1>
+    <form id="materialForm" class="bg-white p-6 rounded shadow space-y-4">
       <div>
-        <h3 class="font-semibold mb-1">Özellikler</h3>
-        <div id="properties" class="space-y-2"></div>
-        <button type="button" id="addPropertyBtn" class="mt-2 text-blue-600 hover:underline">+ Özellik Ekle</button>
+        <label class="block font-semibold mb-1">Malzeme Türü</label>
+        <select id="templateSelect" class="border p-2 rounded w-full">
+          <option value="">Malzeme Türü Seçin</option>
+        </select>
       </div>
+      <div id="dynamicFields"></div>
       <div class="grid md:grid-cols-2 gap-4">
         <input id="imageUrl" type="url" placeholder="Görsel URL (isteğe bağlı)" class="border p-2 rounded" />
         <input id="imageFile" type="file" accept=".jpg,.jpeg,.png" class="border p-2 rounded bg-white" />
@@ -157,13 +154,10 @@
       <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Malzeme Kaydet</button>
     </form>
 
-    <table class="w-full bg-white rounded shadow text-sm overflow-x-auto">
+    <table class="w-full bg-white mt-10 rounded shadow text-sm">
       <thead class="bg-gray-200">
         <tr>
-          <th class="p-2 text-left">Ad</th>
           <th class="p-2 text-left">Tür</th>
-          <th class="p-2 text-left">Stok</th>
-          <th class="p-2 text-left">Fiyat</th>
           <th class="p-2 text-left">Özellikler</th>
           <th class="p-2 text-left">Görsel</th>
           <th class="p-2 text-left">İşlem</th>
