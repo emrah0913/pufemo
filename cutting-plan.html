@@ -40,6 +40,12 @@
     <div id="planAlani" class="p-4 bg-white rounded shadow">
       <h2 class="text-lg font-bold mb-4">Yerleşim Şeması</h2>
       <div id="plaka" class="plaka w-full h-[700px] relative"></div>
+      <div class="mt-4 text-sm text-gray-700">
+        <p><strong>Kullanılan Alan:</strong> <span id="kullanimAlani">0</span> mm²</p>
+        <p><strong>Toplam Plaka Alanı:</strong> <span id="toplamPlakaAlani">0</span> mm²</p>
+        <p><strong>Fire Oranı:</strong> <span id="fireOrani">0%</span></p>
+        <p id="uyari" class="text-red-500 mt-2"></p>
+      </div>
     </div>
   </div>
 
@@ -47,14 +53,20 @@
     const parcalar = [];
 
     function ekleParca() {
-      const w = parseInt(document.getElementById("w").value);
-      const h = parseInt(document.getElementById("h").value);
-      const adet = parseInt(document.getElementById("adet").value);
+      const wInput = document.getElementById("w");
+      const hInput = document.getElementById("h");
+      const adetInput = document.getElementById("adet");
+      const w = parseInt(wInput.value);
+      const h = parseInt(hInput.value);
+      const adet = parseInt(adetInput.value);
       if (w > 0 && h > 0 && adet > 0) {
         parcalar.push({ w, h, adet });
         const li = document.createElement("li");
         li.textContent = `${adet} adet ${w}mm × ${h}mm`;
         document.getElementById("parcaList").appendChild(li);
+        wInput.value = "";
+        hInput.value = "";
+        adetInput.value = "";
       }
     }
 
@@ -62,10 +74,13 @@
       const plakaW = parseInt(document.getElementById("plakaWidth").value);
       const plakaH = parseInt(document.getElementById("plakaHeight").value);
       const plakaDiv = document.getElementById("plaka");
+      const uyariDiv = document.getElementById("uyari");
+      uyariDiv.textContent = "";
       plakaDiv.innerHTML = "";
       const scale = Math.min(plakaDiv.clientWidth / plakaW, plakaDiv.clientHeight / plakaH);
 
       let offsetX = 0, offsetY = 0, maxYinRow = 0;
+      let kullanılanAlan = 0;
 
       parcalar.forEach(({ w, h, adet }) => {
         for (let i = 0; i < adet; i++) {
@@ -75,7 +90,7 @@
             maxYinRow = 0;
           }
           if (offsetY + h > plakaH) {
-            alert("Plakaya sığmayan parça var!");
+            uyariDiv.textContent = "Plakaya sığmayan parça var!";
             return;
           }
           const div = document.createElement("div");
@@ -88,8 +103,16 @@
           plakaDiv.appendChild(div);
           offsetX += w;
           if (h > maxYinRow) maxYinRow = h;
+          kullanılanAlan += w * h;
         }
       });
+
+      const toplamPlaka = plakaW * plakaH;
+      const fire = 100 - (kullanılanAlan / toplamPlaka * 100);
+
+      document.getElementById("kullanimAlani").textContent = kullanılanAlan;
+      document.getElementById("toplamPlakaAlani").textContent = toplamPlaka;
+      document.getElementById("fireOrani").textContent = fire.toFixed(2) + "%";
     }
   </script>
 </body>
