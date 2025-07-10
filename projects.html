@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Yeni Proje Oluştur</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js";
+    import { getFirestore, collection, addDoc, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDYkzZzNXB22U4oEXxOoPh-puwuE8kz0g4",
+      authDomain: "pufemo-com.firebaseapp.com",
+      projectId: "pufemo-com",
+      storageBucket: "pufemo-com.appspot.com",
+      messagingSenderId: "983352837227",
+      appId: "1:983352837227:web:defaa8dae215776e2e1d2e"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    let currentUser;
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        alert("Giriş yapmalısınız");
+        window.location.href = "index.html";
+        return;
+      }
+      currentUser = user;
+      document.getElementById("userEmail").textContent = user.email;
+    });
+
+    document.getElementById("saveProject").addEventListener("click", async () => {
+      const name = document.getElementById("projectName").value.trim();
+      const customer = document.getElementById("customerName").value.trim();
+      const date = new Date().toISOString();
+      const notes = document.getElementById("notes").value.trim();
+
+      if (!name) return alert("Proje adı boş olamaz");
+
+      await addDoc(collection(db, "projects"), {
+        name,
+        customer,
+        notes,
+        createdAt: date,
+        userId: currentUser.uid
+      });
+
+      alert("Proje oluşturuldu");
+      window.location.href = "projects.html";
+    });
+  </script>
+</head>
+<body class="bg-gray-100 p-6">
+  <div class="max-w-3xl mx-auto bg-white p-6 rounded shadow">
+    <h1 class="text-2xl font-bold mb-4">Yeni Proje Oluştur</h1>
+    <p class="mb-4 text-sm text-gray-500">Giriş yapan: <span id="userEmail">...</span></p>
+
+    <input id="projectName" type="text" placeholder="Proje Adı" class="border p-2 rounded w-full mb-4">
+    <input id="customerName" type="text" placeholder="Müşteri Adı (isteğe bağlı)" class="border p-2 rounded w-full mb-4">
+    <textarea id="notes" placeholder="Notlar" class="border p-2 rounded w-full mb-4"></textarea>
+
+    <button id="saveProject" class="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700">
+      Kaydet
+    </button>
+  </div>
+</body>
+</html>
