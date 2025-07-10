@@ -8,7 +8,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js";
-    import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
+    import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
     import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-storage.js";
 
     const firebaseConfig = {
@@ -30,15 +30,56 @@
     const fieldContainer = document.getElementById("dynamicFields");
     const templateSelect = document.getElementById("templateSelect");
 
-    onAuthStateChanged(auth, (user) => {
+    onAuthStateChanged(auth, async (user) => {
       if (!user) {
         alert("Giriş yapılmamış.");
         window.location.href = "index.html";
       } else {
+        await ensureDefaultTemplates();
         loadTemplates();
         loadMaterials();
       }
     });
+
+    async function ensureDefaultTemplates() {
+      const snapshot = await getDocs(collection(db, "templates"));
+      if (!snapshot.empty) return;
+
+      const defaultTemplates = [
+        {
+          id: "mdflam",
+          type: "mdflam",
+          fields: [
+            { name: "renk", type: "text", unit: "" },
+            { name: "plakaBoy", type: "number", unit: "mm" },
+            { name: "plakaEn", type: "number", unit: "mm" },
+            { name: "birimFiyat", type: "number", unit: "₺" }
+          ]
+        },
+        {
+          id: "mentese",
+          type: "menteşe",
+          fields: [
+            { name: "adet", type: "number", unit: "adet" },
+            { name: "çap", type: "number", unit: "mm" },
+            { name: "birimFiyat", type: "number", unit: "₺" }
+          ]
+        },
+        {
+          id: "kenarbandi",
+          type: "kenarbandı",
+          fields: [
+            { name: "kalınlık", type: "number", unit: "mm" },
+            { name: "renk", type: "text", unit: "" },
+            { name: "metretülFiyat", type: "number", unit: "₺" }
+          ]
+        }
+      ];
+
+      for (const tmpl of defaultTemplates) {
+        await setDoc(doc(db, "templates", tmpl.id), tmpl);
+      }
+    }
 
     async function loadTemplates() {
       const snapshot = await getDocs(collection(db, "templates"));
