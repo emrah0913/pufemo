@@ -23,9 +23,9 @@
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
-
     const tableBody = document.getElementById("usersTableBody");
 
+    // Giriş ve admin kontrolü
     onAuthStateChanged(auth, async (user) => {
       if (!user) {
         alert("Lütfen giriş yapın.");
@@ -36,23 +36,39 @@
       const userRef = doc(db, "users", user.uid);
       const userSnap = await getDoc(userRef);
 
-      if (!userSnap.exists() || userSnap.data().role !== "admin") {
-        alert("Bu sayfaya erişiminiz yok.");
+      if (!userSnap.exists()) {
+        alert("Kullanıcı kaydı bulunamadı.");
         await signOut(auth);
         window.location.href = "index.html";
         return;
       }
 
+      const data = userSnap.data();
+      if (data.role !== "admin") {
+        alert("Bu sayfaya sadece admin kullanıcılar erişebilir.");
+        await signOut(auth);
+        window.location.href = "index.html";
+        return;
+      }
+
+      if (data.approved === false) {
+        alert("Admin hesabınız henüz onaylanmamış.");
+        await signOut(auth);
+        window.location.href = "index.html";
+        return;
+      }
+
+      // Başarılı giriş → verileri yükle
       loadUsers();
     });
 
+    // Onaysız kullanıcıları listele
     async function loadUsers() {
       tableBody.innerHTML = "";
-      const querySnapshot = await getDocs(collection(db, "users"));
-
-      querySnapshot.forEach((docSnap) => {
+      const snapshot = await getDocs(collection(db, "users"));
+      snapshot.forEach((docSnap) => {
         const user = docSnap.data();
-        if (user.approved) return; // Sadece onaysız kullanıcılar gösterilsin
+        if (user.approved) return;
 
         const row = document.createElement("tr");
         row.className = "border-b";
@@ -69,6 +85,7 @@
       });
     }
 
+    // Kullanıcıyı onayla
     window.approveUser = async (uid) => {
       await updateDoc(doc(db, "users", uid), {
         approved: true
@@ -77,9 +94,9 @@
       loadUsers();
     };
 
+    // Kullanıcıyı sil
     window.deleteUser = async (uid) => {
-      const confirmDelete = confirm("Bu kullanıcıyı silmek istediğinize emin misiniz?");
-      if (confirmDelete) {
+      if (confirm("Bu kullanıcıyı silmek istediğinize emin misiniz?")) {
         await deleteDoc(doc(db, "users", uid));
         alert("Kullanıcı silindi.");
         loadUsers();
