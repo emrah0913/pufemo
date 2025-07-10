@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Paneli - PUFEMO</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js";
+    import { getFirestore, collection, getDocs, updateDoc, deleteDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDYkzZzNXB22U4oEXxOoPh-puwuE8kz0g4",
+      authDomain: "pufemo-com.firebaseapp.com",
+      projectId: "pufemo-com",
+      storageBucket: "pufemo-com.firebasestorage.app",
+      messagingSenderId: "983352837227",
+      appId: "1:983352837227:web:defaa8dae215776e2e1d2e",
+      measurementId: "G-RH8XHC7P91"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const tableBody = document.getElementById("usersTableBody");
+
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        alert("Lütfen giriş yapın.");
+        window.location.href = "index.html";
+        return;
+      }
+
+      const userRef = doc(db, "users", user.uid);
+      const userSnap = await getDoc(userRef);
+
+      if (!userSnap.exists() || userSnap.data().role !== "admin") {
+        alert("Bu sayfaya erişiminiz yok.");
+        await signOut(auth);
+        window.location.href = "index.html";
+        return;
+      }
+
+      loadUsers();
+    });
+
+    async function loadUsers() {
+      tableBody.innerHTML = "";
+      const querySnapshot = await getDocs(collection(db, "users"));
+
+      querySnapshot.forEach((docSnap) => {
+        const user = docSnap.data();
+        if (user.approved) return; // Sadece onaysız kullanıcılar gösterilsin
+
+        const row = document.createElement("tr");
+        row.className = "border-b";
+        row.innerHTML = `
+          <td class="p-2">${user.displayName || "-"}</td>
+          <td class="p-2">${user.email}</td>
+          <td class="p-2">${user.role || "-"}</td>
+          <td class="p-2 flex gap-2">
+            <button class="bg-green-500 text-white px-2 py-1 rounded" onclick="approveUser('${docSnap.id}')">Onayla</button>
+            <button class="bg-red-500 text-white px-2 py-1 rounded" onclick="deleteUser('${docSnap.id}')">Sil</button>
+          </td>
+        `;
+        tableBody.appendChild(row);
+      });
+    }
+
+    window.approveUser = async (uid) => {
+      await updateDoc(doc(db, "users", uid), {
+        approved: true
+      });
+      alert("Kullanıcı onaylandı.");
+      loadUsers();
+    };
+
+    window.deleteUser = async (uid) => {
+      const confirmDelete = confirm("Bu kullanıcıyı silmek istediğinize emin misiniz?");
+      if (confirmDelete) {
+        await deleteDoc(doc(db, "users", uid));
+        alert("Kullanıcı silindi.");
+        loadUsers();
+      }
+    };
+  </script>
+</head>
+<body class="bg-gray-100 text-gray-800">
+  <header class="bg-white shadow p-6 flex justify-between items-center">
+    <h1 class="text-2xl font-bold">Admin Paneli</h1>
+    <a href="index.html" class="text-blue-600 hover:underline">Çıkış Yap</a>
+  </header>
+
+  <main class="max-w-4xl mx-auto p-6">
+    <h2 class="text-xl font-semibold mb-4">Onay Bekleyen Kullanıcılar</h2>
+    <table class="w-full bg-white rounded shadow">
+      <thead class="bg-gray-200">
+        <tr>
+          <th class="p-2 text-left">Adı</th>
+          <th class="p-2 text-left">Email</th>
+          <th class="p-2 text-left">Rol</th>
+          <th class="p-2 text-left">İşlemler</th>
+        </tr>
+      </thead>
+      <tbody id="usersTableBody"></tbody>
+    </table>
+  </main>
+</body>
+</html>
