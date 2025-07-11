@@ -10,7 +10,8 @@ import {
     collection,
     query,
     where,
-    getDocs
+    getDocs,
+    onSnapshot // *** DÜZELTME: Eksik olan fonksiyonu buraya ekledik ***
 } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 
 // Firebase Konfigürasyonu
