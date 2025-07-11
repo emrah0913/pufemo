@@ -33,8 +33,9 @@ const db = getFirestore(app);
 // HTML Elementleri
 const projectNameEl = document.getElementById('projectName');
 const projectDescriptionEl = document.getElementById('projectDescription');
+const totalCostEl = document.getElementById('totalCost');
 const partsListEl = document.getElementById('partsList');
-const accessoriesListEl = document.getElementById('accessoriesList'); // Yeni
+const accessoriesListEl = document.getElementById('accessoriesList');
 const loadingIndicator = document.getElementById('loadingIndicator');
 const logoutButton = document.getElementById('logoutButton');
 const moduleTemplateSelect = document.getElementById('moduleTemplateSelect');
@@ -44,6 +45,7 @@ const addModuleModal = new bootstrap.Modal(document.getElementById('addModuleMod
 let currentUser = null;
 let projectId = null;
 let moduleTemplates = [];
+let allMaterials = new Map();
 
 // Sayfa Yüklendiğinde
 document.addEventListener('DOMContentLoaded', () => {
@@ -59,15 +61,27 @@ document.addEventListener('DOMContentLoaded', () => {
     onAuthStateChanged(auth, (user) => {
         if (user) {
             currentUser = user;
-            loadProjectDetails();
-            loadModuleTemplates();
+            loadAllMaterials().then(() => {
+                loadProjectDetails();
+                loadModuleTemplates();
+            });
         } else {
             window.location.href = 'index.html';
         }
     });
 });
 
-// Proje detaylarını ve malzemeleri yükle
+// Tüm malzemeleri Firestore'dan çek ve Map'e kaydet
+const loadAllMaterials = async () => {
+    const q = query(collection(db, 'materials'), where('userId', '==', currentUser.uid));
+    const querySnapshot = await getDocs(q);
+    allMaterials.clear();
+    querySnapshot.forEach(doc => {
+        allMaterials.set(doc.id, { id: doc.id, ...doc.data() });
+    });
+};
+
+// Proje detaylarını yükle
 const loadProjectDetails = async () => {
     loadingIndicator.classList.remove('d-none');
     const projectRef = doc(db, 'projects', projectId);
@@ -78,8 +92,13 @@ const loadProjectDetails = async () => {
             const project = docSnap.data();
             projectNameEl.textContent = project.name;
             projectDescriptionEl.textContent = project.description || '';
-            renderParts(project.parts || []);
-            renderAccessories(project.accessories || []); // Yeni
+            
+            const parts = project.parts || [];
+            const accessories = project.accessories || [];
+
+            renderParts(parts);
+            renderAccessories(accessories);
+            calculateAndDisplayTotalCost(parts, accessories);
         } else {
             alert("Proje bulunamadı.");
             window.location.href = 'projects.html';
@@ -87,49 +106,66 @@ const loadProjectDetails = async () => {
     });
 };
 
-// Parça listesini tabloya render et
+// Parça listesini render et
 const renderParts = (parts) => {
     partsListEl.innerHTML = '';
     if (parts.length === 0) {
-        partsListEl.innerHTML = '<tr><td colspan="6" class="text-center text-muted">Henüz hiç parça eklenmedi.</td></tr>';
+        partsListEl.innerHTML = '<tr><td colspan="7" class="text-center text-muted">Henüz hiç parça eklenmedi.</td></tr>';
         return;
     }
     parts.forEach(part => {
+        const material = allMaterials.get(part.materialId);
+        const materialName = material ? material.name : 'Bilinmeyen Malzeme';
+        const cost = part.cost ? part.cost.toFixed(2) : '0.00';
         const row = `
             <tr>
                 <td>${part.name}</td>
                 <td>${part.height}</td>
                 <td>${part.width}</td>
                 <td>${part.qty}</td>
-                <td>${part.moduleInstanceName}</td>
-                <td><button class="btn btn-sm btn-outline-danger" onclick="window.deletePart('${part.partId}')">Sil</button></td>
+                <td>${materialName}</td>
+                <td>${cost} ₺</td>
+                <td><button class="btn btn-sm btn-outline-danger" onclick="window.deleteItem('${part.partId}', 'parçayı', 'parts')">Sil</button></td>
             </tr>
         `;
         partsListEl.innerHTML += row;
     });
 };
 
-// Aksesuar listesini tabloya render et (YENİ)
+// Aksesuar listesini render et
 const renderAccessories = (accessories) => {
     accessoriesListEl.innerHTML = '';
     if (accessories.length === 0) {
-        accessoriesListEl.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Henüz hiç aksesuar eklenmedi.</td></tr>';
+        accessoriesListEl.innerHTML = '<tr><td colspan="5" class="text-center text-muted">Henüz hiç aksesuar eklenmedi.</td></tr>';
         return;
     }
     accessories.forEach(acc => {
+        const material = allMaterials.get(acc.materialId);
+        const materialName = material ? material.name : 'Bilinmeyen Aksesuar';
+        const unitPrice = material ? material.price.toFixed(2) : '0.00';
+        const cost = acc.cost ? acc.cost.toFixed(2) : '0.00';
         const row = `
             <tr>
-                <td>${acc.name}</td>
+                <td>${materialName}</td>
                 <td>${acc.qty}</td>
-                <td>${acc.moduleInstanceName}</td>
-                <td><button class="btn btn-sm btn-outline-danger" onclick="window.deleteAccessory('${acc.accessoryId}')">Sil</button></td>
+                <td>${unitPrice} ₺</td>
+                <td>${cost} ₺</td>
+                <td><button class="btn btn-sm btn-outline-danger" onclick="window.deleteItem('${acc.accessoryId}', 'aksesuarı', 'accessories')">Sil</button></td>
             </tr>
         `;
         accessoriesListEl.innerHTML += row;
     });
 };
 
-// Modül şablonlarını kütüphaneden çek
+// Toplam maliyeti hesapla ve göster
+const calculateAndDisplayTotalCost = (parts, accessories) => {
+    let totalCost = 0;
+    parts.forEach(part => totalCost += (part.cost || 0));
+    accessories.forEach(acc => totalCost += (acc.cost || 0));
+    totalCostEl.textContent = `${totalCost.toFixed(2)} ₺`;
+};
+
+// Modül şablonlarını yükle
 const loadModuleTemplates = async () => {
     const q = query(collection(db, 'moduleTemplates'), where('userId', '==', currentUser.uid));
     const querySnapshot = await getDocs(q);
@@ -151,39 +187,49 @@ addModuleToProjectBtn.addEventListener('click', async () => {
     const templateId = document.getElementById('moduleTemplateSelect').value;
     const moduleInstanceName = document.getElementById('moduleInstanceName').value.trim() || 'İsimsiz Modül';
 
-    if (!templateId || !B || !E || !D || !K) {
-        alert("Lütfen tüm ölçüleri ve şablonu eksiksiz seçin.");
-        return;
-    }
+    if (!templateId || !B || !E || !D || !K) return alert("Lütfen tüm ölçüleri ve şablonu eksiksiz seçin.");
     const selectedTemplate = moduleTemplates.find(t => t.id === templateId);
     if (!selectedTemplate) return;
 
     let errorOccurred = false;
     
-    // Parçaları hesapla
+    // Parçaları hesapla ve maliyetlendir
     const calculatedParts = (selectedTemplate.parts || []).map(part => {
+        if (errorOccurred) return null;
         try {
-            return {
-                partId: crypto.randomUUID(),
-                name: part.name,
-                width: eval(part.widthFormula.toUpperCase().replace(/ /g, '')),
-                height: eval(part.heightFormula.toUpperCase().replace(/ /g, '')),
-                qty: part.qty,
-                moduleInstanceName,
-            };
-        } catch (e) { errorOccurred = true; alert(`'${part.name}' parça formülünde hata: ${e.message}`); }
+            const material = allMaterials.get(part.materialId);
+            if (!material) throw new Error(`'${part.name}' için malzeme bulunamadı.`);
+            if (typeof material.price !== 'number') throw new Error(`'${material.name}' için fiyat tanımlanmamış.`);
+
+            const height = eval(part.heightFormula.toUpperCase().replace(/ /g, ''));
+            const width = eval(part.widthFormula.toUpperCase().replace(/ /g, ''));
+            const qty = part.qty;
+            if (typeof height !== 'number' || typeof width !== 'number' || typeof qty !== 'number') throw new Error("Hesaplanan ölçüler veya adet sayısal değil.");
+
+            const area = (height / 1000) * (width / 1000);
+            const cost = area * material.price * qty;
+            if (isNaN(cost)) throw new Error("Maliyet hesaplanamadı (NaN).");
+
+            return { partId: crypto.randomUUID(), name: part.name, width, height, qty, materialId: part.materialId, cost, moduleInstanceName };
+        } catch (e) { errorOccurred = true; alert(`'${part.name}' parça formülünde hata: ${e.message}`); return null; }
     }).filter(Boolean);
 
-    // Aksesuarları hesapla
+    // Aksesuarları hesapla ve maliyetlendir
     const calculatedAccessories = (selectedTemplate.accessories || []).map(acc => {
+        if (errorOccurred) return null;
         try {
-            return {
-                accessoryId: crypto.randomUUID(),
-                name: acc.name,
-                qty: Math.ceil(eval(acc.qtyFormula.toUpperCase().replace(/ /g, ''))), // Formülü hesapla ve yukarı yuvarla
-                moduleInstanceName,
-            };
-        } catch (e) { errorOccurred = true; alert(`'${acc.name}' aksesuar formülünde hata: ${e.message}`); }
+            const material = allMaterials.get(acc.materialId);
+            if (!material) throw new Error(`Aksesuar için malzeme bulunamadı.`);
+            if (typeof material.price !== 'number') throw new Error(`'${material.name}' için fiyat tanımlanmamış.`);
+            
+            const qty = Math.ceil(eval(acc.qtyFormula.toUpperCase().replace(/ /g, '')));
+            if (typeof qty !== 'number') throw new Error("Hesaplanan adet sayısal değil.");
+
+            const cost = qty * material.price;
+            if (isNaN(cost)) throw new Error("Maliyet hesaplanamadı (NaN).");
+
+            return { accessoryId: crypto.randomUUID(), materialId: acc.materialId, qty, cost, moduleInstanceName };
+        } catch (e) { errorOccurred = true; alert(`Aksesuar formülünde hata: ${e.message}`); return null; }
     }).filter(Boolean);
 
     if (errorOccurred) return;
@@ -202,15 +248,16 @@ addModuleToProjectBtn.addEventListener('click', async () => {
     }
 });
 
-// Malzeme Silme Fonksiyonları
-const deleteItem = async (itemId, itemType, fieldName) => {
+// Malzeme Silme Fonksiyonu (DÜZELTİLDİ)
+window.deleteItem = async (itemIdToDelete, itemType, fieldName) => {
     if (!confirm(`Bu ${itemType} listeden silmek istediğinizden emin misiniz?`)) return;
     try {
         const projectRef = doc(db, 'projects', projectId);
         const projectSnap = await getDoc(projectRef);
         if (projectSnap.exists()) {
+            const idField = fieldName === 'parts' ? 'partId' : 'accessoryId';
             const currentItems = projectSnap.data()[fieldName] || [];
-            const updatedItems = currentItems.filter(item => item[itemId] !== itemIdToDelete);
+            const updatedItems = currentItems.filter(item => item[idField] !== itemIdToDelete);
             await updateDoc(projectRef, { [fieldName]: updatedItems });
         }
     } catch (e) {
@@ -218,9 +265,6 @@ const deleteItem = async (itemId, itemType, fieldName) => {
         console.error(e);
     }
 };
-
-window.deletePart = (partId) => deleteItem(partId, 'parçayı', 'parts');
-window.deleteAccessory = (accessoryId) => deleteItem(accessoryId, 'aksesuarı', 'accessories');
 
 // Çıkış yap
 logoutButton.addEventListener('click', () => signOut(auth));
