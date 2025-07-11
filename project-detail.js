@@ -38,7 +38,7 @@ let allMaterials = new Map();
 
 // Sayfa Yüklendiğinde
 document.addEventListener('DOMContentLoaded', () => {
-    // *** DÜZELTME: HTML Elementlerini DOM yüklendikten sonra tanımla ***
+    // HTML Elementlerini DOM yüklendikten sonra tanımla
     const projectNameEl = document.getElementById('projectName');
     const projectDescriptionEl = document.getElementById('projectDescription');
     const totalCostEl = document.getElementById('totalCost');
@@ -58,89 +58,18 @@ document.addEventListener('DOMContentLoaded', () => {
         window.location.href = 'projects.html';
         return;
     }
-
-    onAuthStateChanged(auth, (user) => {
-        if (user) {
-            currentUser = user;
-            loadAllMaterials().then(() => {
-                loadProjectDetails();
-                loadModuleTemplates();
-            });
-        } else {
-            window.location.href = 'index.html';
-        }
-    });
     
-    // Çıkış yap
-    logoutButton.addEventListener('click', () => signOut(auth));
-    
-    // "Hesapla ve Projeye Ekle" Butonu
-    addModuleToProjectBtn.addEventListener('click', async () => {
-        const B = parseFloat(document.getElementById('moduleHeight').value);
-        const E = parseFloat(document.getElementById('moduleWidth').value);
-        const D = parseFloat(document.getElementById('moduleDepth').value);
-        const K = parseFloat(document.getElementById('materialThickness').value);
-        const templateId = document.getElementById('moduleTemplateSelect').value;
-        const moduleInstanceName = document.getElementById('moduleInstanceName').value.trim() || 'İsimsiz Modül';
+    // *** DÜZELTME: Tüm fonksiyon tanımlamaları buraya taşındı ***
 
-        if (!templateId || !B || !E || !D || !K) return alert("Lütfen tüm ölçüleri ve şablonu eksiksiz seçin.");
-        const selectedTemplate = moduleTemplates.find(t => t.id === templateId);
-        if (!selectedTemplate) return;
-
-        let errorOccurred = false;
-        
-        const calculatedParts = (selectedTemplate.parts || []).map(part => {
-            if (errorOccurred) return null;
-            try {
-                const material = allMaterials.get(part.materialId);
-                if (!material) throw new Error(`'${part.name}' için malzeme bulunamadı.`);
-                if (typeof material.price !== 'number') throw new Error(`'${material.name}' için fiyat tanımlanmamış.`);
-
-                const height = eval(part.heightFormula.toUpperCase().replace(/ /g, ''));
-                const width = eval(part.widthFormula.toUpperCase().replace(/ /g, ''));
-                const qty = part.qty;
-                if (typeof height !== 'number' || typeof width !== 'number' || typeof qty !== 'number') throw new Error("Hesaplanan ölçüler veya adet sayısal değil.");
-
-                const area = (height / 1000) * (width / 1000);
-                const cost = area * material.price * qty;
-                if (isNaN(cost)) throw new Error("Maliyet hesaplanamadı (NaN).");
-
-                return { partId: crypto.randomUUID(), name: part.name, width, height, qty, materialId: part.materialId, cost, moduleInstanceName };
-            } catch (e) { errorOccurred = true; alert(`'${part.name}' parça formülünde hata: ${e.message}`); return null; }
-        }).filter(Boolean);
-
-        const calculatedAccessories = (selectedTemplate.accessories || []).map(acc => {
-            if (errorOccurred) return null;
-            try {
-                const material = allMaterials.get(acc.materialId);
-                if (!material) throw new Error(`Aksesuar için malzeme bulunamadı.`);
-                if (typeof material.price !== 'number') throw new Error(`'${material.name}' için fiyat tanımlanmamış.`);
-                
-                const qty = Math.ceil(eval(acc.qtyFormula.toUpperCase().replace(/ /g, '')));
-                if (typeof qty !== 'number') throw new Error("Hesaplanan adet sayısal değil.");
-
-                const cost = qty * material.price;
-                if (isNaN(cost)) throw new Error("Maliyet hesaplanamadı (NaN).");
-
-                return { accessoryId: crypto.randomUUID(), materialId: acc.materialId, qty, cost, moduleInstanceName };
-            } catch (e) { errorOccurred = true; alert(`Aksesuar formülünde hata: ${e.message}`); return null; }
-        }).filter(Boolean);
-
-        if (errorOccurred) return;
-
-        try {
-            const projectRef = doc(db, 'projects', projectId);
-            await updateDoc(projectRef, {
-                parts: arrayUnion(...calculatedParts),
-                accessories: arrayUnion(...calculatedAccessories)
-            });
-            addModuleModal.hide();
-            document.getElementById('calculateForm').reset();
-        } catch (e) {
-            console.error("Projeye eklenirken hata: ", e);
-            alert("Malzemeler projeye eklenirken bir hata oluştu.");
-        }
-    });
+    // Tüm malzemeleri Firestore'dan çek ve Map'e kaydet
+    const loadAllMaterials = async () => {
+        const q = query(collection(db, 'materials'), where('userId', '==', currentUser.uid));
+        const querySnapshot = await getDocs(q);
+        allMaterials.clear();
+        querySnapshot.forEach(doc => {
+            allMaterials.set(doc.id, { id: doc.id, ...doc.data() });
+        });
+    };
 
     // Proje detaylarını yükle
     const loadProjectDetails = async () => {
@@ -232,6 +161,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const querySnapshot = await getDocs(q);
         
         moduleTemplateSelect.innerHTML = '<option value="">Lütfen bir şablon seçin...</option>';
+        moduleTemplates = []; // Her yüklemede diziyi temizle
         querySnapshot.forEach(doc => {
             const template = { id: doc.id, ...doc.data() };
             moduleTemplates.push(template);
@@ -256,4 +186,91 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error(e);
         }
     };
+    
+    // *** ANA İŞ AKIŞI ***
+    
+    // Oturum kontrolü
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            currentUser = user;
+            loadAllMaterials().then(() => {
+                loadProjectDetails();
+                loadModuleTemplates();
+            });
+        } else {
+            window.location.href = 'index.html';
+        }
+    });
+    
+    // Çıkış yap
+    logoutButton.addEventListener('click', () => signOut(auth));
+    
+    // "Hesapla ve Projeye Ekle" Butonu
+    addModuleToProjectBtn.addEventListener('click', async () => {
+        const B = parseFloat(document.getElementById('moduleHeight').value);
+        const E = parseFloat(document.getElementById('moduleWidth').value);
+        const D = parseFloat(document.getElementById('moduleDepth').value);
+        const K = parseFloat(document.getElementById('materialThickness').value);
+        const templateId = document.getElementById('moduleTemplateSelect').value;
+        const moduleInstanceName = document.getElementById('moduleInstanceName').value.trim() || 'İsimsiz Modül';
+
+        if (!templateId || !B || !E || !D || !K) return alert("Lütfen tüm ölçüleri ve şablonu eksiksiz seçin.");
+        const selectedTemplate = moduleTemplates.find(t => t.id === templateId);
+        if (!selectedTemplate) return;
+
+        let errorOccurred = false;
+        
+        const calculatedParts = (selectedTemplate.parts || []).map(part => {
+            if (errorOccurred) return null;
+            try {
+                const material = allMaterials.get(part.materialId);
+                if (!material) throw new Error(`'${part.name}' için malzeme bulunamadı.`);
+                if (typeof material.price !== 'number') throw new Error(`'${material.name}' için fiyat tanımlanmamış.`);
+
+                const height = eval(part.heightFormula.toUpperCase().replace(/ /g, ''));
+                const width = eval(part.widthFormula.toUpperCase().replace(/ /g, ''));
+                const qty = part.qty;
+                if (typeof height !== 'number' || typeof width !== 'number' || typeof qty !== 'number') throw new Error("Hesaplanan ölçüler veya adet sayısal değil.");
+
+                const area = (height / 1000) * (width / 1000);
+                const cost = area * material.price * qty;
+                if (isNaN(cost)) throw new Error("Maliyet hesaplanamadı (NaN).");
+
+                return { partId: crypto.randomUUID(), name: part.name, width, height, qty, materialId: part.materialId, cost, moduleInstanceName };
+            } catch (e) { errorOccurred = true; alert(`'${part.name}' parça formülünde hata: ${e.message}`); return null; }
+        }).filter(Boolean);
+
+        const calculatedAccessories = (selectedTemplate.accessories || []).map(acc => {
+            if (errorOccurred) return null;
+            try {
+                const material = allMaterials.get(acc.materialId);
+                if (!material) throw new Error(`Aksesuar için malzeme bulunamadı.`);
+                if (typeof material.price !== 'number') throw new Error(`'${material.name}' için fiyat tanımlanmamış.`);
+                
+                const qty = Math.ceil(eval(acc.qtyFormula.toUpperCase().replace(/ /g, '')));
+                if (typeof qty !== 'number') throw new Error("Hesaplanan adet sayısal değil.");
+
+                const cost = qty * material.price;
+                if (isNaN(cost)) throw new Error("Maliyet hesaplanamadı (NaN).");
+
+                return { accessoryId: crypto.randomUUID(), materialId: acc.materialId, qty, cost, moduleInstanceName };
+            } catch (e) { errorOccurred = true; alert(`Aksesuar formülünde hata: ${e.message}`); return null; }
+        }).filter(Boolean);
+
+        if (errorOccurred) return;
+
+        try {
+            const projectRef = doc(db, 'projects', projectId);
+            await updateDoc(projectRef, {
+                parts: arrayUnion(...calculatedParts),
+                accessories: arrayUnion(...calculatedAccessories)
+            });
+            addModuleModal.hide();
+            document.getElementById('calculateForm').reset();
+        } catch (e) {
+            console.error("Projeye eklenirken hata: ", e);
+            alert("Malzemeler projeye eklenirken bir hata oluştu.");
+        }
+    });
+
 });
