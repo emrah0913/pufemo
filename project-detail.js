@@ -63,6 +63,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const singleAccessoryModal = new bootstrap.Modal(document.getElementById('addSingleAccessoryModal'));
     const singleAccessoryMaterialSelect = document.getElementById('singleAccessoryMaterial');
 
+    // Yeniden Hesapla Butonu
+    const recalculateCostBtn = document.getElementById('recalculateCostBtn');
+
 
     const params = new URLSearchParams(window.location.search);
     projectId = params.get('id');
@@ -84,7 +87,6 @@ document.addEventListener('DOMContentLoaded', () => {
             allMaterials.set(doc.id, { id: doc.id, ...doc.data() });
         });
         
-        // Tekil ekleme pencerelerindeki malzeme listelerini doldur
         populateSingleItemDropdowns();
     };
 
@@ -316,8 +318,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
-    // *** YENİ FONKSİYONLAR ***
-
+    // Tekil Ekleme Fonksiyonları
+    
     // Tekil ekleme pencerelerindeki malzeme listelerini doldur
     const populateSingleItemDropdowns = () => {
         singlePartMaterialSelect.innerHTML = '<option value="">Panel Malzemesi Seçin...</option>';
@@ -402,6 +404,74 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (e) {
             alert("Aksesuar eklenirken bir hata oluştu.");
             console.error(e);
+        }
+    });
+    
+    // Maliyetleri Yeniden Hesapla Butonu
+    recalculateCostBtn.addEventListener('click', async () => {
+        if (!confirm("Bu projedeki tüm maliyetler, güncel malzeme fiyatlarına göre yeniden hesaplanacaktır. Emin misiniz?")) {
+            return;
+        }
+
+        recalculateCostBtn.disabled = true;
+        recalculateCostBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Hesaplanıyor...';
+
+        try {
+            await loadAllMaterials();
+
+            const projectRef = doc(db, 'projects', projectId);
+            const projectSnap = await getDoc(projectRef);
+
+            if (!projectSnap.exists()) {
+                throw new Error("Proje bulunamadı.");
+            }
+
+            const projectData = projectSnap.data();
+            const currentParts = projectData.parts || [];
+            const currentAccessories = projectData.accessories || [];
+            
+            const updatedParts = currentParts.map(part => {
+                const material = allMaterials.get(part.materialId);
+                if (!material || typeof material.price !== 'number') return part;
+
+                const area = (part.height / 1000) * (part.width / 1000);
+                let newCost = area * material.price * part.qty;
+
+                if (part.banding && part.banding.materialId) {
+                    const bandingMaterial = allMaterials.get(part.banding.materialId);
+                    if (bandingMaterial && typeof bandingMaterial.price === 'number') {
+                        let totalBandingLength = 0;
+                        if (part.banding.b1) totalBandingLength += part.height / 1000;
+                        if (part.banding.b2) totalBandingLength += part.height / 1000;
+                        if (part.banding.e1) totalBandingLength += part.width / 1000;
+                        if (part.banding.e2) totalBandingLength += part.width / 1000;
+                        newCost += totalBandingLength * bandingMaterial.price * part.qty;
+                    }
+                }
+                return { ...part, cost: newCost };
+            });
+
+            const updatedAccessories = currentAccessories.map(acc => {
+                const material = allMaterials.get(acc.materialId);
+                if (!material || typeof material.price !== 'number') return acc;
+                
+                const newCost = acc.qty * material.price;
+                return { ...acc, cost: newCost };
+            });
+
+            await updateDoc(projectRef, {
+                parts: updatedParts,
+                accessories: updatedAccessories
+            });
+
+            alert("Proje maliyetleri başarıyla güncellendi!");
+
+        } catch (error) {
+            console.error("Yeniden hesaplama sırasında hata:", error);
+            alert("Maliyetler güncellenirken bir hata oluştu.");
+        } finally {
+            recalculateCostBtn.disabled = false;
+            recalculateCostBtn.innerHTML = '<i class="bi bi-calculator"></i> Maliyetleri Yeniden Hesapla';
         }
     });
 
