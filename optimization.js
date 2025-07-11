@@ -77,7 +77,6 @@ const loadProjectAndMaterials = async () => {
     if (projectSnap.exists()) {
         projectData = projectSnap.data();
         projectNameEl.textContent = projectData.name;
-        // Projedeki panel malzemeleri için ayar arayüzünü oluştur
         createGrainSettingsUI();
     } else {
         alert("Proje bulunamadı.");
@@ -145,7 +144,6 @@ function runOptimization() {
             const material = allMaterials.get(materialId);
             const materialName = material ? material.name : 'Bilinmeyen Malzeme';
             
-            // Kullanıcının o anki seçimini al
             const grainCheckbox = document.getElementById(`grain-${materialId}`);
             const rotationDisabled = grainCheckbox ? grainCheckbox.checked : false;
             
@@ -160,7 +158,8 @@ function runOptimization() {
             tabContentPane.id = tabId;
             tabContentPane.role = 'tabpanel';
             
-            const { packedSheets } = simpleBinPacker(partsByMaterial[materialId], sheetWidth, sheetHeight, rotationDisabled);
+            // *** YENİ PROFESYONEL OPTİMİZASYON ALGORİTMASI ÇAĞIRILIYOR ***
+            const { packedSheets } = advancedBinPacker(partsByMaterial[materialId], sheetWidth, sheetHeight, rotationDisabled);
             
             packedSheets.forEach((sheet, index) => {
                 const sheetEl = document.createElement('div');
@@ -194,73 +193,99 @@ function runOptimization() {
     }, 500);
 }
 
-// Basit Yerleştirme Algoritması (Bin Packer)
-function simpleBinPacker(pieces, sheetW, sheetH, rotationDisabled) {
+// *** YENİ PROFESYONEL OPTİMİZASYON ALGORİTMASI (Best-Fit Heuristic) ***
+function advancedBinPacker(pieces, sheetW, sheetH, rotationDisabled) {
+    // Parçaları alana göre büyükten küçüğe sırala
     pieces.sort((a, b) => (b.w * b.h) - (a.w * a.h));
     
-    let packedSheets = [];
-    let unpackedPieces = [];
+    let sheets = [];
 
-    pieces.forEach(piece => {
-        let placed = false;
-        for (const sheet of packedSheets) {
-            if (findSpot(sheet, piece, rotationDisabled)) {
-                placed = true;
-                break;
+    for (const piece of pieces) {
+        let bestSheet = null;
+        let bestNode = null;
+        let bestScore = Infinity;
+        let rotated = false;
+
+        for (let i = 0; i < sheets.length; i++) {
+            const sheet = sheets[i];
+            for (let j = 0; j < sheet.freeNodes.length; j++) {
+                const node = sheet.freeNodes[j];
+                
+                // Orijinal yönüyle dene
+                if (piece.w <= node.w && piece.h <= node.h) {
+                    const score = Math.min(node.w - piece.w, node.h - piece.h);
+                    if (score < bestScore) {
+                        bestScore = score;
+                        bestSheet = sheet;
+                        bestNode = node;
+                        rotated = false;
+                    }
+                }
+
+                // Döndürerek dene (eğer serbestse)
+                if (!rotationDisabled && piece.w !== piece.h && piece.h <= node.w && piece.w <= node.h) {
+                     const score = Math.min(node.w - piece.h, node.h - piece.w);
+                     if (score < bestScore) {
+                        bestScore = score;
+                        bestSheet = sheet;
+                        bestNode = node;
+                        rotated = true;
+                    }
+                }
             }
         }
-        if (!placed) {
-            const newSheet = { w: sheetW, h: sheetH, pieces: [] };
-            if (findSpot(newSheet, piece, rotationDisabled)) {
-                packedSheets.push(newSheet);
-                placed = true;
+
+        // En iyi yer bulunduysa, yerleştir
+        if (bestSheet) {
+            if (rotated) {
+                [piece.w, piece.h] = [piece.h, piece.w];
+            }
+            placePiece(bestSheet, bestNode, piece);
+        } else {
+            // Yer bulunamadıysa, yeni plaka aç
+            const newSheet = { w: sheetW, h: sheetH, pieces: [], freeNodes: [{x: 0, y: 0, w: sheetW, h: sheetH}] };
+            if (findSpotOnNewSheet(newSheet, piece, rotationDisabled)) {
+                 sheets.push(newSheet);
             }
         }
-        if (!placed) {
-            unpackedPieces.push(piece);
-        }
-    });
+    }
 
-    return { packedSheets, unpackedPieces };
+    return { packedSheets: sheets };
 }
 
-function findSpot(sheet, piece, rotationDisabled) {
-    if (tryToPlace(sheet, piece.w, piece.h, piece)) {
+function findSpotOnNewSheet(sheet, piece, rotationDisabled) {
+    const node = sheet.freeNodes[0];
+     if (piece.w <= node.w && piece.h <= node.h) {
+        placePiece(sheet, node, piece);
         return true;
     }
-    if (!rotationDisabled && piece.w !== piece.h) {
-        if (tryToPlace(sheet, piece.h, piece.w, piece)) {
-            [piece.w, piece.h] = [piece.h, piece.w];
-            return true;
-        }
+    if (!rotationDisabled && piece.w !== piece.h && piece.h <= node.w && piece.w <= node.h) {
+        [piece.w, piece.h] = [piece.h, piece.w];
+        placePiece(sheet, node, piece);
+        return true;
     }
     return false;
 }
 
-function tryToPlace(sheet, pieceW, pieceH, piece) {
-    for (let y = 0; y <= sheet.h - pieceH; y++) {
-        for (let x = 0; x <= sheet.w - pieceW; x++) {
-            if (isSpotFree(sheet, x, y, pieceW, pieceH)) {
-                piece.x = x;
-                piece.y = y;
-                piece.w = pieceW;
-                piece.h = pieceH;
-                sheet.pieces.push(piece);
-                return true;
-            }
-        }
-    }
-    return false;
+function placePiece(sheet, node, piece) {
+    piece.x = node.x;
+    piece.y = node.y;
+    sheet.pieces.push(piece);
+
+    // Boş alanı iki yeni alana böl
+    const originalNodeIndex = sheet.freeNodes.findIndex(n => n === node);
+    sheet.freeNodes.splice(originalNodeIndex, 1);
+
+    const rightNode = { x: node.x + piece.w, y: node.y, w: node.w - piece.w, h: piece.h };
+    const bottomNode = { x: node.x, y: node.y + piece.h, w: node.w, h: node.h - piece.h };
+    
+    if (rightNode.w > 0 && rightNode.h > 0) sheet.freeNodes.push(rightNode);
+    if (bottomNode.w > 0 && bottomNode.h > 0) sheet.freeNodes.push(bottomNode);
+    
+    // Diğer boş alanlarla çakışanları temizle/ayarla (basit birleştirme)
+    // Bu kısım algoritmayı daha da karmaşıklaştırır, şimdilik temel bölme yeterli.
 }
 
-function isSpotFree(sheet, x, y, w, h) {
-    for (const p of sheet.pieces) {
-        if (x < p.x + p.w && x + w > p.x && y < p.y + p.h && y + h > p.y) {
-            return false;
-        }
-    }
-    return true;
-}
 
 // Kenar bandı özetini hesapla ve render et
 function calculateAndRenderBandingSummary() {
