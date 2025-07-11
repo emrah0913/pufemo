@@ -48,6 +48,7 @@ let categoryId = null;
 let moduleId = null; 
 let panelMaterials = [];
 let accessoryMaterials = [];
+let bandingMaterials = []; // Yeni
 let currentUser = null;
 
 // Sayfa yüklendiğinde çalışacak ana fonksiyon
@@ -72,7 +73,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     loadModuleForEditing(moduleId);
                 } else {
                     pageTitle.textContent = 'Yeni Modül Şablonu Oluştur';
-                    saveModuleBtn.textContent = 'Şablonu Kaydet';
                 }
             });
         } else {
@@ -88,14 +88,13 @@ const loadAllMaterials = async () => {
     
     panelMaterials = [];
     accessoryMaterials = [];
+    bandingMaterials = []; // Yeni
 
     querySnapshot.forEach(doc => {
         const material = { id: doc.id, ...doc.data() };
-        if (material.type === 'Panel') {
-            panelMaterials.push(material);
-        } else if (material.type === 'Aksesuar') {
-            accessoryMaterials.push(material);
-        }
+        if (material.type === 'Panel') panelMaterials.push(material);
+        else if (material.type === 'Aksesuar') accessoryMaterials.push(material);
+        else if (material.type === 'Kenar Bandı') bandingMaterials.push(material); // Yeni
     });
 };
 
@@ -114,7 +113,7 @@ const loadModuleForEditing = async (id) => {
             
             partsContainer.innerHTML = '';
             (moduleData.parts || []).forEach(part => {
-                addPartRow(part.name, part.qty, part.heightFormula, part.widthFormula, part.materialId);
+                addPartRow(part.name, part.qty, part.heightFormula, part.widthFormula, part.materialId, part.banding);
             });
 
             accessoriesContainer.innerHTML = '';
@@ -133,22 +132,38 @@ const loadModuleForEditing = async (id) => {
 };
 
 // Ekrana yeni bir parça satırı ekleyen fonksiyon
-const addPartRow = (name = '', qty = 1, height = '', width = '', materialId = '') => {
+const addPartRow = (name = '', qty = 1, height = '', width = '', materialId = '', banding = {}) => {
     const templateContent = partRowTemplate.content.cloneNode(true);
     const partRow = templateContent.querySelector('.part-row');
     
+    // Malzeme seçimini doldur
     const materialSelect = partRow.querySelector('.part-material');
-    materialSelect.innerHTML = '<option value="">Malzeme Seçin...</option>';
+    materialSelect.innerHTML = '<option value="">Panel Malzemesi Seçin...</option>';
     panelMaterials.forEach(mat => {
         materialSelect.innerHTML += `<option value="${mat.id}">${mat.name}</option>`;
     });
 
+    // Kenar bandı seçimini doldur
+    const bandingSelect = partRow.querySelector('.part-banding-material');
+    bandingSelect.innerHTML = '<option value="">Bant Malzemesi Seçin (Opsiyonel)...</option>';
+    bandingMaterials.forEach(mat => {
+        bandingSelect.innerHTML += `<option value="${mat.id}">${mat.name}</option>`;
+    });
+
+    // Değerleri ata
     partRow.querySelector('.part-name').value = name;
     partRow.querySelector('.part-qty').value = qty;
     partRow.querySelector('.part-height').value = height;
     partRow.querySelector('.part-width').value = width;
-    if (materialId) {
-        materialSelect.value = materialId;
+    if (materialId) materialSelect.value = materialId;
+    
+    // Kenar bandı bilgilerini ata
+    if (banding) {
+        bandingSelect.value = banding.materialId || '';
+        partRow.querySelector('.part-banding-b1').checked = banding.b1 || false;
+        partRow.querySelector('.part-banding-b2').checked = banding.b2 || false;
+        partRow.querySelector('.part-banding-e1').checked = banding.e1 || false;
+        partRow.querySelector('.part-banding-e2').checked = banding.e2 || false;
     }
 
     partsContainer.appendChild(templateContent);
@@ -166,9 +181,7 @@ const addAccessoryRow = (materialId = '', qtyFormula = '') => {
     });
 
     accessoryRow.querySelector('.accessory-qty').value = qtyFormula;
-    if (materialId) {
-        materialSelect.value = materialId;
-    }
+    if (materialId) materialSelect.value = materialId;
 
     accessoriesContainer.appendChild(templateContent);
 };
@@ -187,10 +200,7 @@ document.addEventListener('click', (e) => {
 moduleForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const moduleName = moduleNameInput.value.trim();
-    if (!moduleName) {
-        alert("Modül adı boş bırakılamaz.");
-        return;
-    }
+    if (!moduleName) return alert("Modül adı boş bırakılamaz.");
 
     // Parçaları topla
     const parts = [];
@@ -201,6 +211,13 @@ moduleForm.addEventListener('submit', async (e) => {
             qty: parseInt(row.querySelector('.part-qty').value),
             heightFormula: row.querySelector('.part-height').value.trim(),
             widthFormula: row.querySelector('.part-width').value.trim(),
+            banding: {
+                materialId: row.querySelector('.part-banding-material').value,
+                b1: row.querySelector('.part-banding-b1').checked,
+                b2: row.querySelector('.part-banding-b2').checked,
+                e1: row.querySelector('.part-banding-e1').checked,
+                e2: row.querySelector('.part-banding-e2').checked,
+            }
         };
         if(data.name && data.materialId && data.qty > 0 && data.heightFormula && data.widthFormula) {
             parts.push(data);
@@ -214,24 +231,14 @@ moduleForm.addEventListener('submit', async (e) => {
             materialId: row.querySelector('.accessory-material').value,
             qtyFormula: row.querySelector('.accessory-qty').value.trim(),
         };
-        if (data.materialId && data.qtyFormula) {
-            accessories.push(data);
-        }
+        if (data.materialId && data.qtyFormula) accessories.push(data);
     });
 
-    const dataToSave = {
-        name: moduleName,
-        userId: currentUser.uid,
-        categoryId: categoryId,
-        parts: parts,
-        accessories: accessories,
-        createdAt: serverTimestamp() 
-    };
+    const dataToSave = { name: moduleName, userId: currentUser.uid, categoryId, parts, accessories, createdAt: serverTimestamp() };
 
     try {
         saveModuleBtn.disabled = true;
         saveModuleBtn.textContent = 'Kaydediliyor...';
-
         if (moduleId) {
             await updateDoc(doc(db, 'moduleTemplates', moduleId), dataToSave);
             alert('Modül şablonu başarıyla güncellendi!');
@@ -239,9 +246,7 @@ moduleForm.addEventListener('submit', async (e) => {
             await addDoc(collection(db, 'moduleTemplates'), dataToSave);
             alert('Modül şablonu başarıyla kaydedildi!');
         }
-        
         window.location.href = backButton.href;
-
     } catch (error) {
         console.error("Kaydetme hatası: ", error);
         alert("İşlem sırasında bir hata oluştu.");
