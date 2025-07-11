@@ -1,4 +1,4 @@
-// optimization.js (Guillotine Kesim Planı Entegre Edildi)
+// Güncellenmiş: Gerçek Satır Bazlı Guillotine Kesim Algoritması
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
 import { getFirestore, doc, getDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
@@ -125,7 +125,7 @@ function runOptimization() {
       const rotationAllowed = material.patterned !== true;
       const tabId = `tab-${matId}`;
 
-      const { packedSheets, unpacked } = guillotinePack(materialGroups[matId], sheetWidth, sheetHeight, kerf, rotationAllowed);
+      const { packedSheets, unpacked } = trueGuillotinePack(materialGroups[matId], sheetWidth, sheetHeight, kerf, rotationAllowed);
 
       const tabNav = document.createElement('li');
       tabNav.className = 'nav-item';
@@ -175,41 +175,44 @@ function runOptimization() {
   }, 300);
 }
 
-function guillotinePack(pieces, sw, sh, kerf, allowRotation) {
+function trueGuillotinePack(pieces, sw, sh, kerf, allowRotation) {
   const packedSheets = [];
   const unpacked = [];
-  let sorted = [...pieces].sort((a, b) => b.h - a.h);
+  let items = [...pieces].sort((a, b) => b.h - a.h);
 
-  while (sorted.length > 0) {
-    const sheet = { pieces: [] };
-    let x = 0, y = 0, rowHeight = 0;
-    for (let i = 0; i < sorted.length;) {
-      let p = sorted[i];
-      let rotated = false;
+  while (items.length > 0) {
+    let sheet = { pieces: [] };
+    let y = 0;
 
-      if (allowRotation && p.h > p.w && p.h <= sw && p.w <= sh) {
-        [p.w, p.h] = [p.h, p.w];
-        rotated = true;
+    while (y < sh) {
+      let rowHeight = 0;
+      let rowX = 0;
+      for (let i = 0; i < items.length;) {
+        let p = items[i];
+        let rotated = false;
+        if (allowRotation && p.w > p.h && p.w <= sh && p.h <= sw) {
+          [p.w, p.h] = [p.h, p.w];
+          rotated = true;
+        }
+        if (rowX + p.w + kerf > sw) {
+          i++;
+          continue;
+        }
+        if (y + p.h + kerf > sh) {
+          i++;
+          continue;
+        }
+        sheet.pieces.push({ ...p, x: rowX, y });
+        rowX += p.w + kerf;
+        rowHeight = Math.max(rowHeight, p.h);
+        items.splice(i, 1);
       }
-
-      if (x + p.w + kerf > sw) {
-        x = 0;
-        y += rowHeight + kerf;
-        rowHeight = 0;
-      }
-
-      if (y + p.h + kerf > sh) {
-        break;
-      }
-
-      sheet.pieces.push({ ...p, x, y });
-      rowHeight = Math.max(rowHeight, p.h);
-      x += p.w + kerf;
-      sorted.splice(i, 1);
+      if (rowHeight === 0) break;
+      y += rowHeight + kerf;
     }
     packedSheets.push(sheet);
   }
-  return { packedSheets, unpacked: sorted };
+  return { packedSheets, unpacked: items };
 }
 
 logoutButton.addEventListener('click', () => signOut(auth));
