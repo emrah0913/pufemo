@@ -87,7 +87,7 @@ const loadModuleForEditing = async (id) => {
             
             partsContainer.innerHTML = '';
             moduleData.parts.forEach(part => {
-                addPartRow(part.name, part.qty, part.widthFormula, part.heightFormula);
+                addPartRow(part.name, part.qty, part.heightFormula, part.widthFormula, part.depthFormula);
             });
         } else {
             alert("Düzenlenecek modül bulunamadı.");
@@ -99,15 +99,16 @@ const loadModuleForEditing = async (id) => {
     }
 };
 
-// Ekrana yeni bir parça satırı ekleyen fonksiyon
-const addPartRow = (name = '', qty = 1, width = '', height = '') => {
+// Ekrana yeni bir parça satırı ekleyen fonksiyon (GÜNCELLENDİ)
+const addPartRow = (name = '', qty = 1, height = '', width = '', depth = '') => {
     const templateContent = partRowTemplate.content.cloneNode(true);
     const partRow = templateContent.querySelector('.part-row');
     
     partRow.querySelector('.part-name').value = name;
     partRow.querySelector('.part-qty').value = qty;
-    partRow.querySelector('.part-width').value = width;
     partRow.querySelector('.part-height').value = height;
+    partRow.querySelector('.part-width').value = width;
+    partRow.querySelector('.part-depth').value = depth; // Yeni alanı doldur
 
     partsContainer.appendChild(templateContent);
 };
@@ -115,7 +116,7 @@ const addPartRow = (name = '', qty = 1, width = '', height = '') => {
 // "+ Parça Ekle" butonuna tıklandığında boş bir satır ekle
 addPartBtn.addEventListener('click', () => addPartRow());
 
-// Sil butonlarına olay dinleyici ekle (Daha verimli yöntem)
+// Sil butonlarına olay dinleyici ekle
 partsContainer.addEventListener('click', (e) => {
     if (e.target.classList.contains('remove-part-btn')) {
         e.target.closest('.part-row').remove();
@@ -123,7 +124,7 @@ partsContainer.addEventListener('click', (e) => {
 });
 
 
-// Formu Kaydetme (Hem Ekleme Hem Güncelleme)
+// Formu Kaydetme (Hem Ekleme Hem Güncelleme) (GÜNCELLENDİ)
 moduleForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const user = auth.currentUser;
@@ -145,16 +146,18 @@ moduleForm.addEventListener('submit', async (e) => {
     partRows.forEach(row => {
         const name = row.querySelector('.part-name').value.trim();
         const qty = parseInt(row.querySelector('.part-qty').value);
-        const widthFormula = row.querySelector('.part-width').value.trim();
         const heightFormula = row.querySelector('.part-height').value.trim();
+        const widthFormula = row.querySelector('.part-width').value.trim();
+        const depthFormula = row.querySelector('.part-depth').value.trim(); // Yeni alanı oku
         
-        if(name && qty > 0 && widthFormula && heightFormula) {
-            parts.push({ name, qty, widthFormula, heightFormula });
+        // Boy ve En formülleri zorunlu, Derinlik opsiyonel
+        if(name && qty > 0 && heightFormula && widthFormula) {
+            parts.push({ name, qty, heightFormula, widthFormula, depthFormula });
         }
     });
 
     if (parts.length !== partRows.length) {
-        alert("Lütfen tüm parça bilgilerini eksiksiz doldurun.");
+        alert("Lütfen tüm parça bilgilerini (Boy ve En formülleri dahil) eksiksiz doldurun.");
         return;
     }
 
