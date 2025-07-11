@@ -124,12 +124,12 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (isGroupedView) {
             // Gruplanmış görünüm için başlıklar
-            partsTableHeader.innerHTML = `<th>Malzeme</th><th>Boy (mm)</th><th>En (mm)</th><th>Toplam Adet</th>`;
+            partsTableHeader.innerHTML = `<th>Parça Adı</th><th>Malzeme</th><th>Boy (mm)</th><th>En (mm)</th><th>Toplam Adet</th>`;
             const grouped = {};
             parts.forEach(p => {
-                // GRUPLAMA ANAHTARI: Malzeme, Ölçüler ve Bant Yönlerini içerir
+                // GRUPLAMA ANAHTARI: Artık Parça Adını da içeriyor
                 const bandingKey = p.banding ? `${p.banding.b1 || false}-${p.banding.b2 || false}-${p.banding.e1 || false}-${p.banding.e2 || false}` : 'none';
-                const key = `${p.materialId}-${p.height}-${p.width}-${bandingKey}`;
+                const key = `${p.name}-${p.materialId}-${p.height}-${p.width}-${bandingKey}`;
                 
                 if (!grouped[key]) {
                     grouped[key] = { ...p, qty: 0 };
@@ -141,7 +141,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 const material = allMaterials.get(part.materialId);
                 const materialName = material ? material.name : 'Bilinmeyen Malzeme';
                 
-                // Kenar bandı sınıflarını belirle
                 let heightBandingClass = '';
                 if (part.banding) {
                     if (part.banding.b1 && part.banding.b2) heightBandingClass = 'banded-double';
@@ -156,6 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const row = `
                     <tr>
+                        <td>${part.name}</td>
                         <td>${materialName}</td>
                         <td><span class="banded-span ${heightBandingClass}">${part.height}</span></td>
                         <td><span class="banded-span ${widthBandingClass}">${part.width}</span></td>
