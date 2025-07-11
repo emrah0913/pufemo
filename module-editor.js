@@ -8,7 +8,10 @@ import {
     doc,
     getDoc,
     collection, 
-    serverTimestamp 
+    serverTimestamp,
+    query,
+    where,
+    getDocs
 } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 
 // Firebase Konfigürasyonu
@@ -43,6 +46,9 @@ const accessoryRowTemplate = document.getElementById('accessoryRowTemplate');
 
 let categoryId = null;
 let moduleId = null; 
+let panelMaterials = [];
+let accessoryMaterials = [];
+let currentUser = null;
 
 // Sayfa yüklendiğinde çalışacak ana fonksiyon
 document.addEventListener('DOMContentLoaded', () => {
@@ -60,20 +66,38 @@ document.addEventListener('DOMContentLoaded', () => {
 
     onAuthStateChanged(auth, user => {
         if (user) {
-            if (moduleId) {
-                loadModuleForEditing(moduleId);
-            } else {
-                pageTitle.textContent = 'Yeni Modül Şablonu Oluştur';
-                saveModuleBtn.textContent = 'Şablonu Kaydet';
-            }
+            currentUser = user;
+            loadAllMaterials().then(() => {
+                if (moduleId) {
+                    loadModuleForEditing(moduleId);
+                } else {
+                    pageTitle.textContent = 'Yeni Modül Şablonu Oluştur';
+                    saveModuleBtn.textContent = 'Şablonu Kaydet';
+                }
+            });
         } else {
             window.location.href = 'index.html';
         }
     });
 });
 
-// Çıkış yap butonu
-logoutButton.addEventListener('click', () => signOut(auth));
+// Tüm malzemeleri Firestore'dan çek
+const loadAllMaterials = async () => {
+    const q = query(collection(db, 'materials'), where('userId', '==', currentUser.uid));
+    const querySnapshot = await getDocs(q);
+    
+    panelMaterials = [];
+    accessoryMaterials = [];
+
+    querySnapshot.forEach(doc => {
+        const material = { id: doc.id, ...doc.data() };
+        if (material.type === 'Panel') {
+            panelMaterials.push(material);
+        } else if (material.type === 'Aksesuar') {
+            accessoryMaterials.push(material);
+        }
+    });
+};
 
 // Düzenleme için modül verilerini yükleyen fonksiyon
 const loadModuleForEditing = async (id) => {
@@ -90,12 +114,12 @@ const loadModuleForEditing = async (id) => {
             
             partsContainer.innerHTML = '';
             (moduleData.parts || []).forEach(part => {
-                addPartRow(part.name, part.qty, part.heightFormula, part.widthFormula);
+                addPartRow(part.name, part.qty, part.heightFormula, part.widthFormula, part.materialId);
             });
 
             accessoriesContainer.innerHTML = '';
             (moduleData.accessories || []).forEach(acc => {
-                addAccessoryRow(acc.name, acc.qtyFormula);
+                addAccessoryRow(acc.materialId, acc.qtyFormula);
             });
 
         } else {
@@ -109,22 +133,43 @@ const loadModuleForEditing = async (id) => {
 };
 
 // Ekrana yeni bir parça satırı ekleyen fonksiyon
-const addPartRow = (name = '', qty = 1, height = '', width = '') => {
+const addPartRow = (name = '', qty = 1, height = '', width = '', materialId = '') => {
     const templateContent = partRowTemplate.content.cloneNode(true);
     const partRow = templateContent.querySelector('.part-row');
+    
+    const materialSelect = partRow.querySelector('.part-material');
+    materialSelect.innerHTML = '<option value="">Malzeme Seçin...</option>';
+    panelMaterials.forEach(mat => {
+        materialSelect.innerHTML += `<option value="${mat.id}">${mat.name}</option>`;
+    });
+
     partRow.querySelector('.part-name').value = name;
     partRow.querySelector('.part-qty').value = qty;
     partRow.querySelector('.part-height').value = height;
     partRow.querySelector('.part-width').value = width;
+    if (materialId) {
+        materialSelect.value = materialId;
+    }
+
     partsContainer.appendChild(templateContent);
 };
 
 // Ekrana yeni bir aksesuar satırı ekleyen fonksiyon
-const addAccessoryRow = (name = '', qtyFormula = '') => {
+const addAccessoryRow = (materialId = '', qtyFormula = '') => {
     const templateContent = accessoryRowTemplate.content.cloneNode(true);
     const accessoryRow = templateContent.querySelector('.accessory-row');
-    accessoryRow.querySelector('.accessory-name').value = name;
+    
+    const materialSelect = accessoryRow.querySelector('.accessory-material');
+    materialSelect.innerHTML = '<option value="">Aksesuar Seçin...</option>';
+    accessoryMaterials.forEach(mat => {
+        materialSelect.innerHTML += `<option value="${mat.id}">${mat.name}</option>`;
+    });
+
     accessoryRow.querySelector('.accessory-qty').value = qtyFormula;
+    if (materialId) {
+        materialSelect.value = materialId;
+    }
+
     accessoriesContainer.appendChild(templateContent);
 };
 
@@ -132,23 +177,17 @@ const addAccessoryRow = (name = '', qtyFormula = '') => {
 addPartBtn.addEventListener('click', () => addPartRow());
 addAccessoryBtn.addEventListener('click', () => addAccessoryRow());
 
-// Silme Olayları (Event Delegation)
+// Silme Olayları
 document.addEventListener('click', (e) => {
-    if (e.target.classList.contains('remove-part-btn')) {
-        e.target.closest('.part-row').remove();
-    }
-    if (e.target.classList.contains('remove-accessory-btn')) {
-        e.target.closest('.accessory-row').remove();
-    }
+    if (e.target.classList.contains('remove-part-btn')) e.target.closest('.part-row').remove();
+    if (e.target.classList.contains('remove-accessory-btn')) e.target.closest('.accessory-row').remove();
 });
 
 // Formu Kaydetme
 moduleForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const user = auth.currentUser;
     const moduleName = moduleNameInput.value.trim();
-
-    if (!user || !moduleName) {
+    if (!moduleName) {
         alert("Modül adı boş bırakılamaz.");
         return;
     }
@@ -156,28 +195,33 @@ moduleForm.addEventListener('submit', async (e) => {
     // Parçaları topla
     const parts = [];
     document.querySelectorAll('.part-row').forEach(row => {
-        const name = row.querySelector('.part-name').value.trim();
-        const qty = parseInt(row.querySelector('.part-qty').value);
-        const heightFormula = row.querySelector('.part-height').value.trim();
-        const widthFormula = row.querySelector('.part-width').value.trim();
-        if(name && qty > 0 && heightFormula && widthFormula) {
-            parts.push({ name, qty, heightFormula, widthFormula });
+        const data = {
+            name: row.querySelector('.part-name').value.trim(),
+            materialId: row.querySelector('.part-material').value,
+            qty: parseInt(row.querySelector('.part-qty').value),
+            heightFormula: row.querySelector('.part-height').value.trim(),
+            widthFormula: row.querySelector('.part-width').value.trim(),
+        };
+        if(data.name && data.materialId && data.qty > 0 && data.heightFormula && data.widthFormula) {
+            parts.push(data);
         }
     });
 
     // Aksesuarları topla
     const accessories = [];
     document.querySelectorAll('.accessory-row').forEach(row => {
-        const name = row.querySelector('.accessory-name').value.trim();
-        const qtyFormula = row.querySelector('.accessory-qty').value.trim();
-        if (name && qtyFormula) {
-            accessories.push({ name, qtyFormula });
+        const data = {
+            materialId: row.querySelector('.accessory-material').value,
+            qtyFormula: row.querySelector('.accessory-qty').value.trim(),
+        };
+        if (data.materialId && data.qtyFormula) {
+            accessories.push(data);
         }
     });
 
     const dataToSave = {
         name: moduleName,
-        userId: user.uid,
+        userId: currentUser.uid,
         categoryId: categoryId,
         parts: parts,
         accessories: accessories,
@@ -189,8 +233,7 @@ moduleForm.addEventListener('submit', async (e) => {
         saveModuleBtn.textContent = 'Kaydediliyor...';
 
         if (moduleId) {
-            const docRef = doc(db, 'moduleTemplates', moduleId);
-            await updateDoc(docRef, dataToSave);
+            await updateDoc(doc(db, 'moduleTemplates', moduleId), dataToSave);
             alert('Modül şablonu başarıyla güncellendi!');
         } else {
             await addDoc(collection(db, 'moduleTemplates'), dataToSave);
@@ -200,9 +243,10 @@ moduleForm.addEventListener('submit', async (e) => {
         window.location.href = backButton.href;
 
     } catch (error) {
-        console.error("Modül kaydedilirken hata oluştu: ", error);
-        alert("Modül kaydedilirken bir hata oluştu. Lütfen tekrar deneyin.");
-        saveModuleBtn.disabled = false;
-        saveModuleBtn.textContent = moduleId ? 'Değişiklikleri Kaydet' : 'Şablonu Kaydet';
+        console.error("Kaydetme hatası: ", error);
+        alert("İşlem sırasında bir hata oluştu.");
     }
 });
+
+// Çıkış yap
+logoutButton.addEventListener('click', () => signOut(auth));
