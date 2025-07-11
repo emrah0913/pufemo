@@ -35,6 +35,8 @@ let currentUser = null;
 let projectId = null;
 let moduleTemplates = [];
 let allMaterials = new Map();
+let isGroupedView = false;
+let currentProjectData = {};
 
 // Sayfa Yüklendiğinde
 document.addEventListener('DOMContentLoaded', () => {
@@ -44,8 +46,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const totalCostEl = document.getElementById('totalCost');
     const partsListEl = document.getElementById('partsList');
     const accessoriesListEl = document.getElementById('accessoriesList');
+    const partsTableHeader = document.getElementById('parts-table-header');
+    const accessoriesTableHeader = document.getElementById('accessories-table-header');
+    const groupViewToggle = document.getElementById('groupViewToggle');
     const loadingIndicator = document.getElementById('loadingIndicator');
     const logoutButton = document.getElementById('logoutButton');
+    const recalculateCostBtn = document.getElementById('recalculateCostBtn');
     
     // Modül Ekleme Modalı Elementleri
     const moduleTemplateSelect = document.getElementById('moduleTemplateSelect');
@@ -62,10 +68,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const saveSingleAccessoryBtn = document.getElementById('saveSingleAccessoryBtn');
     const singleAccessoryModal = new bootstrap.Modal(document.getElementById('addSingleAccessoryModal'));
     const singleAccessoryMaterialSelect = document.getElementById('singleAccessoryMaterial');
-
-    // Yeniden Hesapla Butonu
-    const recalculateCostBtn = document.getElementById('recalculateCostBtn');
-
 
     const params = new URLSearchParams(window.location.search);
     projectId = params.get('id');
@@ -98,85 +100,117 @@ document.addEventListener('DOMContentLoaded', () => {
         onSnapshot(projectRef, (docSnap) => {
             loadingIndicator.classList.add('d-none');
             if (docSnap.exists()) {
-                const project = docSnap.data();
-                projectNameEl.textContent = project.name;
-                projectDescriptionEl.textContent = project.description || '';
+                currentProjectData = docSnap.data();
+                projectNameEl.textContent = currentProjectData.name;
+                projectDescriptionEl.textContent = currentProjectData.description || '';
                 
-                const parts = project.parts || [];
-                const accessories = project.accessories || [];
-
-                renderParts(parts);
-                renderAccessories(accessories);
-                calculateAndDisplayTotalCost(parts, accessories);
+                renderAllLists();
+                calculateAndDisplayTotalCost(currentProjectData.parts || [], currentProjectData.accessories || []);
             } else {
                 alert("Proje bulunamadı.");
                 window.location.href = 'projects.html';
             }
         });
     };
+    
+    const renderAllLists = () => {
+        renderParts(currentProjectData.parts || []);
+        renderAccessories(currentProjectData.accessories || []);
+    };
 
     // Parça listesini render et
     const renderParts = (parts) => {
         partsListEl.innerHTML = '';
-        if (parts.length === 0) {
-            partsListEl.innerHTML = '<tr><td colspan="7" class="text-center text-muted">Henüz hiç parça eklenmedi.</td></tr>';
-            return;
-        }
-        parts.forEach(part => {
-            const material = allMaterials.get(part.materialId);
-            const materialName = material ? material.name : 'Bilinmeyen Malzeme';
-            const cost = part.cost ? part.cost.toFixed(2) : '0.00';
+        
+        if (isGroupedView) {
+            partsTableHeader.innerHTML = `<th>Malzeme</th><th>Boy (mm)</th><th>En (mm)</th><th>Toplam Adet</th>`;
+            const grouped = {};
+            parts.forEach(p => {
+                const key = `${p.materialId}-${p.height}-${p.width}-${JSON.stringify(p.banding || {})}`;
+                if (!grouped[key]) {
+                    grouped[key] = { ...p, qty: 0 };
+                }
+                grouped[key].qty += p.qty;
+            });
             
-            let heightBandingClass = '';
-            if (part.banding) {
-                if (part.banding.b1 && part.banding.b2) heightBandingClass = 'banded-double';
-                else if (part.banding.b1 || part.banding.b2) heightBandingClass = 'banded-single';
-            }
+            Object.values(grouped).forEach(part => {
+                const material = allMaterials.get(part.materialId);
+                const materialName = material ? material.name : 'Bilinmeyen Malzeme';
+                const row = `<tr><td>${materialName}</td><td>${part.height}</td><td>${part.width}</td><td>${part.qty}</td></tr>`;
+                partsListEl.innerHTML += row;
+            });
 
-            let widthBandingClass = '';
-            if (part.banding) {
-                if (part.banding.e1 && part.banding.e2) widthBandingClass = 'banded-double';
-                else if (part.banding.e1 || part.banding.e2) widthBandingClass = 'banded-single';
-            }
+        } else {
+            partsTableHeader.innerHTML = `<th>Parça Adı</th><th>Boy (mm)</th><th>En (mm)</th><th>Adet</th><th>Ait Olduğu Modül</th><th>İşlemler</th>`;
+            parts.forEach(part => {
+                const material = allMaterials.get(part.materialId);
+                const materialName = material ? material.name : 'Bilinmeyen Malzeme';
+                
+                let heightBandingClass = '';
+                if (part.banding) {
+                    if (part.banding.b1 && part.banding.b2) heightBandingClass = 'banded-double';
+                    else if (part.banding.b1 || part.banding.b2) heightBandingClass = 'banded-single';
+                }
 
-            const row = `
-                <tr>
-                    <td>${part.name}</td>
-                    <td><span class="banded-span ${heightBandingClass}">${part.height}</span></td>
-                    <td><span class="banded-span ${widthBandingClass}">${part.width}</span></td>
-                    <td>${part.qty}</td>
-                    <td>${materialName}</td>
-                    <td>${cost} ₺</td>
-                    <td><button class="btn btn-sm btn-outline-danger" onclick="window.deleteItem('${part.partId}', 'parçayı', 'parts')">Sil</button></td>
-                </tr>
-            `;
-            partsListEl.innerHTML += row;
-        });
+                let widthBandingClass = '';
+                if (part.banding) {
+                    if (part.banding.e1 && part.banding.e2) widthBandingClass = 'banded-double';
+                    else if (part.banding.e1 || part.banding.e2) widthBandingClass = 'banded-single';
+                }
+
+                const row = `
+                    <tr>
+                        <td>${part.name}</td>
+                        <td><span class="banded-span ${heightBandingClass}">${part.height}</span></td>
+                        <td><span class="banded-span ${widthBandingClass}">${part.width}</span></td>
+                        <td>${part.qty}</td>
+                        <td>${part.moduleInstanceName}</td>
+                        <td><button class="btn btn-sm btn-outline-danger" onclick="window.deleteItem('${part.partId}', 'parçayı', 'parts')">Sil</button></td>
+                    </tr>
+                `;
+                partsListEl.innerHTML += row;
+            });
+        }
     };
 
     // Aksesuar listesini render et
     const renderAccessories = (accessories) => {
         accessoriesListEl.innerHTML = '';
-        if (accessories.length === 0) {
-            accessoriesListEl.innerHTML = '<tr><td colspan="5" class="text-center text-muted">Henüz hiç aksesuar eklenmedi.</td></tr>';
-            return;
+
+        if (isGroupedView) {
+            accessoriesTableHeader.innerHTML = `<th>Aksesuar</th><th>Toplam Adet</th>`;
+            const grouped = {};
+            accessories.forEach(acc => {
+                const key = acc.materialId;
+                if (!grouped[key]) {
+                    grouped[key] = { ...acc, qty: 0 };
+                }
+                grouped[key].qty += acc.qty;
+            });
+
+            Object.values(grouped).forEach(acc => {
+                const material = allMaterials.get(acc.materialId);
+                const materialName = material ? material.name : 'Bilinmeyen Aksesuar';
+                const row = `<tr><td>${materialName}</td><td>${acc.qty}</td></tr>`;
+                accessoriesListEl.innerHTML += row;
+            });
+
+        } else {
+            accessoriesTableHeader.innerHTML = `<th>Aksesuar</th><th>Adet</th><th>Ait Olduğu Modül</th><th>İşlemler</th>`;
+            accessories.forEach(acc => {
+                const material = allMaterials.get(acc.materialId);
+                const materialName = material ? material.name : 'Bilinmeyen Aksesuar';
+                const row = `
+                    <tr>
+                        <td>${materialName}</td>
+                        <td>${acc.qty}</td>
+                        <td>${acc.moduleInstanceName}</td>
+                        <td><button class="btn btn-sm btn-outline-danger" onclick="window.deleteItem('${acc.accessoryId}', 'aksesuarı', 'accessories')">Sil</button></td>
+                    </tr>
+                `;
+                accessoriesListEl.innerHTML += row;
+            });
         }
-        accessories.forEach(acc => {
-            const material = allMaterials.get(acc.materialId);
-            const materialName = material ? material.name : 'Bilinmeyen Aksesuar';
-            const unitPrice = material ? material.price.toFixed(2) : '0.00';
-            const cost = acc.cost ? acc.cost.toFixed(2) : '0.00';
-            const row = `
-                <tr>
-                    <td>${materialName}</td>
-                    <td>${acc.qty}</td>
-                    <td>${unitPrice} ₺</td>
-                    <td>${cost} ₺</td>
-                    <td><button class="btn btn-sm btn-outline-danger" onclick="window.deleteItem('${acc.accessoryId}', 'aksesuarı', 'accessories')">Sil</button></td>
-                </tr>
-            `;
-            accessoriesListEl.innerHTML += row;
-        });
     };
 
     // Toplam maliyeti hesapla ve göster
@@ -193,7 +227,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const querySnapshot = await getDocs(q);
         
         moduleTemplateSelect.innerHTML = '<option value="">Lütfen bir şablon seçin...</option>';
-        moduleTemplates = []; // Her yüklemede diziyi temizle
+        moduleTemplates = [];
         querySnapshot.forEach(doc => {
             const template = { id: doc.id, ...doc.data() };
             moduleTemplates.push(template);
@@ -221,7 +255,6 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // ANA İŞ AKIŞI
     
-    // Oturum kontrolü
     onAuthStateChanged(auth, (user) => {
         if (user) {
             currentUser = user;
@@ -234,7 +267,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
-    // Çıkış yap
     logoutButton.addEventListener('click', () => signOut(auth));
     
     // "Hesapla ve Projeye Ekle" Butonu (Modül)
@@ -319,8 +351,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     
     // Tekil Ekleme Fonksiyonları
-    
-    // Tekil ekleme pencerelerindeki malzeme listelerini doldur
     const populateSingleItemDropdowns = () => {
         singlePartMaterialSelect.innerHTML = '<option value="">Panel Malzemesi Seçin...</option>';
         singlePartBandingMaterialSelect.innerHTML = '<option value="">Bant Malzemesi Seçin...</option>';
@@ -334,7 +364,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
-    // Tek Parça Ekleme Butonu
     saveSinglePartBtn.addEventListener('click', async () => {
         const name = document.getElementById('singlePartName').value.trim();
         const materialId = document.getElementById('singlePartMaterial').value;
@@ -383,7 +412,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Tek Aksesuar Ekleme Butonu
     saveSingleAccessoryBtn.addEventListener('click', async () => {
         const materialId = document.getElementById('singleAccessoryMaterial').value;
         const qty = parseInt(document.getElementById('singleAccessoryQty').value);
@@ -405,6 +433,12 @@ document.addEventListener('DOMContentLoaded', () => {
             alert("Aksesuar eklenirken bir hata oluştu.");
             console.error(e);
         }
+    });
+    
+    // Gruplama Anahtarı Olayı
+    groupViewToggle.addEventListener('change', (e) => {
+        isGroupedView = e.target.checked;
+        renderAllLists();
     });
     
     // Maliyetleri Yeniden Hesapla Butonu
