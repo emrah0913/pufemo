@@ -46,10 +46,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const accessoriesListEl = document.getElementById('accessoriesList');
     const loadingIndicator = document.getElementById('loadingIndicator');
     const logoutButton = document.getElementById('logoutButton');
+    
+    // Modül Ekleme Modalı Elementleri
     const moduleTemplateSelect = document.getElementById('moduleTemplateSelect');
     const addModuleToProjectBtn = document.getElementById('addModuleToProjectBtn');
-    const recalculateCostBtn = document.getElementById('recalculateCostBtn'); // Yeni
     const addModuleModal = new bootstrap.Modal(document.getElementById('addModuleModal'));
+
+    // Tek Parça Ekleme Modalı Elementleri
+    const saveSinglePartBtn = document.getElementById('saveSinglePartBtn');
+    const singlePartModal = new bootstrap.Modal(document.getElementById('addSinglePartModal'));
+    const singlePartMaterialSelect = document.getElementById('singlePartMaterial');
+    const singlePartBandingMaterialSelect = document.getElementById('singlePartBandingMaterial');
+
+    // Tek Aksesuar Ekleme Modalı Elementleri
+    const saveSingleAccessoryBtn = document.getElementById('saveSingleAccessoryBtn');
+    const singleAccessoryModal = new bootstrap.Modal(document.getElementById('addSingleAccessoryModal'));
+    const singleAccessoryMaterialSelect = document.getElementById('singleAccessoryMaterial');
+
 
     const params = new URLSearchParams(window.location.search);
     projectId = params.get('id');
@@ -70,6 +83,9 @@ document.addEventListener('DOMContentLoaded', () => {
         querySnapshot.forEach(doc => {
             allMaterials.set(doc.id, { id: doc.id, ...doc.data() });
         });
+        
+        // Tekil ekleme pencerelerindeki malzeme listelerini doldur
+        populateSingleItemDropdowns();
     };
 
     // Proje detaylarını yükle
@@ -219,7 +235,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Çıkış yap
     logoutButton.addEventListener('click', () => signOut(auth));
     
-    // "Hesapla ve Projeye Ekle" Butonu
+    // "Hesapla ve Projeye Ekle" Butonu (Modül)
     addModuleToProjectBtn.addEventListener('click', async () => {
         const B = parseFloat(document.getElementById('moduleHeight').value);
         const E = parseFloat(document.getElementById('moduleWidth').value);
@@ -299,76 +315,93 @@ document.addEventListener('DOMContentLoaded', () => {
             alert("Malzemeler projeye eklenirken bir hata oluştu.");
         }
     });
+    
+    // *** YENİ FONKSİYONLAR ***
 
-    // *** YENİ FONKSİYON: Maliyetleri Yeniden Hesapla ***
-    recalculateCostBtn.addEventListener('click', async () => {
-        if (!confirm("Bu projedeki tüm maliyetler, güncel malzeme fiyatlarına göre yeniden hesaplanacaktır. Emin misiniz?")) {
-            return;
+    // Tekil ekleme pencerelerindeki malzeme listelerini doldur
+    const populateSingleItemDropdowns = () => {
+        singlePartMaterialSelect.innerHTML = '<option value="">Panel Malzemesi Seçin...</option>';
+        singlePartBandingMaterialSelect.innerHTML = '<option value="">Bant Malzemesi Seçin...</option>';
+        singleAccessoryMaterialSelect.innerHTML = '<option value="">Aksesuar Seçin...</option>';
+
+        allMaterials.forEach(material => {
+            const option = `<option value="${material.id}">${material.name}</option>`;
+            if (material.type === 'Panel') singlePartMaterialSelect.innerHTML += option;
+            else if (material.type === 'Kenar Bandı') singlePartBandingMaterialSelect.innerHTML += option;
+            else if (material.type === 'Aksesuar') singleAccessoryMaterialSelect.innerHTML += option;
+        });
+    };
+
+    // Tek Parça Ekleme Butonu
+    saveSinglePartBtn.addEventListener('click', async () => {
+        const name = document.getElementById('singlePartName').value.trim();
+        const materialId = document.getElementById('singlePartMaterial').value;
+        const height = parseFloat(document.getElementById('singlePartHeight').value);
+        const width = parseFloat(document.getElementById('singlePartWidth').value);
+        const qty = parseInt(document.getElementById('singlePartQty').value);
+
+        if (!name || !materialId || !height || !width || !qty) return alert("Lütfen tüm parça bilgilerini eksiksiz girin.");
+
+        const material = allMaterials.get(materialId);
+        if (!material) return alert("Geçersiz malzeme seçildi.");
+
+        const area = (height / 1000) * (width / 1000);
+        let cost = area * material.price * qty;
+
+        const banding = {
+            materialId: document.getElementById('singlePartBandingMaterial').value,
+            b1: document.getElementById('singlePartB1').checked,
+            b2: document.getElementById('singlePartB2').checked,
+            e1: document.getElementById('singlePartE1').checked,
+            e2: document.getElementById('singlePartE2').checked,
+        };
+
+        if (banding.materialId) {
+            const bandingMaterial = allMaterials.get(banding.materialId);
+            if (bandingMaterial) {
+                let totalBandingLength = 0;
+                if (banding.b1) totalBandingLength += height / 1000;
+                if (banding.b2) totalBandingLength += height / 1000;
+                if (banding.e1) totalBandingLength += width / 1000;
+                if (banding.e2) totalBandingLength += width / 1000;
+                cost += totalBandingLength * bandingMaterial.price * qty;
+            }
         }
-
-        recalculateCostBtn.disabled = true;
-        recalculateCostBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Hesaplanıyor...';
+        
+        const newPart = { partId: crypto.randomUUID(), name, width, height, qty, materialId, cost, banding, moduleInstanceName: 'Tekil Parça' };
 
         try {
-            // En güncel malzeme fiyatlarını tekrar çek
-            await loadAllMaterials();
-
             const projectRef = doc(db, 'projects', projectId);
-            const projectSnap = await getDoc(projectRef);
+            await updateDoc(projectRef, { parts: arrayUnion(newPart) });
+            singlePartModal.hide();
+            document.getElementById('singlePartForm').reset();
+        } catch (e) {
+            alert("Parça eklenirken bir hata oluştu.");
+            console.error(e);
+        }
+    });
 
-            if (!projectSnap.exists()) {
-                throw new Error("Proje bulunamadı.");
-            }
+    // Tek Aksesuar Ekleme Butonu
+    saveSingleAccessoryBtn.addEventListener('click', async () => {
+        const materialId = document.getElementById('singleAccessoryMaterial').value;
+        const qty = parseInt(document.getElementById('singleAccessoryQty').value);
 
-            const projectData = projectSnap.data();
-            const currentParts = projectData.parts || [];
-            const currentAccessories = projectData.accessories || [];
-            
-            // Parça maliyetlerini güncelle
-            const updatedParts = currentParts.map(part => {
-                const material = allMaterials.get(part.materialId);
-                if (!material || typeof material.price !== 'number') return part; // Fiyat bulunamazsa eski maliyeti koru
+        if (!materialId || !qty) return alert("Lütfen tüm aksesuar bilgilerini eksiksiz girin.");
 
-                const area = (part.height / 1000) * (part.width / 1000);
-                let newCost = area * material.price * part.qty;
+        const material = allMaterials.get(materialId);
+        if (!material) return alert("Geçersiz aksesuar seçildi.");
 
-                if (part.banding && part.banding.materialId) {
-                    const bandingMaterial = allMaterials.get(part.banding.materialId);
-                    if (bandingMaterial && typeof bandingMaterial.price === 'number') {
-                        let totalBandingLength = 0;
-                        if (part.banding.b1) totalBandingLength += part.height / 1000;
-                        if (part.banding.b2) totalBandingLength += part.height / 1000;
-                        if (part.banding.e1) totalBandingLength += part.width / 1000;
-                        if (part.banding.e2) totalBandingLength += part.width / 1000;
-                        newCost += totalBandingLength * bandingMaterial.price * part.qty;
-                    }
-                }
-                return { ...part, cost: newCost };
-            });
+        const cost = qty * material.price;
+        const newAccessory = { accessoryId: crypto.randomUUID(), materialId, qty, cost, moduleInstanceName: 'Tekil Aksesuar' };
 
-            // Aksesuar maliyetlerini güncelle
-            const updatedAccessories = currentAccessories.map(acc => {
-                const material = allMaterials.get(acc.materialId);
-                if (!material || typeof material.price !== 'number') return acc;
-                
-                const newCost = acc.qty * material.price;
-                return { ...acc, cost: newCost };
-            });
-
-            // Veritabanını yeni maliyetlerle güncelle
-            await updateDoc(projectRef, {
-                parts: updatedParts,
-                accessories: updatedAccessories
-            });
-
-            alert("Proje maliyetleri başarıyla güncellendi!");
-
-        } catch (error) {
-            console.error("Yeniden hesaplama sırasında hata:", error);
-            alert("Maliyetler güncellenirken bir hata oluştu.");
-        } finally {
-            recalculateCostBtn.disabled = false;
-            recalculateCostBtn.innerHTML = '<i class="bi bi-arrow-repeat"></i> Maliyetleri Yeniden Hesapla';
+        try {
+            const projectRef = doc(db, 'projects', projectId);
+            await updateDoc(projectRef, { accessories: arrayUnion(newAccessory) });
+            singleAccessoryModal.hide();
+            document.getElementById('singleAccessoryForm').reset();
+        } catch (e) {
+            alert("Aksesuar eklenirken bir hata oluştu.");
+            console.error(e);
         }
     });
 
