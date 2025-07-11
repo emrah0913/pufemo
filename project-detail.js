@@ -48,6 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const logoutButton = document.getElementById('logoutButton');
     const moduleTemplateSelect = document.getElementById('moduleTemplateSelect');
     const addModuleToProjectBtn = document.getElementById('addModuleToProjectBtn');
+    const recalculateCostBtn = document.getElementById('recalculateCostBtn'); // Yeni
     const addModuleModal = new bootstrap.Modal(document.getElementById('addModuleModal'));
 
     const params = new URLSearchParams(window.location.search);
@@ -96,7 +97,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
-    // Parça listesini render et (GÜNCELLENDİ)
+    // Parça listesini render et
     const renderParts = (parts) => {
         partsListEl.innerHTML = '';
         if (parts.length === 0) {
@@ -109,13 +110,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const cost = part.cost ? part.cost.toFixed(2) : '0.00';
             
             let heightBandingClass = '';
-            let widthBandingClass = '';
-
-            // *** DÜZELTME: Önce 'part.banding' nesnesinin var olup olmadığını kontrol et ***
             if (part.banding) {
                 if (part.banding.b1 && part.banding.b2) heightBandingClass = 'banded-double';
                 else if (part.banding.b1 || part.banding.b2) heightBandingClass = 'banded-single';
+            }
 
+            let widthBandingClass = '';
+            if (part.banding) {
                 if (part.banding.e1 && part.banding.e2) widthBandingClass = 'banded-double';
                 else if (part.banding.e1 || part.banding.e2) widthBandingClass = 'banded-single';
             }
@@ -123,8 +124,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const row = `
                 <tr>
                     <td>${part.name}</td>
-                    <td class="${heightBandingClass}">${part.height}</td>
-                    <td class="${widthBandingClass}">${part.width}</td>
+                    <td><span class="banded-span ${heightBandingClass}">${part.height}</span></td>
+                    <td><span class="banded-span ${widthBandingClass}">${part.width}</span></td>
                     <td>${part.qty}</td>
                     <td>${materialName}</td>
                     <td>${cost} ₺</td>
@@ -248,11 +249,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 const area = (height / 1000) * (width / 1000);
                 let cost = area * material.price * qty;
 
-                // Kenar bandı maliyetini hesaba kat
                 if (part.banding && part.banding.materialId) {
                     const bandingMaterial = allMaterials.get(part.banding.materialId);
                     if (bandingMaterial && typeof bandingMaterial.price === 'number') {
-                        let totalBandingLength = 0; // metre
+                        let totalBandingLength = 0;
                         if (part.banding.b1) totalBandingLength += height / 1000;
                         if (part.banding.b2) totalBandingLength += height / 1000;
                         if (part.banding.e1) totalBandingLength += width / 1000;
@@ -297,6 +297,78 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (e) {
             console.error("Projeye eklenirken hata: ", e);
             alert("Malzemeler projeye eklenirken bir hata oluştu.");
+        }
+    });
+
+    // *** YENİ FONKSİYON: Maliyetleri Yeniden Hesapla ***
+    recalculateCostBtn.addEventListener('click', async () => {
+        if (!confirm("Bu projedeki tüm maliyetler, güncel malzeme fiyatlarına göre yeniden hesaplanacaktır. Emin misiniz?")) {
+            return;
+        }
+
+        recalculateCostBtn.disabled = true;
+        recalculateCostBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Hesaplanıyor...';
+
+        try {
+            // En güncel malzeme fiyatlarını tekrar çek
+            await loadAllMaterials();
+
+            const projectRef = doc(db, 'projects', projectId);
+            const projectSnap = await getDoc(projectRef);
+
+            if (!projectSnap.exists()) {
+                throw new Error("Proje bulunamadı.");
+            }
+
+            const projectData = projectSnap.data();
+            const currentParts = projectData.parts || [];
+            const currentAccessories = projectData.accessories || [];
+            
+            // Parça maliyetlerini güncelle
+            const updatedParts = currentParts.map(part => {
+                const material = allMaterials.get(part.materialId);
+                if (!material || typeof material.price !== 'number') return part; // Fiyat bulunamazsa eski maliyeti koru
+
+                const area = (part.height / 1000) * (part.width / 1000);
+                let newCost = area * material.price * part.qty;
+
+                if (part.banding && part.banding.materialId) {
+                    const bandingMaterial = allMaterials.get(part.banding.materialId);
+                    if (bandingMaterial && typeof bandingMaterial.price === 'number') {
+                        let totalBandingLength = 0;
+                        if (part.banding.b1) totalBandingLength += part.height / 1000;
+                        if (part.banding.b2) totalBandingLength += part.height / 1000;
+                        if (part.banding.e1) totalBandingLength += part.width / 1000;
+                        if (part.banding.e2) totalBandingLength += part.width / 1000;
+                        newCost += totalBandingLength * bandingMaterial.price * part.qty;
+                    }
+                }
+                return { ...part, cost: newCost };
+            });
+
+            // Aksesuar maliyetlerini güncelle
+            const updatedAccessories = currentAccessories.map(acc => {
+                const material = allMaterials.get(acc.materialId);
+                if (!material || typeof material.price !== 'number') return acc;
+                
+                const newCost = acc.qty * material.price;
+                return { ...acc, cost: newCost };
+            });
+
+            // Veritabanını yeni maliyetlerle güncelle
+            await updateDoc(projectRef, {
+                parts: updatedParts,
+                accessories: updatedAccessories
+            });
+
+            alert("Proje maliyetleri başarıyla güncellendi!");
+
+        } catch (error) {
+            console.error("Yeniden hesaplama sırasında hata:", error);
+            alert("Maliyetler güncellenirken bir hata oluştu.");
+        } finally {
+            recalculateCostBtn.disabled = false;
+            recalculateCostBtn.innerHTML = '<i class="bi bi-arrow-repeat"></i> Maliyetleri Yeniden Hesapla';
         }
     });
 
