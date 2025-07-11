@@ -32,11 +32,14 @@ const pageTitle = document.querySelector('h3');
 const moduleForm = document.getElementById('moduleForm');
 const moduleNameInput = document.getElementById('moduleName');
 const partsContainer = document.getElementById('partsContainer');
+const accessoriesContainer = document.getElementById('accessoriesContainer');
 const addPartBtn = document.getElementById('addPartBtn');
+const addAccessoryBtn = document.getElementById('addAccessoryBtn');
 const saveModuleBtn = document.getElementById('saveModuleBtn');
 const backButton = document.getElementById('backButton');
 const logoutButton = document.getElementById('logoutButton');
 const partRowTemplate = document.getElementById('partRowTemplate');
+const accessoryRowTemplate = document.getElementById('accessoryRowTemplate');
 
 let categoryId = null;
 let moduleId = null; 
@@ -86,9 +89,15 @@ const loadModuleForEditing = async (id) => {
             moduleNameInput.value = moduleData.name;
             
             partsContainer.innerHTML = '';
-            moduleData.parts.forEach(part => {
+            (moduleData.parts || []).forEach(part => {
                 addPartRow(part.name, part.qty, part.heightFormula, part.widthFormula);
             });
+
+            accessoriesContainer.innerHTML = '';
+            (moduleData.accessories || []).forEach(acc => {
+                addAccessoryRow(acc.name, acc.qtyFormula);
+            });
+
         } else {
             alert("Düzenlenecek modül bulunamadı.");
             window.location.href = backButton.href;
@@ -103,27 +112,37 @@ const loadModuleForEditing = async (id) => {
 const addPartRow = (name = '', qty = 1, height = '', width = '') => {
     const templateContent = partRowTemplate.content.cloneNode(true);
     const partRow = templateContent.querySelector('.part-row');
-    
     partRow.querySelector('.part-name').value = name;
     partRow.querySelector('.part-qty').value = qty;
     partRow.querySelector('.part-height').value = height;
     partRow.querySelector('.part-width').value = width;
-
     partsContainer.appendChild(templateContent);
 };
 
-// "+ Parça Ekle" butonuna tıklandığında boş bir satır ekle
-addPartBtn.addEventListener('click', () => addPartRow());
+// Ekrana yeni bir aksesuar satırı ekleyen fonksiyon
+const addAccessoryRow = (name = '', qtyFormula = '') => {
+    const templateContent = accessoryRowTemplate.content.cloneNode(true);
+    const accessoryRow = templateContent.querySelector('.accessory-row');
+    accessoryRow.querySelector('.accessory-name').value = name;
+    accessoryRow.querySelector('.accessory-qty').value = qtyFormula;
+    accessoriesContainer.appendChild(templateContent);
+};
 
-// Sil butonlarına olay dinleyici ekle
-partsContainer.addEventListener('click', (e) => {
+// Buton Olayları
+addPartBtn.addEventListener('click', () => addPartRow());
+addAccessoryBtn.addEventListener('click', () => addAccessoryRow());
+
+// Silme Olayları (Event Delegation)
+document.addEventListener('click', (e) => {
     if (e.target.classList.contains('remove-part-btn')) {
         e.target.closest('.part-row').remove();
     }
+    if (e.target.classList.contains('remove-accessory-btn')) {
+        e.target.closest('.accessory-row').remove();
+    }
 });
 
-
-// Formu Kaydetme (Hem Ekleme Hem Güncelleme)
+// Formu Kaydetme
 moduleForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const user = auth.currentUser;
@@ -134,35 +153,34 @@ moduleForm.addEventListener('submit', async (e) => {
         return;
     }
 
+    // Parçaları topla
     const parts = [];
-    const partRows = document.querySelectorAll('.part-row');
-    
-    if (partRows.length === 0) {
-        alert("Lütfen en az bir parça ekleyin.");
-        return;
-    }
-
-    partRows.forEach(row => {
+    document.querySelectorAll('.part-row').forEach(row => {
         const name = row.querySelector('.part-name').value.trim();
         const qty = parseInt(row.querySelector('.part-qty').value);
         const heightFormula = row.querySelector('.part-height').value.trim();
         const widthFormula = row.querySelector('.part-width').value.trim();
-        
         if(name && qty > 0 && heightFormula && widthFormula) {
             parts.push({ name, qty, heightFormula, widthFormula });
         }
     });
 
-    if (parts.length !== partRows.length) {
-        alert("Lütfen tüm parça bilgilerini eksiksiz doldurun.");
-        return;
-    }
+    // Aksesuarları topla
+    const accessories = [];
+    document.querySelectorAll('.accessory-row').forEach(row => {
+        const name = row.querySelector('.accessory-name').value.trim();
+        const qtyFormula = row.querySelector('.accessory-qty').value.trim();
+        if (name && qtyFormula) {
+            accessories.push({ name, qtyFormula });
+        }
+    });
 
     const dataToSave = {
         name: moduleName,
         userId: user.uid,
         categoryId: categoryId,
         parts: parts,
+        accessories: accessories,
         createdAt: serverTimestamp() 
     };
 
