@@ -36,6 +36,8 @@ const materialTabContent = document.getElementById('materialTabContent');
 const panelSummary = document.getElementById('panelSummary');
 const bandingSummary = document.getElementById('bandingSummary');
 const materialGrainSettings = document.getElementById('materialGrainSettings');
+const unpackedContainer = document.getElementById('unpackedContainer');
+const unpackedList = document.getElementById('unpackedList');
 
 
 // Sayfa Yüklendiğinde
@@ -118,6 +120,9 @@ function runOptimization() {
     materialTabContent.innerHTML = '';
     panelSummary.innerHTML = '';
     bandingSummary.innerHTML = '';
+    unpackedContainer.classList.add('d-none');
+    unpackedList.innerHTML = '';
+    let allUnpackedPieces = [];
 
     setTimeout(() => {
         const sheetWidth = parseInt(document.getElementById('sheetWidth').value);
@@ -158,8 +163,7 @@ function runOptimization() {
             tabContentPane.id = tabId;
             tabContentPane.role = 'tabpanel';
             
-            // *** YENİ PROFESYONEL OPTİMİZASYON ALGORİTMASI ÇAĞIRILIYOR ***
-            const { packedSheets } = advancedBinPacker(partsByMaterial[materialId], sheetWidth, sheetHeight, rotationDisabled);
+            const { packedSheets, unpackedPieces } = professionalBinPacker(partsByMaterial[materialId], sheetWidth, sheetHeight, rotationDisabled);
             
             packedSheets.forEach((sheet, index) => {
                 const sheetEl = document.createElement('div');
@@ -185,7 +189,12 @@ function runOptimization() {
             materialTabContent.appendChild(tabContentPane);
             
             panelSummary.innerHTML += `<li class="list-group-item">${materialName}: <strong>${packedSheets.length} plaka</strong></li>`;
+            allUnpackedPieces.push(...unpackedPieces);
             firstTab = false;
+        }
+        
+        if (allUnpackedPieces.length > 0) {
+            renderUnpackedPieces(allUnpackedPieces);
         }
         
         calculateAndRenderBandingSummary();
@@ -193,12 +202,22 @@ function runOptimization() {
     }, 500);
 }
 
-// *** YENİ PROFESYONEL OPTİMİZASYON ALGORİTMASI (Best-Fit Heuristic) ***
-function advancedBinPacker(pieces, sheetW, sheetH, rotationDisabled) {
-    // Parçaları alana göre büyükten küçüğe sırala
-    pieces.sort((a, b) => (b.w * b.h) - (a.w * a.h));
+// Sığmayan parçaları render et
+function renderUnpackedPieces(pieces) {
+    unpackedContainer.classList.remove('d-none');
+    pieces.forEach(p => {
+        unpackedList.innerHTML += `<tr><td>${p.name}</td><td>${p.h}</td><td>${p.w}</td></tr>`;
+    });
+}
+
+
+// *** YENİ PROFESYONEL OPTİMİZASYON ALGORİTMASI ***
+function professionalBinPacker(pieces, sheetW, sheetH, rotationDisabled) {
+    // Parçaları en uzun kenara göre büyükten küçüğe sırala
+    pieces.sort((a, b) => Math.max(b.w, b.h) - Math.max(a.w, a.h));
     
     let sheets = [];
+    let unpackedPieces = [];
 
     for (const piece of pieces) {
         let bestSheet = null;
@@ -206,6 +225,7 @@ function advancedBinPacker(pieces, sheetW, sheetH, rotationDisabled) {
         let bestScore = Infinity;
         let rotated = false;
 
+        // Mevcut plakalarda en uygun yeri ara
         for (let i = 0; i < sheets.length; i++) {
             const sheet = sheets[i];
             for (let j = 0; j < sheet.freeNodes.length; j++) {
@@ -213,7 +233,7 @@ function advancedBinPacker(pieces, sheetW, sheetH, rotationDisabled) {
                 
                 // Orijinal yönüyle dene
                 if (piece.w <= node.w && piece.h <= node.h) {
-                    const score = Math.min(node.w - piece.w, node.h - piece.h);
+                    const score = node.w * node.h - piece.w * piece.h; // Kalan alan
                     if (score < bestScore) {
                         bestScore = score;
                         bestSheet = sheet;
@@ -224,7 +244,7 @@ function advancedBinPacker(pieces, sheetW, sheetH, rotationDisabled) {
 
                 // Döndürerek dene (eğer serbestse)
                 if (!rotationDisabled && piece.w !== piece.h && piece.h <= node.w && piece.w <= node.h) {
-                     const score = Math.min(node.w - piece.h, node.h - piece.w);
+                     const score = node.w * node.h - piece.h * piece.w;
                      if (score < bestScore) {
                         bestScore = score;
                         bestSheet = sheet;
@@ -242,29 +262,22 @@ function advancedBinPacker(pieces, sheetW, sheetH, rotationDisabled) {
             }
             placePiece(bestSheet, bestNode, piece);
         } else {
-            // Yer bulunamadıysa, yeni plaka aç
-            const newSheet = { w: sheetW, h: sheetH, pieces: [], freeNodes: [{x: 0, y: 0, w: sheetW, h: sheetH}] };
-            if (findSpotOnNewSheet(newSheet, piece, rotationDisabled)) {
-                 sheets.push(newSheet);
+            // Yer bulunamadıysa, yeni plaka açmayı dene
+            if ((piece.w <= sheetW && piece.h <= sheetH) || (!rotationDisabled && piece.h <= sheetW && piece.w <= sheetH)) {
+                const newSheet = { w: sheetW, h: sheetH, pieces: [], freeNodes: [{x: 0, y: 0, w: sheetW, h: sheetH}] };
+                 if (!rotationDisabled && piece.h <= sheetW && piece.w <= sheetH && piece.w > piece.h) {
+                    [piece.w, piece.h] = [piece.h, piece.w];
+                }
+                placePiece(newSheet, newSheet.freeNodes[0], piece);
+                sheets.push(newSheet);
+            } else {
+                // Parça plakaya sığmıyor
+                unpackedPieces.push(piece);
             }
         }
     }
 
-    return { packedSheets: sheets };
-}
-
-function findSpotOnNewSheet(sheet, piece, rotationDisabled) {
-    const node = sheet.freeNodes[0];
-     if (piece.w <= node.w && piece.h <= node.h) {
-        placePiece(sheet, node, piece);
-        return true;
-    }
-    if (!rotationDisabled && piece.w !== piece.h && piece.h <= node.w && piece.w <= node.h) {
-        [piece.w, piece.h] = [piece.h, piece.w];
-        placePiece(sheet, node, piece);
-        return true;
-    }
-    return false;
+    return { packedSheets: sheets, unpackedPieces };
 }
 
 function placePiece(sheet, node, piece) {
@@ -272,7 +285,7 @@ function placePiece(sheet, node, piece) {
     piece.y = node.y;
     sheet.pieces.push(piece);
 
-    // Boş alanı iki yeni alana böl
+    // Boş alanı yeni alanlara böl
     const originalNodeIndex = sheet.freeNodes.findIndex(n => n === node);
     sheet.freeNodes.splice(originalNodeIndex, 1);
 
@@ -282,7 +295,7 @@ function placePiece(sheet, node, piece) {
     if (rightNode.w > 0 && rightNode.h > 0) sheet.freeNodes.push(rightNode);
     if (bottomNode.w > 0 && bottomNode.h > 0) sheet.freeNodes.push(bottomNode);
     
-    // Diğer boş alanlarla çakışanları temizle/ayarla (basit birleştirme)
+    // Basit birleştirme ve temizleme (daha verimli hale getirmek için)
     // Bu kısım algoritmayı daha da karmaşıklaştırır, şimdilik temel bölme yeterli.
 }
 
