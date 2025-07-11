@@ -205,7 +205,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Çıkış yap
     logoutButton.addEventListener('click', () => signOut(auth));
     
-    // "Hesapla ve Projeye Ekle" Butonu
+    // "Hesapla ve Projeye Ekle" Butonu (GÜNCELLENDİ)
     addModuleToProjectBtn.addEventListener('click', async () => {
         const B = parseFloat(document.getElementById('moduleHeight').value);
         const E = parseFloat(document.getElementById('moduleWidth').value);
@@ -233,7 +233,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (typeof height !== 'number' || typeof width !== 'number' || typeof qty !== 'number') throw new Error("Hesaplanan ölçüler veya adet sayısal değil.");
 
                 const area = (height / 1000) * (width / 1000);
-                const cost = area * material.price * qty;
+                let cost = area * material.price * qty;
+
+                // *** DÜZELTME: Kenar bandı maliyetini hesaba kat ***
+                if (part.banding && part.banding.materialId) {
+                    const bandingMaterial = allMaterials.get(part.banding.materialId);
+                    if (bandingMaterial && typeof bandingMaterial.price === 'number') {
+                        let totalBandingLength = 0; // metre
+                        if (part.banding.b1) totalBandingLength += height / 1000;
+                        if (part.banding.b2) totalBandingLength += height / 1000;
+                        if (part.banding.e1) totalBandingLength += width / 1000;
+                        if (part.banding.e2) totalBandingLength += width / 1000;
+                        cost += totalBandingLength * bandingMaterial.price * qty;
+                    }
+                }
+                
                 if (isNaN(cost)) throw new Error("Maliyet hesaplanamadı (NaN).");
 
                 return { partId: crypto.randomUUID(), name: part.name, width, height, qty, materialId: part.materialId, cost, moduleInstanceName };
