@@ -1,7 +1,7 @@
 // Gerekli Firebase Fonksiyonlarını Import Etme
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, query, collection, where, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+import { getFirestore, doc, getDoc, query, collection, where, orderBy, onSnapshot, deleteDoc } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 
 // Firebase Konfigürasyonu
 const firebaseConfig = {
@@ -74,7 +74,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // Çıkış yap butonu
 logoutButton.addEventListener('click', () => signOut(auth));
 
-// Belirli bir kategoriye ait modülleri getiren fonksiyon (DÜZELTİLMİŞ)
+// Belirli bir kategoriye ait modülleri getiren fonksiyon (GÜNCELLENDİ)
 const fetchModules = (userId, categoryId) => {
     loadingIndicator.classList.remove('d-none');
     moduleList.innerHTML = '';
@@ -103,15 +103,18 @@ const fetchModules = (userId, categoryId) => {
             const module = doc.data();
             const moduleId = doc.id;
             
-            // *** DÜZELTME BURADA ***
-            // Her modül, düzenleme sayfasına kendi ID'si ile giden bir <a> etiketidir.
-            const moduleElement = `
-                <a href="module-editor.html?categoryId=${categoryId}&moduleId=${moduleId}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-                    <span>${module.name}</span>
-                    <small class="text-muted">Düzenle &rarr;</small>
+            // Her modül, düzenleme ve silme butonlarını içeren bir div
+            const moduleElement = document.createElement('div');
+            moduleElement.className = 'list-group-item d-flex justify-content-between align-items-center';
+            moduleElement.innerHTML = `
+                <a href="module-editor.html?categoryId=${categoryId}&moduleId=${moduleId}" class="text-dark text-decoration-none flex-grow-1">
+                    ${module.name}
                 </a>
+                <div>
+                    <button class="btn btn-sm btn-outline-danger" onclick="window.deleteModule('${moduleId}')">Sil</button>
+                </div>
             `;
-            moduleList.innerHTML += moduleElement;
+            moduleList.appendChild(moduleElement);
         });
 
     }, (error) => {
@@ -124,3 +127,17 @@ const fetchModules = (userId, categoryId) => {
         loadingIndicator.classList.add('d-none');
     });
 };
+
+// YENİ FONKSİYON: Modül Silme
+window.deleteModule = async (moduleId) => {
+    if (confirm("Bu modül şablonunu silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.")) {
+        try {
+            await deleteDoc(doc(db, 'moduleTemplates', moduleId));
+            console.log("Modül başarıyla silindi.");
+            // Liste anında güncelleneceği için ek bir şeye gerek yok.
+        } catch (error) {
+            console.error("Modül silinirken hata: ", error);
+            alert("Modül silinirken bir hata oluştu.");
+        }
+    }
+}
