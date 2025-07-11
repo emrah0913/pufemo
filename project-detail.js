@@ -145,30 +145,31 @@ addModuleToProjectBtn.addEventListener('click', async () => {
         return;
     }
 
+    // *** YENİ VE GELİŞTİRİLMİŞ HESAPLAMA MOTORU ***
+    const processFormula = (rawFormula, baseVariable) => {
+        const formula = rawFormula.toUpperCase().replace(/ /g, '');
+
+        // Durum 1: Formül sadece bir sayı mı? (örn: "100", "55.5")
+        if (!isNaN(formula) && !isNaN(parseFloat(formula))) {
+            return formula; // Sabit değer olarak kullan.
+        }
+
+        // Durum 2: Formül sadece bir işlem mi? (örn: "-36", "+10")
+        if (/^[+-]\d*\.?\d+$/.test(formula)) {
+            return baseVariable + formula; // Başına B veya E ekle.
+        }
+
+        // Durum 3: Formül tam bir ifade mi? (örn: "B-18", "D", "E/2")
+        return formula; // Olduğu gibi kullan.
+    };
+
     const calculatedParts = [];
     let errorOccurred = false;
     selectedTemplate.parts.forEach(part => {
         if (errorOccurred) return;
         try {
-            // *** YENİ AKILLI FORMÜL İŞLEME MANTIĞI ***
-            let rawHeightFormula = part.heightFormula.toUpperCase().replace(/ /g, '');
-            let heightFormula;
-            // Eğer formül sadece sayısal bir işlemse (örn: -36, +10), başına 'B' ekle.
-            if (/^[+-]?\d*\.?\d+$/.test(rawHeightFormula)) {
-                heightFormula = 'B' + rawHeightFormula;
-            } else {
-                heightFormula = rawHeightFormula; // Değilse (örn: B-18, D) olduğu gibi kullan.
-            }
-
-            let rawWidthFormula = part.widthFormula.toUpperCase().replace(/ /g, '');
-            let widthFormula;
-            // Eğer formül sadece sayısal bir işlemse (örn: -36), başına 'E' ekle.
-            if (/^[+-]?\d*\.?\d+$/.test(rawWidthFormula)) {
-                widthFormula = 'E' + rawWidthFormula;
-            } else {
-                widthFormula = rawWidthFormula; // Değilse (örn: E-18, D) olduğu gibi kullan.
-            }
-            // *** MANTIK SONU ***
+            const heightFormula = processFormula(part.heightFormula, 'B');
+            const widthFormula = processFormula(part.widthFormula, 'E');
 
             const calculatedWidth = eval(widthFormula);
             const calculatedHeight = eval(heightFormula);
