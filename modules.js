@@ -20,13 +20,13 @@ const firebaseConfig = {
     apiKey: "AIzaSyDYkzZzNXB22U4oEXxOoPh-puwuE8kz0g4",
     authDomain: "pufemo-com.firebaseapp.com",
     projectId: "pufemo-com",
-    storageBucket: "pufemo-com.appspot.com", // .firebasestorage.app yerine .appspot.com olabilir, kontrol et.
+    storageBucket: "pufemo-com.appspot.com",
     messagingSenderId: "983352837227",
     appId: "1:983352837227:web:defaa8dae215776e2e1d2e",
     measurementId: "G-RH8XHC7P91"
 };
 
-// 3. Firebase'i ve Servisleri Başlatma (Yeni Yöntem)
+// 3. Firebase'i ve Servisleri Başlatma
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
@@ -43,7 +43,7 @@ const saveCategoryBtn = document.getElementById('saveCategoryBtn');
 const addCategoryBtn = document.getElementById('addCategoryBtn');
 const logoutButton = document.getElementById('logoutButton');
 
-// 4. Kullanıcı Oturum Kontrolü (Değişiklik yok, aynı)
+// Kullanıcı Oturum Kontrolü
 onAuthStateChanged(auth, user => {
     if (user) {
         console.log("Kullanıcı giriş yaptı:", user.uid);
@@ -59,19 +59,17 @@ logoutButton.addEventListener('click', () => {
     signOut(auth);
 });
 
-// 5. Kategorileri Firestore'dan Çekme (Yeni Yöntem)
+// 5. Kategorileri Firestore'dan Çekme (GÜNCELLENDİ)
 const fetchCategories = (userId) => {
     loadingIndicator.classList.remove('d-none');
     categoryList.innerHTML = '';
 
-    // Firestore sorgusunu yeni yöntemle oluştur
     const q = query(
         collection(db, 'moduleCategories'), 
         where('userId', '==', userId), 
         orderBy('createdAt', 'desc')
     );
 
-    // Sorguyu dinle
     onSnapshot(q, (querySnapshot) => {
         loadingIndicator.classList.add('d-none');
         categoryList.innerHTML = '';
@@ -85,16 +83,24 @@ const fetchCategories = (userId) => {
             const category = doc.data();
             const categoryId = doc.id;
 
-            const categoryElement = `
-              <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-                  <span>${category.name}</span>
-                  <div>
-                      <button class="btn btn-sm btn-outline-secondary" onclick="window.openEditModal('${categoryId}', '${category.name}')">Düzenle</button>
-                      <button class="btn btn-sm btn-outline-danger ms-2" onclick="window.deleteCategory('${categoryId}')">Sil</button>
-                  </div>
-              </div>
+            // *** DEĞİŞİKLİK BURADA BAŞLIYOR ***
+            // Kategori adını ve düzenle/sil butonlarını içeren bir div oluştur
+            const content = `
+                <span>${category.name}</span>
+                <div>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="window.openEditModal('${categoryId}', '${category.name}'); event.stopPropagation();">Düzenle</button>
+                    <button class="btn btn-sm btn-outline-danger ms-2" onclick="window.deleteCategory('${categoryId}'); event.stopPropagation();">Sil</button>
+                </div>
             `;
-            categoryList.innerHTML += categoryElement;
+
+            // Bu div'i bir <a> etiketine sararak link haline getir
+            const link = document.createElement('a');
+            link.href = `module-list.html?id=${categoryId}&name=${encodeURIComponent(category.name)}`;
+            link.className = 'list-group-item list-group-item-action d-flex justify-content-between align-items-center';
+            link.innerHTML = content;
+            
+            categoryList.appendChild(link);
+            // *** DEĞİŞİKLİK BURADA BİTİYOR ***
         });
     }, (error) => {
         console.error("Kategorileri çekerken hata oluştu: ", error);
@@ -103,7 +109,7 @@ const fetchCategories = (userId) => {
     });
 }
 
-// 6. Kategori Kaydetme (Yeni Yöntem)
+// Kategori Kaydetme (Ekleme ve Güncelleme)
 saveCategoryBtn.addEventListener('click', async () => {
     const categoryName = categoryNameInput.value.trim();
     const categoryId = categoryIdInput.value;
@@ -120,12 +126,10 @@ saveCategoryBtn.addEventListener('click', async () => {
 
     try {
         if (categoryId) {
-            // GÜNCELLEME
             const docRef = doc(db, 'moduleCategories', categoryId);
             await updateDoc(docRef, { name: categoryName });
             console.log("Kategori başarıyla güncellendi.");
         } else {
-            // EKLEME
             await addDoc(collection(db, 'moduleCategories'), {
                 name: categoryName,
                 userId: user.uid,
@@ -147,9 +151,7 @@ addCategoryBtn.addEventListener('click', () => {
     modalTitle.textContent = 'Yeni Kategori Ekle';
 });
 
-// 7. Fonksiyonları Global Kapsama Taşıma
-// "type=module" kullandığımız için fonksiyonlar artık globalde değil.
-// HTML'deki onclick olaylarının çalışması için onları window nesnesine atamalıyız.
+// Fonksiyonları Global Kapsama Taşıma
 window.openEditModal = (id, name) => {
     categoryForm.reset();
     modalTitle.textContent = 'Kategoriyi Düzenle';
