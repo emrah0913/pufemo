@@ -3,26 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kesim Optimizasyonu - PUFEMO</title>
+    <title>Profesyonel Kesim Optimizasyonu</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
-        .sheet-container { border: 2px solid #dee2e6; background-color: #f8f9fa; position: relative; box-shadow: 0 4px 8px rgba(0,0,0,0.1); margin-bottom: 1rem; }
-        .piece { position: absolute; border: 1px solid #6c757d; background-color: rgba(0, 123, 255, 0.2); display: flex; justify-content: center; align-items: center; font-size: 0.8rem; text-align: center; overflow: hidden; writing-mode: vertical-rl; text-orientation: mixed; white-space: nowrap; }
-        @media print { .no-print { display: none !important; } .print-only { display: block !important; } .card { border: 1px solid #ccc !important; } }
+        .sheet-container {
+            border: 2px solid #dee2e6;
+            background-color: #f8f9fa;
+            position: relative;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            margin-bottom: 1rem;
+        }
+        .piece {
+            position: absolute;
+            border: 1px solid #6c757d;
+            background-color: rgba(0, 123, 255, 0.2);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 0.8rem;
+            text-align: center;
+            overflow: hidden;
+            white-space: nowrap;
+            padding: 2px;
+        }
+        .piece span {
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+        }
+        @media print {
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+            .card { border: 1px solid #ccc !important; }
+        }
     </style>
 </head>
 <body>
-
-    <!-- Navigasyon Barı -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark no-print">
         <div class="container-fluid">
-            <a class="navbar-brand" href="dashboard.html">PUFEMO</a>
+            <a class="navbar-brand" href="dashboard.html">PUFEMO PRO</a>
             <button class="btn btn-outline-light" id="logoutButton">Çıkış Yap</button>
         </div>
     </nav>
-
-    <!-- Ana İçerik -->
     <div class="container mt-4">
         <div class="d-flex justify-content-between align-items-center mb-3 no-print">
             <div>
@@ -30,16 +52,16 @@
                 <h3 id="projectName">Proje Yükleniyor...</h3>
             </div>
             <div>
-                <button class="btn btn-primary" onclick="window.print();"><i class="bi bi-printer"></i> Yazdır / PDF Kaydet</button>
+                <button class="btn btn-primary" onclick="window.print();"><i class="bi bi-printer"></i> Yazdır / PDF</button>
             </div>
         </div>
-        
+
         <!-- Optimizasyon Ayarları -->
         <div class="card mb-4 no-print">
             <div class="card-header"><h5>Optimizasyon Ayarları</h5></div>
             <div class="card-body">
                 <div class="row g-3">
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <label class="form-label">Plaka Ölçüleri (mm)</label>
                         <div class="input-group">
                             <input type="number" class="form-control" id="sheetWidth" value="2800" placeholder="Genişlik">
@@ -47,7 +69,18 @@
                             <input type="number" class="form-control" id="sheetHeight" value="2100" placeholder="Yükseklik">
                         </div>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-md-4">
+                        <label class="form-label">Kerf (Testere Payı, mm)</label>
+                        <input type="number" class="form-control" id="kerfValue" value="3">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Öncelik</label>
+                        <select class="form-select" id="optimizationPriority">
+                            <option value="area">Minimum Fire</option>
+                            <option value="sheet">Minimum Plaka</option>
+                        </select>
+                    </div>
+                    <div class="col-md-12">
                         <label class="form-label">Malzeme Yön Ayarları</label>
                         <div id="materialGrainSettings">
                             <p class="text-muted">Projedeki panel malzemeleri burada listelenecek...</p>
@@ -60,43 +93,40 @@
             </div>
         </div>
 
-        <!-- Sonuçların Gösterileceği Alan -->
+        <!-- Sonuçlar -->
         <div id="resultsContainer">
             <div id="loadingIndicator" class="text-center mt-5 d-none">
-                 <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status"><span class="visually-hidden">Optimizasyon yapılıyor...</span></div>
+                <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status"></div>
                 <p class="mt-2">Optimizasyon yapılıyor...</p>
             </div>
             <ul class="nav nav-tabs" id="materialTabs" role="tablist"></ul>
             <div class="tab-content" id="materialTabContent"></div>
         </div>
-        
-        <!-- Özet Tablosu -->
+
+        <!-- Özetler -->
         <div class="card mt-4">
             <div class="card-header"><h5>Proje Özeti</h5></div>
             <div class="card-body">
                 <h6>Gerekli Paneller</h6>
                 <ul id="panelSummary" class="list-group list-group-flush"></ul>
-                <h6 class="mt-3">Gerekli Kenar Bantları</h6>
+                <h6 class="mt-3">Kenar Bandı</h6>
                 <ul id="bandingSummary" class="list-group list-group-flush"></ul>
             </div>
         </div>
-        
-        <!-- *** YENİ BÖLÜM: Sığmayan Parçalar *** -->
+
         <div id="unpackedContainer" class="mt-4 d-none">
             <div class="card border-danger">
                 <div class="card-header bg-danger text-white"><h5>Yerleştirilemeyen Parçalar</h5></div>
                 <div class="card-body">
-                    <p>Aşağıdaki parçalar, ölçüleri plaka boyutlarından büyük olduğu için hiçbir plakaya yerleştirilemedi.</p>
+                    <p>Bu parçalar plakaya sığmadı:</p>
                     <table class="table table-sm table-bordered">
-                        <thead><tr><th>Parça Adı</th><th>Boy (mm)</th><th>En (mm)</th></tr></thead>
+                        <thead><tr><th>Parça</th><th>Boy</th><th>En</th></tr></thead>
                         <tbody id="unpackedList"></tbody>
                     </table>
                 </div>
             </div>
         </div>
-
     </div>
-
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script type="module" src="optimization.js"></script>
 </body>
