@@ -76,7 +76,6 @@ const loadProjectDetails = async () => {
             const project = docSnap.data();
             projectNameEl.textContent = project.name;
             projectDescriptionEl.textContent = project.description || '';
-            
             renderParts(project.parts || []);
         } else {
             alert("Proje bulunamadı.");
@@ -86,21 +85,25 @@ const loadProjectDetails = async () => {
     });
 };
 
-// Parça listesini tabloya render et
+// Parça listesini tabloya render et (GÜNCELLENDİ)
 const renderParts = (parts) => {
     partsListEl.innerHTML = '';
     if (parts.length === 0) {
-        partsListEl.innerHTML = '<tr><td colspan="5" class="text-center text-muted">Bu projeye henüz hiç parça eklenmedi.</td></tr>';
+        partsListEl.innerHTML = '<tr><td colspan="6" class="text-center text-muted">Bu projeye henüz hiç parça eklenmedi.</td></tr>';
         return;
     }
     parts.forEach(part => {
+        // *** DEĞİŞİKLİK BURADA: Önce Yükseklik (Boy), sonra Genişlik (En) ***
         const row = `
             <tr>
                 <td>${part.name}</td>
-                <td>${part.width}</td>
                 <td>${part.height}</td>
+                <td>${part.width}</td>
                 <td>${part.qty}</td>
                 <td>${part.moduleInstanceName}</td>
+                <td>
+                    <button class="btn btn-sm btn-outline-danger" onclick="window.deletePart('${part.partId}')">Sil</button>
+                </td>
             </tr>
         `;
         partsListEl.innerHTML += row;
@@ -122,19 +125,18 @@ const loadModuleTemplates = async () => {
     });
 };
 
-// "Hesapla ve Projeye Ekle" Butonuna Tıklandığında
+// "Hesapla ve Projeye Ekle" Butonuna Tıklandığında (GÜNCELLENDİ)
 addModuleToProjectBtn.addEventListener('click', async () => {
-    // *** DEĞİŞİKLİK BURADA ***
-    const G = parseFloat(document.getElementById('moduleWidth').value);
+    // *** DEĞİŞİKLİK BURADA: Değişkenler B ve E olarak tanımlandı ***
     const B = parseFloat(document.getElementById('moduleHeight').value);
+    const E = parseFloat(document.getElementById('moduleWidth').value);
     const D = parseFloat(document.getElementById('moduleDepth').value);
     const K = parseFloat(document.getElementById('materialThickness').value);
-    const E = G; // Eski şablonlarla uyumluluk için E'yi G'nin takma adı yap
-
+    
     const templateId = document.getElementById('moduleTemplateSelect').value;
     const moduleInstanceName = document.getElementById('moduleInstanceName').value.trim() || 'İsimsiz Modül';
 
-    if (!templateId || !G || !B || !D || !K) {
+    if (!templateId || !B || !E || !D || !K) {
         alert("Lütfen tüm ölçüleri ve şablonu eksiksiz seçin.");
         return;
     }
@@ -152,17 +154,16 @@ addModuleToProjectBtn.addEventListener('click', async () => {
         try {
             let widthFormula = part.widthFormula.toUpperCase().replace(/ /g, '');
             let heightFormula = part.heightFormula.toUpperCase().replace(/ /g, '');
-
             const calculatedWidth = eval(widthFormula);
             const calculatedHeight = eval(heightFormula);
 
             calculatedParts.push({
+                partId: crypto.randomUUID(),
                 name: part.name,
                 width: calculatedWidth,
                 height: calculatedHeight,
                 qty: part.qty,
                 moduleInstanceName: moduleInstanceName,
-                templatePartId: part.name
             });
 
         } catch (error) {
@@ -189,6 +190,30 @@ addModuleToProjectBtn.addEventListener('click', async () => {
         alert("Hesaplanan parçalar projeye eklenirken bir hata oluştu.");
     }
 });
+
+// Projeden bir parçayı silme
+window.deletePart = async (partIdToDelete) => {
+    if (!confirm("Bu parçayı listeden silmek istediğinizden emin misiniz?")) {
+        return;
+    }
+    try {
+        const projectRef = doc(db, 'projects', projectId);
+        const projectSnap = await getDoc(projectRef);
+
+        if (projectSnap.exists()) {
+            const currentParts = projectSnap.data().parts || [];
+            const updatedParts = currentParts.filter(part => part.partId !== partIdToDelete);
+            
+            await updateDoc(projectRef, {
+                parts: updatedParts
+            });
+            console.log("Parça başarıyla silindi.");
+        }
+    } catch (error) {
+        console.error("Parça silinirken hata: ", error);
+        alert("Parça silinirken bir hata oluştu.");
+    }
+};
 
 // Çıkış yap
 logoutButton.addEventListener('click', () => signOut(auth));
