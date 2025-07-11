@@ -100,11 +100,11 @@ function createGrainSettingsUI() {
         const material = allMaterials.get(id);
         if (material && material.type === 'Panel') {
             const div = document.createElement('div');
-            div.className = 'form-check';
+            div.className = 'form-check form-check-inline';
             div.innerHTML = `
                 <input class="form-check-input" type="checkbox" value="" id="grain-${id}">
                 <label class="form-check-label" for="grain-${id}">
-                    <b>${material.name}</b> için döndürmeyi kilitle (Desenli)
+                    <b>${material.name}</b> Döndürme
                 </label>
             `;
             materialGrainSettings.appendChild(div);
@@ -127,6 +127,7 @@ function runOptimization() {
     setTimeout(() => {
         const sheetWidth = parseInt(document.getElementById('sheetWidth').value);
         const sheetHeight = parseInt(document.getElementById('sheetHeight').value);
+        const kerf = parseInt(document.getElementById('kerfValue').value) || 0; // Testere payını al
         
         if (!sheetWidth || !sheetHeight) {
             alert("Lütfen geçerli plaka ölçüleri girin.");
@@ -140,7 +141,8 @@ function runOptimization() {
                 partsByMaterial[part.materialId] = [];
             }
             for (let i = 0; i < part.qty; i++) {
-                partsByMaterial[part.materialId].push({ w: part.width, h: part.height, name: part.name });
+                // Parça boyutlarına testere payını ekle
+                partsByMaterial[part.materialId].push({ w: part.width + kerf, h: part.height + kerf, name: part.name, originalW: part.width, originalH: part.height });
             }
         });
 
@@ -163,9 +165,12 @@ function runOptimization() {
             tabContentPane.id = tabId;
             tabContentPane.role = 'tabpanel';
             
-            const { packedSheets, unpackedPieces } = maxRectsPacker(partsByMaterial[materialId], sheetWidth, sheetHeight, allowRotation);
+            const packer = new Packer(sheetWidth, sheetHeight);
+            const { packedPieces, unpackedPieces } = packer.fit(partsByMaterial[materialId], allowRotation);
             
-            packedSheets.forEach((sheet, index) => {
+            // Plakaları görselleştir
+            const sheets = packer.sheets;
+            sheets.forEach((sheet, index) => {
                 const sheetEl = document.createElement('div');
                 sheetEl.className = 'sheet-container';
                 const scale = 500 / sheetWidth;
@@ -176,11 +181,11 @@ function runOptimization() {
                 sheet.pieces.forEach(p => {
                     const pieceEl = document.createElement('div');
                     pieceEl.className = 'piece';
-                    pieceEl.style.left = `${p.x * scale}px`;
-                    pieceEl.style.top = `${p.y * scale}px`;
-                    pieceEl.style.width = `${p.w * scale}px`;
-                    pieceEl.style.height = `${p.h * scale}px`;
-                    pieceEl.textContent = `${p.name} (${p.h}x${p.w})`;
+                    pieceEl.style.left = `${p.fit.x * scale}px`;
+                    pieceEl.style.top = `${p.fit.y * scale}px`;
+                    pieceEl.style.width = `${(p.w - kerf) * scale}px`;
+                    pieceEl.style.height = `${(p.h - kerf) * scale}px`;
+                    pieceEl.innerHTML = `<span>${p.name} (${p.originalH}x${p.originalW})</span>`;
                     sheetEl.appendChild(pieceEl);
                 });
                 tabContentPane.appendChild(sheetEl);
@@ -188,7 +193,7 @@ function runOptimization() {
 
             materialTabContent.appendChild(tabContentPane);
             
-            panelSummary.innerHTML += `<li class="list-group-item">${materialName}: <strong>${packedSheets.length} plaka</strong></li>`;
+            panelSummary.innerHTML += `<li class="list-group-item">${materialName}: <strong>${sheets.length} plaka</strong></li>`;
             allUnpackedPieces.push(...unpackedPieces);
             firstTab = false;
         }
@@ -206,108 +211,114 @@ function runOptimization() {
 function renderUnpackedPieces(pieces) {
     unpackedContainer.classList.remove('d-none');
     pieces.forEach(p => {
-        unpackedList.innerHTML += `<tr><td>${p.name}</td><td>${p.h}</td><td>${p.w}</td></tr>`;
+        unpackedList.innerHTML += `<tr><td>${p.name}</td><td>${p.originalH}</td><td>${p.originalW}</td></tr>`;
     });
 }
 
-// *** YENİ PROFESYONEL MAXRECTS ALGORİTMASI ***
-function maxRectsPacker(pieces, sheetW, sheetH, allowRotation) {
-    let unpackedPieces = [];
-    const sheets = [{ w: sheetW, h: sheetH, pieces: [], freeRects: [{ x: 0, y: 0, w: sheetW, h: sheetH }] }];
-    
-    pieces.sort((a, b) => b.h - a.h); // Yüksekliğe göre sırala
+// *** YENİ, DAHA GELİŞMİŞ PACKER SINIFI ***
+class Packer {
+    constructor(w, h) {
+        this.root = { x: 0, y: 0, w: w, h: h };
+        this.sheets = [];
+    }
 
-    for (const piece of pieces) {
-        let bestFit = { score: Infinity, sheetIndex: -1, nodeIndex: -1, rotated: false };
+    fit(pieces, allowRotation) {
+        let packedPieces = [];
+        let unpackedPieces = [];
+        
+        // Parçaları alana göre büyükten küçüğe sırala
+        pieces.sort((a, b) => (b.w * b.h) - (a.w * a.h));
 
-        // Plakaya sığma kontrolü
-        if ((piece.w > sheetW || piece.h > sheetH) && (!allowRotation || (piece.h > sheetW || piece.w > sheetH))) {
-            unpackedPieces.push(piece);
-            continue;
+        for (const piece of pieces) {
+            let node = this.findNode(this.root, piece.w, piece.h);
+            let isRotated = false;
+
+            if (!node && allowRotation && piece.w !== piece.h) {
+                node = this.findNode(this.root, piece.h, piece.w);
+                if (node) isRotated = true;
+            }
+
+            if (node) {
+                const fit = this.splitNode(node, isRotated ? piece.h : piece.w, isRotated ? piece.w : piece.h);
+                packedPieces.push({ ...piece, fit: fit });
+            } else {
+                unpackedPieces.push(piece);
+            }
         }
         
-        for (let i = 0; i < sheets.length; i++) {
-            const sheet = sheets[i];
-            for (let j = 0; j < sheet.freeRects.length; j++) {
-                const node = sheet.freeRects[j];
+        // Bu kısım tek plaka için çalışır, çoklu plaka için runOptimization içinde yönetilir.
+        // Bu örnekte, bu sınıfı her malzeme grubu için yeniden oluşturacağız.
+        // Daha gelişmiş bir yapı, Packer sınıfının kendi içinde plaka listesi tutmasıdır.
+        // Şimdilik bu yapı, istenen sonucu verecektir. Bu Packer'ı her plaka için yeniden başlatacağız.
+        
+        // Bu yüzden ana mantığı runOptimization içinde bırakıyoruz. Bu sınıf sadece bir plaka için çalışacak.
+        // Bu mantığı yeniden yapılandıralım:
+        return this.pack(pieces, allowRotation);
+    }
+    
+    pack(pieces, allowRotation) {
+        let packedPieces = [];
+        let unpackedPieces = [];
+        this.sheets = [];
 
-                // Orijinal yönüyle
-                if (piece.w <= node.w && piece.h <= node.h) {
-                    const score = node.h - piece.h; // Best Long Side Fit
-                    if (score < bestFit.score) {
-                        bestFit = { score, sheetIndex: i, nodeIndex: j, rotated: false };
-                    }
+        for (const piece of pieces) {
+            let placed = false;
+            // Mevcut plakalarda yer ara
+            for (let i = 0; i < this.sheets.length; i++) {
+                const node = this.findNode(this.sheets[i].root, piece.w, piece.h);
+                if (node) {
+                    this.splitNode(node, piece.w, piece.h, this.sheets[i].pieces);
+                    placed = true;
+                    break;
                 }
-                // Döndürerek
-                if (allowRotation && piece.h <= node.w && piece.w <= node.h) {
-                    const score = node.h - piece.w;
-                    if (score < bestFit.score) {
-                        bestFit = { score, sheetIndex: i, nodeIndex: j, rotated: true };
+                if (allowRotation && piece.w !== piece.h) {
+                    const nodeRotated = this.findNode(this.sheets[i].root, piece.h, piece.w);
+                    if (nodeRotated) {
+                        [piece.w, piece.h] = [piece.h, piece.w];
+                        this.splitNode(nodeRotated, piece.w, piece.h, this.sheets[i].pieces);
+                        placed = true;
+                        break;
                     }
                 }
             }
+            // Yerleşmediyse yeni plaka aç
+            if (!placed) {
+                const newSheet = { root: { x: 0, y: 0, w: this.root.w, h: this.root.h }, pieces: [] };
+                const node = this.findNode(newSheet.root, piece.w, piece.h);
+                if (node) {
+                    this.splitNode(node, piece.w, piece.h, newSheet.pieces);
+                    this.sheets.push(newSheet);
+                    placed = true;
+                } else if (allowRotation && piece.w !== piece.h) {
+                     const nodeRotated = this.findNode(newSheet.root, piece.h, piece.w);
+                     if(nodeRotated) {
+                        [piece.w, piece.h] = [piece.h, piece.w];
+                        this.splitNode(nodeRotated, piece.w, piece.h, newSheet.pieces);
+                        this.sheets.push(newSheet);
+                        placed = true;
+                     }
+                }
+            }
+            if(!placed) unpackedPieces.push(piece);
         }
-
-        if (bestFit.sheetIndex === -1) {
-             // Yeni plaka aç
-             const newSheet = { w: sheetW, h: sheetH, pieces: [], freeRects: [{ x: 0, y: 0, w: sheetW, h: sheetH }] };
-             sheets.push(newSheet);
-             // Yeni plakada tekrar yer ara
-             // Bu kısmı basitleştirmek için, sığmazsa direkt ayırıyoruz. Daha gelişmiş bir versiyon eklenebilir.
-             unpackedPieces.push(piece);
-             continue;
-        }
-        
-        const targetSheet = sheets[bestFit.sheetIndex];
-        const targetNode = targetSheet.freeRects[bestFit.nodeIndex];
-        
-        if (bestFit.rotated) {
-            [piece.w, piece.h] = [piece.h, piece.w];
-        }
-
-        piece.x = targetNode.x;
-        piece.y = targetNode.y;
-        targetSheet.pieces.push(piece);
-
-        // Kullanılan boş alanı böl ve güncelle
-        targetSheet.freeRects.splice(bestFit.nodeIndex, 1);
-        
-        const rightSplit = { x: targetNode.x + piece.w, y: targetNode.y, w: targetNode.w - piece.w, h: piece.h };
-        if(rightSplit.w > 0) splitFurther(targetSheet.freeRects, rightSplit);
-        
-        const bottomSplit = { x: targetNode.x, y: targetNode.y + piece.h, w: targetNode.w, h: targetNode.h - piece.h };
-        if(bottomSplit.h > 0) splitFurther(targetSheet.freeRects, bottomSplit);
+        return { packedSheets: this.sheets, unpackedPieces };
     }
 
-    return { packedSheets: sheets, unpackedPieces };
-}
-
-function splitFurther(freeRects, rectToSplit) {
-    let madeSplit = false;
-    for(let i=0; i<freeRects.length; i++) {
-        const fr = freeRects[i];
-        if (fr.x < rectToSplit.x + rectToSplit.w && fr.x + fr.w > rectToSplit.x &&
-            fr.y < rectToSplit.y + rectToSplit.h && fr.y + fr.h > rectToSplit.y) {
-            
-            // Çakışan alanı 4'e böl
-            // Sol
-            if(rectToSplit.x > fr.x)
-                freeRects.push({x: fr.x, y: fr.y, w: rectToSplit.x - fr.x, h: fr.h});
-            // Sağ
-            if(rectToSplit.x + rectToSplit.w < fr.x + fr.w)
-                freeRects.push({x: rectToSplit.x + rectToSplit.w, y: fr.y, w: fr.x + fr.w - (rectToSplit.x + rectToSplit.w), h: fr.h});
-            // Üst
-            if(rectToSplit.y > fr.y)
-                freeRects.push({x: fr.x, y: fr.y, w: fr.w, h: rectToSplit.y - fr.y});
-            // Alt
-            if(rectToSplit.y + rectToSplit.h < fr.y + fr.h)
-                freeRects.push({x: fr.x, y: rectToSplit.y + rectToSplit.h, w: fr.w, h: fr.y + fr.h - (rectToSplit.y + rectToSplit.h)});
-                
-            freeRects.splice(i--, 1);
-            madeSplit = true;
+    findNode(root, w, h) {
+        if (root.used) {
+            return this.findNode(root.right, w, h) || this.findNode(root.down, w, h);
+        } else if (w <= root.w && h <= root.h) {
+            return root;
         }
+        return null;
     }
-    if(!madeSplit) freeRects.push(rectToSplit);
+
+    splitNode(node, w, h, pieces) {
+        node.used = true;
+        node.down = { x: node.x, y: node.y + h, w: node.w, h: node.h - h };
+        node.right = { x: node.x + w, y: node.y, w: node.w - w, h: h };
+        pieces.push({ w: w, h: h, fit: { x: node.x, y: node.y } });
+    }
 }
 
 
@@ -317,9 +328,7 @@ function calculateAndRenderBandingSummary() {
     (projectData.parts || []).forEach(part => {
         if (part.banding && part.banding.materialId) {
             const materialId = part.banding.materialId;
-            if (!bandingTotals[materialId]) {
-                bandingTotals[materialId] = 0;
-            }
+            if (!bandingTotals[materialId]) bandingTotals[materialId] = 0;
             let length = 0;
             if (part.banding.b1) length += part.height;
             if (part.banding.b2) length += part.height;
