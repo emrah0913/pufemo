@@ -34,6 +34,7 @@ const db = getFirestore(app);
 const projectNameEl = document.getElementById('projectName');
 const projectDescriptionEl = document.getElementById('projectDescription');
 const partsListEl = document.getElementById('partsList');
+const accessoriesListEl = document.getElementById('accessoriesList'); // Yeni
 const loadingIndicator = document.getElementById('loadingIndicator');
 const logoutButton = document.getElementById('logoutButton');
 const moduleTemplateSelect = document.getElementById('moduleTemplateSelect');
@@ -66,22 +67,23 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// Proje detaylarını ve parçalarını yükle
+// Proje detaylarını ve malzemeleri yükle
 const loadProjectDetails = async () => {
     loadingIndicator.classList.remove('d-none');
     const projectRef = doc(db, 'projects', projectId);
     
-    const unsub = onSnapshot(projectRef, (docSnap) => {
+    onSnapshot(projectRef, (docSnap) => {
+        loadingIndicator.classList.add('d-none');
         if (docSnap.exists()) {
             const project = docSnap.data();
             projectNameEl.textContent = project.name;
             projectDescriptionEl.textContent = project.description || '';
             renderParts(project.parts || []);
+            renderAccessories(project.accessories || []); // Yeni
         } else {
             alert("Proje bulunamadı.");
             window.location.href = 'projects.html';
         }
-        loadingIndicator.classList.add('d-none');
     });
 };
 
@@ -89,7 +91,7 @@ const loadProjectDetails = async () => {
 const renderParts = (parts) => {
     partsListEl.innerHTML = '';
     if (parts.length === 0) {
-        partsListEl.innerHTML = '<tr><td colspan="6" class="text-center text-muted">Bu projeye henüz hiç parça eklenmedi.</td></tr>';
+        partsListEl.innerHTML = '<tr><td colspan="6" class="text-center text-muted">Henüz hiç parça eklenmedi.</td></tr>';
         return;
     }
     parts.forEach(part => {
@@ -100,17 +102,34 @@ const renderParts = (parts) => {
                 <td>${part.width}</td>
                 <td>${part.qty}</td>
                 <td>${part.moduleInstanceName}</td>
-                <td>
-                    <button class="btn btn-sm btn-outline-danger" onclick="window.deletePart('${part.partId}')">Sil</button>
-                </td>
+                <td><button class="btn btn-sm btn-outline-danger" onclick="window.deletePart('${part.partId}')">Sil</button></td>
             </tr>
         `;
         partsListEl.innerHTML += row;
     });
 };
 
+// Aksesuar listesini tabloya render et (YENİ)
+const renderAccessories = (accessories) => {
+    accessoriesListEl.innerHTML = '';
+    if (accessories.length === 0) {
+        accessoriesListEl.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Henüz hiç aksesuar eklenmedi.</td></tr>';
+        return;
+    }
+    accessories.forEach(acc => {
+        const row = `
+            <tr>
+                <td>${acc.name}</td>
+                <td>${acc.qty}</td>
+                <td>${acc.moduleInstanceName}</td>
+                <td><button class="btn btn-sm btn-outline-danger" onclick="window.deleteAccessory('${acc.accessoryId}')">Sil</button></td>
+            </tr>
+        `;
+        accessoriesListEl.innerHTML += row;
+    });
+};
 
-// Modül şablonlarını kütüphaneden çekip select'e doldur
+// Modül şablonlarını kütüphaneden çek
 const loadModuleTemplates = async () => {
     const q = query(collection(db, 'moduleTemplates'), where('userId', '==', currentUser.uid));
     const querySnapshot = await getDocs(q);
@@ -119,18 +138,16 @@ const loadModuleTemplates = async () => {
     querySnapshot.forEach(doc => {
         const template = { id: doc.id, ...doc.data() };
         moduleTemplates.push(template);
-        const option = `<option value="${template.id}">${template.name}</option>`;
-        moduleTemplateSelect.innerHTML += option;
+        moduleTemplateSelect.innerHTML += `<option value="${template.id}">${template.name}</option>`;
     });
 };
 
-// "Hesapla ve Projeye Ekle" Butonuna Tıklandığında
+// "Hesapla ve Projeye Ekle" Butonu (GÜNCELLENDİ)
 addModuleToProjectBtn.addEventListener('click', async () => {
     const B = parseFloat(document.getElementById('moduleHeight').value);
     const E = parseFloat(document.getElementById('moduleWidth').value);
     const D = parseFloat(document.getElementById('moduleDepth').value);
     const K = parseFloat(document.getElementById('materialThickness').value);
-    
     const templateId = document.getElementById('moduleTemplateSelect').value;
     const moduleInstanceName = document.getElementById('moduleInstanceName').value.trim() || 'İsimsiz Modül';
 
@@ -138,78 +155,72 @@ addModuleToProjectBtn.addEventListener('click', async () => {
         alert("Lütfen tüm ölçüleri ve şablonu eksiksiz seçin.");
         return;
     }
-
     const selectedTemplate = moduleTemplates.find(t => t.id === templateId);
-    if (!selectedTemplate) {
-        alert("Geçerli bir şablon bulunamadı.");
-        return;
-    }
+    if (!selectedTemplate) return;
 
-    const calculatedParts = [];
     let errorOccurred = false;
-    selectedTemplate.parts.forEach(part => {
-        if (errorOccurred) return;
+    
+    // Parçaları hesapla
+    const calculatedParts = (selectedTemplate.parts || []).map(part => {
         try {
-            const calculatedHeight = eval(part.heightFormula.toUpperCase().replace(/ /g, ''));
-            const calculatedWidth = eval(part.widthFormula.toUpperCase().replace(/ /g, ''));
-
-            calculatedParts.push({
+            return {
                 partId: crypto.randomUUID(),
                 name: part.name,
-                width: calculatedWidth,
-                height: calculatedHeight,
+                width: eval(part.widthFormula.toUpperCase().replace(/ /g, '')),
+                height: eval(part.heightFormula.toUpperCase().replace(/ /g, '')),
                 qty: part.qty,
-                moduleInstanceName: moduleInstanceName,
-            });
+                moduleInstanceName,
+            };
+        } catch (e) { errorOccurred = true; alert(`'${part.name}' parça formülünde hata: ${e.message}`); }
+    }).filter(Boolean);
 
-        } catch (error) {
-            console.error("Formül hesaplama hatası: ", error);
-            alert(`'${part.name}' parçasının formülünde bir hata var: ${error.message}`);
-            errorOccurred = true;
-        }
-    });
-    
+    // Aksesuarları hesapla
+    const calculatedAccessories = (selectedTemplate.accessories || []).map(acc => {
+        try {
+            return {
+                accessoryId: crypto.randomUUID(),
+                name: acc.name,
+                qty: Math.ceil(eval(acc.qtyFormula.toUpperCase().replace(/ /g, ''))), // Formülü hesapla ve yukarı yuvarla
+                moduleInstanceName,
+            };
+        } catch (e) { errorOccurred = true; alert(`'${acc.name}' aksesuar formülünde hata: ${e.message}`); }
+    }).filter(Boolean);
+
     if (errorOccurred) return;
 
     try {
         const projectRef = doc(db, 'projects', projectId);
         await updateDoc(projectRef, {
-            parts: arrayUnion(...calculatedParts)
+            parts: arrayUnion(...calculatedParts),
+            accessories: arrayUnion(...calculatedAccessories)
         });
-        
-        console.log("Parçalar projeye başarıyla eklendi.");
         addModuleModal.hide();
         document.getElementById('calculateForm').reset();
-        
-    } catch (error) {
-        console.error("Parçalar projeye eklenirken hata: ", error);
-        alert("Hesaplanan parçalar projeye eklenirken bir hata oluştu.");
+    } catch (e) {
+        console.error("Projeye eklenirken hata: ", e);
+        alert("Malzemeler projeye eklenirken bir hata oluştu.");
     }
 });
 
-// Projeden bir parçayı silme
-window.deletePart = async (partIdToDelete) => {
-    if (!confirm("Bu parçayı listeden silmek istediğinizden emin misiniz?")) {
-        return;
-    }
+// Malzeme Silme Fonksiyonları
+const deleteItem = async (itemId, itemType, fieldName) => {
+    if (!confirm(`Bu ${itemType} listeden silmek istediğinizden emin misiniz?`)) return;
     try {
         const projectRef = doc(db, 'projects', projectId);
         const projectSnap = await getDoc(projectRef);
-
         if (projectSnap.exists()) {
-            const currentParts = projectSnap.data().parts || [];
-            const updatedParts = currentParts.filter(part => part.partId !== partIdToDelete);
-            
-            await updateDoc(projectRef, {
-                parts: updatedParts
-            });
-            console.log("Parça başarıyla silindi.");
+            const currentItems = projectSnap.data()[fieldName] || [];
+            const updatedItems = currentItems.filter(item => item[itemId] !== itemIdToDelete);
+            await updateDoc(projectRef, { [fieldName]: updatedItems });
         }
-    } catch (error) {
-        console.error("Parça silinirken hata: ", error);
-        alert("Parça silinirken bir hata oluştu.");
+    } catch (e) {
+        alert(`${itemType} silinirken hata oluştu.`);
+        console.error(e);
     }
 };
+
+window.deletePart = (partId) => deleteItem(partId, 'parçayı', 'parts');
+window.deleteAccessory = (accessoryId) => deleteItem(accessoryId, 'aksesuarı', 'accessories');
 
 // Çıkış yap
 logoutButton.addEventListener('click', () => signOut(auth));
