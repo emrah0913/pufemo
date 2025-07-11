@@ -11,7 +11,7 @@ import {
     query,
     where,
     getDocs,
-    onSnapshot // *** DÜZELTME: Eksik olan fonksiyonu buraya ekledik ***
+    onSnapshot
 } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 
 // Firebase Konfigürasyonu
@@ -42,7 +42,7 @@ const addModuleModal = new bootstrap.Modal(document.getElementById('addModuleMod
 
 let currentUser = null;
 let projectId = null;
-let moduleTemplates = []; // Kütüphanedeki şablonları tutacak dizi
+let moduleTemplates = [];
 
 // Sayfa Yüklendiğinde
 document.addEventListener('DOMContentLoaded', () => {
@@ -71,14 +71,12 @@ const loadProjectDetails = async () => {
     loadingIndicator.classList.remove('d-none');
     const projectRef = doc(db, 'projects', projectId);
     
-    // Proje verisini anlık dinle
     const unsub = onSnapshot(projectRef, (docSnap) => {
         if (docSnap.exists()) {
             const project = docSnap.data();
             projectNameEl.textContent = project.name;
             projectDescriptionEl.textContent = project.description || '';
             
-            // Parça listesini ekrana çiz
             renderParts(project.parts || []);
         } else {
             alert("Proje bulunamadı.");
@@ -126,36 +124,35 @@ const loadModuleTemplates = async () => {
 
 // "Hesapla ve Projeye Ekle" Butonuna Tıklandığında
 addModuleToProjectBtn.addEventListener('click', async () => {
-    // Formdan değerleri al
-    const templateId = document.getElementById('moduleTemplateSelect').value;
-    const E = parseFloat(document.getElementById('moduleWidth').value);
+    // *** DEĞİŞİKLİK BURADA ***
+    const G = parseFloat(document.getElementById('moduleWidth').value);
     const B = parseFloat(document.getElementById('moduleHeight').value);
     const D = parseFloat(document.getElementById('moduleDepth').value);
     const K = parseFloat(document.getElementById('materialThickness').value);
+    const E = G; // Eski şablonlarla uyumluluk için E'yi G'nin takma adı yap
+
+    const templateId = document.getElementById('moduleTemplateSelect').value;
     const moduleInstanceName = document.getElementById('moduleInstanceName').value.trim() || 'İsimsiz Modül';
 
-    if (!templateId || !E || !B || !D || !K) {
+    if (!templateId || !G || !B || !D || !K) {
         alert("Lütfen tüm ölçüleri ve şablonu eksiksiz seçin.");
         return;
     }
 
-    // Seçilen şablonu bul
     const selectedTemplate = moduleTemplates.find(t => t.id === templateId);
     if (!selectedTemplate) {
         alert("Geçerli bir şablon bulunamadı.");
         return;
     }
 
-    // *** HESAPLAMA MOTORU ***
     const calculatedParts = [];
+    let errorOccurred = false;
     selectedTemplate.parts.forEach(part => {
+        if (errorOccurred) return;
         try {
-            // Formülü al ve değişkenleri değiştir
             let widthFormula = part.widthFormula.toUpperCase().replace(/ /g, '');
             let heightFormula = part.heightFormula.toUpperCase().replace(/ /g, '');
 
-            // eval() kullanmak riskli olabilir ama bu kontrollü ortamda işimizi görür.
-            // Daha güvenli bir yöntem için bir matematik parser kütüphanesi kullanılabilir.
             const calculatedWidth = eval(widthFormula);
             const calculatedHeight = eval(heightFormula);
 
@@ -165,27 +162,27 @@ addModuleToProjectBtn.addEventListener('click', async () => {
                 height: calculatedHeight,
                 qty: part.qty,
                 moduleInstanceName: moduleInstanceName,
-                templatePartId: part.name // Orijinal parça adını sakla
+                templatePartId: part.name
             });
 
         } catch (error) {
             console.error("Formül hesaplama hatası: ", error);
             alert(`'${part.name}' parçasının formülünde bir hata var: ${error.message}`);
-            return; // Hata varsa işlemi durdur
+            errorOccurred = true;
         }
     });
     
-    // Hesaplanan parçaları Firestore'a kaydet
+    if (errorOccurred) return;
+
     try {
         const projectRef = doc(db, 'projects', projectId);
-        // arrayUnion ile mevcut parçaların üzerine ekle
         await updateDoc(projectRef, {
             parts: arrayUnion(...calculatedParts)
         });
         
         console.log("Parçalar projeye başarıyla eklendi.");
-        addModuleModal.hide(); // Modalı kapat
-        document.getElementById('calculateForm').reset(); // Formu temizle
+        addModuleModal.hide();
+        document.getElementById('calculateForm').reset();
         
     } catch (error) {
         console.error("Parçalar projeye eklenirken hata: ", error);
