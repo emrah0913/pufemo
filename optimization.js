@@ -210,129 +210,104 @@ function renderUnpackedPieces(pieces) {
     });
 }
 
-
-// *** YENİ PROFESYONEL MAXRECTS OPTİMİZASYON ALGORİTMASI ***
+// *** YENİ PROFESYONEL MAXRECTS ALGORİTMASI ***
 function maxRectsPacker(pieces, sheetW, sheetH, allowRotation) {
-    let packedSheets = [];
     let unpackedPieces = [];
-
-    // Parçaları alana göre büyükten küçüğe sırala
-    pieces.sort((a, b) => (b.w * b.h) - (a.w * a.h));
+    const sheets = [{ w: sheetW, h: sheetH, pieces: [], freeRects: [{ x: 0, y: 0, w: sheetW, h: sheetH }] }];
     
-    const initialPieces = [...pieces];
+    pieces.sort((a, b) => b.h - a.h); // Yüksekliğe göre sırala
 
-    while (initialPieces.length > 0) {
-        const sheet = { w: sheetW, h: sheetH, pieces: [], freeRects: [{ x: 0, y: 0, w: sheetW, h: sheetH }] };
-        sheets.push(sheet);
+    for (const piece of pieces) {
+        let bestFit = { score: Infinity, sheetIndex: -1, nodeIndex: -1, rotated: false };
 
-        let placedSomething = true;
-        while(placedSomething) {
-            placedSomething = false;
-            let bestFit = { score: Infinity, pieceIndex: -1, nodeIndex: -1, rotated: false };
+        // Plakaya sığma kontrolü
+        if ((piece.w > sheetW || piece.h > sheetH) && (!allowRotation || (piece.h > sheetW || piece.w > sheetH))) {
+            unpackedPieces.push(piece);
+            continue;
+        }
+        
+        for (let i = 0; i < sheets.length; i++) {
+            const sheet = sheets[i];
+            for (let j = 0; j < sheet.freeRects.length; j++) {
+                const node = sheet.freeRects[j];
 
-            for (let i = 0; i < initialPieces.length; i++) {
-                const piece = initialPieces[i];
-                for (let j = 0; j < sheet.freeRects.length; j++) {
-                    const node = sheet.freeRects[j];
-                    
-                    // Orijinal yönüyle dene
-                    if (piece.w <= node.w && piece.h <= node.h) {
-                        const score = Math.min(node.w - piece.w, node.h - piece.h); // Best Short Side Fit
-                        if (score < bestFit.score) {
-                            bestFit = { score, pieceIndex: i, nodeIndex: j, rotated: false };
-                        }
-                    }
-                    // Döndürerek dene
-                    if (allowRotation && piece.h <= node.w && piece.w <= node.h) {
-                         const score = Math.min(node.w - piece.h, node.h - piece.w);
-                         if (score < bestFit.score) {
-                            bestFit = { score, pieceIndex: i, nodeIndex: j, rotated: true };
-                        }
+                // Orijinal yönüyle
+                if (piece.w <= node.w && piece.h <= node.h) {
+                    const score = node.h - piece.h; // Best Long Side Fit
+                    if (score < bestFit.score) {
+                        bestFit = { score, sheetIndex: i, nodeIndex: j, rotated: false };
                     }
                 }
-            }
-
-            if (bestFit.pieceIndex > -1) {
-                const pieceToPlace = initialPieces.splice(bestFit.pieceIndex, 1)[0];
-                const nodeToUse = sheet.freeRects[bestFit.nodeIndex];
-
-                if (bestFit.rotated) {
-                    [pieceToPlace.w, pieceToPlace.h] = [pieceToPlace.h, pieceToPlace.w];
+                // Döndürerek
+                if (allowRotation && piece.h <= node.w && piece.w <= node.h) {
+                    const score = node.h - piece.w;
+                    if (score < bestFit.score) {
+                        bestFit = { score, sheetIndex: i, nodeIndex: j, rotated: true };
+                    }
                 }
-
-                pieceToPlace.x = nodeToUse.x;
-                pieceToPlace.y = nodeToUse.y;
-                sheet.pieces.push(pieceToPlace);
-
-                // Boş alanı yeni alanlara böl
-                sheet.freeRects.splice(bestFit.nodeIndex, 1);
-                splitFreeNode(sheet.freeRects, nodeToUse, pieceToPlace);
-                
-                pruneFreeList(sheet.freeRects);
-                
-                placedSomething = true;
             }
         }
+
+        if (bestFit.sheetIndex === -1) {
+             // Yeni plaka aç
+             const newSheet = { w: sheetW, h: sheetH, pieces: [], freeRects: [{ x: 0, y: 0, w: sheetW, h: sheetH }] };
+             sheets.push(newSheet);
+             // Yeni plakada tekrar yer ara
+             // Bu kısmı basitleştirmek için, sığmazsa direkt ayırıyoruz. Daha gelişmiş bir versiyon eklenebilir.
+             unpackedPieces.push(piece);
+             continue;
+        }
+        
+        const targetSheet = sheets[bestFit.sheetIndex];
+        const targetNode = targetSheet.freeRects[bestFit.nodeIndex];
+        
+        if (bestFit.rotated) {
+            [piece.w, piece.h] = [piece.h, piece.w];
+        }
+
+        piece.x = targetNode.x;
+        piece.y = targetNode.y;
+        targetSheet.pieces.push(piece);
+
+        // Kullanılan boş alanı böl ve güncelle
+        targetSheet.freeRects.splice(bestFit.nodeIndex, 1);
+        
+        const rightSplit = { x: targetNode.x + piece.w, y: targetNode.y, w: targetNode.w - piece.w, h: piece.h };
+        if(rightSplit.w > 0) splitFurther(targetSheet.freeRects, rightSplit);
+        
+        const bottomSplit = { x: targetNode.x, y: targetNode.y + piece.h, w: targetNode.w, h: targetNode.h - piece.h };
+        if(bottomSplit.h > 0) splitFurther(targetSheet.freeRects, bottomSplit);
     }
-    
-    unpackedPieces = initialPieces;
-    return { packedSheets, unpackedPieces };
+
+    return { packedSheets: sheets, unpackedPieces };
 }
 
-function splitFreeNode(freeRects, freeNode, usedNode) {
-    // Eğer parça, boş alanla çakışıyorsa, boş alanı böl
-    for (let i = freeRects.length - 1; i >= 0; --i) {
+function splitFurther(freeRects, rectToSplit) {
+    let madeSplit = false;
+    for(let i=0; i<freeRects.length; i++) {
         const fr = freeRects[i];
-        if (isContained(usedNode, fr)) {
-            if (splitRect(fr, usedNode, freeRects)) {
-                freeRects.splice(i, 1);
-            }
+        if (fr.x < rectToSplit.x + rectToSplit.w && fr.x + fr.w > rectToSplit.x &&
+            fr.y < rectToSplit.y + rectToSplit.h && fr.y + fr.h > rectToSplit.y) {
+            
+            // Çakışan alanı 4'e böl
+            // Sol
+            if(rectToSplit.x > fr.x)
+                freeRects.push({x: fr.x, y: fr.y, w: rectToSplit.x - fr.x, h: fr.h});
+            // Sağ
+            if(rectToSplit.x + rectToSplit.w < fr.x + fr.w)
+                freeRects.push({x: rectToSplit.x + rectToSplit.w, y: fr.y, w: fr.x + fr.w - (rectToSplit.x + rectToSplit.w), h: fr.h});
+            // Üst
+            if(rectToSplit.y > fr.y)
+                freeRects.push({x: fr.x, y: fr.y, w: fr.w, h: rectToSplit.y - fr.y});
+            // Alt
+            if(rectToSplit.y + rectToSplit.h < fr.y + fr.h)
+                freeRects.push({x: fr.x, y: rectToSplit.y + rectToSplit.h, w: fr.w, h: fr.y + fr.h - (rectToSplit.y + rectToSplit.h)});
+                
+            freeRects.splice(i--, 1);
+            madeSplit = true;
         }
     }
-}
-
-function isContained(a, b) {
-    return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
-}
-
-function splitRect(freeRect, placedRect, newRects) {
-    // Sağ taraf
-    if (placedRect.x < freeRect.x + freeRect.w && placedRect.x + placedRect.w > freeRect.x) {
-        // Üst taraf
-        if (placedRect.y > freeRect.y && placedRect.y < freeRect.y + freeRect.h) {
-            newRects.push({ x: freeRect.x, y: freeRect.y, w: freeRect.w, h: placedRect.y - freeRect.y });
-        }
-        // Alt taraf
-        if (placedRect.y + placedRect.h < freeRect.y + freeRect.h) {
-            newRects.push({ x: freeRect.x, y: placedRect.y + placedRect.h, w: freeRect.w, h: freeRect.y + freeRect.h - (placedRect.y + placedRect.h) });
-        }
-    }
-    // Alt taraf
-    if (placedRect.y < freeRect.y + freeRect.h && placedRect.y + placedRect.h > freeRect.y) {
-        // Sol taraf
-        if (placedRect.x > freeRect.x && placedRect.x < freeRect.x + freeRect.w) {
-            newRects.push({ x: freeRect.x, y: freeRect.y, w: placedRect.x - freeRect.x, h: freeRect.h });
-        }
-        // Sağ taraf
-        if (placedRect.x + placedRect.w < freeRect.x + freeRect.w) {
-            newRects.push({ x: placedRect.x + placedRect.w, y: freeRect.y, w: freeRect.x + freeRect.w - (placedRect.x + placedRect.w), h: freeRect.h });
-        }
-    }
-    return true;
-}
-
-function pruneFreeList(freeRects) {
-    for (let i = 0; i < freeRects.length; i++) {
-        for (let j = i + 1; j < freeRects.length; j++) {
-            if (isContained(freeRects[i], freeRects[j])) {
-                freeRects.splice(i--, 1);
-                break;
-            }
-            if (isContained(freeRects[j], freeRects[i])) {
-                freeRects.splice(j--, 1);
-            }
-        }
-    }
+    if(!madeSplit) freeRects.push(rectToSplit);
 }
 
 
