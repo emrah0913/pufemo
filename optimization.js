@@ -1,7 +1,7 @@
 // Gerekli Firebase Fonksiyonlarını Import Etme
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+import { getFirestore, doc, getDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/9.15.0/firestore.js";
 
 // Firebase Konfigürasyonu
 const firebaseConfig = {
@@ -163,7 +163,7 @@ function runOptimization() {
             tabContentPane.id = tabId;
             tabContentPane.role = 'tabpanel';
             
-            const { packedSheets, unpackedPieces } = professionalBinPacker(partsByMaterial[materialId], sheetWidth, sheetHeight, rotationDisabled);
+            const { packedSheets, unpackedPieces } = binaryTreePacker(partsByMaterial[materialId], sheetWidth, sheetHeight, !rotationDisabled);
             
             packedSheets.forEach((sheet, index) => {
                 const sheetEl = document.createElement('div');
@@ -176,8 +176,8 @@ function runOptimization() {
                 sheet.pieces.forEach(p => {
                     const pieceEl = document.createElement('div');
                     pieceEl.className = 'piece';
-                    pieceEl.style.left = `${p.x * scale}px`;
-                    pieceEl.style.top = `${p.y * scale}px`;
+                    pieceEl.style.left = `${p.fit.x * scale}px`;
+                    pieceEl.style.top = `${p.fit.y * scale}px`;
                     pieceEl.style.width = `${p.w * scale}px`;
                     pieceEl.style.height = `${p.h * scale}px`;
                     pieceEl.textContent = `${p.name} (${p.h}x${p.w})`;
@@ -211,92 +211,65 @@ function renderUnpackedPieces(pieces) {
 }
 
 
-// *** YENİ PROFESYONEL OPTİMİZASYON ALGORİTMASI ***
-function professionalBinPacker(pieces, sheetW, sheetH, rotationDisabled) {
-    // Parçaları en uzun kenara göre büyükten küçüğe sırala
-    pieces.sort((a, b) => Math.max(b.w, b.h) - Math.max(a.w, a.h));
-    
-    let sheets = [];
+// *** YENİ PROFESYONEL BINARY TREE OPTİMİZASYON ALGORİTMASI ***
+function binaryTreePacker(pieces, sheetW, sheetH, allowRotation) {
+    let packedSheets = [];
     let unpackedPieces = [];
 
-    for (const piece of pieces) {
-        let bestSheet = null;
-        let bestNode = null;
-        let bestScore = Infinity;
-        let rotated = false;
+    // Parçaları alana göre büyükten küçüğe sırala
+    pieces.sort((a, b) => (b.w * b.h) - (a.w * a.h));
 
-        // Mevcut plakalarda en uygun yeri ara
-        for (let i = 0; i < sheets.length; i++) {
-            const sheet = sheets[i];
-            for (let j = 0; j < sheet.freeNodes.length; j++) {
-                const node = sheet.freeNodes[j];
-                
-                // Orijinal yönüyle dene
-                if (piece.w <= node.w && piece.h <= node.h) {
-                    const score = node.w * node.h - piece.w * piece.h; // Kalan alan
-                    if (score < bestScore) {
-                        bestScore = score;
-                        bestSheet = sheet;
-                        bestNode = node;
-                        rotated = false;
-                    }
-                }
-
-                // Döndürerek dene (eğer serbestse)
-                if (!rotationDisabled && piece.w !== piece.h && piece.h <= node.w && piece.w <= node.h) {
-                     const score = node.w * node.h - piece.h * piece.w;
-                     if (score < bestScore) {
-                        bestScore = score;
-                        bestSheet = sheet;
-                        bestNode = node;
-                        rotated = true;
-                    }
-                }
+    const pack = (piece) => {
+        // Mevcut plakalarda yer ara
+        for (let i = 0; i < packedSheets.length; i++) {
+            const node = findNode(packedSheets[i].root, piece.w, piece.h);
+            if (node) {
+                splitNode(node, piece.w, piece.h, packedSheets[i].pieces);
+                return true;
             }
         }
+        
+        // Yeni plaka aç
+        if (piece.w <= sheetW && piece.h <= sheetH) {
+            const newSheet = { root: { x: 0, y: 0, w: sheetW, h: sheetH }, pieces: [] };
+            const node = findNode(newSheet.root, piece.w, piece.h);
+            if (node) {
+                splitNode(node, piece.w, piece.h, newSheet.pieces);
+                packedSheets.push(newSheet);
+                return true;
+            }
+        }
+        return false;
+    };
 
-        // En iyi yer bulunduysa, yerleştir
-        if (bestSheet) {
-            if (rotated) {
-                [piece.w, piece.h] = [piece.h, piece.w];
-            }
-            placePiece(bestSheet, bestNode, piece);
-        } else {
-            // Yer bulunamadıysa, yeni plaka açmayı dene
-            if ((piece.w <= sheetW && piece.h <= sheetH) || (!rotationDisabled && piece.h <= sheetW && piece.w <= sheetH)) {
-                const newSheet = { w: sheetW, h: sheetH, pieces: [], freeNodes: [{x: 0, y: 0, w: sheetW, h: sheetH}] };
-                 if (!rotationDisabled && piece.h <= sheetW && piece.w <= sheetH && piece.w > piece.h) {
-                    [piece.w, piece.h] = [piece.h, piece.w];
-                }
-                placePiece(newSheet, newSheet.freeNodes[0], piece);
-                sheets.push(newSheet);
-            } else {
-                // Parça plakaya sığmıyor
-                unpackedPieces.push(piece);
-            }
+    for (const piece of pieces) {
+        let packed = pack(piece);
+        if (!packed && allowRotation && piece.w !== piece.h) {
+            [piece.w, piece.h] = [piece.h, piece.w]; // Döndür
+            packed = pack(piece);
+        }
+        if (!packed) {
+            unpackedPieces.push(piece);
         }
     }
 
-    return { packedSheets: sheets, unpackedPieces };
+    return { packedSheets, unpackedPieces };
 }
 
-function placePiece(sheet, node, piece) {
-    piece.x = node.x;
-    piece.y = node.y;
-    sheet.pieces.push(piece);
+function findNode(root, w, h) {
+    if (root.used) {
+        return findNode(root.right, w, h) || findNode(root.down, w, h);
+    } else if (w <= root.w && h <= root.h) {
+        return root;
+    }
+    return null;
+}
 
-    // Boş alanı yeni alanlara böl
-    const originalNodeIndex = sheet.freeNodes.findIndex(n => n === node);
-    sheet.freeNodes.splice(originalNodeIndex, 1);
-
-    const rightNode = { x: node.x + piece.w, y: node.y, w: node.w - piece.w, h: piece.h };
-    const bottomNode = { x: node.x, y: node.y + piece.h, w: node.w, h: node.h - piece.h };
-    
-    if (rightNode.w > 0 && rightNode.h > 0) sheet.freeNodes.push(rightNode);
-    if (bottomNode.w > 0 && bottomNode.h > 0) sheet.freeNodes.push(bottomNode);
-    
-    // Basit birleştirme ve temizleme (daha verimli hale getirmek için)
-    // Bu kısım algoritmayı daha da karmaşıklaştırır, şimdilik temel bölme yeterli.
+function splitNode(node, w, h, pieces) {
+    node.used = true;
+    node.down = { x: node.x, y: node.y + h, w: node.w, h: node.h - h };
+    node.right = { x: node.x + w, y: node.y, w: node.w - w, h: h };
+    pieces.push({ w: w, h: h, fit: { x: node.x, y: node.y } });
 }
 
 
