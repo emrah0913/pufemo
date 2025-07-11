@@ -31,11 +31,11 @@ const backButton = document.getElementById('backButton');
 const logoutButton = document.getElementById('logoutButton');
 const runOptimizationBtn = document.getElementById('runOptimizationBtn');
 const loadingIndicator = document.getElementById('loadingIndicator');
-const resultsContainer = document.getElementById('resultsContainer');
 const materialTabs = document.getElementById('materialTabs');
 const materialTabContent = document.getElementById('materialTabContent');
 const panelSummary = document.getElementById('panelSummary');
 const bandingSummary = document.getElementById('bandingSummary');
+const materialGrainSettings = document.getElementById('materialGrainSettings');
 
 
 // Sayfa Yüklendiğinde
@@ -65,7 +65,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Proje ve Malzeme verilerini yükle
 const loadProjectAndMaterials = async () => {
-    // Malzemeleri yükle
     const matQuery = query(collection(db, 'materials'), where('userId', '==', currentUser.uid));
     const matSnapshot = await getDocs(matQuery);
     allMaterials.clear();
@@ -73,17 +72,45 @@ const loadProjectAndMaterials = async () => {
         allMaterials.set(doc.id, { id: doc.id, ...doc.data() });
     });
 
-    // Projeyi yükle
     const projectRef = doc(db, 'projects', projectId);
     const projectSnap = await getDoc(projectRef);
     if (projectSnap.exists()) {
         projectData = projectSnap.data();
         projectNameEl.textContent = projectData.name;
+        // Projedeki panel malzemeleri için ayar arayüzünü oluştur
+        createGrainSettingsUI();
     } else {
         alert("Proje bulunamadı.");
         window.location.href = 'projects.html';
     }
 };
+
+// Yön ayarları için arayüzü oluşturan fonksiyon
+function createGrainSettingsUI() {
+    materialGrainSettings.innerHTML = '';
+    const uniquePanelIds = [...new Set((projectData.parts || []).map(p => p.materialId))];
+    
+    if (uniquePanelIds.length === 0) {
+        materialGrainSettings.innerHTML = '<p class="text-muted">Projede panel malzemesi bulunmuyor.</p>';
+        return;
+    }
+
+    uniquePanelIds.forEach(id => {
+        const material = allMaterials.get(id);
+        if (material && material.type === 'Panel') {
+            const div = document.createElement('div');
+            div.className = 'form-check';
+            div.innerHTML = `
+                <input class="form-check-input" type="checkbox" value="" id="grain-${id}">
+                <label class="form-check-label" for="grain-${id}">
+                    <b>${material.name}</b> için döndürmeyi kilitle (Desenli)
+                </label>
+            `;
+            materialGrainSettings.appendChild(div);
+        }
+    });
+}
+
 
 // Optimizasyonu Başlat
 function runOptimization() {
@@ -93,7 +120,6 @@ function runOptimization() {
     panelSummary.innerHTML = '';
     bandingSummary.innerHTML = '';
 
-    // Basit bir gecikme ile yükleme animasyonunu göster
     setTimeout(() => {
         const sheetWidth = parseInt(document.getElementById('sheetWidth').value);
         const sheetHeight = parseInt(document.getElementById('sheetHeight').value);
@@ -104,7 +130,6 @@ function runOptimization() {
             return;
         }
 
-        // Parçaları malzeme türüne göre grupla
         const partsByMaterial = {};
         (projectData.parts || []).forEach(part => {
             if (!partsByMaterial[part.materialId]) {
@@ -120,27 +145,27 @@ function runOptimization() {
             const material = allMaterials.get(materialId);
             const materialName = material ? material.name : 'Bilinmeyen Malzeme';
             
-            // Sekme oluştur
+            // Kullanıcının o anki seçimini al
+            const grainCheckbox = document.getElementById(`grain-${materialId}`);
+            const rotationDisabled = grainCheckbox ? grainCheckbox.checked : false;
+            
             const tabId = `tab-${materialId}`;
             const tabNavItem = document.createElement('li');
             tabNavItem.className = 'nav-item';
             tabNavItem.innerHTML = `<a class="nav-link ${firstTab ? 'active' : ''}" id="${tabId}-tab" data-bs-toggle="tab" href="#${tabId}" role="tab">${materialName}</a>`;
             materialTabs.appendChild(tabNavItem);
 
-            // Sekme içeriği oluştur
             const tabContentPane = document.createElement('div');
             tabContentPane.className = `tab-pane fade ${firstTab ? 'show active' : ''}`;
             tabContentPane.id = tabId;
             tabContentPane.role = 'tabpanel';
             
-            // Optimizasyon algoritmasını çalıştır
-            const { packedSheets, unpackedPieces } = simpleBinPacker(partsByMaterial[materialId], sheetWidth, sheetHeight);
+            const { packedSheets } = simpleBinPacker(partsByMaterial[materialId], sheetWidth, sheetHeight, rotationDisabled);
             
-            // Sonuçları render et
             packedSheets.forEach((sheet, index) => {
                 const sheetEl = document.createElement('div');
                 sheetEl.className = 'sheet-container';
-                const scale = 500 / sheetWidth; // Görselleştirme için ölçek
+                const scale = 500 / sheetWidth;
                 sheetEl.style.width = `${sheetWidth * scale}px`;
                 sheetEl.style.height = `${sheetHeight * scale}px`;
                 sheetEl.innerHTML = `<h5 class="p-2">Plaka ${index + 1}</h5>`;
@@ -160,22 +185,17 @@ function runOptimization() {
 
             materialTabContent.appendChild(tabContentPane);
             
-            // Panel özetini güncelle
             panelSummary.innerHTML += `<li class="list-group-item">${materialName}: <strong>${packedSheets.length} plaka</strong></li>`;
-
             firstTab = false;
         }
         
-        // Kenar bandı özetini hesapla
         calculateAndRenderBandingSummary();
-
         loadingIndicator.classList.add('d-none');
     }, 500);
 }
 
 // Basit Yerleştirme Algoritması (Bin Packer)
-function simpleBinPacker(pieces, sheetW, sheetH) {
-    // Parçaları alana göre büyükten küçüğe sırala
+function simpleBinPacker(pieces, sheetW, sheetH, rotationDisabled) {
     pieces.sort((a, b) => (b.w * b.h) - (a.w * a.h));
     
     let packedSheets = [];
@@ -183,17 +203,15 @@ function simpleBinPacker(pieces, sheetW, sheetH) {
 
     pieces.forEach(piece => {
         let placed = false;
-        // Mevcut plakalara yerleştirmeyi dene
         for (const sheet of packedSheets) {
-            if (findSpot(sheet, piece)) {
+            if (findSpot(sheet, piece, rotationDisabled)) {
                 placed = true;
                 break;
             }
         }
-        // Yerleşmediyse yeni plaka aç
         if (!placed) {
             const newSheet = { w: sheetW, h: sheetH, pieces: [] };
-            if (findSpot(newSheet, piece)) {
+            if (findSpot(newSheet, piece, rotationDisabled)) {
                 packedSheets.push(newSheet);
                 placed = true;
             }
@@ -206,13 +224,27 @@ function simpleBinPacker(pieces, sheetW, sheetH) {
     return { packedSheets, unpackedPieces };
 }
 
-function findSpot(sheet, piece) {
-    // Çok basit bir yer bulma mantığı: İlk boş köşeyi bul
-    for (let y = 0; y <= sheet.h - piece.h; y++) {
-        for (let x = 0; x <= sheet.w - piece.w; x++) {
-            if (isSpotFree(sheet, x, y, piece.w, piece.h)) {
+function findSpot(sheet, piece, rotationDisabled) {
+    if (tryToPlace(sheet, piece.w, piece.h, piece)) {
+        return true;
+    }
+    if (!rotationDisabled && piece.w !== piece.h) {
+        if (tryToPlace(sheet, piece.h, piece.w, piece)) {
+            [piece.w, piece.h] = [piece.h, piece.w];
+            return true;
+        }
+    }
+    return false;
+}
+
+function tryToPlace(sheet, pieceW, pieceH, piece) {
+    for (let y = 0; y <= sheet.h - pieceH; y++) {
+        for (let x = 0; x <= sheet.w - pieceW; x++) {
+            if (isSpotFree(sheet, x, y, pieceW, pieceH)) {
                 piece.x = x;
                 piece.y = y;
+                piece.w = pieceW;
+                piece.h = pieceH;
                 sheet.pieces.push(piece);
                 return true;
             }
@@ -224,15 +256,15 @@ function findSpot(sheet, piece) {
 function isSpotFree(sheet, x, y, w, h) {
     for (const p of sheet.pieces) {
         if (x < p.x + p.w && x + w > p.x && y < p.y + p.h && y + h > p.y) {
-            return false; // Çakışma var
+            return false;
         }
     }
-    return true; // Boş
+    return true;
 }
 
 // Kenar bandı özetini hesapla ve render et
 function calculateAndRenderBandingSummary() {
-    const bandingTotals = {}; // { materialId: totalLength }
+    const bandingTotals = {};
     (projectData.parts || []).forEach(part => {
         if (part.banding && part.banding.materialId) {
             const materialId = part.banding.materialId;
