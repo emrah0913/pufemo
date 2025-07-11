@@ -59,7 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
     
-    // *** DÜZELTME: Tüm fonksiyon tanımlamaları buraya taşındı ***
+    // Tüm fonksiyon tanımlamaları buraya taşındı
 
     // Tüm malzemeleri Firestore'dan çek ve Map'e kaydet
     const loadAllMaterials = async () => {
@@ -187,7 +187,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
     
-    // *** ANA İŞ AKIŞI ***
+    // ANA İŞ AKIŞI
     
     // Oturum kontrolü
     onAuthStateChanged(auth, (user) => {
