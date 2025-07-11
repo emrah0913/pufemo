@@ -43,12 +43,14 @@ const backButton = document.getElementById('backButton');
 const logoutButton = document.getElementById('logoutButton');
 const partRowTemplate = document.getElementById('partRowTemplate');
 const accessoryRowTemplate = document.getElementById('accessoryRowTemplate');
+// Yeni Maliyet Hesaplayıcı Elementleri
+const calculateSampleCostBtn = document.getElementById('calculateSampleCostBtn');
+const sampleCostDisplay = document.getElementById('sampleCostDisplay');
+
 
 let categoryId = null;
 let moduleId = null; 
-let panelMaterials = [];
-let accessoryMaterials = [];
-let bandingMaterials = []; // Yeni
+let allMaterials = new Map(); // Tüm malzemeleri ID'leriyle saklamak için
 let currentUser = null;
 
 // Sayfa yüklendiğinde çalışacak ana fonksiyon
@@ -81,20 +83,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// Tüm malzemeleri Firestore'dan çek
+// Tüm malzemeleri Firestore'dan çek ve Map'e kaydet
 const loadAllMaterials = async () => {
     const q = query(collection(db, 'materials'), where('userId', '==', currentUser.uid));
     const querySnapshot = await getDocs(q);
-    
-    panelMaterials = [];
-    accessoryMaterials = [];
-    bandingMaterials = []; // Yeni
-
+    allMaterials.clear();
     querySnapshot.forEach(doc => {
-        const material = { id: doc.id, ...doc.data() };
-        if (material.type === 'Panel') panelMaterials.push(material);
-        else if (material.type === 'Aksesuar') accessoryMaterials.push(material);
-        else if (material.type === 'Kenar Bandı') bandingMaterials.push(material); // Yeni
+        allMaterials.set(doc.id, { id: doc.id, ...doc.data() });
     });
 };
 
@@ -136,28 +131,23 @@ const addPartRow = (name = '', qty = 1, height = '', width = '', materialId = ''
     const templateContent = partRowTemplate.content.cloneNode(true);
     const partRow = templateContent.querySelector('.part-row');
     
-    // Malzeme seçimini doldur
+    const panelMaterials = Array.from(allMaterials.values()).filter(m => m.type === 'Panel');
+    const bandingMaterials = Array.from(allMaterials.values()).filter(m => m.type === 'Kenar Bandı');
+
     const materialSelect = partRow.querySelector('.part-material');
     materialSelect.innerHTML = '<option value="">Panel Malzemesi Seçin...</option>';
-    panelMaterials.forEach(mat => {
-        materialSelect.innerHTML += `<option value="${mat.id}">${mat.name}</option>`;
-    });
+    panelMaterials.forEach(mat => { materialSelect.innerHTML += `<option value="${mat.id}">${mat.name}</option>`; });
 
-    // Kenar bandı seçimini doldur
     const bandingSelect = partRow.querySelector('.part-banding-material');
-    bandingSelect.innerHTML = '<option value="">Bant Malzemesi Seçin (Opsiyonel)...</option>';
-    bandingMaterials.forEach(mat => {
-        bandingSelect.innerHTML += `<option value="${mat.id}">${mat.name}</option>`;
-    });
+    bandingSelect.innerHTML = '<option value="">Bant Malzemesi Seçin...</option>';
+    bandingMaterials.forEach(mat => { bandingSelect.innerHTML += `<option value="${mat.id}">${mat.name}</option>`; });
 
-    // Değerleri ata
     partRow.querySelector('.part-name').value = name;
     partRow.querySelector('.part-qty').value = qty;
     partRow.querySelector('.part-height').value = height;
     partRow.querySelector('.part-width').value = width;
     if (materialId) materialSelect.value = materialId;
     
-    // Kenar bandı bilgilerini ata
     if (banding) {
         bandingSelect.value = banding.materialId || '';
         partRow.querySelector('.part-banding-b1').checked = banding.b1 || false;
@@ -174,11 +164,10 @@ const addAccessoryRow = (materialId = '', qtyFormula = '') => {
     const templateContent = accessoryRowTemplate.content.cloneNode(true);
     const accessoryRow = templateContent.querySelector('.accessory-row');
     
+    const accessoryMaterials = Array.from(allMaterials.values()).filter(m => m.type === 'Aksesuar');
     const materialSelect = accessoryRow.querySelector('.accessory-material');
     materialSelect.innerHTML = '<option value="">Aksesuar Seçin...</option>';
-    accessoryMaterials.forEach(mat => {
-        materialSelect.innerHTML += `<option value="${mat.id}">${mat.name}</option>`;
-    });
+    accessoryMaterials.forEach(mat => { materialSelect.innerHTML += `<option value="${mat.id}">${mat.name}</option>`; });
 
     accessoryRow.querySelector('.accessory-qty').value = qtyFormula;
     if (materialId) materialSelect.value = materialId;
@@ -196,13 +185,75 @@ document.addEventListener('click', (e) => {
     if (e.target.classList.contains('remove-accessory-btn')) e.target.closest('.accessory-row').remove();
 });
 
+// Örnek Maliyet Hesaplama Butonu (YENİ)
+calculateSampleCostBtn.addEventListener('click', () => {
+    const B = parseFloat(document.getElementById('sampleHeight').value);
+    const E = parseFloat(document.getElementById('sampleWidth').value);
+    const D = parseFloat(document.getElementById('sampleDepth').value);
+    const K = parseFloat(document.getElementById('sampleThickness').value);
+
+    if (!B || !E || !D || !K) {
+        alert("Lütfen tüm örnek ölçüleri girin.");
+        return;
+    }
+
+    let totalCost = 0;
+    let errorOccurred = false;
+
+    // Parça maliyetlerini hesapla
+    document.querySelectorAll('.part-row').forEach(row => {
+        if (errorOccurred) return;
+        try {
+            const materialId = row.querySelector('.part-material').value;
+            const material = allMaterials.get(materialId);
+            if (!material) return; // Malzeme seçilmemişse atla
+
+            const height = eval(row.querySelector('.part-height').value.toUpperCase().replace(/ /g, ''));
+            const width = eval(row.querySelector('.part-width').value.toUpperCase().replace(/ /g, ''));
+            const qty = parseInt(row.querySelector('.part-qty').value);
+            const area = (height / 1000) * (width / 1000); // m²
+            totalCost += area * material.price * qty;
+
+            // Kenar bandı maliyetini hesapla
+            const bandingMaterialId = row.querySelector('.part-banding-material').value;
+            const bandingMaterial = allMaterials.get(bandingMaterialId);
+            if(bandingMaterial) {
+                let totalBandingLength = 0; // metre
+                if (row.querySelector('.part-banding-b1').checked) totalBandingLength += height / 1000;
+                if (row.querySelector('.part-banding-b2').checked) totalBandingLength += height / 1000;
+                if (row.querySelector('.part-banding-e1').checked) totalBandingLength += width / 1000;
+                if (row.querySelector('.part-banding-e2').checked) totalBandingLength += width / 1000;
+                totalCost += totalBandingLength * bandingMaterial.price * qty;
+            }
+
+        } catch (e) { errorOccurred = true; alert(`Bir parça formülünde hata var: ${e.message}`); }
+    });
+
+    // Aksesuar maliyetlerini hesapla
+    document.querySelectorAll('.accessory-row').forEach(row => {
+        if (errorOccurred) return;
+        try {
+            const materialId = row.querySelector('.accessory-material').value;
+            const material = allMaterials.get(materialId);
+            if (!material) return;
+
+            const qty = Math.ceil(eval(row.querySelector('.accessory-qty').value.toUpperCase().replace(/ /g, '')));
+            totalCost += qty * material.price;
+        } catch (e) { errorOccurred = true; alert(`Bir aksesuar formülünde hata var: ${e.message}`); }
+    });
+
+    if (!errorOccurred) {
+        sampleCostDisplay.textContent = `${totalCost.toFixed(2)} ₺`;
+    }
+});
+
+
 // Formu Kaydetme
 moduleForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const moduleName = moduleNameInput.value.trim();
     if (!moduleName) return alert("Modül adı boş bırakılamaz.");
 
-    // Parçaları topla
     const parts = [];
     document.querySelectorAll('.part-row').forEach(row => {
         const data = {
@@ -224,7 +275,6 @@ moduleForm.addEventListener('submit', async (e) => {
         }
     });
 
-    // Aksesuarları topla
     const accessories = [];
     document.querySelectorAll('.accessory-row').forEach(row => {
         const data = {
