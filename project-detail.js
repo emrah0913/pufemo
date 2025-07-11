@@ -96,7 +96,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
-    // Parça listesini render et
+    // Parça listesini render et (GÜNCELLENDİ)
     const renderParts = (parts) => {
         partsListEl.innerHTML = '';
         if (parts.length === 0) {
@@ -109,12 +109,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const cost = part.cost ? part.cost.toFixed(2) : '0.00';
             
             let heightBandingClass = '';
-            if (part.banding.b1 && part.banding.b2) heightBandingClass = 'banded-double';
-            else if (part.banding.b1 || part.banding.b2) heightBandingClass = 'banded-single';
-
             let widthBandingClass = '';
-            if (part.banding.e1 && part.banding.e2) widthBandingClass = 'banded-double';
-            else if (part.banding.e1 || part.banding.e2) widthBandingClass = 'banded-single';
+
+            // *** DÜZELTME: Önce 'part.banding' nesnesinin var olup olmadığını kontrol et ***
+            if (part.banding) {
+                if (part.banding.b1 && part.banding.b2) heightBandingClass = 'banded-double';
+                else if (part.banding.b1 || part.banding.b2) heightBandingClass = 'banded-single';
+
+                if (part.banding.e1 && part.banding.e2) widthBandingClass = 'banded-double';
+                else if (part.banding.e1 || part.banding.e2) widthBandingClass = 'banded-single';
+            }
 
             const row = `
                 <tr>
