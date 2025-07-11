@@ -36,15 +36,16 @@ const addPartBtn = document.getElementById('addPartBtn');
 const saveModuleBtn = document.getElementById('saveModuleBtn');
 const backButton = document.getElementById('backButton');
 const logoutButton = document.getElementById('logoutButton');
+const partRowTemplate = document.getElementById('partRowTemplate');
 
 let categoryId = null;
-let moduleId = null; // Düzenleme modu için modül ID'sini tutacak
+let moduleId = null; 
 
 // Sayfa yüklendiğinde çalışacak ana fonksiyon
 document.addEventListener('DOMContentLoaded', () => {
     const params = new URLSearchParams(window.location.search);
     categoryId = params.get('categoryId');
-    moduleId = params.get('moduleId'); // moduleId'yi de al
+    moduleId = params.get('moduleId');
 
     if (!categoryId) {
         alert("Kategori ID'si bulunamadı!");
@@ -57,10 +58,8 @@ document.addEventListener('DOMContentLoaded', () => {
     onAuthStateChanged(auth, user => {
         if (user) {
             if (moduleId) {
-                // Eğer URL'de moduleId varsa, bu bir DÜZENLEME modudur.
                 loadModuleForEditing(moduleId);
             } else {
-                // moduleId yoksa, bu bir YENİ EKLEME modudur.
                 pageTitle.textContent = 'Yeni Modül Şablonu Oluştur';
                 saveModuleBtn.textContent = 'Şablonu Kaydet';
             }
@@ -86,8 +85,7 @@ const loadModuleForEditing = async (id) => {
             const moduleData = docSnap.data();
             moduleNameInput.value = moduleData.name;
             
-            // Kayıtlı parçaları ekrana çiz
-            partsContainer.innerHTML = ''; // Önce mevcutları temizle
+            partsContainer.innerHTML = '';
             moduleData.parts.forEach(part => {
                 addPartRow(part.name, part.qty, part.widthFormula, part.heightFormula);
             });
@@ -103,40 +101,27 @@ const loadModuleForEditing = async (id) => {
 
 // Ekrana yeni bir parça satırı ekleyen fonksiyon
 const addPartRow = (name = '', qty = 1, width = '', height = '') => {
-    const partId = `part-${Date.now()}`;
-    const partElement = document.createElement('div');
-    partElement.className = 'card mb-2 part-row';
-    partElement.id = partId;
-    partElement.innerHTML = `
-        <div class="card-body">
-            <div class="row g-2 align-items-center">
-                <div class="col-md-3">
-                    <label class="form-label">Parça Adı</label>
-                    <input type="text" class="form-control form-control-sm part-name" placeholder="Sol Yan" value="${name}" required>
-                </div>
-                <div class="col-md-1">
-                    <label class="form-label">Adet</label>
-                    <input type="number" class="form-control form-control-sm part-qty" value="${qty}" required>
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label">Genişlik Formülü</label>
-                    <input type="text" class="form-control form-control-sm part-width" placeholder="D" value="${width}" required>
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label">Yükseklik/Derinlik Formülü</label>
-                    <input type="text" class="form-control form-control-sm part-height" placeholder="B" value="${height}" required>
-                </div>
-                <div class="col-md-2 text-end align-self-end">
-                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="document.getElementById('${partId}').remove()">Sil</button>
-                </div>
-            </div>
-        </div>
-    `;
-    partsContainer.appendChild(partElement);
+    const templateContent = partRowTemplate.content.cloneNode(true);
+    const partRow = templateContent.querySelector('.part-row');
+    
+    partRow.querySelector('.part-name').value = name;
+    partRow.querySelector('.part-qty').value = qty;
+    partRow.querySelector('.part-width').value = width;
+    partRow.querySelector('.part-height').value = height;
+
+    partsContainer.appendChild(templateContent);
 };
 
 // "+ Parça Ekle" butonuna tıklandığında boş bir satır ekle
 addPartBtn.addEventListener('click', () => addPartRow());
+
+// Sil butonlarına olay dinleyici ekle (Daha verimli yöntem)
+partsContainer.addEventListener('click', (e) => {
+    if (e.target.classList.contains('remove-part-btn')) {
+        e.target.closest('.part-row').remove();
+    }
+});
+
 
 // Formu Kaydetme (Hem Ekleme Hem Güncelleme)
 moduleForm.addEventListener('submit', async (e) => {
@@ -178,7 +163,7 @@ moduleForm.addEventListener('submit', async (e) => {
         userId: user.uid,
         categoryId: categoryId,
         parts: parts,
-        createdAt: serverTimestamp() // Her kayıtta güncellenir
+        createdAt: serverTimestamp() 
     };
 
     try {
@@ -186,12 +171,10 @@ moduleForm.addEventListener('submit', async (e) => {
         saveModuleBtn.textContent = 'Kaydediliyor...';
 
         if (moduleId) {
-            // GÜNCELLEME MODU
             const docRef = doc(db, 'moduleTemplates', moduleId);
             await updateDoc(docRef, dataToSave);
             alert('Modül şablonu başarıyla güncellendi!');
         } else {
-            // YENİ EKLEME MODU
             await addDoc(collection(db, 'moduleTemplates'), dataToSave);
             alert('Modül şablonu başarıyla kaydedildi!');
         }
