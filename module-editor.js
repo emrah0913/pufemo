@@ -87,7 +87,7 @@ const loadModuleForEditing = async (id) => {
             
             partsContainer.innerHTML = '';
             moduleData.parts.forEach(part => {
-                addPartRow(part.name, part.qty, part.heightFormula, part.widthFormula, part.depthFormula);
+                addPartRow(part.name, part.qty, part.heightFormula, part.widthFormula);
             });
         } else {
             alert("Düzenlenecek modül bulunamadı.");
@@ -99,8 +99,8 @@ const loadModuleForEditing = async (id) => {
     }
 };
 
-// Ekrana yeni bir parça satırı ekleyen fonksiyon (GÜNCELLENDİ)
-const addPartRow = (name = '', qty = 1, height = '', width = '', depth = '') => {
+// Ekrana yeni bir parça satırı ekleyen fonksiyon
+const addPartRow = (name = '', qty = 1, height = '', width = '') => {
     const templateContent = partRowTemplate.content.cloneNode(true);
     const partRow = templateContent.querySelector('.part-row');
     
@@ -108,7 +108,6 @@ const addPartRow = (name = '', qty = 1, height = '', width = '', depth = '') => 
     partRow.querySelector('.part-qty').value = qty;
     partRow.querySelector('.part-height').value = height;
     partRow.querySelector('.part-width').value = width;
-    partRow.querySelector('.part-depth').value = depth; // Yeni alanı doldur
 
     partsContainer.appendChild(templateContent);
 };
@@ -124,7 +123,7 @@ partsContainer.addEventListener('click', (e) => {
 });
 
 
-// Formu Kaydetme (Hem Ekleme Hem Güncelleme) (GÜNCELLENDİ)
+// Formu Kaydetme (Hem Ekleme Hem Güncelleme)
 moduleForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const user = auth.currentUser;
@@ -148,16 +147,14 @@ moduleForm.addEventListener('submit', async (e) => {
         const qty = parseInt(row.querySelector('.part-qty').value);
         const heightFormula = row.querySelector('.part-height').value.trim();
         const widthFormula = row.querySelector('.part-width').value.trim();
-        const depthFormula = row.querySelector('.part-depth').value.trim(); // Yeni alanı oku
         
-        // Boy ve En formülleri zorunlu, Derinlik opsiyonel
         if(name && qty > 0 && heightFormula && widthFormula) {
-            parts.push({ name, qty, heightFormula, widthFormula, depthFormula });
+            parts.push({ name, qty, heightFormula, widthFormula });
         }
     });
 
     if (parts.length !== partRows.length) {
-        alert("Lütfen tüm parça bilgilerini (Boy ve En formülleri dahil) eksiksiz doldurun.");
+        alert("Lütfen tüm parça bilgilerini eksiksiz doldurun.");
         return;
     }
 
