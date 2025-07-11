@@ -107,11 +107,20 @@ document.addEventListener('DOMContentLoaded', () => {
             const material = allMaterials.get(part.materialId);
             const materialName = material ? material.name : 'Bilinmeyen Malzeme';
             const cost = part.cost ? part.cost.toFixed(2) : '0.00';
+            
+            let heightBandingClass = '';
+            if (part.banding.b1 && part.banding.b2) heightBandingClass = 'banded-double';
+            else if (part.banding.b1 || part.banding.b2) heightBandingClass = 'banded-single';
+
+            let widthBandingClass = '';
+            if (part.banding.e1 && part.banding.e2) widthBandingClass = 'banded-double';
+            else if (part.banding.e1 || part.banding.e2) widthBandingClass = 'banded-single';
+
             const row = `
                 <tr>
                     <td>${part.name}</td>
-                    <td>${part.height}</td>
-                    <td>${part.width}</td>
+                    <td class="${heightBandingClass}">${part.height}</td>
+                    <td class="${widthBandingClass}">${part.width}</td>
                     <td>${part.qty}</td>
                     <td>${materialName}</td>
                     <td>${cost} ₺</td>
@@ -205,7 +214,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Çıkış yap
     logoutButton.addEventListener('click', () => signOut(auth));
     
-    // "Hesapla ve Projeye Ekle" Butonu (GÜNCELLENDİ)
+    // "Hesapla ve Projeye Ekle" Butonu
     addModuleToProjectBtn.addEventListener('click', async () => {
         const B = parseFloat(document.getElementById('moduleHeight').value);
         const E = parseFloat(document.getElementById('moduleWidth').value);
@@ -235,7 +244,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const area = (height / 1000) * (width / 1000);
                 let cost = area * material.price * qty;
 
-                // *** DÜZELTME: Kenar bandı maliyetini hesaba kat ***
+                // Kenar bandı maliyetini hesaba kat
                 if (part.banding && part.banding.materialId) {
                     const bandingMaterial = allMaterials.get(part.banding.materialId);
                     if (bandingMaterial && typeof bandingMaterial.price === 'number') {
@@ -250,7 +259,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 if (isNaN(cost)) throw new Error("Maliyet hesaplanamadı (NaN).");
 
-                return { partId: crypto.randomUUID(), name: part.name, width, height, qty, materialId: part.materialId, cost, moduleInstanceName };
+                return { partId: crypto.randomUUID(), name: part.name, width, height, qty, materialId: part.materialId, cost, banding: part.banding, moduleInstanceName };
             } catch (e) { errorOccurred = true; alert(`'${part.name}' parça formülünde hata: ${e.message}`); return null; }
         }).filter(Boolean);
 
