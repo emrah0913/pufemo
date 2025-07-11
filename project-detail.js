@@ -85,7 +85,7 @@ const loadProjectDetails = async () => {
     });
 };
 
-// Parça listesini tabloya render et (GÜNCELLENDİ)
+// Parça listesini tabloya render et
 const renderParts = (parts) => {
     partsListEl.innerHTML = '';
     if (parts.length === 0) {
@@ -93,7 +93,6 @@ const renderParts = (parts) => {
         return;
     }
     parts.forEach(part => {
-        // *** DEĞİŞİKLİK BURADA: Önce Yükseklik (Boy), sonra Genişlik (En) ***
         const row = `
             <tr>
                 <td>${part.name}</td>
@@ -127,7 +126,6 @@ const loadModuleTemplates = async () => {
 
 // "Hesapla ve Projeye Ekle" Butonuna Tıklandığında (GÜNCELLENDİ)
 addModuleToProjectBtn.addEventListener('click', async () => {
-    // *** DEĞİŞİKLİK BURADA: Değişkenler B ve E olarak tanımlandı ***
     const B = parseFloat(document.getElementById('moduleHeight').value);
     const E = parseFloat(document.getElementById('moduleWidth').value);
     const D = parseFloat(document.getElementById('moduleDepth').value);
@@ -152,8 +150,26 @@ addModuleToProjectBtn.addEventListener('click', async () => {
     selectedTemplate.parts.forEach(part => {
         if (errorOccurred) return;
         try {
-            let widthFormula = part.widthFormula.toUpperCase().replace(/ /g, '');
-            let heightFormula = part.heightFormula.toUpperCase().replace(/ /g, '');
+            // *** YENİ AKILLI FORMÜL İŞLEME MANTIĞI ***
+            let rawHeightFormula = part.heightFormula.toUpperCase().replace(/ /g, '');
+            let heightFormula;
+            // Eğer formül sadece sayısal bir işlemse (örn: -36, +10), başına 'B' ekle.
+            if (/^[+-]?\d*\.?\d+$/.test(rawHeightFormula)) {
+                heightFormula = 'B' + rawHeightFormula;
+            } else {
+                heightFormula = rawHeightFormula; // Değilse (örn: B-18, D) olduğu gibi kullan.
+            }
+
+            let rawWidthFormula = part.widthFormula.toUpperCase().replace(/ /g, '');
+            let widthFormula;
+            // Eğer formül sadece sayısal bir işlemse (örn: -36), başına 'E' ekle.
+            if (/^[+-]?\d*\.?\d+$/.test(rawWidthFormula)) {
+                widthFormula = 'E' + rawWidthFormula;
+            } else {
+                widthFormula = rawWidthFormula; // Değilse (örn: E-18, D) olduğu gibi kullan.
+            }
+            // *** MANTIK SONU ***
+
             const calculatedWidth = eval(widthFormula);
             const calculatedHeight = eval(heightFormula);
 
