@@ -124,7 +124,7 @@ const loadModuleTemplates = async () => {
     });
 };
 
-// "Hesapla ve Projeye Ekle" Butonuna Tıklandığında (GÜNCELLENDİ)
+// "Hesapla ve Projeye Ekle" Butonuna Tıklandığında
 addModuleToProjectBtn.addEventListener('click', async () => {
     const B = parseFloat(document.getElementById('moduleHeight').value);
     const E = parseFloat(document.getElementById('moduleWidth').value);
@@ -145,34 +145,13 @@ addModuleToProjectBtn.addEventListener('click', async () => {
         return;
     }
 
-    // *** YENİ VE GELİŞTİRİLMİŞ HESAPLAMA MOTORU ***
-    const processFormula = (rawFormula, baseVariable) => {
-        const formula = rawFormula.toUpperCase().replace(/ /g, '');
-
-        // Durum 1: Formül sadece bir sayı mı? (örn: "100", "55.5")
-        if (!isNaN(formula) && !isNaN(parseFloat(formula))) {
-            return formula; // Sabit değer olarak kullan.
-        }
-
-        // Durum 2: Formül sadece bir işlem mi? (örn: "-36", "+10")
-        if (/^[+-]\d*\.?\d+$/.test(formula)) {
-            return baseVariable + formula; // Başına B veya E ekle.
-        }
-
-        // Durum 3: Formül tam bir ifade mi? (örn: "B-18", "D", "E/2")
-        return formula; // Olduğu gibi kullan.
-    };
-
     const calculatedParts = [];
     let errorOccurred = false;
     selectedTemplate.parts.forEach(part => {
         if (errorOccurred) return;
         try {
-            const heightFormula = processFormula(part.heightFormula, 'B');
-            const widthFormula = processFormula(part.widthFormula, 'E');
-
-            const calculatedWidth = eval(widthFormula);
-            const calculatedHeight = eval(heightFormula);
+            const calculatedHeight = eval(part.heightFormula.toUpperCase().replace(/ /g, ''));
+            const calculatedWidth = eval(part.widthFormula.toUpperCase().replace(/ /g, ''));
 
             calculatedParts.push({
                 partId: crypto.randomUUID(),
