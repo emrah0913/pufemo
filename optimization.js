@@ -14,12 +14,11 @@ const firebaseConfig = {
   measurementId: "G-RH8XHC7P91"
 };
 
-// Init Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// DOM Elements
+// Elements
 const projectNameEl = document.getElementById('projectName');
 const backButton = document.getElementById('backButton');
 const logoutButton = document.getElementById('logoutButton');
@@ -38,7 +37,6 @@ let projectId = null;
 let projectData = {};
 let allMaterials = new Map();
 
-// On Load
 window.addEventListener('DOMContentLoaded', () => {
   const params = new URLSearchParams(window.location.search);
   projectId = params.get('id');
@@ -59,7 +57,6 @@ window.addEventListener('DOMContentLoaded', () => {
   runOptimizationBtn.addEventListener('click', runOptimization);
 });
 
-// Load Data
 async function loadProjectData() {
   const matQuery = query(collection(db, 'materials'), where('userId', '==', currentUser.uid));
   const matSnapshot = await getDocs(matQuery);
@@ -86,8 +83,8 @@ function renderGrainSettings() {
       const div = document.createElement('div');
       div.className = 'form-check';
       div.innerHTML = `
-        <input class="form-check-input" type="checkbox" id="grain-${id}">
-        <label class="form-check-label" for="grain-${id}"><b>${material.name}</b> için döndürme kapalı</label>
+        <input class="form-check-input" type="checkbox" id="grain-${id}" ${material.patterned ? 'checked disabled' : ''}>
+        <label class="form-check-label" for="grain-${id}"><b>${material.name}</b> için döndürme ${material.patterned ? 'ZORUNLU KAPALI' : 'isteğe bağlı'}</label>
       `;
       materialGrainSettings.appendChild(div);
     }
@@ -106,7 +103,6 @@ function runOptimization() {
   const sheetWidth = parseInt(document.getElementById('sheetWidth').value);
   const sheetHeight = parseInt(document.getElementById('sheetHeight').value);
   const kerf = parseFloat(document.getElementById('kerfValue').value || 0);
-  const priority = document.getElementById('optimizationPriority').value;
 
   if (!sheetWidth || !sheetHeight) {
     alert("Lütfen geçerli plaka ölçüleri girin.");
@@ -128,10 +124,10 @@ function runOptimization() {
 
     for (const matId in materialGroups) {
       const material = allMaterials.get(matId);
-      const rotationAllowed = !document.getElementById(`grain-${matId}`)?.checked;
+      const rotationAllowed = material.patterned !== true;
       const tabId = `tab-${matId}`;
 
-      const { packedSheets, unpacked } = optimizeLayout(materialGroups[matId], sheetWidth, sheetHeight, kerf, rotationAllowed, priority);
+      const { packedSheets, unpacked } = maxRectsPack(materialGroups[matId], sheetWidth, sheetHeight, kerf, rotationAllowed);
 
       const tabNav = document.createElement('li');
       tabNav.className = 'nav-item';
@@ -181,7 +177,12 @@ function runOptimization() {
   }, 300);
 }
 
-function optimizeLayout(pieces, sw, sh, kerf, allowRotation, priority) {
+function maxRectsPack(pieces, sw, sh, kerf, allowRotation) {
+  // Placeholder for MaxRects implementation — geliştirilecek
+  return binaryTreePack(pieces, sw, sh, kerf, allowRotation);
+}
+
+function binaryTreePack(pieces, sw, sh, kerf, allowRotation) {
   pieces.sort((a, b) => (b.w * b.h) - (a.w * a.h));
   const packedSheets = [];
   const unpacked = [];
