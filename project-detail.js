@@ -52,6 +52,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const loadingIndicator = document.getElementById('loadingIndicator');
     const logoutButton = document.getElementById('logoutButton');
     const recalculateCostBtn = document.getElementById('recalculateCostBtn');
+    const optimizationLink = document.getElementById('optimizationLink'); // Yeni
     
     // Modül Ekleme Modalı Elementleri
     const moduleTemplateSelect = document.getElementById('moduleTemplateSelect');
@@ -77,6 +78,9 @@ document.addEventListener('DOMContentLoaded', () => {
         window.location.href = 'projects.html';
         return;
     }
+
+    // *** YENİ: Optimizasyon linkini ayarla ***
+    optimizationLink.href = `optimization.html?id=${projectId}`;
     
     // Tüm fonksiyon tanımlamaları buraya taşındı
 
@@ -118,16 +122,14 @@ document.addEventListener('DOMContentLoaded', () => {
         renderAccessories(currentProjectData.accessories || []);
     };
 
-    // Parça listesini render et (GÜNCELLENDİ)
+    // Parça listesini render et
     const renderParts = (parts) => {
         partsListEl.innerHTML = '';
         
         if (isGroupedView) {
-            // Gruplanmış görünüm için başlıklar
             partsTableHeader.innerHTML = `<th>Parça Adı</th><th>Malzeme</th><th>Boy (mm)</th><th>En (mm)</th><th>Toplam Adet</th>`;
             const grouped = {};
             parts.forEach(p => {
-                // GRUPLAMA ANAHTARI: Artık Parça Adını da içeriyor
                 const bandingKey = p.banding ? `${p.banding.b1 || false}-${p.banding.b2 || false}-${p.banding.e1 || false}-${p.banding.e2 || false}` : 'none';
                 const key = `${p.name}-${p.materialId}-${p.height}-${p.width}-${bandingKey}`;
                 
@@ -166,7 +168,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
         } else {
-            // Detaylı görünüm için başlıklar
             partsTableHeader.innerHTML = `<th>Parça Adı</th><th>Boy (mm)</th><th>En (mm)</th><th>Adet</th><th>Ait Olduğu Modül</th><th>İşlemler</th>`;
             parts.forEach(part => {
                 const material = allMaterials.get(part.materialId);
