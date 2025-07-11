@@ -118,15 +118,19 @@ document.addEventListener('DOMContentLoaded', () => {
         renderAccessories(currentProjectData.accessories || []);
     };
 
-    // Parça listesini render et
+    // Parça listesini render et (GÜNCELLENDİ)
     const renderParts = (parts) => {
         partsListEl.innerHTML = '';
         
         if (isGroupedView) {
+            // Gruplanmış görünüm için başlıklar
             partsTableHeader.innerHTML = `<th>Malzeme</th><th>Boy (mm)</th><th>En (mm)</th><th>Toplam Adet</th>`;
             const grouped = {};
             parts.forEach(p => {
-                const key = `${p.materialId}-${p.height}-${p.width}-${JSON.stringify(p.banding || {})}`;
+                // GRUPLAMA ANAHTARI: Malzeme, Ölçüler ve Bant Yönlerini içerir
+                const bandingKey = p.banding ? `${p.banding.b1 || false}-${p.banding.b2 || false}-${p.banding.e1 || false}-${p.banding.e2 || false}` : 'none';
+                const key = `${p.materialId}-${p.height}-${p.width}-${bandingKey}`;
+                
                 if (!grouped[key]) {
                     grouped[key] = { ...p, qty: 0 };
                 }
@@ -136,11 +140,33 @@ document.addEventListener('DOMContentLoaded', () => {
             Object.values(grouped).forEach(part => {
                 const material = allMaterials.get(part.materialId);
                 const materialName = material ? material.name : 'Bilinmeyen Malzeme';
-                const row = `<tr><td>${materialName}</td><td>${part.height}</td><td>${part.width}</td><td>${part.qty}</td></tr>`;
+                
+                // Kenar bandı sınıflarını belirle
+                let heightBandingClass = '';
+                if (part.banding) {
+                    if (part.banding.b1 && part.banding.b2) heightBandingClass = 'banded-double';
+                    else if (part.banding.b1 || part.banding.b2) heightBandingClass = 'banded-single';
+                }
+
+                let widthBandingClass = '';
+                if (part.banding) {
+                    if (part.banding.e1 && part.banding.e2) widthBandingClass = 'banded-double';
+                    else if (part.banding.e1 || part.banding.e2) widthBandingClass = 'banded-single';
+                }
+
+                const row = `
+                    <tr>
+                        <td>${materialName}</td>
+                        <td><span class="banded-span ${heightBandingClass}">${part.height}</span></td>
+                        <td><span class="banded-span ${widthBandingClass}">${part.width}</span></td>
+                        <td>${part.qty}</td>
+                    </tr>
+                `;
                 partsListEl.innerHTML += row;
             });
 
         } else {
+            // Detaylı görünüm için başlıklar
             partsTableHeader.innerHTML = `<th>Parça Adı</th><th>Boy (mm)</th><th>En (mm)</th><th>Adet</th><th>Ait Olduğu Modül</th><th>İşlemler</th>`;
             parts.forEach(part => {
                 const material = allMaterials.get(part.materialId);
