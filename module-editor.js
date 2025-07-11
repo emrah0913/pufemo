@@ -1,7 +1,15 @@
 // Gerekli Firebase Fonksiyonlarını Import Etme
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
-import { getFirestore, addDoc, collection, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+import { 
+    getFirestore, 
+    addDoc, 
+    updateDoc,
+    doc,
+    getDoc,
+    collection, 
+    serverTimestamp 
+} from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 
 // Firebase Konfigürasyonu
 const firebaseConfig = {
@@ -20,6 +28,7 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 // HTML Elementleri
+const pageTitle = document.querySelector('h3');
 const moduleForm = document.getElementById('moduleForm');
 const moduleNameInput = document.getElementById('moduleName');
 const partsContainer = document.getElementById('partsContainer');
@@ -29,11 +38,13 @@ const backButton = document.getElementById('backButton');
 const logoutButton = document.getElementById('logoutButton');
 
 let categoryId = null;
+let moduleId = null; // Düzenleme modu için modül ID'sini tutacak
 
 // Sayfa yüklendiğinde çalışacak ana fonksiyon
 document.addEventListener('DOMContentLoaded', () => {
     const params = new URLSearchParams(window.location.search);
     categoryId = params.get('categoryId');
+    moduleId = params.get('moduleId'); // moduleId'yi de al
 
     if (!categoryId) {
         alert("Kategori ID'si bulunamadı!");
@@ -41,12 +52,19 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
     
-    // Geri butonunun linkini ayarla
     backButton.href = `module-list.html?id=${categoryId}`;
 
-    // Kullanıcı oturumunu kontrol et
     onAuthStateChanged(auth, user => {
-        if (!user) {
+        if (user) {
+            if (moduleId) {
+                // Eğer URL'de moduleId varsa, bu bir DÜZENLEME modudur.
+                loadModuleForEditing(moduleId);
+            } else {
+                // moduleId yoksa, bu bir YENİ EKLEME modudur.
+                pageTitle.textContent = 'Yeni Modül Şablonu Oluştur';
+                saveModuleBtn.textContent = 'Şablonu Kaydet';
+            }
+        } else {
             window.location.href = 'index.html';
         }
     });
@@ -55,9 +73,37 @@ document.addEventListener('DOMContentLoaded', () => {
 // Çıkış yap butonu
 logoutButton.addEventListener('click', () => signOut(auth));
 
-// Parça Ekle Butonuna Tıklandığında
-addPartBtn.addEventListener('click', () => {
-    const partId = `part-${Date.now()}`; // Her parça için benzersiz bir ID
+// Düzenleme için modül verilerini yükleyen fonksiyon
+const loadModuleForEditing = async (id) => {
+    pageTitle.textContent = 'Modül Şablonunu Düzenle';
+    saveModuleBtn.textContent = 'Değişiklikleri Kaydet';
+
+    try {
+        const docRef = doc(db, 'moduleTemplates', id);
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+            const moduleData = docSnap.data();
+            moduleNameInput.value = moduleData.name;
+            
+            // Kayıtlı parçaları ekrana çiz
+            partsContainer.innerHTML = ''; // Önce mevcutları temizle
+            moduleData.parts.forEach(part => {
+                addPartRow(part.name, part.qty, part.widthFormula, part.heightFormula);
+            });
+        } else {
+            alert("Düzenlenecek modül bulunamadı.");
+            window.location.href = backButton.href;
+        }
+    } catch (error) {
+        console.error("Modül yüklenirken hata: ", error);
+        alert("Modül bilgileri yüklenirken bir hata oluştu.");
+    }
+};
+
+// Ekrana yeni bir parça satırı ekleyen fonksiyon
+const addPartRow = (name = '', qty = 1, width = '', height = '') => {
+    const partId = `part-${Date.now()}`;
     const partElement = document.createElement('div');
     partElement.className = 'card mb-2 part-row';
     partElement.id = partId;
@@ -66,19 +112,19 @@ addPartBtn.addEventListener('click', () => {
             <div class="row g-2 align-items-center">
                 <div class="col-md-3">
                     <label class="form-label">Parça Adı</label>
-                    <input type="text" class="form-control form-control-sm part-name" placeholder="Sol Yan" required>
+                    <input type="text" class="form-control form-control-sm part-name" placeholder="Sol Yan" value="${name}" required>
                 </div>
                 <div class="col-md-1">
                     <label class="form-label">Adet</label>
-                    <input type="number" class="form-control form-control-sm part-qty" value="1" required>
+                    <input type="number" class="form-control form-control-sm part-qty" value="${qty}" required>
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">Genişlik Formülü</label>
-                    <input type="text" class="form-control form-control-sm part-width" placeholder="D" required>
+                    <input type="text" class="form-control form-control-sm part-width" placeholder="D" value="${width}" required>
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">Yükseklik/Derinlik Formülü</label>
-                    <input type="text" class="form-control form-control-sm part-height" placeholder="B" required>
+                    <input type="text" class="form-control form-control-sm part-height" placeholder="B" value="${height}" required>
                 </div>
                 <div class="col-md-2 text-end align-self-end">
                     <button type="button" class="btn btn-sm btn-outline-danger" onclick="document.getElementById('${partId}').remove()">Sil</button>
@@ -87,11 +133,14 @@ addPartBtn.addEventListener('click', () => {
         </div>
     `;
     partsContainer.appendChild(partElement);
-});
+};
 
-// Formu Kaydetme
+// "+ Parça Ekle" butonuna tıklandığında boş bir satır ekle
+addPartBtn.addEventListener('click', () => addPartRow());
+
+// Formu Kaydetme (Hem Ekleme Hem Güncelleme)
 moduleForm.addEventListener('submit', async (e) => {
-    e.preventDefault(); // Formun varsayılan gönderme işlemini engelle
+    e.preventDefault();
     const user = auth.currentUser;
     const moduleName = moduleNameInput.value.trim();
 
@@ -100,7 +149,6 @@ moduleForm.addEventListener('submit', async (e) => {
         return;
     }
 
-    // Tüm parça satırlarındaki verileri topla
     const parts = [];
     const partRows = document.querySelectorAll('.part-row');
     
@@ -125,26 +173,35 @@ moduleForm.addEventListener('submit', async (e) => {
         return;
     }
 
-    // Veriyi Firestore'a kaydet
+    const dataToSave = {
+        name: moduleName,
+        userId: user.uid,
+        categoryId: categoryId,
+        parts: parts,
+        createdAt: serverTimestamp() // Her kayıtta güncellenir
+    };
+
     try {
         saveModuleBtn.disabled = true;
         saveModuleBtn.textContent = 'Kaydediliyor...';
 
-        await addDoc(collection(db, 'moduleTemplates'), {
-            name: moduleName,
-            userId: user.uid,
-            categoryId: categoryId,
-            parts: parts,
-            createdAt: serverTimestamp()
-        });
-
-        alert('Modül şablonu başarıyla kaydedildi!');
-        window.location.href = backButton.href; // Geri butonunun linkine yönlendir
+        if (moduleId) {
+            // GÜNCELLEME MODU
+            const docRef = doc(db, 'moduleTemplates', moduleId);
+            await updateDoc(docRef, dataToSave);
+            alert('Modül şablonu başarıyla güncellendi!');
+        } else {
+            // YENİ EKLEME MODU
+            await addDoc(collection(db, 'moduleTemplates'), dataToSave);
+            alert('Modül şablonu başarıyla kaydedildi!');
+        }
+        
+        window.location.href = backButton.href;
 
     } catch (error) {
         console.error("Modül kaydedilirken hata oluştu: ", error);
         alert("Modül kaydedilirken bir hata oluştu. Lütfen tekrar deneyin.");
         saveModuleBtn.disabled = false;
-        saveModuleBtn.textContent = 'Şablonu Kaydet';
+        saveModuleBtn.textContent = moduleId ? 'Değişiklikleri Kaydet' : 'Şablonu Kaydet';
     }
 });
