@@ -30,7 +30,7 @@ const addModuleBtn = document.getElementById('addModuleBtn');
 document.addEventListener('DOMContentLoaded', () => {
     const params = new URLSearchParams(window.location.search);
     const categoryId = params.get('id');
-    let categoryName = params.get('name'); // let olarak değiştirdik
+    let categoryName = params.get('name');
 
     if (!categoryId) {
         alert("Geçersiz kategori. Ana sayfaya yönlendiriliyorsunuz.");
@@ -38,16 +38,12 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
-    // "Yeni Modül Ekle" butonunun linkini ayarla
     addModuleBtn.addEventListener('click', () => {
         window.location.href = `module-editor.html?categoryId=${categoryId}`;
     });
 
-    // Kullanıcı oturumunu kontrol et
     onAuthStateChanged(auth, async (user) => {
         if (user) {
-            // *** YENİ VE GÜNCELLENMİŞ BÖLÜM ***
-            // Eğer URL'de kategori adı yoksa, veritabanından çek
             if (!categoryName) {
                 try {
                     const docRef = doc(db, 'moduleCategories', categoryId);
@@ -65,12 +61,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
             } else {
-                // URL'de isim varsa direkt kullan
                 categoryTitle.textContent = decodeURIComponent(categoryName);
             }
-            // *** GÜNCELLEME SONU ***
             
-            // Modülleri getir
             fetchModules(user.uid, categoryId);
         } else {
             window.location.href = 'index.html';
@@ -81,12 +74,11 @@ document.addEventListener('DOMContentLoaded', () => {
 // Çıkış yap butonu
 logoutButton.addEventListener('click', () => signOut(auth));
 
-// Belirli bir kategoriye ait modülleri getiren fonksiyon
+// Belirli bir kategoriye ait modülleri getiren fonksiyon (DÜZELTİLMİŞ)
 const fetchModules = (userId, categoryId) => {
     loadingIndicator.classList.remove('d-none');
     moduleList.innerHTML = '';
 
-    // Firestore sorgusunu oluştur
     const q = query(
         collection(db, 'moduleTemplates'),
         where('userId', '==', userId),
@@ -94,10 +86,9 @@ const fetchModules = (userId, categoryId) => {
         orderBy('createdAt', 'desc')
     );
 
-    // Sorguyu dinle
     onSnapshot(q, (querySnapshot) => {
         loadingIndicator.classList.add('d-none');
-        moduleList.innerHTML = ''; // Her güncellemede listeyi temizle
+        moduleList.innerHTML = ''; 
 
         if (querySnapshot.empty) {
             moduleList.innerHTML = `
@@ -111,9 +102,13 @@ const fetchModules = (userId, categoryId) => {
         querySnapshot.forEach((doc) => {
             const module = doc.data();
             const moduleId = doc.id;
+            
+            // *** DÜZELTME BURADA ***
+            // Her modül, düzenleme sayfasına kendi ID'si ile giden bir <a> etiketidir.
             const moduleElement = `
-                <a href="#" class="list-group-item list-group-item-action">
-                    ${module.name}
+                <a href="module-editor.html?categoryId=${categoryId}&moduleId=${moduleId}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                    <span>${module.name}</span>
+                    <small class="text-muted">Düzenle &rarr;</small>
                 </a>
             `;
             moduleList.innerHTML += moduleElement;
@@ -121,7 +116,6 @@ const fetchModules = (userId, categoryId) => {
 
     }, (error) => {
         console.error("Modüller getirilirken hata:", error);
-        // Hata bir indeks eksikliğinden kaynaklanıyorsa kullanıcıyı bilgilendir
         if (error.code === 'failed-precondition') {
             alert("Veritabanı yapılandırması gerekiyor. Lütfen geliştirici konsolundaki (F12) linke tıklayarak gerekli indeksi oluşturun.");
         } else {
