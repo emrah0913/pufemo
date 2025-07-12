@@ -39,81 +39,54 @@ const materialGrainSettings = document.getElementById('materialGrainSettings');
 const unpackedContainer = document.getElementById('unpackedContainer');
 const unpackedList = document.getElementById('unpackedList');
 
-
 // Sayfa Yüklendiğinde
-document.addEventListener('DOMContentLoaded', () => {
+onAuthStateChanged(auth, user => {
     const params = new URLSearchParams(window.location.search);
     projectId = params.get('id');
+    if (!projectId) return (window.location.href = 'projects.html');
 
-    if (!projectId) {
-        alert("Proje ID'si bulunamadı!");
-        window.location.href = 'projects.html';
-        return;
-    }
-    
     backButton.href = `project-detail.html?id=${projectId}`;
-
-    onAuthStateChanged(auth, (user) => {
-        if (user) {
-            currentUser = user;
-            loadProjectAndMaterials();
-        } else {
-            window.location.href = 'index.html';
-        }
-    });
-
-    runOptimizationBtn.addEventListener('click', runOptimization);
+    if (user) {
+        currentUser = user;
+        loadProjectAndMaterials();
+    } else {
+        window.location.href = 'index.html';
+    }
 });
 
-// Proje ve Malzeme verilerini yükle
-const loadProjectAndMaterials = async () => {
+runOptimizationBtn.addEventListener('click', runOptimization);
+logoutButton.addEventListener('click', () => signOut(auth));
+
+async function loadProjectAndMaterials() {
     const matQuery = query(collection(db, 'materials'), where('userId', '==', currentUser.uid));
     const matSnapshot = await getDocs(matQuery);
     allMaterials.clear();
-    matSnapshot.forEach(doc => {
-        allMaterials.set(doc.id, { id: doc.id, ...doc.data() });
-    });
+    matSnapshot.forEach(doc => allMaterials.set(doc.id, { id: doc.id, ...doc.data() }));
 
     const projectRef = doc(db, 'projects', projectId);
     const projectSnap = await getDoc(projectRef);
-    if (projectSnap.exists()) {
-        projectData = projectSnap.data();
-        projectNameEl.textContent = projectData.name;
-        createGrainSettingsUI();
-    } else {
-        alert("Proje bulunamadı.");
-        window.location.href = 'projects.html';
-    }
-};
+    if (!projectSnap.exists()) return alert("Proje bulunamadı.");
 
-// Yön ayarları için arayüzü oluşturan fonksiyon
+    projectData = projectSnap.data();
+    projectNameEl.textContent = projectData.name;
+    createGrainSettingsUI();
+}
+
 function createGrainSettingsUI() {
     materialGrainSettings.innerHTML = '';
-    const uniquePanelIds = [...new Set((projectData.parts || []).map(p => p.materialId))];
-    
-    if (uniquePanelIds.length === 0) {
-        materialGrainSettings.innerHTML = '<p class="text-muted">Projede panel malzemesi bulunmuyor.</p>';
-        return;
-    }
-
-    uniquePanelIds.forEach(id => {
+    const ids = [...new Set((projectData.parts || []).map(p => p.materialId))];
+    ids.forEach(id => {
         const material = allMaterials.get(id);
-        if (material && material.type === 'Panel') {
-            const div = document.createElement('div');
-            div.className = 'form-check form-check-inline';
-            div.innerHTML = `
-                <input class="form-check-input" type="checkbox" value="" id="grain-${id}">
-                <label class="form-check-label" for="grain-${id}">
-                    <b>${material.name}</b> Döndürme
-                </label>
-            `;
-            materialGrainSettings.appendChild(div);
+        if (material?.type === 'Panel') {
+            materialGrainSettings.innerHTML += `
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="checkbox" id="grain-${id}">
+                    <label class="form-check-label" for="grain-${id}"><b>${material.name}</b> Döndürme</label>
+                </div>`;
         }
     });
 }
 
-
-// Optimizasyonu Başlat
 function runOptimization() {
     loadingIndicator.classList.remove('d-none');
     materialTabs.innerHTML = '';
@@ -122,98 +95,79 @@ function runOptimization() {
     bandingSummary.innerHTML = '';
     unpackedContainer.classList.add('d-none');
     unpackedList.innerHTML = '';
-    
+
     setTimeout(() => {
-        const sheetWidth = parseInt(document.getElementById('sheetWidth').value);
-        const sheetHeight = parseInt(document.getElementById('sheetHeight').value);
-        const kerf = parseInt(document.getElementById('kerfValue').value) || 0;
-        
-        if (!sheetWidth || !sheetHeight) {
-            alert("Lütfen geçerli plaka ölçüleri girin.");
-            loadingIndicator.classList.add('d-none');
-            return;
-        }
+        const sheetWidth = +document.getElementById('sheetWidth').value;
+        const sheetHeight = +document.getElementById('sheetHeight').value;
+        const kerf = +document.getElementById('kerfValue').value || 0;
+        if (!sheetWidth || !sheetHeight) return alert("Plaka ölçüsü girin.");
 
         const partsByMaterial = {};
-        (projectData.parts || []).forEach(part => {
-            if (!partsByMaterial[part.materialId]) {
-                partsByMaterial[part.materialId] = [];
-            }
-            for (let i = 0; i < part.qty; i++) {
-                partsByMaterial[part.materialId].push({ w: part.width + kerf, h: part.height + kerf, name: part.name, originalW: part.width, originalH: part.height });
+        (projectData.parts || []).forEach(p => {
+            if (!partsByMaterial[p.materialId]) partsByMaterial[p.materialId] = [];
+            for (let i = 0; i < p.qty; i++) {
+                partsByMaterial[p.materialId].push({
+                    w: p.width + kerf, h: p.height + kerf,
+                    name: p.name, originalW: p.width, originalH: p.height
+                });
             }
         });
 
         let firstTab = true;
         for (const materialId in partsByMaterial) {
             const material = allMaterials.get(materialId);
-            const materialName = material ? material.name : 'Bilinmeyen Malzeme';
-            
-            const grainCheckbox = document.getElementById(`grain-${materialId}`);
-            const allowRotation = grainCheckbox ? !grainCheckbox.checked : true;
-            
+            const materialName = material ? material.name : 'Bilinmeyen';
+            const allowRotation = !document.getElementById(`grain-${materialId}`)?.checked;
             const tabId = `tab-${materialId}`;
-            const tabNavItem = document.createElement('li');
-            tabNavItem.className = 'nav-item';
-            tabNavItem.innerHTML = `<a class="nav-link ${firstTab ? 'active' : ''}" id="${tabId}-tab" data-bs-toggle="tab" href="#${tabId}" role="tab">${materialName}</a>`;
-            materialTabs.appendChild(tabNavItem);
 
+            materialTabs.innerHTML += `<li class="nav-item"><a class="nav-link ${firstTab ? 'active' : ''}" id="${tabId}-tab" data-bs-toggle="tab" href="#${tabId}" role="tab">${materialName}</a></li>`;
             const tabContentPane = document.createElement('div');
             tabContentPane.className = `tab-pane fade ${firstTab ? 'show active' : ''}`;
             tabContentPane.id = tabId;
             tabContentPane.role = 'tabpanel';
-            
+
             const packer = new Packer();
             const { packedSheets, unpackedPieces } = packer.fit(partsByMaterial[materialId], sheetWidth, sheetHeight, allowRotation);
-            
-            packedSheets.forEach((sheet, index) => {
+            const scale = 500 / sheetWidth;
+
+            packedSheets.forEach((sheet, i) => {
                 const sheetEl = document.createElement('div');
                 sheetEl.className = 'sheet-container';
-                const scale = 500 / sheetWidth;
                 sheetEl.style.width = `${sheetWidth * scale}px`;
                 sheetEl.style.height = `${sheetHeight * scale}px`;
                 sheetEl.dataset.scale = scale;
-                sheetEl.innerHTML = `<h5 class="p-2">Plaka ${index + 1}</h5>`;
+                sheetEl.innerHTML = `<h5 class="p-2">Plaka ${i + 1}</h5>`;
 
-                sheet.pieces.forEach((p, pieceIndex) => {
-                    const pieceEl = document.createElement('div');
-                    pieceEl.className = 'piece';
-                    pieceEl.id = `piece-${materialId}-${index}-${pieceIndex}`;
-                    pieceEl.style.left = `${p.fit.x * scale}px`;
-                    pieceEl.style.top = `${p.fit.y * scale}px`;
-                    pieceEl.style.width = `${(p.w - kerf) * scale}px`;
-                    pieceEl.style.height = `${(p.h - kerf) * scale}px`;
-                    pieceEl.dataset.w = p.w;
-                    pieceEl.dataset.h = p.h;
-                    pieceEl.dataset.kerf = kerf;
-                    pieceEl.dataset.allowRotation = allowRotation;
-
-                    pieceEl.innerHTML = `
-                        <span class="piece-text">${p.name} (${p.originalH}x${p.originalW})</span>
-                        <i class="bi bi-arrow-clockwise rotate-icon"></i>
-                    `;
-                    sheetEl.appendChild(pieceEl);
+                sheet.pieces.forEach((p, j) => {
+                    const el = document.createElement('div');
+                    el.className = 'piece';
+                    el.id = `piece-${materialId}-${i}-${j}`;
+                    el.style.left = `${p.fit.x * scale}px`;
+                    el.style.top = `${p.fit.y * scale}px`;
+                    el.style.width = `${(p.w - kerf) * scale}px`;
+                    el.style.height = `${(p.h - kerf) * scale}px`;
+                    el.dataset.w = p.w;
+                    el.dataset.h = p.h;
+                    el.dataset.kerf = kerf;
+                    el.dataset.allowRotation = allowRotation;
+                    el.innerHTML = `<span class="piece-text">${p.name} (${p.originalH}x${p.originalW})</span><i class="bi bi-arrow-clockwise rotate-icon"></i>`;
+                    sheetEl.appendChild(el);
                 });
                 tabContentPane.appendChild(sheetEl);
             });
 
             materialTabContent.appendChild(tabContentPane);
-            
             panelSummary.innerHTML += `<li class="list-group-item">${materialName}: <strong>${packedSheets.length} plaka</strong></li>`;
-            
-            if (unpackedPieces.length > 0) {
-                renderUnpackedPieces(unpackedPieces);
-            }
+            if (unpackedPieces.length > 0) renderUnpackedPieces(unpackedPieces);
             firstTab = false;
         }
-        
+
         calculateAndRenderBandingSummary();
         loadingIndicator.classList.add('d-none');
         makePiecesInteractive();
-    }, 500);
+    }, 300);
 }
 
-// Sığmayan parçaları render et
 function renderUnpackedPieces(pieces) {
     unpackedContainer.classList.remove('d-none');
     unpackedList.innerHTML = '';
@@ -222,24 +176,138 @@ function renderUnpackedPieces(pieces) {
     });
 }
 
+function calculateAndRenderBandingSummary() {
+    const totals = {};
+    (projectData.parts || []).forEach(p => {
+        if (p.banding?.materialId) {
+            if (!totals[p.banding.materialId]) totals[p.banding.materialId] = 0;
+            let len = 0;
+            if (p.banding.b1) len += p.height;
+            if (p.banding.b2) len += p.height;
+            if (p.banding.e1) len += p.width;
+            if (p.banding.e2) len += p.width;
+            totals[p.banding.materialId] += len * p.qty;
+        }
+    });
+    for (const id in totals) {
+        const m = allMaterials.get(id);
+        const name = m ? m.name : 'Bilinmeyen Bant';
+        const meters = (totals[id] / 1000).toFixed(2);
+        bandingSummary.innerHTML += `<li class="list-group-item">${name}: <strong>${meters} m</strong></li>`;
+    }
+}
+
+function makePiecesInteractive() {
+    let activePiece = null, offsetX = 0, offsetY = 0;
+
+    materialTabContent.addEventListener('mousedown', e => {
+        const piece = e.target.closest('.piece');
+        if (!piece) return;
+        if (e.target.classList.contains('rotate-icon')) return rotatePiece(e);
+
+        e.preventDefault();
+        activePiece = piece;
+        const rect = piece.getBoundingClientRect();
+        offsetX = e.clientX - rect.left;
+        offsetY = e.clientY - rect.top;
+        piece.classList.add('dragging');
+        piece.style.zIndex = 1000;
+        document.addEventListener('mousemove', drag);
+        document.addEventListener('mouseup', stopDrag, { once: true });
+    });
+
+    function drag(e) {
+        if (!activePiece) return;
+        activePiece.style.left = `${e.clientX - offsetX}px`;
+        activePiece.style.top = `${e.clientY - offsetY}px`;
+    }
+
+    function stopDrag(e) {
+        if (!activePiece) return;
+        document.removeEventListener('mousemove', drag);
+        activePiece.style.visibility = 'hidden';
+        const dropTarget = document.elementFromPoint(e.clientX, e.clientY);
+        activePiece.style.visibility = 'visible';
+        const targetSheet = dropTarget?.closest('.sheet-container');
+
+        if (targetSheet) {
+            const parentRect = targetSheet.getBoundingClientRect();
+            let newLeft = e.clientX - parentRect.left - offsetX;
+            let newTop = e.clientY - parentRect.top - offsetY;
+            newLeft = Math.max(0, Math.min(newLeft, parentRect.width - activePiece.offsetWidth));
+            newTop = Math.max(0, Math.min(newTop, parentRect.height - activePiece.offsetHeight));
+            activePiece.style.left = `${newLeft}px`;
+            activePiece.style.top = `${newTop}px`;
+            targetSheet.appendChild(activePiece);
+            snapToNearby(activePiece, targetSheet);
+        }
+
+        activePiece.classList.remove('dragging');
+        activePiece.style.zIndex = 'auto';
+        activePiece = null;
+    }
+}
+
+function rotatePiece(e) {
+    e.stopPropagation();
+    const piece = e.target.closest('.piece');
+    if (piece.dataset.allowRotation !== 'true') return alert("Döndürme kilitli.");
+
+    const w = piece.offsetWidth, h = piece.offsetHeight;
+    piece.style.width = `${h}px`;
+    piece.style.height = `${w}px`;
+
+    const parentRect = piece.parentElement.getBoundingClientRect();
+    let left = parseFloat(piece.style.left), top = parseFloat(piece.style.top);
+    left = Math.max(0, Math.min(left, parentRect.width - h));
+    top = Math.max(0, Math.min(top, parentRect.height - w));
+    piece.style.left = `${left}px`;
+    piece.style.top = `${top}px`;
+}
+
+function snapToNearby(piece, targetSheet) {
+    const threshold = 15;
+    const pieceLeft = parseFloat(piece.style.left);
+    const pieceTop = parseFloat(piece.style.top);
+    const pieceRight = pieceLeft + piece.offsetWidth;
+    const pieceBottom = pieceTop + piece.offsetHeight;
+    const pw = targetSheet.offsetWidth;
+    const ph = targetSheet.offsetHeight;
+
+    targetSheet.querySelectorAll('.piece').forEach(other => {
+        if (other === piece) return;
+        const oLeft = parseFloat(other.style.left);
+        const oTop = parseFloat(other.style.top);
+        const oRight = oLeft + other.offsetWidth;
+        const oBottom = oTop + other.offsetHeight;
+
+        if (Math.abs(pieceLeft - oRight) < threshold) piece.style.left = `${oRight}px`;
+        if (Math.abs(pieceRight - oLeft) < threshold) piece.style.left = `${oLeft - piece.offsetWidth}px`;
+        if (Math.abs(pieceTop - oBottom) < threshold) piece.style.top = `${oBottom}px`;
+        if (Math.abs(pieceBottom - oTop) < threshold) piece.style.top = `${oTop - piece.offsetHeight}px`;
+    });
+
+    if (pieceLeft < threshold) piece.style.left = `0px`;
+    if (pieceTop < threshold) piece.style.top = `0px`;
+    if (Math.abs(pw - pieceRight) < threshold) piece.style.left = `${pw - piece.offsetWidth}px`;
+    if (Math.abs(ph - pieceBottom) < threshold) piece.style.top = `${ph - piece.offsetHeight}px`;
+}
+
 class Packer {
     fit(pieces, binWidth, binHeight, allowRotation) {
-        let sheets = [];
-        let unpacked = [];
+        const sheets = [], unpacked = [];
         pieces.sort((a, b) => (b.w * b.h) - (a.w * a.h));
         for (const piece of pieces) {
             let placed = false;
             for (const sheet of sheets) {
                 if (this.placeInSheet(piece, sheet, allowRotation)) {
-                    placed = true;
-                    break;
+                    placed = true; break;
                 }
             }
             if (!placed) {
                 const newSheet = { root: { x: 0, y: 0, w: binWidth, h: binHeight }, pieces: [] };
                 if (this.placeInSheet(piece, newSheet, allowRotation)) {
-                    sheets.push(newSheet);
-                    placed = true;
+                    sheets.push(newSheet); placed = true;
                 }
             }
             if (!placed) unpacked.push(piece);
@@ -279,147 +347,3 @@ class Packer {
         return { x: node.x, y: node.y };
     }
 }
-
-function calculateAndRenderBandingSummary() {
-    const bandingTotals = {};
-    (projectData.parts || []).forEach(part => {
-        if (part.banding && part.banding.materialId) {
-            const materialId = part.banding.materialId;
-            if (!bandingTotals[materialId]) bandingTotals[materialId] = 0;
-            let length = 0;
-            if (part.banding.b1) length += part.height;
-            if (part.banding.b2) length += part.height;
-            if (part.banding.e1) length += part.width;
-            if (part.banding.e2) length += part.width;
-            bandingTotals[materialId] += length * part.qty;
-        }
-    });
-    for (const materialId in bandingTotals) {
-        const material = allMaterials.get(materialId);
-        const materialName = material ? material.name : 'Bilinmeyen Bant';
-        const totalMeters = (bandingTotals[materialId] / 1000).toFixed(2);
-        bandingSummary.innerHTML += `<li class="list-group-item">${materialName}: <strong>${totalMeters} metre</strong></li>`;
-    }
-}
-
-// *** YENİ VE GÜVENİLİR İNTERAKTİF EDİTÖR FONKSİYONLARI ***
-function makePiecesInteractive() {
-    let activePiece = null;
-    let originalParent = null;
-    let offsetX = 0, offsetY = 0;
-
-    const startDrag = (e) => {
-        const piece = e.target.closest('.piece');
-        if (!piece) return;
-        if (e.target.classList.contains('rotate-icon')) {
-            rotatePiece(e);
-            return;
-        }
-        e.preventDefault();
-        activePiece = piece;
-        originalParent = piece.parentElement;
-        
-        const rect = activePiece.getBoundingClientRect();
-        offsetX = e.clientX - rect.left;
-        offsetY = e.clientY - rect.top;
-        
-        activePiece.classList.add('dragging');
-        activePiece.style.zIndex = 1000;
-        document.addEventListener('mousemove', drag);
-        document.addEventListener('mouseup', stopDrag, { once: true });
-    };
-
-    const drag = (e) => {
-        if (!activePiece) return;
-        activePiece.style.left = `${e.clientX - offsetX}px`;
-        activePiece.style.top = `${e.clientY - offsetY}px`;
-    };
-
-    const stopDrag = (e) => {
-        if (!activePiece) return;
-        document.removeEventListener('mousemove', drag);
-
-        activePiece.style.visibility = 'hidden';
-        const dropTarget = document.elementFromPoint(e.clientX, e.clientY);
-        activePiece.style.visibility = 'visible';
-
-        const targetSheet = dropTarget ? dropTarget.closest('.sheet-container') : null;
-
-        if (targetSheet) {
-            const parentRect = targetSheet.getBoundingClientRect();
-            let newLeft = e.clientX - parentRect.left - offsetX;
-            let newTop = e.clientY - parentRect.top - offsetY;
-
-            // Sınır kontrolü
-            if (newLeft < 0) newLeft = 0;
-            if (newTop < 0) newTop = 0;
-            if (newLeft + activePiece.offsetWidth > parentRect.width) newLeft = parentRect.width - activePiece.offsetWidth;
-            if (newTop + activePiece.offsetHeight > parentRect.height) newTop = parentRect.height - activePiece.offsetHeight;
-
-            if (checkCollision(activePiece, targetSheet, newLeft, newTop)) {
-                // Çarpışma varsa hiçbir şey yapma, parça eski yerinde kalır gibi görünecek
-                // Daha iyi bir deneyim için eski pozisyonuna geri döndürebiliriz.
-                // Şimdilik sadece bırakmayı engelliyoruz.
-            } else {
-                targetSheet.appendChild(activePiece);
-                activePiece.style.position = 'absolute';
-                activePiece.style.left = `${newLeft}px`;
-                activePiece.style.top = `${newTop}px`;
-            }
-        }
-        
-        activePiece.classList.remove('dragging');
-        activePiece.style.zIndex = 'auto';
-        activePiece = null;
-    };
-    
-    const rotatePiece = (e) => {
-        e.stopPropagation();
-        const piece = e.target.closest('.piece');
-        if (piece.dataset.allowRotation !== 'true') {
-            alert("Bu malzemenin yönü kilitli, döndüremezsiniz.");
-            return;
-        }
-
-        const currentW = piece.offsetWidth;
-        const currentH = piece.offsetHeight;
-        
-        piece.style.width = `${currentH}px`;
-        piece.style.height = `${currentW}px`;
-        
-        const parentRect = piece.parentElement.getBoundingClientRect();
-        if (parseFloat(piece.style.left) + currentH > parentRect.width) {
-            piece.style.left = `${parentRect.width - currentH}px`;
-        }
-        if (parseFloat(piece.style.top) + currentW > parentRect.height) {
-            piece.style.top = `${parentRect.height - currentW}px`;
-        }
-    };
-
-    function checkCollision(draggedPiece, targetSheet, newLeft, newTop) {
-        const draggedRect = {
-            left: newLeft, top: newTop,
-            right: newLeft + draggedPiece.offsetWidth,
-            bottom: newTop + draggedPiece.offsetHeight
-        };
-        let collision = false;
-        targetSheet.querySelectorAll('.piece').forEach(otherPiece => {
-            if (otherPiece === draggedPiece) return;
-            const otherRect = {
-                left: parseFloat(otherPiece.style.left), top: parseFloat(otherPiece.style.top),
-                right: parseFloat(otherPiece.style.left) + otherPiece.offsetWidth,
-                bottom: parseFloat(otherPiece.style.top) + otherPiece.offsetHeight
-            };
-            if (draggedRect.left < otherRect.right && draggedRect.right > otherRect.left &&
-                draggedRect.top < otherRect.bottom && draggedRect.bottom > otherRect.top) {
-                collision = true;
-            }
-        });
-        return collision;
-    }
-
-    materialTabContent.addEventListener('mousedown', startDrag);
-}
-
-// Çıkış yap
-logoutButton.addEventListener('click', () => signOut(auth));
