@@ -174,14 +174,23 @@ function runOptimization() {
                 sheetEl.style.height = `${sheetHeight * scale}px`;
                 sheetEl.innerHTML = `<h5 class="p-2">Plaka ${index + 1}</h5>`;
 
-                sheet.pieces.forEach(p => {
+                sheet.pieces.forEach((p, pieceIndex) => {
                     const pieceEl = document.createElement('div');
                     pieceEl.className = 'piece';
+                    pieceEl.id = `piece-${materialId}-${index}-${pieceIndex}`;
                     pieceEl.style.left = `${p.fit.x * scale}px`;
                     pieceEl.style.top = `${p.fit.y * scale}px`;
                     pieceEl.style.width = `${(p.w - kerf) * scale}px`;
                     pieceEl.style.height = `${(p.h - kerf) * scale}px`;
-                    pieceEl.innerHTML = `<span>${p.name} (${p.originalH}x${p.originalW})</span>`;
+                    pieceEl.dataset.w = p.w - kerf;
+                    pieceEl.dataset.h = p.h - kerf;
+                    pieceEl.dataset.kerf = kerf;
+                    pieceEl.dataset.allowRotation = allowRotation;
+
+                    pieceEl.innerHTML = `
+                        <span class="piece-text">${p.name} (${p.originalH}x${p.originalW})</span>
+                        <i class="bi bi-arrow-clockwise rotate-icon"></i>
+                    `;
                     sheetEl.appendChild(pieceEl);
                 });
                 tabContentPane.appendChild(sheetEl);
@@ -199,6 +208,7 @@ function runOptimization() {
         
         calculateAndRenderBandingSummary();
         loadingIndicator.classList.add('d-none');
+        makePiecesInteractive(); // Parçaları interaktif yap
     }, 500);
 }
 
@@ -217,19 +227,16 @@ class Packer {
         let sheets = [];
         let unpacked = [];
 
-        // *** DÜZELTME: Parçaları alana göre büyükten küçüğe sırala ***
         pieces.sort((a, b) => (b.w * b.h) - (a.w * a.h));
 
         for (const piece of pieces) {
             let placed = false;
-            // Mevcut plakalarda yer ara
             for (const sheet of sheets) {
                 if (this.placeInSheet(piece, sheet, allowRotation)) {
                     placed = true;
                     break;
                 }
             }
-            // Yerleşmediyse yeni plaka aç
             if (!placed) {
                 const newSheet = { root: { x: 0, y: 0, w: binWidth, h: binHeight }, pieces: [] };
                 if (this.placeInSheet(piece, newSheet, allowRotation)) {
@@ -254,7 +261,7 @@ class Packer {
         if (allowRotation && piece.w !== piece.h) {
             node = this.findNode(sheet.root, piece.h, piece.w);
             if (node) {
-                [piece.w, piece.h] = [piece.h, piece.w]; // Döndür
+                [piece.w, piece.h] = [piece.h, piece.w];
                 piece.fit = this.splitNode(node, piece.w, piece.h);
                 sheet.pieces.push(piece);
                 return true;
@@ -302,6 +309,121 @@ function calculateAndRenderBandingSummary() {
         const materialName = material ? material.name : 'Bilinmeyen Bant';
         const totalMeters = (bandingTotals[materialId] / 1000).toFixed(2);
         bandingSummary.innerHTML += `<li class="list-group-item">${materialName}: <strong>${totalMeters} metre</strong></li>`;
+    }
+}
+
+// *** YENİ İNTERAKTİF EDİTÖR FONKSİYONLARI ***
+function makePiecesInteractive() {
+    let activePiece = null;
+    let offsetX, offsetY;
+
+    document.querySelectorAll('.piece').forEach(piece => {
+        piece.addEventListener('mousedown', dragStart);
+        piece.querySelector('.rotate-icon').addEventListener('click', rotatePiece);
+    });
+
+    function dragStart(e) {
+        if (e.target.classList.contains('rotate-icon')) return;
+        e.preventDefault();
+        activePiece = e.currentTarget;
+        activePiece.classList.add('dragging');
+
+        const parentRect = activePiece.parentElement.getBoundingClientRect();
+        const pieceRect = activePiece.getBoundingClientRect();
+
+        offsetX = e.clientX - pieceRect.left;
+        offsetY = e.clientY - pieceRect.top;
+
+        document.addEventListener('mousemove', dragMove);
+        document.addEventListener('mouseup', dragEnd);
+    }
+
+    function dragMove(e) {
+        if (!activePiece) return;
+        const parentRect = activePiece.parentElement.getBoundingClientRect();
+        const scale = 500 / parseInt(document.getElementById('sheetWidth').value);
+        
+        let newX = (e.clientX - parentRect.left - offsetX) / scale;
+        let newY = (e.clientY - parentRect.top - offsetY) / scale;
+
+        const pieceW = parseFloat(activePiece.dataset.w) + parseFloat(activePiece.dataset.kerf);
+        const pieceH = parseFloat(activePiece.dataset.h) + parseFloat(activePiece.dataset.kerf);
+        
+        // Sınır kontrolü
+        if (newX < 0) newX = 0;
+        if (newY < 0) newY = 0;
+        if (newX + pieceW > activePiece.parentElement.offsetWidth / scale) newX = activePiece.parentElement.offsetWidth / scale - pieceW;
+        if (newY + pieceH > activePiece.parentElement.offsetHeight / scale) newY = activePiece.parentElement.offsetHeight / scale - pieceH;
+
+        // Çarpışma kontrolü
+        if (!checkCollision(activePiece, newX, newY, pieceW, pieceH)) {
+            activePiece.style.left = `${newX * scale}px`;
+            activePiece.style.top = `${newY * scale}px`;
+            activePiece.style.borderColor = '#0d6efd';
+        } else {
+            activePiece.style.borderColor = 'red';
+        }
+    }
+
+    function dragEnd() {
+        if (!activePiece) return;
+        activePiece.classList.remove('dragging');
+        activePiece.style.borderColor = '#0d6efd';
+        activePiece = null;
+        document.removeEventListener('mousemove', dragMove);
+        document.removeEventListener('mouseup', dragEnd);
+    }
+
+    function rotatePiece(e) {
+        e.stopPropagation();
+        const piece = e.currentTarget.parentElement;
+        if (piece.dataset.allowRotation !== 'true') {
+            alert("Bu malzemenin yönü kilitli, döndüremezsiniz.");
+            return;
+        }
+
+        const oldW = parseFloat(piece.dataset.w);
+        const oldH = parseFloat(piece.dataset.h);
+        
+        // Yeni boyutları ata
+        piece.dataset.w = oldH;
+        piece.dataset.h = oldW;
+        
+        const scale = 500 / parseInt(document.getElementById('sheetWidth').value);
+        const kerf = parseFloat(piece.dataset.kerf);
+
+        // Çarpışma kontrolü
+        const currentX = parseFloat(piece.style.left) / scale;
+        const currentY = parseFloat(piece.style.top) / scale;
+        
+        if (checkCollision(piece, currentX, currentY, oldH + kerf, oldW + kerf)) {
+            alert("Döndürme için yeterli alan yok.");
+            // Eski boyutlara geri dön
+            piece.dataset.w = oldW;
+            piece.dataset.h = oldH;
+            return;
+        }
+
+        piece.style.width = `${oldH * scale}px`;
+        piece.style.height = `${oldW * scale}px`;
+    }
+
+    function checkCollision(draggedPiece, newX, newY, w, h) {
+        let collision = false;
+        draggedPiece.parentElement.querySelectorAll('.piece').forEach(otherPiece => {
+            if (otherPiece === draggedPiece) return;
+            
+            const otherScale = 500 / parseInt(document.getElementById('sheetWidth').value);
+            const otherX = parseFloat(otherPiece.style.left) / otherScale;
+            const otherY = parseFloat(otherPiece.style.top) / otherScale;
+            const otherW = parseFloat(otherPiece.dataset.w) + parseFloat(otherPiece.dataset.kerf);
+            const otherH = parseFloat(otherPiece.dataset.h) + parseFloat(otherPiece.dataset.kerf);
+
+            if (newX < otherX + otherW && newX + w > otherX && newY < otherY + otherH && newY + h > otherY) {
+                collision = true;
+            }
+        });
+        return collision;
     }
 }
 
