@@ -164,7 +164,6 @@ function runOptimization() {
             tabContentPane.role = 'tabpanel';
             
             const packer = new Packer();
-            // *** DÜZELTME BURADA: packer.pack yerine packer.fit çağırılıyor ***
             const { packedSheets, unpackedPieces } = packer.fit(partsByMaterial[materialId], sheetWidth, sheetHeight, allowRotation);
             
             packedSheets.forEach((sheet, index) => {
@@ -218,8 +217,8 @@ class Packer {
         let sheets = [];
         let unpacked = [];
 
-        // Parçaları en büyük kenara göre sırala (en verimli yöntem)
-        pieces.sort((a, b) => Math.max(b.w, b.h) - Math.max(a.w, a.h));
+        // *** DÜZELTME: Parçaları alana göre büyükten küçüğe sırala ***
+        pieces.sort((a, b) => (b.w * b.h) - (a.w * a.h));
 
         for (const piece of pieces) {
             let placed = false;
