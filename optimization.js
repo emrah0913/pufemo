@@ -305,6 +305,7 @@ function calculateAndRenderBandingSummary() {
 // *** YENİ VE GÜVENİLİR İNTERAKTİF EDİTÖR FONKSİYONLARI ***
 function makePiecesInteractive() {
     let activePiece = null;
+    let originalParent = null;
     let offsetX = 0, offsetY = 0;
 
     const startDrag = (e) => {
@@ -316,6 +317,7 @@ function makePiecesInteractive() {
         }
         e.preventDefault();
         activePiece = piece;
+        originalParent = piece.parentElement;
         
         const rect = activePiece.getBoundingClientRect();
         offsetX = e.clientX - rect.left;
@@ -324,7 +326,7 @@ function makePiecesInteractive() {
         activePiece.classList.add('dragging');
         activePiece.style.zIndex = 1000;
         document.addEventListener('mousemove', drag);
-        document.addEventListener('mouseup', stopDrag, { once: true }); // Sadece bir kere çalış
+        document.addEventListener('mouseup', stopDrag, { once: true });
     };
 
     const drag = (e) => {
@@ -345,26 +347,25 @@ function makePiecesInteractive() {
 
         if (targetSheet) {
             const parentRect = targetSheet.getBoundingClientRect();
-            const newLeft = e.clientX - parentRect.left - offsetX;
-            const newTop = e.clientY - parentRect.top - offsetY;
+            let newLeft = e.clientX - parentRect.left - offsetX;
+            let newTop = e.clientY - parentRect.top - offsetY;
 
-            // Yeni pozisyonun plaka içinde olduğundan emin ol
-            const finalLeft = Math.max(0, Math.min(newLeft, parentRect.width - activePiece.offsetWidth));
-            const finalTop = Math.max(0, Math.min(newTop, parentRect.height - activePiece.offsetHeight));
+            // Sınır kontrolü
+            if (newLeft < 0) newLeft = 0;
+            if (newTop < 0) newTop = 0;
+            if (newLeft + activePiece.offsetWidth > parentRect.width) newLeft = parentRect.width - activePiece.offsetWidth;
+            if (newTop + activePiece.offsetHeight > parentRect.height) newTop = parentRect.height - activePiece.offsetHeight;
 
-            if (checkCollision(activePiece, targetSheet, finalLeft, finalTop)) {
-                activePiece.style.borderColor = 'red'; // Çarpışma varsa kırmızı yap
+            if (checkCollision(activePiece, targetSheet, newLeft, newTop)) {
+                // Çarpışma varsa hiçbir şey yapma, parça eski yerinde kalır gibi görünecek
+                // Daha iyi bir deneyim için eski pozisyonuna geri döndürebiliriz.
+                // Şimdilik sadece bırakmayı engelliyoruz.
             } else {
-                activePiece.style.borderColor = '#0d6efd'; // Yoksa normal
+                targetSheet.appendChild(activePiece);
+                activePiece.style.position = 'absolute';
+                activePiece.style.left = `${newLeft}px`;
+                activePiece.style.top = `${newTop}px`;
             }
-            targetSheet.appendChild(activePiece);
-            activePiece.style.position = 'absolute';
-            activePiece.style.left = `${finalLeft}px`;
-            activePiece.style.top = `${finalTop}px`;
-
-        } else {
-            // Geçerli bir plakaya bırakılmadıysa, hiçbir şey yapma (parça olduğu yerde kalır)
-            // Daha gelişmiş bir versiyon, eski yerine döndürebilir.
         }
         
         activePiece.classList.remove('dragging');
