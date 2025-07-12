@@ -163,12 +163,10 @@ function runOptimization() {
             tabContentPane.id = tabId;
             tabContentPane.role = 'tabpanel';
             
-            const packer = new Packer(sheetWidth, sheetHeight);
-            const { packedPieces, unpackedPieces } = packer.fit(partsByMaterial[materialId], allowRotation);
+            const packer = new Packer();
+            const { packedSheets, unpackedPieces } = packer.pack(partsByMaterial[materialId], sheetWidth, sheetHeight, allowRotation);
             
-            const sheets = packer.sheets;
-
-            sheets.forEach((sheet, index) => {
+            packedSheets.forEach((sheet, index) => {
                 const sheetEl = document.createElement('div');
                 sheetEl.className = 'sheet-container';
                 const scale = 500 / sheetWidth;
@@ -191,7 +189,7 @@ function runOptimization() {
 
             materialTabContent.appendChild(tabContentPane);
             
-            panelSummary.innerHTML += `<li class="list-group-item">${materialName}: <strong>${sheets.length} plaka</strong></li>`;
+            panelSummary.innerHTML += `<li class="list-group-item">${materialName}: <strong>${packedSheets.length} plaka</strong></li>`;
             
             if (unpackedPieces.length > 0) {
                 renderUnpackedPieces(unpackedPieces);
@@ -215,70 +213,54 @@ function renderUnpackedPieces(pieces) {
 
 // *** YENİ VE GÜVENİLİR PACKER SINIFI (BINARY TREE) ***
 class Packer {
-    constructor(w, h) {
-        this.binWidth = w;
-        this.binHeight = h;
-        this.sheets = [];
-    }
-
-    fit(pieces, allowRotation) {
+    fit(pieces, binWidth, binHeight, allowRotation) {
+        let sheets = [];
         let unpacked = [];
-        // Parçaları en uzun kenarlarına göre büyükten küçüğe sırala
+
+        // Parçaları en büyük kenara göre sırala (en verimli yöntem)
         pieces.sort((a, b) => Math.max(b.w, b.h) - Math.max(a.w, a.h));
 
         for (const piece of pieces) {
             let placed = false;
             // Mevcut plakalarda yer ara
-            for (const sheet of this.sheets) {
-                const node = this.findNode(sheet.root, piece.w, piece.h);
-                if (node) {
-                    piece.fit = this.splitNode(node, piece.w, piece.h);
-                    sheet.pieces.push(piece);
+            for (const sheet of sheets) {
+                if (this.placeInSheet(piece, sheet, allowRotation)) {
                     placed = true;
                     break;
-                }
-                if (allowRotation && piece.w !== piece.h) {
-                    const nodeRotated = this.findNode(sheet.root, piece.h, piece.w);
-                    if (nodeRotated) {
-                        [piece.w, piece.h] = [piece.h, piece.w];
-                        piece.fit = this.splitNode(nodeRotated, piece.w, piece.h);
-                        sheet.pieces.push(piece);
-                        placed = true;
-                        break;
-                    }
                 }
             }
             // Yerleşmediyse yeni plaka aç
             if (!placed) {
-                const canFit = (piece.w <= this.binWidth && piece.h <= this.binHeight) || 
-                               (allowRotation && piece.h <= this.binWidth && piece.w <= this.binHeight);
-                
-                if (canFit) {
-                    const newSheet = { root: { x: 0, y: 0, w: this.binWidth, h: this.binHeight }, pieces: [] };
-                    this.sheets.push(newSheet);
-                    
-                    const node = this.findNode(newSheet.root, piece.w, piece.h);
-                    if (node) {
-                        piece.fit = this.splitNode(node, piece.w, piece.h);
-                        newSheet.pieces.push(piece);
-                        placed = true;
-                    } else if (allowRotation && piece.w !== piece.h) {
-                        const nodeRotated = this.findNode(newSheet.root, piece.h, piece.w);
-                        if (nodeRotated) {
-                            [piece.w, piece.h] = [piece.h, piece.w];
-                            piece.fit = this.splitNode(nodeRotated, piece.w, piece.h);
-                            newSheet.pieces.push(piece);
-                            placed = true;
-                        }
-                    }
+                const newSheet = { root: { x: 0, y: 0, w: binWidth, h: binHeight }, pieces: [] };
+                if (this.placeInSheet(piece, newSheet, allowRotation)) {
+                    sheets.push(newSheet);
+                    placed = true;
                 }
             }
-
             if (!placed) {
                 unpacked.push(piece);
             }
         }
-        return { packedSheets: this.sheets, unpackedPieces: unpacked };
+        return { packedSheets: sheets, unpackedPieces: unpacked };
+    }
+
+    placeInSheet(piece, sheet, allowRotation) {
+        let node = this.findNode(sheet.root, piece.w, piece.h);
+        if (node) {
+            piece.fit = this.splitNode(node, piece.w, piece.h);
+            sheet.pieces.push(piece);
+            return true;
+        }
+        if (allowRotation && piece.w !== piece.h) {
+            node = this.findNode(sheet.root, piece.h, piece.w);
+            if (node) {
+                [piece.w, piece.h] = [piece.h, piece.w]; // Döndür
+                piece.fit = this.splitNode(node, piece.w, piece.h);
+                sheet.pieces.push(piece);
+                return true;
+            }
+        }
+        return false;
     }
 
     findNode(root, w, h) {
