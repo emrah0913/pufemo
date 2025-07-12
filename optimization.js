@@ -305,21 +305,30 @@ function calculateAndRenderBandingSummary() {
 // *** YENİ VE GÜVENİLİR İNTERAKTİF EDİTÖR FONKSİYONLARI ***
 function makePiecesInteractive() {
     let activePiece = null;
+    let originalParent = null;
+    let originalPosition = { left: 0, top: 0 };
     let offsetX = 0, offsetY = 0;
 
     const startDrag = (e) => {
         const piece = e.target.closest('.piece');
         if (!piece) return;
+
         if (e.target.classList.contains('rotate-icon')) {
             rotatePiece(e);
             return;
         }
+        
         e.preventDefault();
         activePiece = piece;
-        activePiece.classList.add('dragging');
+        originalParent = piece.parentElement;
+        originalPosition = { left: piece.style.left, top: piece.style.top };
+        
         const rect = activePiece.getBoundingClientRect();
         offsetX = e.clientX - rect.left;
         offsetY = e.clientY - rect.top;
+        
+        activePiece.classList.add('dragging');
+        activePiece.style.zIndex = 1000;
         document.addEventListener('mousemove', drag);
         document.addEventListener('mouseup', stopDrag);
     };
@@ -335,36 +344,40 @@ function makePiecesInteractive() {
         document.removeEventListener('mousemove', drag);
         document.removeEventListener('mouseup', stopDrag);
 
-        const pieceRect = activePiece.getBoundingClientRect();
-        let droppedOnSheet = null;
-        document.querySelectorAll('.sheet-container').forEach(sheet => {
-            const sheetRect = sheet.getBoundingClientRect();
-            if (e.clientX > sheetRect.left && e.clientX < sheetRect.right &&
-                e.clientY > sheetRect.top && e.clientY < sheetRect.bottom) {
-                droppedOnSheet = sheet;
-            }
-        });
+        activePiece.style.visibility = 'hidden';
+        const dropTarget = document.elementFromPoint(e.clientX, e.clientY);
+        activePiece.style.visibility = 'visible';
 
-        if (droppedOnSheet) {
-            const newLeft = pieceRect.left - droppedOnSheet.getBoundingClientRect().left;
-            const newTop = pieceRect.top - droppedOnSheet.getBoundingClientRect().top;
+        const targetSheet = dropTarget ? dropTarget.closest('.sheet-container') : null;
 
-            if (checkCollision(activePiece, droppedOnSheet, newLeft, newTop)) {
-                activePiece.style.borderColor = 'red';
-                // İsteğe bağlı: Eski pozisyona geri döndür
-                // revertToOriginalPosition(); // Bu fonksiyonu eklemek gerekir
+        if (targetSheet) {
+            const parentRect = targetSheet.getBoundingClientRect();
+            const newLeft = e.clientX - parentRect.left - offsetX;
+            const newTop = e.clientY - parentRect.top - offsetY;
+
+            if (checkCollision(activePiece, targetSheet, newLeft, newTop)) {
+                revertToOriginal();
             } else {
-                activePiece.style.borderColor = '#0d6efd';
-                droppedOnSheet.appendChild(activePiece);
+                targetSheet.appendChild(activePiece);
+                activePiece.style.position = 'absolute';
                 activePiece.style.left = `${newLeft}px`;
                 activePiece.style.top = `${newTop}px`;
             }
+        } else {
+            revertToOriginal();
         }
         
         activePiece.classList.remove('dragging');
+        activePiece.style.zIndex = 'auto';
         activePiece = null;
     };
     
+    function revertToOriginal() {
+        originalParent.appendChild(activePiece);
+        activePiece.style.left = originalPosition.left;
+        activePiece.style.top = originalPosition.top;
+    }
+
     const rotatePiece = (e) => {
         e.stopPropagation();
         const piece = e.target.closest('.piece');
