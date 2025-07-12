@@ -163,13 +163,12 @@ function runOptimization() {
             tabContentPane.id = tabId;
             tabContentPane.role = 'tabpanel';
             
-            const packer = new MaxRectsPacker(sheetWidth, sheetHeight, allowRotation);
-            packer.addArray(partsByMaterial[materialId]);
+            const packer = new Packer(sheetWidth, sheetHeight);
+            const { packedPieces, unpackedPieces } = packer.fit(partsByMaterial[materialId], allowRotation);
             
-            const packedSheets = packer.sheets;
-            const unpackedPieces = packer.unpacked;
-            
-            packedSheets.forEach((sheet, index) => {
+            const sheets = packer.sheets;
+
+            sheets.forEach((sheet, index) => {
                 const sheetEl = document.createElement('div');
                 sheetEl.className = 'sheet-container';
                 const scale = 500 / sheetWidth;
@@ -180,8 +179,8 @@ function runOptimization() {
                 sheet.pieces.forEach(p => {
                     const pieceEl = document.createElement('div');
                     pieceEl.className = 'piece';
-                    pieceEl.style.left = `${p.x * scale}px`;
-                    pieceEl.style.top = `${p.y * scale}px`;
+                    pieceEl.style.left = `${p.fit.x * scale}px`;
+                    pieceEl.style.top = `${p.fit.y * scale}px`;
                     pieceEl.style.width = `${(p.w - kerf) * scale}px`;
                     pieceEl.style.height = `${(p.h - kerf) * scale}px`;
                     pieceEl.innerHTML = `<span>${p.name} (${p.originalH}x${p.originalW})</span>`;
@@ -192,7 +191,7 @@ function runOptimization() {
 
             materialTabContent.appendChild(tabContentPane);
             
-            panelSummary.innerHTML += `<li class="list-group-item">${materialName}: <strong>${packedSheets.length} plaka</strong></li>`;
+            panelSummary.innerHTML += `<li class="list-group-item">${materialName}: <strong>${sheets.length} plaka</strong></li>`;
             
             if (unpackedPieces.length > 0) {
                 renderUnpackedPieces(unpackedPieces);
@@ -208,125 +207,94 @@ function runOptimization() {
 // Sığmayan parçaları render et
 function renderUnpackedPieces(pieces) {
     unpackedContainer.classList.remove('d-none');
+    unpackedList.innerHTML = '';
     pieces.forEach(p => {
         unpackedList.innerHTML += `<tr><td>${p.name}</td><td>${p.originalH}</td><td>${p.originalW}</td></tr>`;
     });
 }
 
-// *** YENİ PROFESYONEL MAXRECTS ALGORİTMASI SINIFI ***
-class MaxRectsPacker {
-    constructor(width, height, allowRotation) {
-        this.binWidth = width;
-        this.binHeight = height;
-        this.allowRotation = allowRotation;
+// *** YENİ VE GÜVENİLİR PACKER SINIFI (BINARY TREE) ***
+class Packer {
+    constructor(w, h) {
+        this.binWidth = w;
+        this.binHeight = h;
         this.sheets = [];
-        this.unpacked = [];
     }
 
-    addArray(pieces) {
+    fit(pieces, allowRotation) {
+        let unpacked = [];
+        // Parçaları en uzun kenarlarına göre büyükten küçüğe sırala
         pieces.sort((a, b) => Math.max(b.w, b.h) - Math.max(a.w, a.h));
+
         for (const piece of pieces) {
-            this.add(piece);
-        }
-    }
-
-    add(piece) {
-        if (piece.w > this.binWidth || piece.h > this.binHeight) {
-             if (!this.allowRotation || piece.h > this.binWidth || piece.w > this.binHeight) {
-                this.unpacked.push(piece);
-                return;
-            }
-        }
-
-        let bestFit = { score: Infinity, sheetIndex: -1, nodeIndex: -1, rotated: false };
-
-        for (let i = 0; i < this.sheets.length; i++) {
-            const sheet = this.sheets[i];
-            for (let j = 0; j < sheet.freeRects.length; j++) {
-                const node = sheet.freeRects[j];
-
-                // Orijinal
-                if (piece.w <= node.w && piece.h <= node.h) {
-                    const score = node.w * node.h - piece.w * piece.h;
-                    if (score < bestFit.score) {
-                        bestFit = { score, sheetIndex: i, nodeIndex: j, rotated: false };
-                    }
-                }
-                // Döndürülmüş
-                if (this.allowRotation && piece.h <= node.w && piece.w <= node.h) {
-                    const score = node.w * node.h - piece.h * piece.w;
-                    if (score < bestFit.score) {
-                        bestFit = { score, sheetIndex: i, nodeIndex: j, rotated: true };
-                    }
-                }
-            }
-        }
-
-        if (bestFit.sheetIndex === -1) {
-            const newSheet = { w: this.binWidth, h: this.binHeight, pieces: [], freeRects: [{ x: 0, y: 0, w: this.binWidth, h: this.binHeight }] };
-            this.sheets.push(newSheet);
-            this.add(piece); // Yeni plakada tekrar dene
-            return;
-        }
-
-        const targetSheet = this.sheets[bestFit.sheetIndex];
-        const targetNode = targetSheet.freeRects[bestFit.nodeIndex];
-        
-        let w = piece.w;
-        let h = piece.h;
-        if (bestFit.rotated) {
-            [w, h] = [h, w];
-        }
-
-        const newPiece = { ...piece, x: targetNode.x, y: targetNode.y, w: w, h: h };
-        targetSheet.pieces.push(newPiece);
-
-        // Boş alanı güncelle
-        targetSheet.freeRects.splice(bestFit.nodeIndex, 1);
-        this.splitFreeNode(targetSheet.freeRects, targetNode, newPiece);
-        this.pruneFreeList(targetSheet.freeRects);
-    }
-
-    splitFreeNode(freeRects, freeNode, usedNode) {
-        for (let i = freeRects.length - 1; i >= 0; --i) {
-            if (this.isContained(usedNode, freeRects[i])) {
-                this.generateNewFreeNodes(freeRects[i], usedNode, freeRects);
-                freeRects.splice(i, 1);
-            }
-        }
-    }
-
-    generateNewFreeNodes(freeRect, usedNode, freeRects) {
-        if (usedNode.x < freeRect.x + freeRect.w && usedNode.x + usedNode.w > freeRect.x) {
-            if (usedNode.y > freeRect.y && usedNode.y < freeRect.y + freeRect.h)
-                freeRects.push({ x: freeRect.x, y: freeRect.y, w: freeRect.w, h: usedNode.y - freeRect.y });
-            if (usedNode.y + usedNode.h < freeRect.y + freeRect.h)
-                freeRects.push({ x: freeRect.x, y: usedNode.y + usedNode.h, w: freeRect.w, h: freeRect.y + freeRect.h - (usedNode.y + usedNode.h) });
-        }
-        if (usedNode.y < freeRect.y + freeRect.h && usedNode.y + usedNode.h > freeRect.y) {
-            if (usedNode.x > freeRect.x && usedNode.x < freeRect.x + freeRect.w)
-                freeRects.push({ x: freeRect.x, y: freeRect.y, w: usedNode.x - freeRect.x, h: freeRect.h });
-            if (usedNode.x + usedNode.w < freeRect.x + freeRect.w)
-                freeRects.push({ x: usedNode.x + usedNode.w, y: freeRect.y, w: freeRect.x + freeRect.w - (usedNode.x + usedNode.w), h: freeRect.h });
-        }
-    }
-
-    pruneFreeList(freeRects) {
-        for (let i = 0; i < freeRects.length; i++) {
-            for (let j = i + 1; j < freeRects.length; j++) {
-                if (this.isContained(freeRects[i], freeRects[j])) {
-                    freeRects.splice(i--, 1);
+            let placed = false;
+            // Mevcut plakalarda yer ara
+            for (const sheet of this.sheets) {
+                const node = this.findNode(sheet.root, piece.w, piece.h);
+                if (node) {
+                    piece.fit = this.splitNode(node, piece.w, piece.h);
+                    sheet.pieces.push(piece);
+                    placed = true;
                     break;
                 }
-                if (this.isContained(freeRects[j], freeRects[i])) {
-                    freeRects.splice(j--, 1);
+                if (allowRotation && piece.w !== piece.h) {
+                    const nodeRotated = this.findNode(sheet.root, piece.h, piece.w);
+                    if (nodeRotated) {
+                        [piece.w, piece.h] = [piece.h, piece.w];
+                        piece.fit = this.splitNode(nodeRotated, piece.w, piece.h);
+                        sheet.pieces.push(piece);
+                        placed = true;
+                        break;
+                    }
                 }
             }
+            // Yerleşmediyse yeni plaka aç
+            if (!placed) {
+                const canFit = (piece.w <= this.binWidth && piece.h <= this.binHeight) || 
+                               (allowRotation && piece.h <= this.binWidth && piece.w <= this.binHeight);
+                
+                if (canFit) {
+                    const newSheet = { root: { x: 0, y: 0, w: this.binWidth, h: this.binHeight }, pieces: [] };
+                    this.sheets.push(newSheet);
+                    
+                    const node = this.findNode(newSheet.root, piece.w, piece.h);
+                    if (node) {
+                        piece.fit = this.splitNode(node, piece.w, piece.h);
+                        newSheet.pieces.push(piece);
+                        placed = true;
+                    } else if (allowRotation && piece.w !== piece.h) {
+                        const nodeRotated = this.findNode(newSheet.root, piece.h, piece.w);
+                        if (nodeRotated) {
+                            [piece.w, piece.h] = [piece.h, piece.w];
+                            piece.fit = this.splitNode(nodeRotated, piece.w, piece.h);
+                            newSheet.pieces.push(piece);
+                            placed = true;
+                        }
+                    }
+                }
+            }
+
+            if (!placed) {
+                unpacked.push(piece);
+            }
         }
+        return { packedSheets: this.sheets, unpackedPieces: unpacked };
     }
-    
-    isContained(a, b) {
-        return a.x >= b.x && a.y >= b.y && a.x + a.w <= b.x + b.w && a.y + a.h <= b.y + b.h;
+
+    findNode(root, w, h) {
+        if (root.used) {
+            return this.findNode(root.right, w, h) || this.findNode(root.down, w, h);
+        } else if (w <= root.w && h <= root.h) {
+            return root;
+        }
+        return null;
+    }
+
+    splitNode(node, w, h) {
+        node.used = true;
+        node.down = { x: node.x, y: node.y + h, w: node.w, h: node.h - h };
+        node.right = { x: node.x + w, y: node.y, w: node.w - w, h: h };
+        return { x: node.x, y: node.y };
     }
 }
 
