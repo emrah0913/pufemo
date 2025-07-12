@@ -212,7 +212,6 @@ function runOptimization() {
         
         calculateAndRenderBandingSummary();
         loadingIndicator.classList.add('d-none');
-        makePiecesInteractive();
     }, 500);
 }
 
@@ -262,10 +261,19 @@ class MaxRectsPacker {
             }
         }
 
+        // *** DÜZELTME: Sonsuz döngüyü engelle ***
         if (bestFit.sheetIndex === -1) {
-            const newSheet = { w: this.binWidth, h: this.binHeight, pieces: [], freeRects: [{ x: 0, y: 0, w: this.binWidth, h: this.binHeight }] };
-            this.sheets.push(newSheet);
-            this.add(piece);
+            // Parça yeni bir plakaya sığıyor mu?
+            const canFit = (piece.w <= this.binWidth && piece.h <= this.binHeight) || 
+                           (this.allowRotation && piece.h <= this.binWidth && piece.w <= this.binHeight);
+            
+            if (canFit) {
+                const newSheet = { w: this.binWidth, h: this.binHeight, pieces: [], freeRects: [{ x: 0, y: 0, w: this.binWidth, h: this.binHeight }] };
+                this.sheets.push(newSheet);
+                this.add(piece); // Yeni plakada tekrar dene (artık güvenli)
+            } else {
+                this.unpacked.push(piece); // Sığmıyorsa ayır
+            }
             return;
         }
 
@@ -319,6 +327,7 @@ class MaxRectsPacker {
 }
 
 
+// Kenar bandı özetini hesapla ve render et
 function calculateAndRenderBandingSummary() {
     const bandingTotals = {};
     (projectData.parts || []).forEach(part => {
@@ -339,134 +348,6 @@ function calculateAndRenderBandingSummary() {
         const totalMeters = (bandingTotals[materialId] / 1000).toFixed(2);
         bandingSummary.innerHTML += `<li class="list-group-item">${materialName}: <strong>${totalMeters} metre</strong></li>`;
     }
-}
-
-// *** YENİ VE GÜVENİLİR İNTERAKTİF EDİTÖR FONKSİYONLARI ***
-function makePiecesInteractive() {
-    let activePiece = null;
-    let originalParent = null;
-    let originalPosition = { left: 0, top: 0 };
-    let offsetX = 0, offsetY = 0;
-
-    const startDrag = (e) => {
-        const piece = e.target.closest('.piece');
-        if (!piece) return;
-        if (e.target.classList.contains('rotate-icon')) {
-            rotatePiece(e);
-            return;
-        }
-        e.preventDefault();
-        activePiece = piece;
-        originalParent = piece.parentElement;
-        originalPosition = { left: piece.style.left, top: piece.style.top };
-        
-        const rect = activePiece.getBoundingClientRect();
-        offsetX = e.clientX - rect.left;
-        offsetY = e.clientY - rect.top;
-        
-        activePiece.classList.add('dragging');
-        activePiece.style.zIndex = 1000;
-        document.addEventListener('mousemove', drag);
-        document.addEventListener('mouseup', stopDrag, { once: true });
-    };
-
-    const drag = (e) => {
-        if (!activePiece) return;
-        const newX = e.clientX - offsetX;
-        const newY = e.clientY - offsetY;
-        activePiece.style.left = `${newX}px`;
-        activePiece.style.top = `${newY}px`;
-    };
-
-    const stopDrag = (e) => {
-        if (!activePiece) return;
-        document.removeEventListener('mousemove', drag);
-
-        activePiece.style.visibility = 'hidden';
-        const dropTarget = document.elementFromPoint(e.clientX, e.clientY);
-        activePiece.style.visibility = 'visible';
-
-        const targetSheet = dropTarget ? dropTarget.closest('.sheet-container') : null;
-
-        let placedSuccessfully = false;
-        if (targetSheet) {
-            const parentRect = targetSheet.getBoundingClientRect();
-            let newLeft = e.clientX - parentRect.left - offsetX;
-            let newTop = e.clientY - parentRect.top - offsetY;
-
-            // Sınır kontrolü
-            if (newLeft < 0) newLeft = 0;
-            if (newTop < 0) newTop = 0;
-            if (newLeft + activePiece.offsetWidth > parentRect.width) newLeft = parentRect.width - activePiece.offsetWidth;
-            if (newTop + activePiece.offsetHeight > parentRect.height) newTop = parentRect.height - activePiece.offsetHeight;
-
-            if (!checkCollision(activePiece, targetSheet, newLeft, newTop)) {
-                targetSheet.appendChild(activePiece);
-                activePiece.style.position = 'absolute';
-                activePiece.style.left = `${newLeft}px`;
-                activePiece.style.top = `${newTop}px`;
-                placedSuccessfully = true;
-            }
-        }
-        
-        if (!placedSuccessfully) {
-            originalParent.appendChild(activePiece);
-            activePiece.style.left = originalPosition.left;
-            activePiece.style.top = originalPosition.top;
-        }
-        
-        activePiece.classList.remove('dragging');
-        activePiece.style.zIndex = 'auto';
-        activePiece.style.borderColor = '#0d6efd';
-        activePiece = null;
-    };
-    
-    const rotatePiece = (e) => {
-        e.stopPropagation();
-        const piece = e.target.closest('.piece');
-        if (piece.dataset.allowRotation !== 'true') {
-            alert("Bu malzemenin yönü kilitli, döndüremezsiniz.");
-            return;
-        }
-
-        const currentW = piece.offsetWidth;
-        const currentH = piece.offsetHeight;
-        
-        piece.style.width = `${currentH}px`;
-        piece.style.height = `${currentW}px`;
-        
-        const parentRect = piece.parentElement.getBoundingClientRect();
-        if (parseFloat(piece.style.left) + currentH > parentRect.width) {
-            piece.style.left = `${parentRect.width - currentH}px`;
-        }
-        if (parseFloat(piece.style.top) + currentW > parentRect.height) {
-            piece.style.top = `${parentRect.height - currentW}px`;
-        }
-    };
-
-    function checkCollision(draggedPiece, targetSheet, newLeft, newTop) {
-        const draggedRect = {
-            left: newLeft, top: newTop,
-            right: newLeft + draggedPiece.offsetWidth,
-            bottom: newTop + draggedPiece.offsetHeight
-        };
-        let collision = false;
-        targetSheet.querySelectorAll('.piece').forEach(otherPiece => {
-            if (otherPiece === draggedPiece) return;
-            const otherRect = {
-                left: parseFloat(otherPiece.style.left), top: parseFloat(otherPiece.style.top),
-                right: parseFloat(otherPiece.style.left) + otherPiece.offsetWidth,
-                bottom: parseFloat(otherPiece.style.top) + otherPiece.offsetHeight
-            };
-            if (draggedRect.left < otherRect.right && draggedRect.right > otherRect.left &&
-                draggedRect.top < otherRect.bottom && draggedRect.bottom > otherRect.top) {
-                collision = true;
-            }
-        });
-        return collision;
-    }
-
-    materialTabContent.addEventListener('mousedown', startDrag);
 }
 
 // Çıkış yap
