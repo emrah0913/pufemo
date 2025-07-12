@@ -164,7 +164,8 @@ function runOptimization() {
             tabContentPane.role = 'tabpanel';
             
             const packer = new Packer();
-            const { packedSheets, unpackedPieces } = packer.pack(partsByMaterial[materialId], sheetWidth, sheetHeight, allowRotation);
+            // *** DÜZELTME BURADA: packer.pack yerine packer.fit çağırılıyor ***
+            const { packedSheets, unpackedPieces } = packer.fit(partsByMaterial[materialId], sheetWidth, sheetHeight, allowRotation);
             
             packedSheets.forEach((sheet, index) => {
                 const sheetEl = document.createElement('div');
