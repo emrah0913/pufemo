@@ -172,6 +172,7 @@ function runOptimization() {
                 const scale = 500 / sheetWidth;
                 sheetEl.style.width = `${sheetWidth * scale}px`;
                 sheetEl.style.height = `${sheetHeight * scale}px`;
+                sheetEl.dataset.scale = scale;
                 sheetEl.innerHTML = `<h5 class="p-2">Plaka ${index + 1}</h5>`;
 
                 sheet.pieces.forEach((p, pieceIndex) => {
@@ -312,25 +313,30 @@ function calculateAndRenderBandingSummary() {
     }
 }
 
-// *** YENİ İNTERAKTİF EDİTÖR FONKSİYONLARI ***
+// *** YENİ İNTERAKTİF EDİTÖR FONKSİYONLARI (DÜZELTİLMİŞ) ***
 function makePiecesInteractive() {
     let activePiece = null;
     let offsetX, offsetY;
 
-    document.querySelectorAll('.piece').forEach(piece => {
-        piece.addEventListener('mousedown', dragStart);
-        piece.querySelector('.rotate-icon').addEventListener('click', rotatePiece);
-    });
+    // Olay dinleyicilerini daha genel bir kapsayıcıya ekle (Event Delegation)
+    materialTabContent.addEventListener('mousedown', dragStart);
 
     function dragStart(e) {
-        if (e.target.classList.contains('rotate-icon')) return;
+        // Sadece .piece veya içindekilere tıklandığında çalış
+        const piece = e.target.closest('.piece');
+        if (!piece) return;
+
+        // Döndürme ikonuna tıklandıysa sürüklemeyi başlatma
+        if (e.target.classList.contains('rotate-icon')) {
+            rotatePiece(e);
+            return;
+        }
+        
         e.preventDefault();
-        activePiece = e.currentTarget;
+        activePiece = piece;
         activePiece.classList.add('dragging');
 
-        const parentRect = activePiece.parentElement.getBoundingClientRect();
         const pieceRect = activePiece.getBoundingClientRect();
-
         offsetX = e.clientX - pieceRect.left;
         offsetY = e.clientY - pieceRect.top;
 
@@ -340,35 +346,42 @@ function makePiecesInteractive() {
 
     function dragMove(e) {
         if (!activePiece) return;
-        const parentRect = activePiece.parentElement.getBoundingClientRect();
-        const scale = 500 / parseInt(document.getElementById('sheetWidth').value);
+        const parentContainer = activePiece.parentElement;
+        const parentRect = parentContainer.getBoundingClientRect();
+        const scale = parseFloat(parentContainer.dataset.scale);
         
-        let newX = (e.clientX - parentRect.left - offsetX) / scale;
-        let newY = (e.clientY - parentRect.top - offsetY) / scale;
+        let newLeft = e.clientX - parentRect.left - offsetX;
+        let newTop = e.clientY - parentRect.top - offsetY;
 
-        const pieceW = parseFloat(activePiece.dataset.w) + parseFloat(activePiece.dataset.kerf);
-        const pieceH = parseFloat(activePiece.dataset.h) + parseFloat(activePiece.dataset.kerf);
-        
-        // Sınır kontrolü
-        if (newX < 0) newX = 0;
-        if (newY < 0) newY = 0;
-        if (newX + pieceW > activePiece.parentElement.offsetWidth / scale) newX = activePiece.parentElement.offsetWidth / scale - pieceW;
-        if (newY + pieceH > activePiece.parentElement.offsetHeight / scale) newY = activePiece.parentElement.offsetHeight / scale - pieceH;
+        // Sınır kontrolü (piksel cinsinden)
+        if (newLeft < 0) newLeft = 0;
+        if (newTop < 0) newTop = 0;
+        if (newLeft + activePiece.offsetWidth > parentRect.width) newLeft = parentRect.width - activePiece.offsetWidth;
+        if (newTop + activePiece.offsetHeight > parentRect.height) newTop = parentRect.height - activePiece.offsetHeight;
 
         // Çarpışma kontrolü
-        if (!checkCollision(activePiece, newX, newY, pieceW, pieceH)) {
-            activePiece.style.left = `${newX * scale}px`;
-            activePiece.style.top = `${newY * scale}px`;
+        if (!checkCollision(activePiece, newLeft, newTop)) {
             activePiece.style.borderColor = '#0d6efd';
         } else {
             activePiece.style.borderColor = 'red';
         }
+        
+        activePiece.style.left = `${newLeft}px`;
+        activePiece.style.top = `${newTop}px`;
     }
 
     function dragEnd() {
         if (!activePiece) return;
+        
+        // Son pozisyonda çarpışma varsa eski yerine döndür (opsiyonel, şimdilik basit tutalım)
+        const newLeft = parseFloat(activePiece.style.left);
+        const newTop = parseFloat(activePiece.style.top);
+        if(checkCollision(activePiece, newLeft, newTop)){
+             // Belki bir uyarı gösterilebilir veya eski pozisyona geri alınabilir.
+             // Şimdilik kırmızı kenarlık yeterli.
+        }
+        
         activePiece.classList.remove('dragging');
-        activePiece.style.borderColor = '#0d6efd';
         activePiece = null;
         document.removeEventListener('mousemove', dragMove);
         document.removeEventListener('mouseup', dragEnd);
@@ -376,50 +389,50 @@ function makePiecesInteractive() {
 
     function rotatePiece(e) {
         e.stopPropagation();
-        const piece = e.currentTarget.parentElement;
+        const piece = e.target.closest('.piece');
         if (piece.dataset.allowRotation !== 'true') {
             alert("Bu malzemenin yönü kilitli, döndüremezsiniz.");
             return;
         }
 
-        const oldW = parseFloat(piece.dataset.w);
-        const oldH = parseFloat(piece.dataset.h);
+        const oldW = piece.offsetWidth;
+        const oldH = piece.offsetHeight;
         
-        // Yeni boyutları ata
-        piece.dataset.w = oldH;
-        piece.dataset.h = oldW;
+        // Boyutları değiştir
+        piece.style.width = `${oldH}px`;
+        piece.style.height = `${oldW}px`;
         
-        const scale = 500 / parseInt(document.getElementById('sheetWidth').value);
-        const kerf = parseFloat(piece.dataset.kerf);
-
-        // Çarpışma kontrolü
-        const currentX = parseFloat(piece.style.left) / scale;
-        const currentY = parseFloat(piece.style.top) / scale;
-        
-        if (checkCollision(piece, currentX, currentY, oldH + kerf, oldW + kerf)) {
-            alert("Döndürme için yeterli alan yok.");
-            // Eski boyutlara geri dön
-            piece.dataset.w = oldW;
-            piece.dataset.h = oldH;
-            return;
+        // Eğer döndürme sonrası plaka dışına taşıyorsa, pozisyonu ayarla
+        const parentRect = piece.parentElement.getBoundingClientRect();
+        if (parseFloat(piece.style.left) + oldH > parentRect.width) {
+            piece.style.left = `${parentRect.width - oldH}px`;
         }
-
-        piece.style.width = `${oldH * scale}px`;
-        piece.style.height = `${oldW * scale}px`;
+        if (parseFloat(piece.style.top) + oldW > parentRect.height) {
+            piece.style.top = `${parentRect.height - oldW}px`;
+        }
     }
 
-    function checkCollision(draggedPiece, newX, newY, w, h) {
+    function checkCollision(draggedPiece, newLeft, newTop) {
+        const draggedRect = {
+            left: newLeft,
+            top: newTop,
+            right: newLeft + draggedPiece.offsetWidth,
+            bottom: newTop + draggedPiece.offsetHeight
+        };
+
         let collision = false;
         draggedPiece.parentElement.querySelectorAll('.piece').forEach(otherPiece => {
             if (otherPiece === draggedPiece) return;
             
-            const otherScale = 500 / parseInt(document.getElementById('sheetWidth').value);
-            const otherX = parseFloat(otherPiece.style.left) / otherScale;
-            const otherY = parseFloat(otherPiece.style.top) / otherScale;
-            const otherW = parseFloat(otherPiece.dataset.w) + parseFloat(otherPiece.dataset.kerf);
-            const otherH = parseFloat(otherPiece.dataset.h) + parseFloat(otherPiece.dataset.kerf);
+            const otherRect = {
+                left: parseFloat(otherPiece.style.left),
+                top: parseFloat(otherPiece.style.top),
+                right: parseFloat(otherPiece.style.left) + otherPiece.offsetWidth,
+                bottom: parseFloat(otherPiece.style.top) + otherPiece.offsetHeight
+            };
 
-            if (newX < otherX + otherW && newX + w > otherX && newY < otherY + otherH && newY + h > otherY) {
+            if (draggedRect.left < otherRect.right && draggedRect.right > otherRect.left &&
+                draggedRect.top < otherRect.bottom && draggedRect.bottom > otherRect.top) {
                 collision = true;
             }
         });
