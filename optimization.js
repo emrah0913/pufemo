@@ -305,23 +305,17 @@ function calculateAndRenderBandingSummary() {
 // *** YENİ VE GÜVENİLİR İNTERAKTİF EDİTÖR FONKSİYONLARI ***
 function makePiecesInteractive() {
     let activePiece = null;
-    let originalParent = null;
-    let originalPosition = { left: 0, top: 0 };
     let offsetX = 0, offsetY = 0;
 
     const startDrag = (e) => {
         const piece = e.target.closest('.piece');
         if (!piece) return;
-
         if (e.target.classList.contains('rotate-icon')) {
             rotatePiece(e);
             return;
         }
-        
         e.preventDefault();
         activePiece = piece;
-        originalParent = piece.parentElement;
-        originalPosition = { left: piece.style.left, top: piece.style.top };
         
         const rect = activePiece.getBoundingClientRect();
         offsetX = e.clientX - rect.left;
@@ -330,7 +324,7 @@ function makePiecesInteractive() {
         activePiece.classList.add('dragging');
         activePiece.style.zIndex = 1000;
         document.addEventListener('mousemove', drag);
-        document.addEventListener('mouseup', stopDrag);
+        document.addEventListener('mouseup', stopDrag, { once: true }); // Sadece bir kere çalış
     };
 
     const drag = (e) => {
@@ -342,7 +336,6 @@ function makePiecesInteractive() {
     const stopDrag = (e) => {
         if (!activePiece) return;
         document.removeEventListener('mousemove', drag);
-        document.removeEventListener('mouseup', stopDrag);
 
         activePiece.style.visibility = 'hidden';
         const dropTarget = document.elementFromPoint(e.clientX, e.clientY);
@@ -355,16 +348,23 @@ function makePiecesInteractive() {
             const newLeft = e.clientX - parentRect.left - offsetX;
             const newTop = e.clientY - parentRect.top - offsetY;
 
-            if (checkCollision(activePiece, targetSheet, newLeft, newTop)) {
-                revertToOriginal();
+            // Yeni pozisyonun plaka içinde olduğundan emin ol
+            const finalLeft = Math.max(0, Math.min(newLeft, parentRect.width - activePiece.offsetWidth));
+            const finalTop = Math.max(0, Math.min(newTop, parentRect.height - activePiece.offsetHeight));
+
+            if (checkCollision(activePiece, targetSheet, finalLeft, finalTop)) {
+                activePiece.style.borderColor = 'red'; // Çarpışma varsa kırmızı yap
             } else {
-                targetSheet.appendChild(activePiece);
-                activePiece.style.position = 'absolute';
-                activePiece.style.left = `${newLeft}px`;
-                activePiece.style.top = `${newTop}px`;
+                activePiece.style.borderColor = '#0d6efd'; // Yoksa normal
             }
+            targetSheet.appendChild(activePiece);
+            activePiece.style.position = 'absolute';
+            activePiece.style.left = `${finalLeft}px`;
+            activePiece.style.top = `${finalTop}px`;
+
         } else {
-            revertToOriginal();
+            // Geçerli bir plakaya bırakılmadıysa, hiçbir şey yapma (parça olduğu yerde kalır)
+            // Daha gelişmiş bir versiyon, eski yerine döndürebilir.
         }
         
         activePiece.classList.remove('dragging');
@@ -372,12 +372,6 @@ function makePiecesInteractive() {
         activePiece = null;
     };
     
-    function revertToOriginal() {
-        originalParent.appendChild(activePiece);
-        activePiece.style.left = originalPosition.left;
-        activePiece.style.top = originalPosition.top;
-    }
-
     const rotatePiece = (e) => {
         e.stopPropagation();
         const piece = e.target.closest('.piece');
