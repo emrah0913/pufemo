@@ -37,47 +37,40 @@
             padding: 2px;
             box-sizing: border-box;
             transition: background-color 0.2s, border-color 0.2s;
+            z-index: 10;
         }
-        .piece.dragging {
-            cursor: grabbing;
-            z-index: 1000;
-            opacity: 0.75;
-            border-style: dashed;
-        }
-        .piece.collision {
-            background-color: rgba(220, 53, 69, 0.5);
-            border-color: #dc3545;
-        }
-        .piece-text {
-            writing-mode: vertical-rl;
-            text-orientation: mixed;
-            pointer-events: none; /* Yazının sürüklemeyi engellememesi için */
-        }
-        .rotate-icon {
+        .waste-area {
             position: absolute;
-            top: 2px;
-            right: 2px;
-            cursor: pointer;
-            color: #0d6efd;
-            background: rgba(255,255,255,0.7);
-            border-radius: 50%;
-            padding: 1px;
-            display: none;
+            background-color: rgba(220, 53, 69, 0.1);
+            border: 1px dashed #dc3545;
+            box-sizing: border-box;
+            z-index: 5;
         }
-        .piece:hover .rotate-icon {
-            display: block;
+        .waste-area:hover::after {
+            content: attr(data-title);
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            white-space: nowrap;
         }
         @media print {
             .no-print { display: none !important; }
             body { background-color: #fff; }
             .card, .sheet-container { border: 1px solid #ccc !important; box-shadow: none; }
+            .waste-area { display: none; }
         }
     </style>
 </head>
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark no-print">
         <div class="container-fluid">
-            <a class="navbar-brand" href="dashboard.html">PUFEMO PRO</a>
+            <a class="navbar-brand" href="#">PUFEMO PRO</a>
             <button class="btn btn-outline-light" id="logoutButton">Çıkış Yap</button>
         </div>
     </nav>
@@ -113,12 +106,12 @@
                         <label class="form-label">Öncelik</label>
                         <select class="form-select" id="optimizationPriority">
                             <option value="area">Minimum Fire (En Verimli)</option>
-                            <option value="width">Önce Genişlik</option>
                             <option value="height">Önce Yükseklik</option>
+                            <option value="width">Önce Genişlik</option>
                         </select>
                     </div>
                     <div class="col-md-12">
-                        <label class="form-label">Malzeme Yön Ayarları</label>
+                        <label class="form-label">Malzeme Yön Ayarları (Döndürmeye İzin Verme)</label>
                         <div id="materialGrainSettings">
                             <p class="text-muted">Projedeki panel malzemeleri burada listelenecek...</p>
                         </div>
@@ -132,7 +125,6 @@
 
         <!-- Sonuçlar -->
         <div id="resultsContainer">
-            <div class="alert alert-info no-print"><i class="bi bi-info-circle-fill"></i> Optimizasyon sonrası parçaların yerini fareyle sürükleyerek değiştirebilir, <i class="bi bi-arrow-clockwise"></i> ikonuna tıklayarak döndürebilirsiniz.</div>
             <div id="loadingIndicator" class="text-center mt-5 d-none">
                 <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status"></div>
                 <p class="mt-2">Optimizasyon yapılıyor...</p>
@@ -156,7 +148,7 @@
             <div class="card border-danger">
                 <div class="card-header bg-danger text-white"><h5>Yerleştirilemeyen Parçalar</h5></div>
                 <div class="card-body">
-                    <p>Bu parçalar plakaya sığmadı:</p>
+                    <p>Bu parçalar plakalara sığmadı:</p>
                     <table class="table table-sm table-bordered">
                         <thead><tr><th>Parça</th><th>Boy</th><th>En</th></tr></thead>
                         <tbody id="unpackedList"></tbody>
@@ -166,6 +158,372 @@
         </div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script type="module" src="optimization.js"></script>
+    
+    <script type="module">
+        // Gerekli Firebase Fonksiyonlarını Import Etme
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
+        import { getFirestore, doc, getDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+
+        // Firebase Konfigürasyonu
+        const firebaseConfig = {
+            apiKey: "AIzaSyDYkzZzNXB22U4oEXxOoPh-puwuE8kz0g4",
+            authDomain: "pufemo-com.firebaseapp.com",
+            projectId: "pufemo-com",
+            storageBucket: "pufemo-com.appspot.com",
+            messagingSenderId: "983352837227",
+            appId: "1:983352837227:web:defaa8dae215776e2e1d2e",
+            measurementId: "G-RH8XHC7P91"
+        };
+
+        // Firebase'i ve Servisleri Başlatma
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Değişkenler
+        let currentUser = null;
+        let projectId = null;
+        let projectData = {};
+        let allMaterials = new Map();
+
+        // HTML Elementleri
+        const projectNameEl = document.getElementById('projectName');
+        const backButton = document.getElementById('backButton');
+        const logoutButton = document.getElementById('logoutButton');
+        const runOptimizationBtn = document.getElementById('runOptimizationBtn');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const materialTabs = document.getElementById('materialTabs');
+        const materialTabContent = document.getElementById('materialTabContent');
+        const panelSummary = document.getElementById('panelSummary');
+        const bandingSummary = document.getElementById('bandingSummary');
+        const materialGrainSettings = document.getElementById('materialGrainSettings');
+        const unpackedContainer = document.getElementById('unpackedContainer');
+        const unpackedList = document.getElementById('unpackedList');
+
+        // Sayfa Yüklendiğinde
+        document.addEventListener('DOMContentLoaded', () => {
+            const params = new URLSearchParams(window.location.search);
+            projectId = params.get('id');
+
+            if (!projectId) {
+                alert("Proje ID'si bulunamadı!");
+                window.location.href = 'projects.html';
+                return;
+            }
+            
+            backButton.href = `project-detail.html?id=${projectId}`;
+
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    currentUser = user;
+                    loadProjectAndMaterials();
+                } else {
+                    window.location.href = 'index.html';
+                }
+            });
+
+            runOptimizationBtn.addEventListener('click', runOptimization);
+        });
+
+        // Proje ve Malzeme verilerini yükle
+        const loadProjectAndMaterials = async () => {
+            try {
+                const matQuery = query(collection(db, 'materials'), where('userId', '==', currentUser.uid));
+                const matSnapshot = await getDocs(matQuery);
+                allMaterials.clear();
+                matSnapshot.forEach(doc => {
+                    allMaterials.set(doc.id, { id: doc.id, ...doc.data() });
+                });
+
+                const projectRef = doc(db, 'projects', projectId);
+                const projectSnap = await getDoc(projectRef);
+                if (projectSnap.exists()) {
+                    projectData = projectSnap.data();
+                    projectNameEl.textContent = projectData.name;
+                    createGrainSettingsUI();
+                } else {
+                    alert("Proje bulunamadı.");
+                    window.location.href = 'projects.html';
+                }
+            } catch (error) {
+                console.error("Veri yüklenirken hata oluştu:", error);
+                alert("Veri yüklenirken bir hata oluştu. Lütfen daha sonra tekrar deneyin.");
+            }
+        };
+
+        // Yön ayarları için arayüzü oluşturan fonksiyon
+        function createGrainSettingsUI() {
+            materialGrainSettings.innerHTML = '';
+            const uniquePanelIds = [...new Set((projectData.parts || []).map(p => p.materialId))];
+            
+            if (uniquePanelIds.length === 0) {
+                materialGrainSettings.innerHTML = '<p class="text-muted">Projede panel malzemesi bulunmuyor.</p>';
+                return;
+            }
+
+            uniquePanelIds.forEach(id => {
+                const material = allMaterials.get(id);
+                if (material && material.type === 'Panel') {
+                    const div = document.createElement('div');
+                    div.className = 'form-check form-check-inline';
+                    div.innerHTML = `
+                        <input class="form-check-input" type="checkbox" value="" id="grain-${id}">
+                        <label class="form-check-label" for="grain-${id}">
+                            <b>${material.name}</b>
+                        </label>
+                    `;
+                    materialGrainSettings.appendChild(div);
+                }
+            });
+        }
+        
+        // Optimizasyonu Başlat
+        function runOptimization() {
+            loadingIndicator.classList.remove('d-none');
+            materialTabs.innerHTML = '';
+            materialTabContent.innerHTML = '';
+            panelSummary.innerHTML = '';
+            bandingSummary.innerHTML = '';
+            unpackedContainer.classList.add('d-none');
+            unpackedList.innerHTML = '';
+            
+            setTimeout(() => {
+                const sheetWidth = parseInt(document.getElementById('sheetWidth').value);
+                const sheetHeight = parseInt(document.getElementById('sheetHeight').value);
+                const kerf = parseInt(document.getElementById('kerfValue').value) || 0;
+                const priority = document.getElementById('optimizationPriority').value;
+                
+                if (!sheetWidth || !sheetHeight) {
+                    alert("Lütfen geçerli plaka ölçüleri girin.");
+                    loadingIndicator.classList.add('d-none');
+                    return;
+                }
+
+                const partsByMaterial = {};
+                (projectData.parts || []).forEach(part => {
+                    const material = allMaterials.get(part.materialId);
+                    if (material && material.type === 'Panel') {
+                        if (!partsByMaterial[part.materialId]) {
+                            partsByMaterial[part.materialId] = [];
+                        }
+                        for (let i = 0; i < part.qty; i++) {
+                            partsByMaterial[part.materialId].push({ 
+                                w: part.width + kerf, 
+                                h: part.height + kerf, 
+                                name: part.name, 
+                                originalW: part.width, 
+                                originalH: part.height 
+                            });
+                        }
+                    }
+                });
+
+                let firstTab = true;
+                for (const materialId in partsByMaterial) {
+                    const material = allMaterials.get(materialId);
+                    const materialName = material ? material.name : 'Bilinmeyen Malzeme';
+                    
+                    const grainCheckbox = document.getElementById(`grain-${materialId}`);
+                    const allowRotation = grainCheckbox ? !grainCheckbox.checked : true;
+                    
+                    const tabId = `tab-${materialId}`;
+                    const tabNavItem = document.createElement('li');
+                    tabNavItem.className = 'nav-item';
+                    tabNavItem.innerHTML = `<a class="nav-link ${firstTab ? 'active' : ''}" id="${tabId}-tab" data-bs-toggle="tab" href="#${tabId}" role="tab">${materialName}</a>`;
+                    materialTabs.appendChild(tabNavItem);
+
+                    const tabContentPane = document.createElement('div');
+                    tabContentPane.className = `tab-pane fade ${firstTab ? 'show active' : ''}`;
+                    tabContentPane.id = tabId;
+                    tabContentPane.role = 'tabpanel';
+                    
+                    const packer = new Packer();
+                    const { packedSheets, unpackedPieces } = packer.fit(partsByMaterial[materialId], sheetWidth, sheetHeight, allowRotation, priority);
+                    
+                    let totalUsedArea = 0;
+                    packedSheets.forEach((sheet, index) => {
+                        const sheetEl = document.createElement('div');
+                        sheetEl.className = 'sheet-container';
+                        const scale = 500 / sheetWidth;
+                        sheetEl.style.width = `${sheetWidth * scale}px`;
+                        sheetEl.style.height = `${sheetHeight * scale}px`;
+                        sheetEl.innerHTML = `<h5 class="p-2 no-print">Plaka ${index + 1}</h5>`;
+
+                        sheet.pieces.forEach(p => {
+                            totalUsedArea += p.originalW * p.originalH;
+                            const pieceEl = document.createElement('div');
+                            pieceEl.className = 'piece';
+                            pieceEl.style.left = `${p.fit.x * scale}px`;
+                            pieceEl.style.top = `${p.fit.y * scale}px`;
+                            pieceEl.style.width = `${p.originalW * scale}px`;
+                            pieceEl.style.height = `${p.originalH * scale}px`;
+                            pieceEl.innerHTML = `<span>${p.name}<br>${p.originalH}x${p.originalW}</span>`;
+                            sheetEl.appendChild(pieceEl);
+                        });
+                        
+                        // Fire alanlarını çiz
+                        drawWaste(sheet.root, sheetEl, scale);
+                        tabContentPane.appendChild(sheetEl);
+                    });
+
+                    materialTabContent.appendChild(tabContentPane);
+                    
+                    const totalSheetArea = packedSheets.length * sheetWidth * sheetHeight;
+                    const efficiency = totalSheetArea > 0 ? (totalUsedArea / totalSheetArea) * 100 : 0;
+                    panelSummary.innerHTML += `<li class="list-group-item d-flex justify-content-between align-items-center">
+                        ${materialName}: <strong>${packedSheets.length} plaka</strong>
+                        <span class="badge bg-success rounded-pill">${efficiency.toFixed(1)}% Verim</span>
+                    </li>`;
+                    
+                    if (unpackedPieces.length > 0) {
+                        renderUnpackedPieces(unpackedPieces);
+                    }
+                    firstTab = false;
+                }
+                
+                calculateAndRenderBandingSummary();
+                loadingIndicator.classList.add('d-none');
+            }, 100);
+        }
+
+        function drawWaste(node, container, scale) {
+            if (!node) return;
+            if (node.used) {
+                drawWaste(node.down, container, scale);
+                drawWaste(node.right, container, scale);
+            } else {
+                if (node.w > 1 && node.h > 1) { // Çok küçük fireleri çizme
+                    const wasteEl = document.createElement('div');
+                    wasteEl.className = 'waste-area';
+                    wasteEl.style.left = `${node.x * scale}px`;
+                    wasteEl.style.top = `${node.y * scale}px`;
+                    wasteEl.style.width = `${node.w * scale}px`;
+                    wasteEl.style.height = `${node.h * scale}px`;
+                    wasteEl.dataset.title = `Fire: ${Math.round(node.w)}x${Math.round(node.h)}`;
+                    container.appendChild(wasteEl);
+                }
+            }
+        }
+
+        function renderUnpackedPieces(pieces) {
+            unpackedContainer.classList.remove('d-none');
+            unpackedList.innerHTML = '';
+            pieces.forEach(p => {
+                unpackedList.innerHTML += `<tr><td>${p.name}</td><td>${p.originalH}</td><td>${p.originalW}</td></tr>`;
+            });
+        }
+
+        class Packer {
+            fit(pieces, binWidth, binHeight, allowRotation, priority = 'area') {
+                let sheets = [];
+                let unpacked = [];
+
+                // Parçaları seçilen önceliğe göre sırala
+                switch (priority) {
+                    case 'height':
+                        pieces.sort((a, b) => (b.h - a.h) || (b.w - a.w));
+                        break;
+                    case 'width':
+                        pieces.sort((a, b) => (b.w - a.w) || (b.h - a.h));
+                        break;
+                    case 'area':
+                    default:
+                         pieces.sort((a, b) => (b.w * b.h) - (a.w * a.h));
+                        break;
+                }
+
+                for (const piece of pieces) {
+                    let placed = false;
+                    for (const sheet of sheets) {
+                        if (this.placeInSheet(piece, sheet, allowRotation)) {
+                            placed = true;
+                            break;
+                        }
+                    }
+                    if (!placed) {
+                        const newSheet = { root: { x: 0, y: 0, w: binWidth, h: binHeight }, pieces: [] };
+                        if (this.placeInSheet(piece, newSheet, allowRotation)) {
+                            sheets.push(newSheet);
+                            placed = true;
+                        }
+                    }
+                    if (!placed) {
+                        unpacked.push(piece);
+                    }
+                }
+                return { packedSheets: sheets, unpackedPieces: unpacked };
+            }
+
+            placeInSheet(piece, sheet, allowRotation) {
+                let node = this.findNode(sheet.root, piece.w, piece.h);
+                if (node) {
+                    piece.fit = this.splitNode(node, piece.w, piece.h);
+                    sheet.pieces.push(piece);
+                    return true;
+                }
+                if (allowRotation && piece.w !== piece.h) {
+                    node = this.findNode(sheet.root, piece.h, piece.w);
+                    if (node) {
+                        [piece.w, piece.h] = [piece.h, piece.w]; // Döndür
+                        piece.rotated = true;
+                        piece.fit = this.splitNode(node, piece.w, piece.h);
+                        sheet.pieces.push(piece);
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            findNode(root, w, h) {
+                if (root.used) {
+                    return this.findNode(root.right, w, h) || this.findNode(root.down, w, h);
+                } else if (w <= root.w && h <= root.h) {
+                    return root;
+                }
+                return null;
+            }
+
+            splitNode(node, w, h) {
+                node.used = true;
+                node.down = { x: node.x, y: node.y + h, w: node.w, h: node.h - h };
+                node.right = { x: node.x + w, y: node.y, w: node.w - w, h: h };
+                return { x: node.x, y: node.y };
+            }
+        }
+
+        function calculateAndRenderBandingSummary() {
+            bandingSummary.innerHTML = '';
+            const bandingTotals = {};
+            (projectData.parts || []).forEach(part => {
+                if (part.banding && part.banding.materialId) {
+                    const materialId = part.banding.materialId;
+                    if (!bandingTotals[materialId]) bandingTotals[materialId] = 0;
+                    let length = 0;
+                    if (part.banding.b1) length += part.height;
+                    if (part.banding.b2) length += part.height;
+                    if (part.banding.e1) length += part.width;
+                    if (part.banding.e2) length += part.width;
+                    bandingTotals[materialId] += length * part.qty;
+                }
+            });
+
+            if (Object.keys(bandingTotals).length === 0) {
+                bandingSummary.innerHTML = '<li class="list-group-item">Bu projede kenar bandı bilgisi bulunmuyor.</li>';
+                return;
+            }
+
+            for (const materialId in bandingTotals) {
+                const material = allMaterials.get(materialId);
+                const materialName = material ? material.name : 'Bilinmeyen Bant';
+                const totalMeters = (bandingTotals[materialId] / 1000).toFixed(2);
+                bandingSummary.innerHTML += `<li class="list-group-item">${materialName}: <strong>${totalMeters} metre</strong></li>`;
+            }
+        }
+
+        logoutButton.addEventListener('click', () => {
+            signOut(auth).catch(error => console.error("Çıkış hatası:", error));
+        });
+    </script>
 </body>
 </html>
